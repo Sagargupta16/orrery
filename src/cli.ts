@@ -9,15 +9,30 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
-import { allIcons, iconInfo, PACK_ORDER, packInfo, renderIcon, searchIcons } from "./icons.ts";
+import {
+  allIcons,
+  iconInfo,
+  loadIconLibraries,
+  PACK_ORDER,
+  packInfo,
+  renderIcon,
+  searchIcons,
+} from "./icons.ts";
 import { importMermaid } from "./import/mermaid.ts";
+import { cachePath, LibraryError, librarySource, loadLibrary } from "./libraries.ts";
 import { examplesDir, skillRoot } from "./paths.ts";
 import { FORMATS, type Format, renderModel } from "./render/index.ts";
 import { renderPng } from "./render/png.ts";
 import { parseSpec } from "./spec.ts";
 import { GROUP_STYLES } from "./styles.ts";
 import { THEME_TOKENS } from "./themes.ts";
-import { type Diagnostic, SHAPES, type ThemeName } from "./types.ts";
+import {
+  ANIMATE_MODES,
+  type AnimateMode,
+  type Diagnostic,
+  SHAPES,
+  type ThemeName,
+} from "./types.ts";
 
 declare const __VERSION__: string;
 const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "dev";
@@ -26,12 +41,14 @@ const HELP = `diagramify ${VERSION}: architecture and system design diagrams wit
 
 Usage:
   diagramify render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
-                    [--scale 2] [--animate] [--font extra.ttf] [--strict] [--force] [--json]
+                    [--scale 3] [--animate packets|flow|none] [--static] [--font extra.ttf]
+                    [--strict] [--force] [--json]
   diagramify validate <spec.yaml> [--strict] [--json]
   diagramify icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
   diagramify icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
   diagramify icons list [--pack aws] [--category Compute] [--type service] [--json]
   diagramify icons packs [--json]
+  diagramify icons fetch [pack...]
   diagramify styles [--json]
   diagramify import mermaid <flowchart.mmd|-> [-o diagram.yaml]
   diagramify init [template] [-o diagram.yaml] [--list]
@@ -46,7 +63,7 @@ interface Args {
   flags: Record<string, string | boolean>;
 }
 
-const BOOL = new Set(["json", "strict", "force", "animate", "list", "help", "version"]);
+const BOOL = new Set(["json", "strict", "force", "static", "list", "help", "version"]);
 
 function parseArgs(argv: string[]): Args {
   const out: Args = { _: [], flags: {} };
@@ -71,7 +88,12 @@ function parseArgs(argv: string[]): Args {
       };
       key = short[key] ?? key;
       if (value === undefined) {
-        if (BOOL.has(key)) value = true;
+        // A bare --animate (v0.1 style) means the default mode.
+        if (
+          BOOL.has(key) ||
+          (key === "animate" && !ANIMATE_MODES.includes(argv[i + 1] as AnimateMode))
+        )
+          value = true;
         else {
           value = argv[i + 1];
           i += 1;
@@ -173,18 +195,33 @@ async function cmdRender(args: Args, validateOnly: boolean) {
     diagnostics,
   };
   if (parsed.model && ok) {
-    const scale = args.flags.scale !== undefined ? Number(args.flags.scale) : 2;
+    const scale = args.flags.scale !== undefined ? Number(args.flags.scale) : 3;
     if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
     const fonts = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
-    const result = await renderModel({
-      model: parsed.model,
-      formats: validateOnly ? ["svg"] : formats,
-      themes: validateOnly ? [themes[0] ?? "light"] : themes,
-      name: spec.name,
-      scale,
-      fonts,
-      animate: args.flags.animate === true,
-    });
+    const animateFlag =
+      args.flags.static === true
+        ? "none"
+        : args.flags.animate === true
+          ? "packets"
+          : args.flags.animate;
+    if (animateFlag !== undefined && !ANIMATE_MODES.includes(animateFlag as AnimateMode))
+      usage(`--animate must be ${ANIMATE_MODES.join(", ")}`);
+    let result: Awaited<ReturnType<typeof renderModel>>;
+    try {
+      result = await renderModel({
+        model: parsed.model,
+        formats: validateOnly ? [] : formats,
+        themes: validateOnly ? [themes[0] ?? "light"] : themes,
+        name: spec.name,
+        scale,
+        fonts,
+        animate: animateFlag as AnimateMode | undefined,
+      });
+    } catch (e) {
+      if (!(e instanceof LibraryError)) throw e;
+      result = { artifacts: [], diagnostics: [], scenes: {} };
+      diagnostics.push({ severity: "error", code: "DG301", message: e.message, fixes: e.fixes });
+    }
     diagnostics.push(...result.diagnostics);
     const scene = result.scenes[themes[0] ?? "light"];
     const iconsByPack: Record<string, number> = {};
@@ -245,10 +282,28 @@ async function cmdIcons(args: Args) {
     if (json) return void process.stdout.write(`${JSON.stringify(packs, null, 2)}\n`);
     for (const key of PACK_ORDER) {
       const p = packs[key];
+      const from = p?.lib ? `npm ${p.lib.npm}@${p.lib.version}, loaded on first use` : "bundled";
       if (p)
         process.stdout.write(
-          `${key.padEnd(7)} ${String(p.count).padStart(5)}  ${p.title} (${p.version})\n        ${p.source}\n`,
+          `${key.padEnd(7)} ${String(p.count).padStart(5)}  ${p.title} (${p.version}; ${from})\n        ${p.source}\n`,
         );
+    }
+    return;
+  }
+  if (sub === "fetch") {
+    const packs = packInfo();
+    const wanted = rest.length ? rest : PACK_ORDER.filter((k) => packs[k]?.lib);
+    for (const key of wanted) {
+      const lib = packs[key]?.lib;
+      if (!lib) {
+        process.stdout.write(`${key.padEnd(7)} bundled, nothing to fetch\n`);
+        continue;
+      }
+      const before = librarySource(lib);
+      await loadLibrary(key, lib);
+      process.stdout.write(
+        `${key.padEnd(7)} ${lib.npm}@${lib.version} ${before ? `from ${before}` : `downloaded to ${cachePath(lib)}`}\n`,
+      );
     }
     return;
   }
@@ -297,17 +352,18 @@ async function cmdIcons(args: Args) {
     }
     const theme = (args.flags.theme === "dark" ? "dark" : "light") as ThemeName;
     const t = THEME_TOKENS[theme];
+    await loadIconLibraries([info.id]);
     const r = renderIcon(info.id, "s", { theme, background: t.background, ink: t.text });
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="96" height="96" viewBox="${r.viewBox.join(" ")}">${r.body}</svg>\n`;
     const out = typeof args.flags.out === "string" ? args.flags.out : undefined;
     if (out) {
-      writeAtomic(resolve(out), out.endsWith(".png") ? await renderPng(svg, { scale: 2 }) : svg);
+      writeAtomic(resolve(out), out.endsWith(".png") ? await renderPng(svg, { scale: 4 }) : svg);
       process.stdout.write(`wrote ${resolve(out)}\n`);
     }
     process.stdout.write(`${JSON.stringify(info, null, 2)}\n`);
     return;
   }
-  usage(`unknown icons command "${sub ?? ""}" (use search, show, list or packs)`);
+  usage(`unknown icons command "${sub ?? ""}" (use search, show, list, packs or fetch)`);
 }
 
 function cmdStyles(args: Args) {
@@ -387,12 +443,19 @@ async function cmdDoctor() {
     `${total} icons in ${Object.keys(packs).length} packs`,
   ]);
   const missing = Object.keys(packs).filter(
-    (p) => !existsSync(join(skillRoot, "assets", "icons", `${p}.json`)),
+    (p) => !packs[p]?.lib && !existsSync(join(skillRoot, "assets", "icons", `${p}.json`)),
   );
   checks.push([
-    "icon pack files",
+    "bundled icon packs",
     !missing.length,
     missing.length ? `missing ${missing.join(", ")}` : "all present",
+  ]);
+  const libs = Object.values(packs).flatMap((p) => (p.lib ? [p.lib] : []));
+  const ready = libs.filter((lib) => librarySource(lib)).length;
+  checks.push([
+    "icon libraries",
+    true,
+    `${ready}/${libs.length} available offline${ready < libs.length ? "; the rest download on first use (icons fetch)" : ""}`,
   ]);
   try {
     const parsed = parseSpec(

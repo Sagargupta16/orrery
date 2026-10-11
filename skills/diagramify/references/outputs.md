@@ -11,7 +11,8 @@ Files are written atomically (temporary file, then rename), so a failed render n
 - Accessible: `role="img"` with `<title>` (the diagram title) and `<desc>` (a generated summary of components and connections).
 - Text uses Inter when the viewer has it and falls back to Segoe UI, the system UI font, Roboto, Helvetica or Arial. Layout measures with Inter's metrics; those fallbacks are slightly narrower than Inter, so text still fits its space.
 - Node, group and edge elements carry ids (`n-<id>`, `g-<id>`, `e-<n>`), so the SVG can be styled or animated afterwards.
-- `--animate` (or `animate: true`) adds flowing dashes along the edges with a small CSS keyframe block. GitHub keeps CSS animation in SVGs shown as images, so animated diagrams work in READMEs.
+- Animated by default. With `animate: packets` (the default) a small dot travels every directed edge from source to target at one speed, so long edges take longer; `<->` edges carry one each way and undirected `--` lines stay still. When edges carry `step:` numbers, those run one after another in step order and the badge of each step ripples as its packet leaves, so the diagram plays the walkthrough on a loop; the other edges keep their own staggered loops. Line styles are untouched: a dashed edge stays dashed. It is SMIL (`<animateMotion>`), with no CSS and no script, and GitHub keeps it in SVGs shown as images.
+- `animate: flow` draws marching dashes along every edge instead (a small CSS keyframe block); solid edges become dashed while they move. `animate: none`, or `render --static`, writes a still SVG.
 
 ### In a README
 
@@ -29,7 +30,7 @@ Plain Markdown works too: `![Architecture](docs/architecture-light.svg)`.
 ## PNG
 
 - Rendered by resvg (WebAssembly) with the bundled Inter Regular and SemiBold, so the picture is identical on every machine.
-- `--scale` sets the pixel density (default 2, so a 1200 x 600 diagram becomes a 2400 x 1200 PNG). Use 1 for small chat previews, 3 or 4 for print.
+- `--scale` sets the pixel density (default 3, so a 1200 x 600 diagram becomes a 3600 x 1800 PNG that stays sharp when zoomed or projected). Use 1 or 2 for small chat previews, 4 or more for print. For pictures people will zoom into, prefer the SVG: it is vector and sharp at any zoom.
 - Animation is dropped; the PNG shows the static diagram.
 - Inter covers Latin, Greek and Cyrillic. For other scripts pass a font: `--font NotoSansJP-Regular.ttf` (repeatable).
 
@@ -66,7 +67,7 @@ A single file with no network requests: header with the title, Theme (light/dark
   "spec": { "path": "docs/architecture.yaml", "sha256": "..." },
   "outputs": [
     { "path": "docs/architecture.svg", "format": "svg", "theme": "light", "bytes": 21810, "sha256": "...", "width": 1716, "height": 460 },
-    { "path": "docs/architecture.png", "format": "png", "theme": "light", "bytes": 113970, "sha256": "...", "width": 3432, "height": 920 }
+    { "path": "docs/architecture.png", "format": "png", "theme": "light", "bytes": 113970, "sha256": "...", "width": 5148, "height": 1380 }
   ],
   "diagnostics": [],
   "stats": { "nodes": 9, "groups": 2, "edges": 9, "icons": { "aws": 9 }, "width": 1716, "height": 460 }

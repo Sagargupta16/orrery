@@ -3,6 +3,7 @@ import { isHex } from "./color.ts";
 import { iconInfo, resolveIcon, suggestIcons } from "./icons.ts";
 import { GROUP_STYLES, groupStyleKeys, resolveGroupStyle } from "./styles.ts";
 import {
+  ANIMATE_MODES,
   ARROWS,
   type ArrowMode,
   DIRECTIONS,
@@ -343,6 +344,12 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
   }
   const merge = layout.merge !== false;
   const arrowhead = oneOf(raw.arrowhead, ["open", "filled"] as const, "open", "arrowhead");
+  const animate =
+    raw.animate === true
+      ? "packets"
+      : raw.animate === false
+        ? "none"
+        : oneOf(raw.animate, ANIMATE_MODES, "packets", "animate");
   const background = str(raw.background);
   if (background && background !== "transparent" && !isHex(background)) {
     err("DG107", `background must be a hex color or "transparent"; got "${background}"`, {
@@ -789,7 +796,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     layering,
     merge,
     arrowhead,
-    animate: raw.animate === true,
+    animate,
     background: background === "transparent" ? "transparent" : background,
     nodes,
     groups,

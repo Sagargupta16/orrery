@@ -53,7 +53,7 @@ Google's [icon library](https://cloud.google.com/icons) and its product icons PD
 
 Product cards in those diagrams are white, about 192 x 70 with a 35 px icon: `look: card`. Arrows are #202124, 2 px, with an open head.
 
-On icons, the PDF says: "In early 2025, we overhauled all of our Google Cloud product icons, greatly simplifying our system from over 250 unique icons to ~40" and, of the console icons, "these icons should not be used as of 2026". diagramify keeps the console icons as type `legacy` (`diagramify icons list --pack gcp --type legacy`) because many products have no core icon; for strictly current branding, use the product's category icon (`gcp:category-*`).
+On icons, the PDF says: "In early 2025, we overhauled all of our Google Cloud product icons, greatly simplifying our system from over 250 unique icons to ~40" and, of the console icons, "these icons should not be used as of 2026". So diagramify leaves the console icons out and follows Google's own product list instead: core products draw their unique icon and every other product draws its category's icon, under the product's name (`gcp:pubsub` draws the Data Analytics icon and reads "Pub/Sub"). The mapping is `scripts/gcp-products.json`, transcribed from the guide's product pages.
 
 ## Azure
 

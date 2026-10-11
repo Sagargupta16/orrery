@@ -1,4 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>Sagargupta16/shared-workflows"]
+  "extends": ["github>Sagargupta16/shared-workflows"],
+  "packageRules": [
+    {
+      "description": "Icon libraries move with the monthly icon sync, which re-pins their checksums (.github/workflows/icons.yml).",
+      "matchPackageNames": ["@primer/octicons", "simple-icons", "/^@iconify-json\\//"],
+      "enabled": false
+    }
+  ]
 }

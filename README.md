@@ -3,7 +3,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/hero-light.svg">
-  <img alt="Serverless web API on AWS, drawn by diagramify with the official AWS icons and group styles" src="docs/hero-light.svg" width="100%">
+  <img alt="GitOps delivery drawn by diagramify: GitHub Actions and Argo CD deploy to GKE, AKS and EKS behind Cloudflare, with Grafana watching, in each vendor's official icons and frames" src="docs/hero-light.svg" width="100%">
 </picture>
 
 # diagramify
@@ -12,22 +12,23 @@
 One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML viewer out.
 
 [![CI](https://github.com/Sagargupta16/diagramify/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/diagramify/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.1.0-2563eb)
-![Icons](https://img.shields.io/badge/official_icons-13%2C991-2563eb)
+![Version](https://img.shields.io/badge/version-0.2.0-2563eb)
+![Icons](https://img.shields.io/badge/official_icons-13%2C876-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
 </div>
 
-The diagram above is the [aws-serverless-api](skills/diagramify/examples/aws-serverless-api.yaml) example: 30 lines of YAML, laid out and rendered by diagramify. The edges move because the SVG carries a small CSS animation, which GitHub keeps.
+The diagram above is [docs/hero.yaml](docs/hero.yaml): 33 lines of YAML, laid out and rendered by diagramify. It moves because every SVG is animated by default: a packet travels each edge, and the numbered steps play in order, on a loop. GitHub keeps the animation; the PNG of the same spec is a still frame.
 
 ## What you get
 
-- **Official icons, not look-alikes.** 13,991 icons rebuilt from each vendor's own download, with the download pinned by checksum: AWS (810), Azure (636), Google Cloud (261), Kubernetes (40), GitHub Octicons (399), plus 5,559 tech logos and 6,286 neutral symbols for system design.
+- **Official, current icons only.** 13,876 icons: AWS (810), Azure (636), Google Cloud (233), Kubernetes (40) and GitHub Octicons (399), plus 5,472 tech logos and 6,286 neutral symbols for system design. The cloud packs are rebuilt from each vendor's own download, pinned by checksum. Google Cloud products get the icon Google's 2026 guide assigns them; deprecated sets and unofficial redraws of cloud icons are left out.
 - **Official conventions.** AWS groups follow the AWS Architecture Icons deck (borders, dashes, corner tiles, label placement, open arrowheads, numbered callouts); Google Cloud and Azure groups are measured from their own reference diagrams. Every value cites its source in [styles.md](skills/diagramify/references/styles.md).
 - **Automatic layout.** The Eclipse Layout Kernel places nested boundaries, routes edges at right angles, joins fan-in and fan-out into trunks and keeps your order where it can. No coordinates to write.
-- **Five outputs from one spec.** SVG for READMEs and docs, PNG for slides and chat, `.drawio` you can keep editing, a TSX component for React sites, and a standalone HTML viewer with dark mode, pan and pinch zoom.
+- **Diagrams that move.** Animated SVG by default: packets travel every edge at one speed, numbered steps play as a story, line styles stay as drawn. `animate: flow` for marching dashes, `--static` for a still file.
+- **Five outputs from one spec.** SVG for READMEs and docs, PNG for slides and chat (3x by default, sharp when zoomed), `.drawio` you can keep editing, a TSX component for React sites, and a standalone HTML viewer with dark mode, pan and pinch zoom.
 - **Made for agents.** A skill with a fast path and authoring rules, a JSON Schema, 392 short aliases (`aws:s3`, `azure:aks`, `k8s:deploy`), ranked icon search, and a validator whose every finding names the subject and the fix.
-- **No install.** The CLI, layout engine, PNG renderer, fonts and icons ship in the skill folder. Node.js 22 or newer is all it needs.
+- **No install.** The CLI, layout engine, PNG renderer, fonts and the official cloud packs ship in the skill folder (9 MB). Logo and glyph sets are not copied in: they load from their own npm libraries the first time a diagram uses them, verified by checksum and cached. Node.js 22 or newer is all it needs.
 
 ## Install
 
@@ -117,10 +118,11 @@ Spec errors (DG1xx) stop the render; composition warnings (DG2xx: an edge throug
 
 | Command | Does |
 | --- | --- |
-| `render <spec> [-o base] [-f svg,png,drawio,tsx,html\|all] [--theme light\|dark\|both] [--animate]` | Validate, lay out, render. |
+| `render <spec> [-o base] [-f svg,png,drawio,tsx,html\|all] [--theme light\|dark\|both] [--animate packets\|flow\|none] [--static]` | Validate, lay out, render. |
 | `validate <spec> [--strict] [--json]` | Spec errors and composition warnings, each with fixes. |
 | `icons search <words> [--pack aws]` | Ranked icon ids with official names. |
 | `icons show <id>`, `icons list`, `icons packs` | Browse the catalog and its sources. |
+| `icons fetch` | Download and cache the logo and glyph libraries for offline renders. |
 | `styles` | Every group type and node shape. |
 | `init [template]` | Start from one of the examples. |
 | `import mermaid <flowchart.mmd>` | Turn an existing Mermaid flowchart into a spec, with official icons where the labels name real products. |
@@ -128,18 +130,18 @@ Spec errors (DG1xx) stop the render; composition warnings (DG2xx: an edge throug
 
 ## Icon packs
 
-| Pack | Icons | Source |
-| --- | ---: | --- |
-| `aws` | 810 | [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/), 2026-07-31 package |
-| `azure` | 636 | [Azure Architecture Icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) V24 |
-| `gcp` | 261 | [Google Cloud icons](https://cloud.google.com/icons), 2025 product icons plus console icons |
-| `k8s` | 40 | [Kubernetes community icons](https://github.com/kubernetes/community/tree/master/icons) |
-| `github` | 399 | [GitHub Octicons](https://primer.style/octicons) |
-| `logos` | 2,199 | [SVG Logos](https://github.com/gilbarbara/logos) |
-| `si` | 3,360 | [Simple Icons](https://simpleicons.org) |
-| `tabler` | 6,286 | [Tabler Icons](https://tabler.io/icons) |
+| Pack | Icons | Source | Ships |
+| --- | ---: | --- | --- |
+| `aws` | 810 | [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/), 2026-07-31 package | bundled |
+| `azure` | 636 | [Azure Architecture Icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) V24 | bundled |
+| `gcp` | 233 | [Google Cloud icons](https://cloud.google.com/icons), core and category icons mapped to products as in Google's May 2026 guide | bundled |
+| `k8s` | 40 | [Kubernetes community icons](https://github.com/kubernetes/community/tree/master/icons) | bundled |
+| `github` | 399 | [GitHub Octicons](https://primer.style/octicons) | npm `@primer/octicons` |
+| `logos` | 2,123 | [SVG Logos](https://github.com/gilbarbara/logos) | npm `@iconify-json/logos` |
+| `si` | 3,349 | [Simple Icons](https://simpleicons.org) | npm `@iconify-json/simple-icons` |
+| `tabler` | 6,286 | [Tabler Icons](https://tabler.io/icons) | npm `@iconify-json/tabler` |
 
-A monthly workflow checks the vendors' pages for new releases and opens a PR with the updated packs. Icons, logos and trademarks belong to their owners and are used under the terms listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the AWS, Microsoft and Google terms allow them in architecture diagrams.
+Bundled packs exist only as vendor downloads, so they ship with the skill and work offline. The npm sets load at render time from a local `node_modules`, the user cache or jsDelivr, checked against a pinned SHA-256; `diagramify icons fetch` caches them ahead of time, and [icons.md](skills/diagramify/references/icons.md#where-icons-load-from) has the details. A monthly workflow checks the vendors' pages for new releases and opens a PR with the updated packs. Icons, logos and trademarks belong to their owners and are used under the terms listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the AWS, Microsoft and Google terms allow them in architecture diagrams.
 
 ## Development
 

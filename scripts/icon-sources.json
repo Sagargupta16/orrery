@@ -17,7 +17,7 @@
   },
   "gcp": {
     "title": "Google Cloud Icons",
-    "version": "2025 product icons",
+    "version": "May 2026 icon guide",
     "page": "https://cloud.google.com/icons",
     "parts": {
       "core": {
@@ -27,10 +27,6 @@
       "category": {
         "url": "https://services.google.com/fh/files/misc/category-icons.zip",
         "sha256": "e5bc3abd3527dc2500e9bff7f15870783e2c764129c49b7cd4c1b4e105345002"
-      },
-      "legacy": {
-        "url": "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip",
-        "sha256": "a6d9d7921758042538b462f03cf64614c2cebd96743b3ed63580a769fc7de3e9"
       }
     },
     "terms": "Official library of Google Cloud product icons for diagrams, technical documentation, and more."

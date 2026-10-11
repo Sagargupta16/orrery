@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-10-11
+
+### Changed
+
+- **SVGs are animated by default.** `animate: packets` (new default) sends a dot along every directed edge at one speed; numbered edges play one after another in step order as a loop, and each step badge ripples as its packet leaves. Line styles stay as drawn. SMIL only, so it works in GitHub READMEs. `animate: flow` keeps the marching dashes of 0.1.0, `animate: none` or `render --static` writes a still file; `--animate <mode>` overrides the spec. PNG and draw.io are always still.
+- **Logo and glyph sets load from their npm libraries** instead of being copied into the skill. `github` (`@primer/octicons`), `logos`, `si` and `tabler` (`@iconify-json/*`) load at render time from a matching `node_modules`, the user cache or jsDelivr (unpkg as fallback), checked against a pinned SHA-256. The skill folder drops from 22 MB to 9 MB; search and validation stay offline. New `icons fetch` prefetches the libraries, `doctor` reports how many are available offline, and a render that needs a library it cannot get fails with DG301 and the fixes.
+- **Google Cloud follows Google's current icon system.** The legacy console icons are gone (Google says not to use them as of 2026). Each of 188 products from Google's May 2026 icon guide draws the icon Google assigns it, under its own name: core products their unique icon, the rest their category icon (`gcp:pubsub` is the Data Analytics icon). Core icons carry today's names (`Spanner`, `Google Security Operations`).
+- **No unofficial cloud icons**: the logo sets' redraws of AWS and Google Cloud service icons (`logos:aws-*`, `si:googlebigquery` and the like) are dropped in favor of the vendors' own packs, and SVG Logos' superseded marks give way to their current designs. 13,876 icons in all.
+- PNGs default to 3x, and the HTML viewer re-rasterizes on zoom, so both stay sharp when zoomed in.
+- New README hero: GitOps delivery from GitHub Actions and Argo CD to GKE, AKS and EKS behind Cloudflare, animated.
+
+### Added
+
+- Vendor-neutral examples: `modern-web-stack` (Cloudflare, Next.js on Vercel, Neon, Upstash, Stripe, Clerk, Resend, Sentry, PostHog), `data-platform-oss` (Debezium, Airbyte, Kafka, Flink, Iceberg on MinIO, dbt, Trino, Superset, Airflow) and `rag-open-source` (Qdrant, bge-m3, LangChain, FastAPI, Ollama, Langfuse).
+
+### Fixed
+
+- A `constraint: false` edge between two stacked icon nodes in a left-to-right diagram ran through the upper node's label and note; it now leaves below the text.
+
 ## [0.1.0] - 2026-10-11
 
 ### Added

@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Retrieval augmented generation with open components
+subtitle: Documents are chunked and embedded into Qdrant; a FastAPI and LangChain backend retrieves context and answers with a local Ollama model or a hosted one
+direction: right
+# One port per edge, so the upsert and search edges into Qdrant keep their own labels.
+layout: { merge: false }
+
+groups:
+  # Two lanes so the flows do not interleave; the shared services sit outside both, where they meet.
+  ingestion: { type: zone, label: Ingestion }
+  query: { type: zone, label: Query }
+
+nodes:
+  docs: { icon: generic:files, label: Documents, note: "PDF, HTML, Markdown", in: ingestion }
+  loaders: { icon: tabler:file-import, label: Loaders, note: Parse and clean, in: ingestion }
+  chunker: { icon: tabler:file-scissors, label: Chunking, note: 512-token chunks, in: ingestion }
+  embedder: { icon: tabler:vector, label: Embedding, note: Embed and upsert, in: ingestion }
+  user: { icon: generic:user, label: User, in: query }
+  react: { icon: logos:react, label: React, note: Chat UI, in: query }
+  fastapi: { icon: logos:fastapi-icon, label: FastAPI, note: Chat server, in: query }
+  langchain: { icon: logos:langchain-icon, label: LangChain, note: Retrieval chain, in: query }
+  redis: { icon: logos:redis, label: Redis, note: Answer cache, in: query }
+  # The retriever's query embedding call is in the note: as an edge it would cross the upsert edge.
+  embed: { icon: logos:hugging-face-icon, label: bge-m3, note: Embeds chunks and queries }
+  qdrant: { icon: logos:qdrant-icon, label: Qdrant, note: Vector database }
+  ollama: { icon: si:ollama, label: Ollama, note: Local LLM }
+  hosted: { icon: generic:cloud, label: Hosted model API, note: OpenAI-compatible }
+  # No Langfuse mark in the packs: a neutral glyph with the product name.
+  langfuse: { icon: generic:monitoring, label: Langfuse, note: Traces and evals }
+
+edges:
+  - docs -> loaders -> chunker -> embedder
+  - embedder -> embed
+  - embedder -> qdrant: upsert
+  - user -> react -[POST /chat]-> fastapi
+  - fastapi -> langchain
+  - fastapi -> redis
+  - langchain -> qdrant: search
+  - langchain -> ollama: prompt and context
+  - langchain --> hosted: alternative
+  - langchain ..> langfuse

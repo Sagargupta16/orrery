@@ -16,7 +16,7 @@ Node.js 22 or newer and pnpm (the version in `package.json` `packageManager`).
 
 | Path | What |
 | --- | --- |
-| `src/` | TypeScript source: `spec.ts` (parse + validate), `icons.ts` (catalog, aliases, search), `layout.ts` (ELK), `check.ts` (composition warnings), `render/` (one file per format), `cli.ts`. |
+| `src/` | TypeScript source: `spec.ts` (parse + validate), `icons.ts` (catalog, aliases, search), `libraries.ts` (logo and glyph sets loaded from npm at render time), `layout.ts` (ELK), `check.ts` (composition warnings), `render/` (one file per format), `cli.ts`. |
 | `skills/diagramify/` | What ships: `SKILL.md`, `references/`, `examples/` (specs), `assets/` (icons, fonts), `scripts/diagramify.mjs` (the built CLI) and `scripts/vendor/` (ELK, resvg). Generated files here are committed so the skill runs without an install. |
 | `scripts/` | Development scripts: `build.mjs`, `sync-icons.mjs`, `build-fonts.mjs`, `gallery.mjs`, `check-repo.mjs`, plus `icon-sources.json` (pinned downloads) and `icon-aliases.json`. |
 | `examples/` | The gallery: SVG and PNG for every spec in `skills/diagramify/examples/`. |
@@ -46,7 +46,7 @@ CI runs the same commands. `pnpm build` regenerates `skills/diagramify/scripts/d
 
 - New vendor release: `node scripts/sync-icons.mjs --latest` finds the newest official packages, re-pins their URLs and checksums in `scripts/icon-sources.json` and rebuilds the catalogs. A monthly workflow does this and opens a PR.
 - A short name people type (`aws:sqs`): add it to `scripts/icon-aliases.json` and re-run `node scripts/sync-icons.mjs`; it fails if an alias points nowhere or hides a real icon.
-- A new pack: add a builder to `sync-icons.mjs`, its terms to `THIRD_PARTY_NOTICES.md`, and only include it if its license allows redistribution in diagrams.
+- A new pack: add a builder to `sync-icons.mjs`, its terms to `THIRD_PARTY_NOTICES.md`, and only include it if its license allows use in diagrams. A set that is published on npm becomes a library pack (set `pack.lib` in the builder, add the package as a dev dependency): the catalog keeps names and keywords and the renderer loads the icons from npm. Only vendor packs that exist solely as downloads are bundled.
 
 ## Group styles
 

@@ -15,7 +15,11 @@
     "theme": { "enum": ["light", "dark"], "default": "light" },
     "look": { "enum": ["icon", "card"], "default": "icon", "description": "Default look for nodes with an icon." },
     "arrowhead": { "enum": ["open", "filled"], "default": "open" },
-    "animate": { "type": "boolean", "default": false, "description": "Flowing dashes on edges in SVG, TSX and HTML." },
+    "animate": {
+      "oneOf": [{ "type": "boolean" }, { "enum": ["packets", "flow", "none"] }],
+      "default": "packets",
+      "description": "Motion in SVG, TSX and HTML (PNG and draw.io stay still). packets: dots travel the edges, numbered steps in order; flow: marching dashes; none: still. true is packets, false is none."
+    },
     "background": { "type": "string", "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|transparent)$" },
     "layout": {
       "type": "object",

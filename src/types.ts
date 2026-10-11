@@ -59,6 +59,10 @@ export interface Diagnostic {
   fixes?: string[];
 }
 
+/** packets: dots travel each edge (in step order when steps exist); flow: marching dashes. */
+export type AnimateMode = "packets" | "flow" | "none";
+export const ANIMATE_MODES: readonly AnimateMode[] = ["packets", "flow", "none"];
+
 export interface ModelNode {
   id: string;
   label: string;
@@ -111,7 +115,7 @@ export interface Model {
   merge: boolean;
   /** "open" chevrons (AWS and Google decks) or "filled" triangles (Azure). */
   arrowhead: "open" | "filled";
-  animate: boolean;
+  animate: AnimateMode;
   background?: string;
   nodes: ModelNode[];
   groups: ModelGroup[];
@@ -205,7 +209,7 @@ export interface Scene {
   direction: Direction;
   routing: Routing;
   arrowhead: "open" | "filled";
-  animate: boolean;
+  animate: AnimateMode;
   background?: string;
   title?: TextBlock;
   titleBox?: Box;

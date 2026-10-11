@@ -1,6 +1,7 @@
 import { checkScene } from "../check.ts";
+import { loadIconLibraries } from "../icons.ts";
 import { layout } from "../layout.ts";
-import type { Diagnostic, Model, Scene, ThemeName } from "../types.ts";
+import type { AnimateMode, Diagnostic, Model, Scene, ThemeName } from "../types.ts";
 import { renderDrawio } from "./drawio.ts";
 import { renderHtml } from "./html.ts";
 import { renderPng } from "./png.ts";
@@ -18,7 +19,8 @@ export interface RenderRequest {
   name: string;
   scale?: number;
   fonts?: string[];
-  animate?: boolean;
+  /** Overrides the spec's animate mode. */
+  animate?: AnimateMode;
 }
 
 export interface Artifact {
@@ -36,7 +38,7 @@ export interface RenderResult {
 }
 
 export async function renderModel(req: RenderRequest): Promise<RenderResult> {
-  const model = req.animate ? { ...req.model, animate: true } : req.model;
+  const model = req.animate ? { ...req.model, animate: req.animate } : req.model;
   const themes = [
     ...new Set(req.formats.includes("html") ? [...req.themes, "light", "dark"] : req.themes),
   ] as ThemeName[];
@@ -44,28 +46,35 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
   for (const theme of themes) scenes[theme] = await layout(model, { theme });
   const first = scenes[req.themes[0] ?? model.theme] ?? Object.values(scenes)[0];
   const diagnostics = first ? checkScene(first, model) : [];
+  if (req.formats.length) {
+    const ids = Object.values(scenes).flatMap((s) => [
+      ...s.nodes.map((n) => n.icon),
+      ...s.groups.map((g) => g.icon),
+    ]);
+    await loadIconLibraries(ids.filter((id): id is string => !!id));
+  }
   const artifacts: Artifact[] = [];
   for (const theme of req.themes) {
     const scene = scenes[theme];
-    if (!scene) continue;
+    if (!scene || !req.formats.length) continue;
     const svg = renderSvg(scene);
     for (const format of req.formats) {
       const base = { format, theme, width: scene.width, height: scene.height };
       if (format === "svg") artifacts.push({ ...base, data: svg });
       if (format === "png") {
-        // PNGs are a still frame; the animated dash pattern would freeze mid-cycle.
-        const still = scene.animate ? renderSvg({ ...scene, animate: false }) : svg;
+        // PNGs are a still frame: no packets frozen mid-edge, no dashes from the flow mode.
+        const still = scene.animate !== "none" ? renderSvg({ ...scene, animate: "none" }) : svg;
         artifacts.push({
           ...base,
           data: await renderPng(still, { scale: req.scale, fonts: req.fonts }),
-          width: Math.round(scene.width * (req.scale ?? 2)),
-          height: Math.round(scene.height * (req.scale ?? 2)),
+          width: Math.round(scene.width * (req.scale ?? 3)),
+          height: Math.round(scene.height * (req.scale ?? 3)),
         });
       }
       if (format === "drawio")
         artifacts.push({
           ...base,
-          data: renderDrawio({ ...scene, animate: false }, model.title ?? req.name),
+          data: renderDrawio({ ...scene, animate: "none" }, model.title ?? req.name),
         });
       if (format === "tsx")
         artifacts.push({ ...base, data: renderTsx(scene, componentName(model.title, req.name)) });

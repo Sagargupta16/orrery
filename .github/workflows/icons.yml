@@ -1,7 +1,9 @@
 name: Sync icon packs
 
-# Monthly: find the newest official AWS, Azure and Google Cloud packages, re-pin and rebuild the
-# catalogs, and open (or update) one pull request with the result.
+# Monthly: find the newest official AWS, Azure and Google Cloud packages, move the npm icon
+# libraries to their latest releases, re-pin and rebuild the catalogs, and open (or update) one
+# pull request with the result. Renovate leaves those libraries to this workflow (renovate.json),
+# because a version bump without a re-pin fails the checksum test.
 #
 # A pull request opened with GITHUB_TOKEN starts no pull_request workflow run, so this workflow
 # dispatches ci.yml on the sync branch itself; those check runs land on the branch head, which
@@ -40,6 +42,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Move the npm icon libraries to their latest releases
+        run: pnpm update --latest @primer/octicons simple-icons @iconify-json/logos @iconify-json/simple-icons @iconify-json/tabler
+
       # Exits 1 when an alias in scripts/icon-aliases.json points nowhere or hides a real icon,
       # so a vendor rename fails this run loudly instead of opening a broken pull request.
       - name: Fetch the newest official packs and rebuild the catalogs
@@ -73,7 +78,7 @@ jobs:
           commit-message: "chore: sync official icon packs"
           title: "chore: sync official icon packs"
           body: |
-            Monthly run of `node scripts/sync-icons.mjs --latest`: re-pins the newest official packages in `scripts/icon-sources.json`, rebuilds `skills/diagramify/assets/icons/`, the bundled CLI and the gallery in `examples/`.
+            Monthly run of `node scripts/sync-icons.mjs --latest` after moving the npm icon libraries to their latest releases: re-pins the newest official packages in `scripts/icon-sources.json` and the libraries in `assets/icons/index.json`, rebuilds `skills/diagramify/assets/icons/`, the bundled CLI and the gallery in `examples/`.
 
             Before merging:
             - Open the gallery PNGs that changed and check the new icons read well.

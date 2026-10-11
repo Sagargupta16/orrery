@@ -6,7 +6,7 @@
 //
 // Output: skills/diagramify/assets/icons/<pack>.json (bodies) and index.json (names, search, aliases).
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { strFromU8, unzipSync } from "fflate";
@@ -80,7 +80,6 @@ async function refreshPins() {
   for (const [part, name] of [
     ["core", "core-products-icons"],
     ["category", "category-icons"],
-    ["legacy", "google-cloud-legacy-icons"],
   ]) {
     const m = gcp.match(new RegExp(`https://services\\.google\\.com/fh/files/misc/${name}\\.zip`));
     if (m) sources.gcp.parts[part].url = m[0];
@@ -92,8 +91,6 @@ async function refreshPins() {
 // Every id an icon defines is rewritten to start with this token; the renderer swaps it for a
 // per-instance prefix so two copies of one icon (or two icons from the same export tool) never clash.
 const ID_TOKEN = "dfyid";
-// Monochrome glyphs carry this placeholder where their color goes.
-const COLOR_TOKEN = "{{c}}";
 
 const ROOT_PAINT = [
   "fill",
@@ -107,7 +104,7 @@ const ROOT_PAINT = [
 ];
 
 let idCounter = 0;
-function normalize(svg, { mono = false } = {}) {
+function normalize(svg) {
   idCounter += 1;
   const { data } = optimize(svg, {
     multipass: true,
@@ -140,11 +137,6 @@ function normalize(svg, { mono = false } = {}) {
   const viewBox = attrs.viewBox ?? "0 0 24 24";
   const paint = ROOT_PAINT.filter((k) => attrs[k] !== undefined).map((k) => `${k}="${attrs[k]}"`);
   if (paint.length) body = `<g ${paint.join(" ")}>${body}</g>`;
-  if (mono) {
-    body = body.replaceAll("currentColor", COLOR_TOKEN);
-    if (!/\bfill="/.test(body) || !body.includes(COLOR_TOKEN))
-      body = `<g fill="${COLOR_TOKEN}">${body}</g>`;
-  }
   return { v: viewBox, b: body };
 }
 
@@ -431,34 +423,21 @@ async function buildAzure() {
 
 // ---------------------------------------------------------------- Google Cloud
 
-// Legacy folder names whose title case is wrong.
-const GCP_NAMES = {
-  automl: "AutoML",
-  automl_natural_language: "AutoML Natural Language",
-  automl_tables: "AutoML Tables",
-  automl_translation: "AutoML Translation",
-  automl_video_intelligence: "AutoML Video Intelligence",
-  automl_vision: "AutoML Vision",
-  bigquery: "BigQuery",
-  bigtable: "Bigtable",
-  vertexai: "Vertex AI",
-  dialogflow_cx: "Dialogflow CX",
-  dialogflow_insights: "Dialogflow Insights",
-  cloud_external_ip_addresses: "Cloud External IP Addresses",
-  cloud_sql: "Cloud SQL",
-  datastream: "Datastream",
-  google_kubernetes_engine: "Google Kubernetes Engine",
-  kuberun: "KubeRun",
-  memorystore: "Memorystore",
-  pubsub: "Pub/Sub",
-  firestore: "Firestore",
-  alloydb: "AlloyDB",
-  looker: "Looker",
-  cloud_tpu: "Cloud TPU",
-  cloud_gpu: "Cloud GPU",
-  iot_core: "IoT Core",
-  anthos_service_mesh: "Anthos Service Mesh",
+// Google's icon system (cloud.google.com/icons, May 2026): core products carry their own icon and
+// every other product uses its category's icon. scripts/gcp-products.json is Google's product list
+// from that guide; each product becomes an entry that points at the icon Google assigns it. The
+// legacy console icons are not used: Google says they should not be used as of 2026.
+const GCP_PRODUCTS = JSON.parse(readFileSync(join(root, "scripts/gcp-products.json"), "utf8"));
+// Current official names where the download's folder name is out of date or short.
+const GCP_CORE = {
+  "cloud-spanner": { n: "Spanner" },
+  "distributed-cloud": { n: "Google Distributed Cloud" },
+  "security-operations": { n: "Google Security Operations" },
+  "threat-intelligence": { n: "Google Threat Intelligence" },
+  gke: { k: "Google Kubernetes Engine" },
 };
+const GCP_CATEGORY_NAMES = { "category-security-identity": "Security and Identity" };
+const GCP_SLUGS = { "Pub/Sub": "pubsub" };
 
 async function buildGcp() {
   const s = sources.gcp;
@@ -471,35 +450,36 @@ async function buildGcp() {
   }
   for (const p of files(zips.core, /\/SVG\/[^/]+\.svg$/)) {
     const name = p.split("/").at(-3);
-    pack.add(slugify(name), {
+    const slug = slugify(name);
+    pack.add(slug, {
       n: name,
       c: "Core products",
       t: "service",
+      ...GCP_CORE[slug],
       ...normalize(text(zips.core, p)),
     });
   }
   for (const p of files(zips.category, /\/SVG\/[^/]+\.svg$/)) {
-    const name = p.split("/").at(-3).replace(/ _ /g, " and ");
-    pack.add(`category-${slugify(name)}`, {
-      n: `${name} category`,
+    const folder = p.split("/").at(-3).replace(/ _ /g, " and ");
+    const slug = `category-${slugify(folder)}`;
+    pack.add(slug, {
+      n: `${GCP_CATEGORY_NAMES[slug] ?? folder} category`,
       c: "Categories",
       t: "category",
       ...normalize(text(zips.category, p)),
     });
   }
-  for (const p of files(zips.legacy, /^[^/]+\/[^/]+\.svg$/)) {
-    const dir = p.split("/")[0];
-    const name = GCP_NAMES[dir] ?? titleCase(dir.replace(/_/g, " "));
-    pack.add(
-      slugify(dir),
-      {
-        n: name,
-        c: "Console icons (legacy)",
-        t: "legacy",
-        ...normalize(text(zips.legacy, p)),
-      },
-      "legacy",
-    );
+  const product = (name, target, category) => {
+    const slug = GCP_SLUGS[name] ?? slugify(name);
+    if (!pack.icons.has(target)) throw new Error(`gcp-products.json: no icon ${target}`);
+    if (pack.icons.has(slug)) throw new Error(`gcp-products.json: ${name} clashes with ${slug}`);
+    pack.add(slug, { n: name, c: category, t: "service", r: target });
+  };
+  for (const [name, core] of Object.entries(GCP_PRODUCTS.core))
+    product(name, core, "Core products");
+  for (const [category, names] of Object.entries(GCP_PRODUCTS.categories)) {
+    const label = pack.icons.get(category)?.n.replace(/ category$/, "");
+    for (const name of names) product(name, category, label);
   }
   return pack;
 }
@@ -585,28 +565,38 @@ function pkgVersion(name) {
   return JSON.parse(readFileSync(join(nodeModules, name, "package.json"), "utf8")).version;
 }
 
+// These packs are not bundled: the renderer loads them from the npm library itself at the pinned
+// version (src/libraries.ts). The catalog only records names, search keywords and the pin.
+function librarySource(npm, file, extra = {}) {
+  const buf = readFileSync(join(nodeModules, npm, file));
+  return { npm, version: pkgVersion(npm), file, sha256: sha256(buf), bytes: buf.length, ...extra };
+}
+
+const iconifySet = (npm) => JSON.parse(readFileSync(join(nodeModules, npm, "icons.json"), "utf8"));
+
 function buildOcticons() {
-  const data = JSON.parse(
-    readFileSync(join(nodeModules, "@primer/octicons/build/data.json"), "utf8"),
-  );
+  const npm = "@primer/octicons";
+  const data = JSON.parse(readFileSync(join(nodeModules, npm, "build/data.json"), "utf8"));
   const pack = new Pack("github", {
     title: "GitHub Octicons",
-    version: `@primer/octicons ${pkgVersion("@primer/octicons")}`,
+    version: `${npm} ${pkgVersion(npm)}`,
     page: "https://primer.style/octicons",
     license: "MIT",
+  });
+  pack.lib = librarySource(npm, "build/data.json", {
+    format: "octicons",
+    mono: true,
+    suffix: "-24",
   });
   for (const name of Object.keys(data).sort()) {
     const icon = data[name];
     const h = icon.heights["24"] ? "24" : Object.keys(icon.heights).sort((a, b) => b - a)[0];
-    const { width, path } = icon.heights[h];
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${width} ${h}">${path}</svg>`;
     pack.add(name, {
       n: titleCase(name),
       c: "Octicons",
       t: "glyph",
       k: icon.keywords?.join(" "),
-      mono: 1,
-      ...normalize(svg, { mono: true }),
+      name: h === "24" ? undefined : `${name}-${h}`,
     });
   }
   return pack;
@@ -624,15 +614,28 @@ const SI_ALLOWED = new Set([
   "Unlicense",
 ]);
 
+// Unofficial redraws of cloud service icons in the logo sets. The vendors' own packs cover every
+// one of these, so they are left out; the vendors' brand marks themselves (aws, google-cloud) stay.
+const VENDOR_COPIES = {
+  logos: /^(aws-.+|amazon-.+|google-cloud-(?!platform$).+)$/,
+  si: /^google(bigquery|bigtable|chronicle|cloudcomposer|cloudspanner|cloudstorage|containeroptimizedos|dataflow|dataproc|earthengine|pubsub)$/,
+};
+// Superseded artwork: the plain name serves the newest dated mark ("google-drive-2020").
+const SUPERSEDED = { logos: new Set(["google-2014"]) };
+
 function buildSimpleIcons() {
-  const dir = join(nodeModules, "simple-icons");
-  const data = JSON.parse(readFileSync(join(dir, "data/simple-icons.json"), "utf8"));
+  const npm = "@iconify-json/simple-icons";
+  const data = JSON.parse(
+    readFileSync(join(nodeModules, "simple-icons/data/simple-icons.json"), "utf8"),
+  );
+  const set = iconifySet(npm);
   const pack = new Pack("si", {
     title: "Simple Icons",
     version: `simple-icons ${pkgVersion("simple-icons")}`,
     page: "https://simpleicons.org",
     license: "CC0-1.0 (collection); individual marks remain trademarks of their owners",
   });
+  pack.lib = librarySource(npm, "icons.json", { mono: true });
   const skipped = [];
   const attributed = [];
   for (const icon of data) {
@@ -642,6 +645,9 @@ function buildSimpleIcons() {
       skipped.push({ slug, title: icon.title, license: lic });
       continue;
     }
+    // Iconify names allow no underscores: "backstage_casting" is "backstage-casting" there.
+    const name = slug.replace(/_/g, "-");
+    if (VENDOR_COPIES.si.test(slug) || !set.icons[name]) continue;
     if (lic && lic !== "CC0-1.0")
       attributed.push({
         slug,
@@ -649,16 +655,14 @@ function buildSimpleIcons() {
         license: lic,
         source: icon.source,
       });
-    const svg = readFileSync(join(dir, "icons", `${slug}.svg`), "utf8");
     const aka = [...(icon.aliases?.aka ?? []), ...Object.values(icon.aliases?.loc ?? {})];
     pack.add(slug, {
       n: icon.title,
       c: "Brands",
       t: "logo",
       k: aka.join(" ") || undefined,
-      mono: 1,
       col: `#${icon.hex}`,
-      ...normalize(svg, { mono: true }),
+      name: name === slug ? undefined : name,
     });
   }
   pack.skipped = skipped;
@@ -690,25 +694,27 @@ function buildIconify(
   license,
   { mono = false, category = "Logos", type = "logo" } = {},
 ) {
-  const dir = join(nodeModules, pkg);
-  const data = JSON.parse(readFileSync(join(dir, "icons.json"), "utf8"));
-  const info = JSON.parse(readFileSync(join(dir, "info.json"), "utf8"));
+  const data = iconifySet(pkg);
+  const info = JSON.parse(readFileSync(join(nodeModules, pkg, "info.json"), "utf8"));
   const pack = new Pack(key, {
     title,
     version: `${pkg} ${pkgVersion(pkg)}${info.version ? ` (${info.name} ${info.version})` : ""}`,
     page,
     license,
   });
-  for (const name of Object.keys(data.icons).sort()) {
-    const icon = data.icons[name];
-    const w = icon.width ?? data.width ?? 16;
-    const h = icon.height ?? data.height ?? 16;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${icon.left ?? 0} ${icon.top ?? 0} ${w} ${h}">${icon.body}</svg>`;
+  pack.lib = librarySource(pkg, "icons.json", mono ? { mono: true } : {});
+  const names = Object.keys(data.icons).sort();
+  const dated = new Map();
+  for (const name of names) {
+    const m = name.match(/^(.+)-(20\d\d)$/);
+    if (m && data.icons[m[1]]) dated.set(m[1], name);
+  }
+  for (const name of names) {
+    if (VENDOR_COPIES[key]?.test(name) || SUPERSEDED[key]?.has(name)) continue;
+    if ([...dated.values()].includes(name)) continue;
     const base = name.replace(/-icon$/, "");
     const n = officialTitles().get(base.replace(/[^a-z0-9]/g, "")) ?? titleCase(base);
-    const entry = { n, c: category, t: type, ...normalize(svg, { mono }) };
-    if (mono) entry.mono = 1;
-    pack.add(name, entry);
+    pack.add(name, { n, c: category, t: type, name: dated.get(name) });
   }
   return pack;
 }
@@ -716,24 +722,32 @@ function buildIconify(
 // ---------------------------------------------------------------- write
 
 function writePack(pack) {
+  const file = join(outDir, `${pack.key}.json`);
+  if (pack.lib) {
+    // Library packs load from npm at render time; drop a bundled copy from an older sync.
+    if (existsSync(file)) rmSync(file);
+    return;
+  }
   const icons = {};
   for (const slug of [...pack.icons.keys()].sort()) {
-    const { mono, col, k, short, ...rest } = pack.icons.get(slug);
-    const out = { v: rest.v, b: rest.b };
-    if (rest.d) out.d = rest.d;
-    if (mono) out.m = 1;
-    if (col) out.col = col;
-    if (!mono && allDark(rest.b)) out.k = 1;
+    const entry = pack.icons.get(slug);
+    if (entry.r) {
+      icons[slug] = { r: entry.r };
+      continue;
+    }
+    const out = { v: entry.v, b: entry.b };
+    if (entry.d) out.d = entry.d;
+    if (allDark(entry.b)) out.k = 1;
     icons[slug] = out;
   }
-  const file = {
+  const data = {
     pack: pack.key,
     title: pack.meta.title,
     version: pack.meta.version,
     source: pack.meta.page,
     icons,
   };
-  writeFileSync(join(outDir, `${pack.key}.json`), `${JSON.stringify(file)}\n`);
+  writeFileSync(file, `${JSON.stringify(data)}\n`);
 }
 
 function indexRows(pack) {
@@ -784,7 +798,7 @@ async function main() {
     else aliases[alias] = target;
   }
 
-  const index = { packs: {}, icons: [], aliases };
+  const index = { packs: {}, icons: [], aliases, colors: {}, names: {} };
   for (const pack of packs) {
     writePack(pack);
     index.packs[pack.key] = {
@@ -793,8 +807,13 @@ async function main() {
       source: pack.meta.page,
       license: pack.meta.license ?? pack.meta.terms,
       count: pack.icons.size,
+      ...(pack.lib ? { lib: pack.lib } : {}),
     };
     index.icons.push(...indexRows(pack));
+    for (const [slug, e] of [...pack.icons].sort(([a], [b]) => a.localeCompare(b))) {
+      if (e.col) index.colors[`${pack.key}:${slug}`] = e.col;
+      if (e.name) index.names[`${pack.key}:${slug}`] = e.name;
+    }
   }
   writeFileSync(join(outDir, "index.json"), `${JSON.stringify(index)}\n`);
 
@@ -806,7 +825,9 @@ async function main() {
   writeFileSync(sourcesPath, `${JSON.stringify(sources, null, 2)}\n`);
 
   for (const p of packs)
-    console.log(`${p.key.padEnd(7)} ${String(p.icons.size).padStart(5)} icons  ${p.meta.version}`);
+    console.log(
+      `${p.key.padEnd(7)} ${String(p.icons.size).padStart(5)} icons  ${p.meta.version}${p.lib ? `  (npm ${p.lib.npm}@${p.lib.version}, loaded at render time)` : ""}`,
+    );
   console.log(
     `total   ${String(all.size).padStart(5)} icons, ${Object.keys(aliases).length} aliases`,
   );

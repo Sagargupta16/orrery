@@ -40,7 +40,7 @@ edges:
 | `layout.routing` | `orthogonal`, `polyline`, `spline` | `orthogonal` | Edge style. Orthogonal is the house style of AWS and Azure diagrams. |
 | `layout.layering` | `source`, `simplex` | `source` | `source` lines parallel branches up; `simplex` keeps edges shortest. Try the other one when a layout looks off. |
 | `layout.merge` | `true`, `false` | `true` | Edges that share an endpoint and have the same line, arrow and color join into one trunk with a single arrowhead; different styles keep their own ports. `false` gives every edge its own port. |
-| `animate` | `true`, `false` | `false` | Flowing dashes on edges in SVG, TSX and HTML (PNG stays still). Same as `render --animate`. |
+| `animate` | `packets`, `flow`, `none` (`true` is `packets`, `false` is `none`) | `packets` | Motion in SVG, TSX and HTML; PNG and draw.io are always still. `packets`: a dot travels every directed edge, and numbered edges run one after another in step order as a loop; line styles stay as drawn. `flow`: marching dashes along every edge. `render --animate <mode>` or `--static` overrides it. |
 | `background` | hex color or `transparent` | theme | `transparent` drops the background rectangle. |
 
 Ids (node and group keys) use letters, digits, `_`, `-` and `.`, and must be unique across nodes and groups.

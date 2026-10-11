@@ -11,13 +11,13 @@ description: >-
   flowchart into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
   author: Sagar Gupta
 ---
 
 # diagramify
 
-Write a small YAML spec (nodes with official icons, nested groups, labelled edges); the bundled CLI lays it out with ELK and renders it. No install: the CLI, the layout engine, the PNG renderer, the fonts and 13,991 icons ship in this folder. Node.js 22 or newer is the only requirement.
+Write a small YAML spec (nodes with official icons, nested groups, labelled edges); the bundled CLI lays it out with ELK and renders it. No install: the CLI, the layout engine, the PNG renderer, the fonts and the official AWS, Azure, Google Cloud and Kubernetes packs ship in this folder; the logo and glyph sets (13,876 icons in all) load from their npm libraries the first time a diagram uses them and are cached. Node.js 22 or newer is the only requirement.
 
 ```bash
 node <this-skill-folder>/scripts/diagramify.mjs <command>
@@ -77,8 +77,8 @@ Follow this order. Write the spec early and let the validator steer; do not plan
 
 | Format | Use for |
 | --- | --- |
-| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. |
-| `png` | Slides, chat, tickets, anywhere SVG is not accepted. Rendered with the bundled Inter font at 2x (`--scale`). |
+| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Animated by default: packets travel the edges, numbered steps play in order (`animate: none` or `--static` for a still file). |
+| `png` | Slides, chat, tickets, anywhere SVG is not accepted. Always a still frame. Rendered with the bundled Inter font at 3x by default (`--scale`), so it stays sharp when zoomed or projected. |
 | `drawio` | Hand-editing in diagrams.net or the VS Code Draw.io extension; every node, group and edge is an editable cell with the official icon embedded. |
 | `tsx` | A React component (`export default function Name(props)`) for docs sites and apps. |
 | `html` | A standalone viewer with light/dark switch, pan, pinch zoom and SVG/PNG download; opens offline. |
@@ -107,15 +107,16 @@ Patterns with spec fragments (three-tier, serverless, event-driven, data lake, s
 
 | Command | Does |
 | --- | --- |
-| `render <spec> [-o base] [-f svg,png,drawio,tsx,html\|all] [--theme light\|dark\|both] [--scale 2] [--animate] [--font extra.ttf] [--strict] [--json]` | Validate, lay out, render, write atomically; `--json` prints a receipt with sha256 and size per file. |
+| `render <spec> [-o base] [-f svg,png,drawio,tsx,html\|all] [--theme light\|dark\|both] [--scale 3] [--animate packets\|flow\|none] [--static] [--font extra.ttf] [--strict] [--json]` | Validate, lay out, render, write atomically; `--json` prints a receipt with sha256 and size per file. |
 | `validate <spec> [--strict] [--json]` | Spec errors plus layout warnings (edge through a node, label collisions, too wide). |
 | `icons search <words> [--pack aws] [--type service]` | Ranked icon ids with official names. |
 | `icons show <id> [-o icon.png]` | One icon's metadata, optionally rendered. |
 | `icons list [--pack gcp] [--category Databases]`, `icons packs` | Browse the catalog and its sources. |
+| `icons fetch [pack...]` | Download and cache the logo and glyph libraries now, for offline renders later. |
 | `styles` | Group types and node shapes. |
 | `init [template] [-o file] [--list]` | Copy an example spec as a starting point. |
 | `import mermaid <file.mmd\|-> [-o file]` | Convert a Mermaid flowchart into a spec. |
-| `doctor` | Checks Node, the catalogs, the layout engine and the PNG renderer. |
+| `doctor` | Checks Node, the catalogs, the icon libraries, the layout engine and the PNG renderer. |
 | `demo [dir]` | Renders every bundled example. |
 
 Labels in scripts Inter lacks (CJK, Devanagari, Arabic) need a font for the PNG: `--font path/to/NotoSansDevanagari-Regular.ttf`. SVG output uses the viewer's fonts.

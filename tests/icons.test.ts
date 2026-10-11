@@ -1,11 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   aliases,
   allIcons,
   type IconPaint,
   iconInfo,
+  loadIconLibraries,
   PACK_ORDER,
   packInfo,
   renderIcon,
@@ -13,16 +14,23 @@ import {
   searchIcons,
   suggestIcons,
 } from "../src/icons.ts";
+import { librarySource } from "../src/libraries.ts";
 import { THEME_TOKENS } from "../src/themes.ts";
 import type { ThemeName } from "../src/types.ts";
 import { SKILL_DIR } from "./helpers.ts";
 
 const ICONS_DIR = join(SKILL_DIR, "assets", "icons");
 const PACKS = Object.keys(packInfo());
+const BUNDLED = PACKS.filter((key) => !packInfo()[key]?.lib);
+const LIBRARIES = PACKS.filter((key) => packInfo()[key]?.lib);
+
+beforeAll(async () => {
+  await loadIconLibraries(allIcons().map((i) => i.id));
+});
 
 interface PackFile {
   pack: string;
-  icons: Record<string, { v: string; b: string; d?: string; col?: string }>;
+  icons: Record<string, { v?: string; b?: string; d?: string; r?: string }>;
 }
 
 const packFiles = new Map<string, PackFile>();
@@ -50,7 +58,7 @@ describe("icon catalogs", () => {
     expect([...PACKS].sort()).toEqual([...PACK_ORDER].sort());
   });
 
-  it.each(PACKS)("%s.json loads and matches the index", (key) => {
+  it.each(BUNDLED)("%s.json loads and matches the index", (key) => {
     expect(existsSync(join(ICONS_DIR, `${key}.json`))).toBe(true);
     const pack = readPack(key);
     expect(pack.pack).toBe(key);
@@ -60,13 +68,39 @@ describe("icon catalogs", () => {
       .sort();
     expect(indexed.length).toBe(packInfo()[key]?.count);
     expect(Object.keys(pack.icons).sort()).toEqual(indexed);
-    const badViewBox = Object.entries(pack.icons)
-      .filter(([, e]) => {
-        const v = e.v.split(/[\s,]+/).map(Number);
-        return v.length !== 4 || v.some(Number.isNaN) || !((v[2] ?? 0) > 0 && (v[3] ?? 0) > 0);
+    const badViewBox = allIcons()
+      .filter((i) => i.pack === key)
+      .filter((i) => {
+        const v = renderIcon(i.id, "t", paint("light")).viewBox;
+        return v.some(Number.isNaN) || !(v[2] > 0 && v[3] > 0);
       })
-      .map(([slug]) => slug);
+      .map((i) => i.slug);
     expect(badViewBox).toEqual([]);
+  });
+
+  it.each(LIBRARIES)("%s is not bundled and its pin matches the installed library", (key) => {
+    const lib = packInfo()[key]?.lib;
+    expect(existsSync(join(ICONS_DIR, `${key}.json`))).toBe(false);
+    expect(lib && librarySource(lib)).toBe("node_modules");
+  });
+
+  it("ships only current official artwork", () => {
+    const ids = allIcons().map((i) => i.id);
+    // Google: the legacy console icons should not be used as of 2026.
+    expect(allIcons().filter((i) => i.type === "legacy")).toEqual([]);
+    // Logo-set redraws of cloud service icons; the vendors' own packs cover them.
+    expect(
+      ids.filter((id) => /^logos:(aws|amazon)-|^si:google(bigquery|pubsub)$/.test(id)),
+    ).toEqual([]);
+    expect(ids).toContain("logos:aws");
+  });
+
+  it("gives Google products the icon Google assigns them", () => {
+    const body = (id: string) => renderIcon(id, "t", paint("light")).body;
+    expect(iconInfo("gcp:pubsub")?.name).toBe("Pub/Sub");
+    expect(body("gcp:pubsub")).toBe(body("gcp:category-data-analytics"));
+    expect(body("gcp:cloud-armor")).toBe(body("gcp:category-networking"));
+    expect(body("gcp:looker-studio")).toBe(body("gcp:looker"));
   });
 
   it("names, categorizes and types every icon", () => {
@@ -124,12 +158,10 @@ describe("icon bodies are safe to inline", () => {
 
   it("contains no script, event handler, external reference, foreignObject or style", () => {
     const offenders: string[] = [];
-    for (const key of PACKS) {
-      for (const [slug, entry] of Object.entries(readPack(key).icons)) {
-        for (const body of [entry.b, entry.d ?? ""]) {
-          for (const [what, re] of UNSAFE)
-            if (re.test(body)) offenders.push(`${key}:${slug}: ${what}`);
-        }
+    for (const i of allIcons()) {
+      for (const theme of ["light", "dark"] as const) {
+        const body = renderIcon(i.id, "t", paint(theme)).body;
+        for (const [what, re] of UNSAFE) if (re.test(body)) offenders.push(`${i.id}: ${what}`);
       }
     }
     expect(offenders).toEqual([]);
@@ -183,7 +215,9 @@ describe("renderIcon", () => {
   });
 
   it("paints monochrome marks for the theme and keeps dark marks visible on dark", () => {
-    const brand = readPack("si").icons.github?.col;
+    const brand = JSON.parse(readFileSync(join(ICONS_DIR, "index.json"), "utf8")).colors[
+      "si:github"
+    ];
     expect(brand).toMatch(/^#[0-9a-f]{6}$/i);
     expect(renderIcon("si:github", "x", paint("light")).body).toContain(`fill="${brand}"`);
     const dark = renderIcon("si:github", "x", paint("dark")).body;

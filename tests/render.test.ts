@@ -172,17 +172,43 @@ describe("SVG", () => {
     expect(svg).toContain('aria-labelledby="d2-dfy-title d2-dfy-desc"');
   });
 
-  it("adds the flow animation only when asked", async () => {
-    const still = text(sample, "svg", "light");
+  it("moves packets along the edges by default, with no CSS", () => {
+    const svg = text(sample, "svg", "light");
+    expect(svg).not.toContain("<style>");
+    expect(svg).toContain("<animateMotion");
+    expect(svg).not.toContain("dfy-flow");
+    expect(xmlProblems(svg)).toEqual([]);
+  });
+
+  it("runs numbered edges in step order and loops them as one story", async () => {
+    const s = await layout(
+      model(
+        "nodes: { a: A, b: B, c: C }\nedges:\n  - a -> b: { step: 1 }\n  - b -> c: { step: 2 }\n",
+      ),
+    );
+    const svg = renderSvg(s);
+    const loops = [...svg.matchAll(/<animateMotion [^>]*dur="([\d.]+)s"[^>]*keyTimes="([^"]+)"/g)];
+    expect(loops).toHaveLength(2);
+    expect(loops[0]?.[1]).toBe(loops[1]?.[1]);
+    const leaves = loops.map((m) => Number((m[2] ?? "").split(";")[1]));
+    expect(leaves[0]).toBe(0);
+    expect(leaves[1]).toBeGreaterThan(0);
+    expect(svg.match(/stroke-width="2" opacity="0">/g)).toHaveLength(2);
+  });
+
+  it("draws marching dashes for animate: flow and nothing for none", () => {
+    const flow = renderSvg({ ...scene(sample, "light"), animate: "flow" });
+    expect(flow).toMatch(/<style>@keyframes dfy-flow/);
+    expect(flow).toContain('class="dfy-flow');
+    expect(flow).not.toContain("<animateMotion");
+    expect(xmlProblems(flow)).toEqual([]);
+    const still = renderSvg({ ...scene(sample, "light"), animate: "none" });
+    expect(still).not.toContain("<animate");
     expect(still).not.toContain("<style>");
-    const moving = renderSvg({ ...scene(sample, "light"), animate: true });
-    expect(moving).toMatch(/<style>@keyframes dfy-flow/);
-    expect(moving).toContain('class="dfy-flow');
-    expect(xmlProblems(moving)).toEqual([]);
   });
 
   it("draws open chevrons by default and filled triangles for arrowhead: filled", () => {
-    const s = scene(sample, "light");
+    const s = { ...scene(sample, "light"), animate: "none" as const };
     expect(s.arrowhead).toBe("open");
     const groups = (svg: string) =>
       [...svg.matchAll(/<g id="e-e\d+">(.*?)<\/g>/g)].map((m) => m[1] ?? "");
@@ -226,8 +252,8 @@ describe("PNG", () => {
   it("stays a still frame when the diagram is animated", async () => {
     const request = { model: model(SAMPLE), formats: ["png" as const], themes: THEMES, name: "x" };
     const [still, animated] = await Promise.all([
-      renderModel({ ...request, scale: 1 }),
-      renderModel({ ...request, scale: 1, animate: true }),
+      renderModel({ ...request, scale: 1, animate: "none" }),
+      renderModel({ ...request, scale: 1, animate: "packets" }),
     ]);
     const bytes = (r: RenderResult) =>
       r.artifacts.map((a) => Buffer.from(a.data).toString("base64"));

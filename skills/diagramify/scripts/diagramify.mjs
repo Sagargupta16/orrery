@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// diagramify 0.1.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// diagramify 0.2.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __dfyRequire } from "node:module";
 const require = __dfyRequire(import.meta.url);
@@ -4579,7 +4579,7 @@ var require_resolve_block_scalar = __commonJS({
         onError(error, "UNEXPECTED_TOKEN", `Block scalar header includes extra characters: ${source}`);
       let hasSpace = false;
       let comment = "";
-      let length = source.length;
+      let length2 = source.length;
       for (let i = 1; i < props.length; ++i) {
         const token = props[i];
         switch (token.type) {
@@ -4587,19 +4587,19 @@ var require_resolve_block_scalar = __commonJS({
             hasSpace = true;
           // fallthrough
           case "newline":
-            length += token.source.length;
+            length2 += token.source.length;
             break;
           case "comment":
             if (strict && !hasSpace) {
               const message = "Comments must be separated from other tokens by white space characters";
               onError(token, "MISSING_CHAR", message);
             }
-            length += token.source.length;
+            length2 += token.source.length;
             comment = token.source.substring(1);
             break;
           case "error":
             onError(token, "UNEXPECTED_TOKEN", token.message);
-            length += token.source.length;
+            length2 += token.source.length;
             break;
           /* istanbul ignore next should not happen */
           default: {
@@ -4607,11 +4607,11 @@ var require_resolve_block_scalar = __commonJS({
             onError(token, "UNEXPECTED_TOKEN", message);
             const ts = token.source;
             if (ts && typeof ts === "string")
-              length += ts.length;
+              length2 += ts.length;
           }
         }
       }
-      return { mode, indent, chomp, comment, length };
+      return { mode, indent, chomp, comment, length: length2 };
     }
     function splitLines(source) {
       const split = source.split(/\n( *)/);
@@ -4761,9 +4761,9 @@ var require_resolve_flow_scalar = __commonJS({
             while (next === " " || next === "	")
               next = source[++i + 1];
           } else if (next === "x" || next === "u" || next === "U") {
-            const length = next === "x" ? 2 : next === "u" ? 4 : 8;
-            res += parseCharCode(source, i + 1, length, onError);
-            i += length;
+            const length2 = next === "x" ? 2 : next === "u" ? 4 : 8;
+            res += parseCharCode(source, i + 1, length2, onError);
+            i += length2;
           } else {
             const raw = source.substr(i - 1, 2);
             onError(i - 1, "BAD_DQ_ESCAPE", `Invalid escape sequence ${raw}`);
@@ -4832,14 +4832,14 @@ var require_resolve_flow_scalar = __commonJS({
       "\\": "\\",
       "	": "	"
     };
-    function parseCharCode(source, offset, length, onError) {
-      const cc = source.substr(offset, length);
-      const ok = cc.length === length && /^[0-9a-fA-F]+$/.test(cc);
+    function parseCharCode(source, offset, length2, onError) {
+      const cc = source.substr(offset, length2);
+      const ok = cc.length === length2 && /^[0-9a-fA-F]+$/.test(cc);
       const code = ok ? parseInt(cc, 16) : NaN;
       try {
         return String.fromCodePoint(code);
       } catch {
-        const raw = source.substr(offset - 2, length + 2);
+        const raw = source.substr(offset - 2, length2 + 2);
         onError(offset - 2, "BAD_DQ_ESCAPE", `Invalid escape sequence ${raw}`);
         return raw;
       }
@@ -7370,21 +7370,21 @@ var require_dist = __commonJS({
 });
 
 // src/cli.ts
-import { createHash } from "node:crypto";
+import { createHash as createHash2 } from "node:crypto";
 import {
-  existsSync as existsSync4,
-  mkdirSync,
+  existsSync as existsSync5,
+  mkdirSync as mkdirSync2,
   readdirSync,
-  readFileSync as readFileSync4,
-  renameSync,
+  readFileSync as readFileSync5,
+  renameSync as renameSync2,
   statSync,
-  writeFileSync
+  writeFileSync as writeFileSync2
 } from "node:fs";
-import { basename, dirname as dirname2, extname, join as join6, resolve } from "node:path";
+import { basename, dirname as dirname3, extname, join as join7, resolve } from "node:path";
 
 // src/icons.ts
-import { readFileSync } from "node:fs";
-import { join as join2 } from "node:path";
+import { readFileSync as readFileSync2 } from "node:fs";
+import { join as join3 } from "node:path";
 
 // src/color.ts
 function parseHex(hex) {
@@ -7431,25 +7431,162 @@ function ensureContrast(fg, bg, ratio = 4.5) {
   return target;
 }
 
-// src/paths.ts
-import { existsSync } from "node:fs";
+// src/libraries.ts
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-function findSkillRoot() {
+var LibraryError = class extends Error {
+  fixes;
+  constructor(message, fixes) {
+    super(message);
+    this.fixes = fixes;
+  }
+};
+var loaded = /* @__PURE__ */ new Map();
+function cacheDir() {
+  if (process.env.DIAGRAMIFY_CACHE) return process.env.DIAGRAMIFY_CACHE;
+  const base = process.platform === "win32" ? process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local") : process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
+  return join(base, "diagramify");
+}
+var cachePath = (src) => join(cacheDir(), `${src.npm.replace("/", "+")}@${src.version}`, src.file);
+var libraryUrls = (src) => [
+  `https://cdn.jsdelivr.net/npm/${src.npm}@${src.version}/${src.file}`,
+  `https://unpkg.com/${src.npm}@${src.version}/${src.file}`
+];
+var sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
+function fromNodeModules(src) {
   let dir = dirname(fileURLToPath(import.meta.url));
-  for (let i = 0; i < 6; i++) {
-    for (const candidate of [dir, join(dir, "skills", "diagramify")]) {
-      if (existsSync(join(candidate, "assets", "icons", "index.json"))) return candidate;
+  for (let i = 0; i < 8; i++) {
+    const pkgDir = join(dir, "node_modules", src.npm);
+    const pkg = join(pkgDir, "package.json");
+    if (existsSync(pkg)) {
+      try {
+        if (JSON.parse(readFileSync(pkg, "utf8")).version === src.version) {
+          const buf = readFileSync(join(pkgDir, src.file));
+          if (sha256(buf) === src.sha256) return buf;
+        }
+      } catch {
+      }
     }
-    dir = dirname(dir);
+    const up = dirname(dir);
+    if (up === dir) break;
+    dir = up;
+  }
+  return void 0;
+}
+function fromCache(src) {
+  const path = cachePath(src);
+  if (!existsSync(path)) return void 0;
+  const buf = readFileSync(path);
+  return sha256(buf) === src.sha256 ? buf : void 0;
+}
+async function download(src) {
+  const problems = [];
+  for (const url of libraryUrls(src)) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(6e4) });
+      if (!res.ok) {
+        problems.push(`${url}: HTTP ${res.status}`);
+        continue;
+      }
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (sha256(buf) !== src.sha256) {
+        problems.push(`${url}: checksum mismatch`);
+        continue;
+      }
+      const path = cachePath(src);
+      mkdirSync(dirname(path), { recursive: true });
+      const tmp = `${path}.${process.pid}.tmp`;
+      writeFileSync(tmp, buf);
+      renameSync(tmp, path);
+      return buf;
+    } catch (e) {
+      problems.push(`${url}: ${e.message}`);
+    }
+  }
+  throw new LibraryError(
+    `icon library ${src.npm}@${src.version} could not be downloaded (${problems.join("; ")})`,
+    [
+      "connect to the internet once; the library is cached after the first download",
+      `prefetch where there is network: diagramify icons fetch, then copy ${cacheDir()} (or set DIAGRAMIFY_CACHE)`,
+      "use icons from the bundled official packs (aws, azure, gcp, k8s) instead"
+    ]
+  );
+}
+function librarySource(src) {
+  if (fromNodeModules(src)) return "node_modules";
+  if (fromCache(src)) return "cache";
+  return void 0;
+}
+async function loadLibrary(pack, src) {
+  const done = loaded.get(pack);
+  if (done) return done;
+  const buf = fromNodeModules(src) ?? fromCache(src) ?? await download(src);
+  const json = JSON.parse(buf.toString("utf8"));
+  const set = src.format === "octicons" ? fromOcticons(json) : json;
+  loaded.set(pack, set);
+  return set;
+}
+function fromOcticons(data) {
+  const icons = {};
+  for (const [name, icon2] of Object.entries(data))
+    for (const [h, { width, path }] of Object.entries(icon2.heights))
+      icons[`${name}-${h}`] = { body: path, width, height: Number(h) };
+  return { prefix: "octicon", icons };
+}
+var loadedLibrary = (pack) => loaded.get(pack);
+function libraryIcon(set, name, mono = false) {
+  const icon2 = set.icons[name] ?? set.icons[set.aliases?.[name]?.parent ?? ""];
+  if (!icon2) return void 0;
+  let body = icon2.body;
+  for (const id of new Set([...body.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1] ?? ""))) {
+    const esc2 = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    body = body.replace(
+      new RegExp(`(\\bid="|url\\(#|href="#)${esc2}(?=["')])`, "g"),
+      `$1dfyid_${id}`
+    );
+  }
+  if (mono) {
+    body = body.replaceAll("currentColor", "{{c}}");
+    if (!/\bfill="/.test(body) || !body.includes("{{c}}")) body = `<g fill="{{c}}">${body}</g>`;
+  }
+  const v = [
+    icon2.left ?? set.left ?? 0,
+    icon2.top ?? set.top ?? 0,
+    icon2.width ?? set.width ?? 16,
+    icon2.height ?? set.height ?? 16
+  ].join(" ");
+  return { v, b: body };
+}
+function allDark(body) {
+  if (/Gradient|<image/.test(body)) return false;
+  const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="(#[0-9a-fA-F]{3,6})"/g)].map(
+    (m) => m[1] ?? ""
+  );
+  return colors.length > 0 && colors.every((c) => luminance(c) < 0.06);
+}
+
+// src/paths.ts
+import { existsSync as existsSync2 } from "node:fs";
+import { dirname as dirname2, join as join2 } from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+function findSkillRoot() {
+  let dir = dirname2(fileURLToPath2(import.meta.url));
+  for (let i = 0; i < 6; i++) {
+    for (const candidate of [dir, join2(dir, "skills", "diagramify")]) {
+      if (existsSync2(join2(candidate, "assets", "icons", "index.json"))) return candidate;
+    }
+    dir = dirname2(dir);
   }
   throw new Error("diagramify: cannot find the skill assets (assets/icons/index.json)");
 }
 var skillRoot = findSkillRoot();
-var iconsDir = join(skillRoot, "assets", "icons");
-var fontsDir = join(skillRoot, "assets", "fonts");
-var vendorDir = join(skillRoot, "scripts", "vendor");
-var examplesDir = join(skillRoot, "examples");
+var iconsDir = join2(skillRoot, "assets", "icons");
+var fontsDir = join2(skillRoot, "assets", "fonts");
+var vendorDir = join2(skillRoot, "scripts", "vendor");
+var examplesDir = join2(skillRoot, "examples");
 
 // src/icons.ts
 var PACK_ORDER = ["aws", "azure", "gcp", "k8s", "github", "logos", "si", "tabler"];
@@ -7457,7 +7594,7 @@ var index;
 var infoById;
 var packs = /* @__PURE__ */ new Map();
 function loadIndex() {
-  if (!index) index = JSON.parse(readFileSync(join2(iconsDir, "index.json"), "utf8"));
+  if (!index) index = JSON.parse(readFileSync2(join3(iconsDir, "index.json"), "utf8"));
   return index;
 }
 function infos() {
@@ -7472,7 +7609,7 @@ function infos() {
 function loadPack(pack) {
   let file = packs.get(pack);
   if (!file) {
-    file = JSON.parse(readFileSync(join2(iconsDir, `${pack}.json`), "utf8"));
+    file = JSON.parse(readFileSync2(join3(iconsDir, `${pack}.json`), "utf8"));
     packs.set(pack, file);
   }
   return file;
@@ -7534,7 +7671,6 @@ var PACK_WEIGHT = {
 var TYPE_WEIGHT = {
   service: 4,
   logo: 3,
-  legacy: 2,
   resource: 1,
   glyph: 0,
   category: -6,
@@ -7643,11 +7779,45 @@ function suggestIcons(id, limit = 3) {
   for (const [, rid] of ranked) if (!close.includes(rid)) close.push(rid);
   return close.slice(0, limit);
 }
+var libEntries = /* @__PURE__ */ new Map();
+function libraryEntry(info, lib) {
+  const done = libEntries.get(info.id);
+  if (done) return done;
+  const set = loadedLibrary(info.pack);
+  if (!set) throw new Error(`icon library ${lib.npm} is not loaded; call loadIconLibraries first`);
+  const name = loadIndex().names?.[info.id] ?? `${info.slug}${lib.suffix ?? ""}`;
+  const icon2 = libraryIcon(set, name, lib.mono);
+  if (!icon2) throw new Error(`icon ${info.id} missing from ${lib.npm}@${lib.version}`);
+  const entry = { ...icon2 };
+  if (lib.mono) entry.m = 1;
+  const col = loadIndex().colors?.[info.id];
+  if (col) entry.col = col;
+  if (!lib.mono && allDark(icon2.b)) entry.k = 1;
+  libEntries.set(info.id, entry);
+  return entry;
+}
+function packEntry(info) {
+  const lib = loadIndex().packs[info.pack]?.lib;
+  if (lib) return libraryEntry(info, lib);
+  const icons = loadPack(info.pack).icons;
+  const own = icons[info.slug];
+  const entry = own?.r ? icons[own.r] : own;
+  if (!entry) throw new Error(`icon ${info.id} missing from ${info.pack}.json`);
+  return entry;
+}
+async function loadIconLibraries(ids) {
+  const packs2 = /* @__PURE__ */ new Map();
+  for (const id of ids) {
+    const info = iconInfo(id);
+    const lib = info ? loadIndex().packs[info.pack]?.lib : void 0;
+    if (info && lib) packs2.set(info.pack, lib);
+  }
+  await Promise.all([...packs2].map(([pack, lib]) => loadLibrary(pack, lib)));
+}
 function renderIcon(id, instance, paint) {
   const info = iconInfo(id);
   if (!info) throw new Error(`unknown icon ${id}`);
-  const entry = loadPack(info.pack).icons[info.slug];
-  if (!entry) throw new Error(`icon ${info.id} missing from ${info.pack}.json`);
+  const entry = packEntry(info);
   let body = paint.theme === "dark" && entry.d ? entry.d : entry.b;
   body = body.replaceAll("dfyid", `${instance}-`);
   if (entry.m) {
@@ -8037,9 +8207,9 @@ function checkScene(scene, model, opts = {}) {
 }
 
 // src/layout.ts
-import { existsSync as existsSync2 } from "node:fs";
+import { existsSync as existsSync3 } from "node:fs";
 import { createRequire } from "node:module";
-import { join as join4 } from "node:path";
+import { join as join5 } from "node:path";
 
 // src/styles.ts
 var AWS_DECK = "AWS Architecture Icons deck 2026-07-31, Groups slide";
@@ -8515,13 +8685,13 @@ function groupStyleKeys() {
 }
 
 // src/text.ts
-import { readFileSync as readFileSync2 } from "node:fs";
-import { join as join3 } from "node:path";
+import { readFileSync as readFileSync3 } from "node:fs";
+import { join as join4 } from "node:path";
 var tables;
 var unitsPerEm = 2048;
 function load() {
   if (tables) return tables;
-  const metrics = JSON.parse(readFileSync2(join3(fontsDir, "metrics.json"), "utf8"));
+  const metrics = JSON.parse(readFileSync3(join4(fontsDir, "metrics.json"), "utf8"));
   unitsPerEm = metrics.unitsPerEm;
   tables = {};
   for (const [weight, packed] of Object.entries(metrics.weights)) {
@@ -8610,7 +8780,8 @@ var THEME_TOKENS = {
     zone: "#f4f6f8",
     stepFill: "#232f3e",
     stepText: "#ffffff",
-    shadow: "#0f172a"
+    shadow: "#0f172a",
+    flow: "#0972d3"
   },
   dark: {
     name: "dark",
@@ -8624,7 +8795,8 @@ var THEME_TOKENS = {
     zone: "#151b23",
     stepFill: "#e6edf3",
     stepText: "#0d1117",
-    shadow: "#000000"
+    shadow: "#000000",
+    flow: "#58a6ff"
   }
 };
 var FONT_STACK = "Inter, 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif";
@@ -8634,9 +8806,9 @@ var elkInstance;
 function elk() {
   if (elkInstance) return elkInstance;
   const require2 = createRequire(import.meta.url);
-  const vendored = join4(vendorDir, "elk.bundled.cjs");
+  const vendored = join5(vendorDir, "elk.bundled.cjs");
   const ELK = require2(
-    existsSync2(vendored) ? vendored : "elkjs/lib/elk.bundled.js"
+    existsSync3(vendored) ? vendored : "elkjs/lib/elk.bundled.js"
   );
   elkInstance = new ELK();
   return elkInstance;
@@ -9142,8 +9314,12 @@ async function layout(model, opts = {}) {
   const edges = [];
   const attachBox = (id) => {
     const nd = nodes.find((x) => x.id === id);
-    if (nd) return nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
-    return groups.find((x) => x.id === id)?.box;
+    if (nd) {
+      const side = nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
+      return { side, full: union([nd.box, nd.iconBox, nd.labelBox, nd.noteBox]) };
+    }
+    const box = groups.find((x) => x.id === id)?.box;
+    return box ? { side: box, full: box } : void 0;
   };
   for (const e of model.edges) {
     if (!e.constraint) {
@@ -9263,10 +9439,21 @@ async function layout(model, opts = {}) {
     description: describe(model)
   };
 }
-function freeRoute(a, b) {
-  const ac = { x: a.x + a.w / 2, y: a.y + a.h / 2 };
-  const bc = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
-  if (a.x + a.w <= b.x || b.x + b.w <= a.x) {
+function union(boxes) {
+  const list = boxes.filter((b) => !!b);
+  const x = Math.min(...list.map((b) => b.x));
+  const y = Math.min(...list.map((b) => b.y));
+  const w = Math.max(...list.map((b) => b.x + b.w)) - x;
+  const h = Math.max(...list.map((b) => b.y + b.h)) - y;
+  return { x, y, w, h };
+}
+function freeRoute(from, to) {
+  const sideBySide = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
+  const a = sideBySide ? from.side : from.full;
+  const b = sideBySide ? to.side : to.full;
+  const ac = { x: from.side.x + from.side.w / 2, y: a.y + a.h / 2 };
+  const bc = { x: to.side.x + to.side.w / 2, y: b.y + b.h / 2 };
+  if (sideBySide) {
     const right = a.x + a.w <= b.x;
     const sx = right ? a.x + a.w : a.x;
     const ex = right ? b.x : b.x + b.w;
@@ -9515,10 +9702,13 @@ function edge(ctx, e, routing) {
     if (start) pts = trim(pts, false, cut);
   }
   const dash = e.line === "dashed" ? ` stroke-dasharray="6 4"` : e.line === "dotted" ? ` stroke-dasharray="1.5 3.5" stroke-linecap="round"` : "";
-  const flow = ctx.scene.animate ? ` class="dfy-flow${e.line === "solid" || e.line === "thick" ? " dfy-solid" : ""}"` : "";
+  const flow = ctx.scene.animate === "flow" ? ` class="dfy-flow${e.line === "solid" || e.line === "thick" ? " dfy-solid" : ""}"` : "";
+  const d = edgePath(pts, routing);
   const parts = [
-    `<path d="${edgePath(pts, routing)}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linejoin="round"${dash}${flow}/>`
+    `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linejoin="round"${dash}${flow}/>`
   ];
+  const motion = ctx.motion.get(e.id);
+  if (motion) parts.push(packets(ctx, e, d, motion));
   const orig = e.points;
   const last = orig[orig.length - 1];
   const beforeLast = orig[orig.length - 2];
@@ -9540,12 +9730,82 @@ function edge(ctx, e, routing) {
     const s = e.stepBox;
     const cx = s.x + s.w / 2;
     const cy = s.y + s.h / 2;
+    if (motion?.stepped) parts.push(ping(ctx, cx, cy, motion));
     parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="10" fill="${ctx.t.stepFill}"/>`);
     parts.push(
       `<text x="${n(cx)}" y="${n(cy + 4)}" font-size="11" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`
     );
   }
   return `<g id="${ctx.prefix}e-${e.id}">${parts.join("")}</g>`;
+}
+var SPEED = 150;
+var REST = 0.9;
+var FADE = 0.12;
+function length(points) {
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    if (a && b) total += Math.hypot(b.x - a.x, b.y - a.y);
+  }
+  return total;
+}
+function motionPlan(scene) {
+  const plan = /* @__PURE__ */ new Map();
+  if (scene.animate !== "packets") return plan;
+  const moving = scene.edges.filter((e) => e.arrow !== "none" && e.points.length > 1);
+  const travel = (e) => Math.min(2.4, Math.max(0.6, length(e.points) / SPEED));
+  const stepped = moving.filter((e) => e.step !== void 0);
+  const steps = [...new Set(stepped.map((e) => e.step ?? 0))].sort((a, b) => a - b);
+  const starts = /* @__PURE__ */ new Map();
+  let t = 0;
+  for (const step of steps) {
+    starts.set(step, t);
+    t += Math.max(...stepped.filter((e) => e.step === step).map(travel)) + 0.15;
+  }
+  const story = t + REST;
+  for (const e of stepped) {
+    const start = starts.get(e.step ?? 0) ?? 0;
+    plan.set(e.id, { cycle: story, start, travel: travel(e), begin: 0, stepped: true });
+  }
+  moving.filter((e) => e.step === void 0).forEach((e, i) => {
+    const tr = travel(e);
+    const cycle = tr + REST;
+    const begin = -(i * 0.618034 % 1 * cycle);
+    plan.set(e.id, { cycle, start: 0, travel: tr, begin, stepped: false });
+  });
+  return plan;
+}
+var secs = (v) => `${Math.round(v * 1e3) / 1e3}s`;
+function keyTimes(times, cycle) {
+  let prev = 0;
+  return times.map((t, i) => {
+    const v = i === times.length - 1 ? 1 : Math.min(1, Math.max(prev, t / cycle));
+    prev = Math.round(v * 1e4) / 1e4;
+    return prev;
+  }).join(";");
+}
+function packets(ctx, e, d, m) {
+  const color = e.color ?? ctx.t.flow;
+  const r = e.line === "thick" ? 4.2 : 3.6;
+  const { cycle, start, travel } = m;
+  const end = start + travel;
+  const fadeIn = start === 0 ? [0, FADE] : [0, start, start + FADE];
+  const opacity = start === 0 ? "0;1;1;0;0" : "0;0;1;1;0;0";
+  const fade = keyTimes([...fadeIn, end - FADE, end, cycle], cycle);
+  const at = keyTimes([0, start, end, cycle], cycle);
+  const one = (reverse, shift) => {
+    const begin = m.begin - shift;
+    const loop = `dur="${secs(cycle)}" repeatCount="indefinite"${begin ? ` begin="${secs(begin)}"` : ""}`;
+    return `<g opacity="0"><circle r="${n(r * 2.3)}" fill="${color}" fill-opacity="0.22"/><circle r="${r}" fill="${color}"/><animateMotion path="${d}" ${loop} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${at}"/><animate attributeName="opacity" values="${opacity}" keyTimes="${fade}" ${loop}/></g>`;
+  };
+  if (e.arrow === "both") return one(false, 0) + one(true, cycle / 2);
+  return one(e.arrow === "start", 0);
+}
+function ping(ctx, cx, cy, m) {
+  const at = keyTimes([0, Math.max(0, m.start - 0.01), m.start, m.start + 0.6, m.cycle], m.cycle);
+  const loop = `dur="${secs(m.cycle)}" repeatCount="indefinite"`;
+  return `<circle cx="${n(cx)}" cy="${n(cy)}" r="10" fill="none" stroke="${ctx.t.flow}" stroke-width="2" opacity="0"><animate attributeName="r" values="10;10;10;17;17" keyTimes="${at}" ${loop}/><animate attributeName="opacity" values="0;0;0.7;0;0" keyTimes="${at}" ${loop}/></circle>`;
 }
 function shapePath(shape, b) {
   const { x, y, w, h } = b;
@@ -9638,7 +9898,7 @@ var FLOW_CSS = `@keyframes dfy-flow{to{stroke-dashoffset:-20}}.dfy-flow{animatio
 function renderSvg(scene, opts = {}) {
   const t = THEME_TOKENS[scene.theme];
   const prefix = opts.idPrefix ? `${opts.idPrefix.replace(/[^A-Za-z0-9_-]/g, "")}-` : "";
-  const ctx = { t, prefix, icons: 0, scene };
+  const ctx = { t, prefix, icons: 0, scene, motion: motionPlan(scene) };
   const { width: W, height: H } = scene;
   const titleId = `${prefix}dfy-title`;
   const descId = `${prefix}dfy-desc`;
@@ -9650,7 +9910,7 @@ function renderSvg(scene, opts = {}) {
     `<title id="${titleId}">${esc(scene.title?.lines.join(" ") ?? "Architecture diagram")}</title>`
   );
   out.push(`<desc id="${descId}">${esc(scene.description)}</desc>`);
-  if (scene.animate) out.push(`<style>${FLOW_CSS}</style>`);
+  if (scene.animate === "flow") out.push(`<style>${FLOW_CSS}</style>`);
   if (scene.background !== "transparent") {
     out.push(`<rect width="${W}" height="${H}" fill="${scene.background ?? t.background}"/>`);
   }
@@ -9964,7 +10224,7 @@ button:hover,a.btn:hover{border-color:var(--accent)}
 button:active,a.btn:active{transform:scale(.97)}
 main{position:relative;flex:1;overflow:hidden;touch-action:none;cursor:grab}
 main.dragging{cursor:grabbing}
-#canvas{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#canvas{position:absolute;left:0;top:0}
 #canvas img{display:block;max-width:none;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);transition:opacity .2s ease}
 body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
 .hint{position:absolute;right:12px;bottom:10px;font-size:12px;color:var(--muted);pointer-events:none}
@@ -9993,9 +10253,9 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
   const body = document.body, stage = document.getElementById("stage"), canvas = document.getElementById("canvas"), img = document.getElementById("diagram");
   let theme = body.dataset.theme, scale = 1, x = 0, y = 0;
   const size = () => { const m = atob(svgs[theme].slice(0, 800)).match(/width="([\\d.]+)" height="([\\d.]+)"/); return m ? [Number(m[1]), Number(m[2])] : [1000, 600]; };
-  const apply = () => { canvas.style.transform = "translate(" + x + "px," + y + "px) scale(" + scale + ")"; };
+  const apply = () => { const [w, h] = size(); canvas.style.left = x + "px"; canvas.style.top = y + "px"; img.style.width = w * scale + "px"; img.style.height = h * scale + "px"; };
   const fit = () => { const [w, h] = size(); const r = stage.getBoundingClientRect(); scale = Math.min((r.width - 32) / w, (r.height - 32) / h, 2); x = (r.width - w * scale) / 2; y = Math.max(16, (r.height - h * scale) / 2); apply(); };
-  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; document.querySelector('[data-act=svg]').href = toUrl(svgs[theme]); };
+  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; apply(); document.querySelector('[data-act=svg]').href = toUrl(svgs[theme]); };
   const zoomAt = (f, cx, cy) => { const ns = Math.max(0.1, Math.min(8, scale * f)); x = cx - (cx - x) * (ns / scale); y = cy - (cy - y) * (ns / scale); scale = ns; apply(); };
   const pointers = new Map(); let pinch = 0;
   stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.classList.add("dragging"); });
@@ -10029,23 +10289,23 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
 }
 
 // src/render/png.ts
-import { existsSync as existsSync3, readFileSync as readFileSync3 } from "node:fs";
+import { existsSync as existsSync4, readFileSync as readFileSync4 } from "node:fs";
 import { createRequire as createRequire2 } from "node:module";
-import { join as join5 } from "node:path";
+import { join as join6 } from "node:path";
 import { pathToFileURL } from "node:url";
 var resvg;
 async function load2() {
-  const vendored = join5(vendorDir, "resvg", "index.mjs");
+  const vendored = join6(vendorDir, "resvg", "index.mjs");
   let mod;
   let wasm;
-  if (existsSync3(vendored)) {
+  if (existsSync4(vendored)) {
     mod = await import(pathToFileURL(vendored).href);
-    wasm = readFileSync3(join5(vendorDir, "resvg", "index_bg.wasm"));
+    wasm = readFileSync4(join6(vendorDir, "resvg", "index_bg.wasm"));
   } else {
     const require2 = createRequire2(import.meta.url);
     const entry = require2.resolve("@resvg/resvg-wasm");
-    mod = await import(pathToFileURL(join5(entry, "..", "index.mjs")).href);
-    wasm = readFileSync3(join5(entry, "..", "index_bg.wasm"));
+    mod = await import(pathToFileURL(join6(entry, "..", "index.mjs")).href);
+    wasm = readFileSync4(join6(entry, "..", "index_bg.wasm"));
   }
   await mod.initWasm(wasm);
   return mod;
@@ -10053,15 +10313,15 @@ async function load2() {
 var fonts;
 function fontBuffers(extra) {
   fonts ??= ["Inter-Regular.ttf", "Inter-SemiBold.ttf"].map(
-    (f) => new Uint8Array(readFileSync3(join5(fontsDir, f)))
+    (f) => new Uint8Array(readFileSync4(join6(fontsDir, f)))
   );
-  return [...fonts, ...extra.map((f) => new Uint8Array(readFileSync3(f)))];
+  return [...fonts, ...extra.map((f) => new Uint8Array(readFileSync4(f)))];
 }
 async function renderPng(svg, opts = {}) {
   resvg ??= load2();
   const { Resvg } = await resvg;
   const r = new Resvg(svg, {
-    fitTo: { mode: "zoom", value: opts.scale ?? 2 },
+    fitTo: { mode: "zoom", value: opts.scale ?? 3 },
     background: opts.background,
     font: {
       fontBuffers: fontBuffers(opts.fonts ?? []),
@@ -10184,7 +10444,7 @@ function renderTsx(scene, name) {
 // src/render/index.ts
 var FORMATS = ["svg", "png", "drawio", "tsx", "html"];
 async function renderModel(req) {
-  const model = req.animate ? { ...req.model, animate: true } : req.model;
+  const model = req.animate ? { ...req.model, animate: req.animate } : req.model;
   const themes = [
     ...new Set(req.formats.includes("html") ? [...req.themes, "light", "dark"] : req.themes)
   ];
@@ -10192,27 +10452,34 @@ async function renderModel(req) {
   for (const theme of themes) scenes[theme] = await layout(model, { theme });
   const first = scenes[req.themes[0] ?? model.theme] ?? Object.values(scenes)[0];
   const diagnostics = first ? checkScene(first, model) : [];
+  if (req.formats.length) {
+    const ids = Object.values(scenes).flatMap((s) => [
+      ...s.nodes.map((n3) => n3.icon),
+      ...s.groups.map((g) => g.icon)
+    ]);
+    await loadIconLibraries(ids.filter((id) => !!id));
+  }
   const artifacts = [];
   for (const theme of req.themes) {
     const scene = scenes[theme];
-    if (!scene) continue;
+    if (!scene || !req.formats.length) continue;
     const svg = renderSvg(scene);
     for (const format of req.formats) {
       const base = { format, theme, width: scene.width, height: scene.height };
       if (format === "svg") artifacts.push({ ...base, data: svg });
       if (format === "png") {
-        const still = scene.animate ? renderSvg({ ...scene, animate: false }) : svg;
+        const still = scene.animate !== "none" ? renderSvg({ ...scene, animate: "none" }) : svg;
         artifacts.push({
           ...base,
           data: await renderPng(still, { scale: req.scale, fonts: req.fonts }),
-          width: Math.round(scene.width * (req.scale ?? 2)),
-          height: Math.round(scene.height * (req.scale ?? 2))
+          width: Math.round(scene.width * (req.scale ?? 3)),
+          height: Math.round(scene.height * (req.scale ?? 3))
         });
       }
       if (format === "drawio")
         artifacts.push({
           ...base,
-          data: renderDrawio({ ...scene, animate: false }, model.title ?? req.name)
+          data: renderDrawio({ ...scene, animate: "none" }, model.title ?? req.name)
         });
       if (format === "tsx")
         artifacts.push({ ...base, data: renderTsx(scene, componentName(model.title, req.name)) });
@@ -10261,6 +10528,7 @@ var SHAPES2 = [
 ];
 var ROUTINGS = ["orthogonal", "polyline", "spline"];
 var SPACINGS = ["compact", "normal", "loose"];
+var ANIMATE_MODES = ["packets", "flow", "none"];
 
 // src/spec.ts
 var TOP_KEYS = [
@@ -10520,6 +10788,7 @@ function parseSpec(source, filename = "diagram.yaml") {
   }
   const merge = layout2.merge !== false;
   const arrowhead = oneOf(raw.arrowhead, ["open", "filled"], "open", "arrowhead");
+  const animate = raw.animate === true ? "packets" : raw.animate === false ? "none" : oneOf(raw.animate, ANIMATE_MODES, "packets", "animate");
   const background = str(raw.background);
   if (background && background !== "transparent" && !isHex(background)) {
     err("DG107", `background must be a hex color or "transparent"; got "${background}"`, {
@@ -10927,7 +11196,7 @@ function parseSpec(source, filename = "diagram.yaml") {
     layering,
     merge,
     arrowhead,
-    animate: raw.animate === true,
+    animate,
     background: background === "transparent" ? "transparent" : background,
     nodes,
     groups,
@@ -10940,17 +11209,19 @@ function suggestIds(id, ids, kind) {
 }
 
 // src/cli.ts
-var VERSION = true ? "0.1.0" : "dev";
+var VERSION = true ? "0.2.0" : "dev";
 var HELP = `diagramify ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
   diagramify render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
-                    [--scale 2] [--animate] [--font extra.ttf] [--strict] [--force] [--json]
+                    [--scale 3] [--animate packets|flow|none] [--static] [--font extra.ttf]
+                    [--strict] [--force] [--json]
   diagramify validate <spec.yaml> [--strict] [--json]
   diagramify icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
   diagramify icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
   diagramify icons list [--pack aws] [--category Compute] [--type service] [--json]
   diagramify icons packs [--json]
+  diagramify icons fetch [pack...]
   diagramify styles [--json]
   diagramify import mermaid <flowchart.mmd|-> [-o diagram.yaml]
   diagramify init [template] [-o diagram.yaml] [--list]
@@ -10959,7 +11230,7 @@ Usage:
 
 Packs: ${PACK_ORDER.join(", ")}. Spec reference: references/spec.md in the skill folder.
 Exit codes: 0 ok, 1 diagram errors (or warnings with --strict), 2 bad command line.`;
-var BOOL = /* @__PURE__ */ new Set(["json", "strict", "force", "animate", "list", "help", "version"]);
+var BOOL = /* @__PURE__ */ new Set(["json", "strict", "force", "static", "list", "help", "version"]);
 function parseArgs(argv) {
   const out = { _: [], flags: {} };
   for (let i = 0; i < argv.length; i++) {
@@ -10983,7 +11254,8 @@ function parseArgs(argv) {
       };
       key = short[key] ?? key;
       if (value === void 0) {
-        if (BOOL.has(key)) value = true;
+        if (BOOL.has(key) || key === "animate" && !ANIMATE_MODES.includes(argv[i + 1]))
+          value = true;
         else {
           value = argv[i + 1];
           i += 1;
@@ -11003,12 +11275,12 @@ ${HELP}
 `);
   process.exit(2);
 }
-var sha = (data) => createHash("sha256").update(data).digest("hex");
+var sha = (data) => createHash2("sha256").update(data).digest("hex");
 function writeAtomic(path, data) {
-  mkdirSync(dirname2(path), { recursive: true });
+  mkdirSync2(dirname3(path), { recursive: true });
   const tmp = `${path}.${process.pid}.tmp`;
-  writeFileSync(tmp, data);
-  renameSync(tmp, path);
+  writeFileSync2(tmp, data);
+  renameSync2(tmp, path);
 }
 function printDiagnostics(list, json) {
   if (json) return;
@@ -11023,11 +11295,11 @@ function printDiagnostics(list, json) {
   }
 }
 function readSpec(path) {
-  if (path === "-") return { text: readFileSync4(0, "utf8"), name: "diagram", path: "stdin.yaml" };
+  if (path === "-") return { text: readFileSync5(0, "utf8"), name: "diagram", path: "stdin.yaml" };
   const full = resolve(path);
-  if (!existsSync4(full)) usage(`no such spec file: ${path}`);
+  if (!existsSync5(full)) usage(`no such spec file: ${path}`);
   return {
-    text: readFileSync4(full, "utf8"),
+    text: readFileSync5(full, "utf8"),
     name: basename(full).replace(/\.(ya?ml|json)$/i, ""),
     path: full
   };
@@ -11056,8 +11328,8 @@ async function cmdRender(args, validateOnly) {
   let base;
   if (!outFlag)
     base = spec.path === "stdin.yaml" ? resolve("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
-  else if (outFlag.endsWith("/") || outFlag.endsWith("\\") || existsSync4(outFlag) && statSync(outFlag).isDirectory())
-    base = join6(resolve(outFlag), spec.name);
+  else if (outFlag.endsWith("/") || outFlag.endsWith("\\") || existsSync5(outFlag) && statSync(outFlag).isDirectory())
+    base = join7(resolve(outFlag), spec.name);
   else
     base = resolve(
       FORMATS.includes(outExt) ? outFlag.slice(0, -(outExt.length + 1)) : outFlag
@@ -11070,18 +11342,28 @@ async function cmdRender(args, validateOnly) {
     diagnostics
   };
   if (parsed.model && ok) {
-    const scale = args.flags.scale !== void 0 ? Number(args.flags.scale) : 2;
+    const scale = args.flags.scale !== void 0 ? Number(args.flags.scale) : 3;
     if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
     const fonts2 = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
-    const result = await renderModel({
-      model: parsed.model,
-      formats: validateOnly ? ["svg"] : formats,
-      themes: validateOnly ? [themes[0] ?? "light"] : themes,
-      name: spec.name,
-      scale,
-      fonts: fonts2,
-      animate: args.flags.animate === true
-    });
+    const animateFlag = args.flags.static === true ? "none" : args.flags.animate === true ? "packets" : args.flags.animate;
+    if (animateFlag !== void 0 && !ANIMATE_MODES.includes(animateFlag))
+      usage(`--animate must be ${ANIMATE_MODES.join(", ")}`);
+    let result;
+    try {
+      result = await renderModel({
+        model: parsed.model,
+        formats: validateOnly ? [] : formats,
+        themes: validateOnly ? [themes[0] ?? "light"] : themes,
+        name: spec.name,
+        scale,
+        fonts: fonts2,
+        animate: animateFlag
+      });
+    } catch (e) {
+      if (!(e instanceof LibraryError)) throw e;
+      result = { artifacts: [], diagnostics: [], scenes: {} };
+      diagnostics.push({ severity: "error", code: "DG301", message: e.message, fixes: e.fixes });
+    }
     diagnostics.push(...result.diagnostics);
     const scene = result.scenes[themes[0] ?? "light"];
     const iconsByPack = {};
@@ -11145,12 +11427,32 @@ async function cmdIcons(args) {
 `);
     for (const key of PACK_ORDER) {
       const p = packs2[key];
+      const from = p?.lib ? `npm ${p.lib.npm}@${p.lib.version}, loaded on first use` : "bundled";
       if (p)
         process.stdout.write(
-          `${key.padEnd(7)} ${String(p.count).padStart(5)}  ${p.title} (${p.version})
+          `${key.padEnd(7)} ${String(p.count).padStart(5)}  ${p.title} (${p.version}; ${from})
         ${p.source}
 `
         );
+    }
+    return;
+  }
+  if (sub === "fetch") {
+    const packs2 = packInfo();
+    const wanted = rest.length ? rest : PACK_ORDER.filter((k) => packs2[k]?.lib);
+    for (const key of wanted) {
+      const lib = packs2[key]?.lib;
+      if (!lib) {
+        process.stdout.write(`${key.padEnd(7)} bundled, nothing to fetch
+`);
+        continue;
+      }
+      const before = librarySource(lib);
+      await loadLibrary(key, lib);
+      process.stdout.write(
+        `${key.padEnd(7)} ${lib.npm}@${lib.version} ${before ? `from ${before}` : `downloaded to ${cachePath(lib)}`}
+`
+      );
     }
     return;
   }
@@ -11202,12 +11504,13 @@ async function cmdIcons(args) {
     }
     const theme = args.flags.theme === "dark" ? "dark" : "light";
     const t = THEME_TOKENS[theme];
+    await loadIconLibraries([info.id]);
     const r = renderIcon(info.id, "s", { theme, background: t.background, ink: t.text });
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="96" height="96" viewBox="${r.viewBox.join(" ")}">${r.body}</svg>
 `;
     const out = typeof args.flags.out === "string" ? args.flags.out : void 0;
     if (out) {
-      writeAtomic(resolve(out), out.endsWith(".png") ? await renderPng(svg, { scale: 2 }) : svg);
+      writeAtomic(resolve(out), out.endsWith(".png") ? await renderPng(svg, { scale: 4 }) : svg);
       process.stdout.write(`wrote ${resolve(out)}
 `);
     }
@@ -11215,7 +11518,7 @@ async function cmdIcons(args) {
 `);
     return;
   }
-  usage(`unknown icons command "${sub ?? ""}" (use search, show, list or packs)`);
+  usage(`unknown icons command "${sub ?? ""}" (use search, show, list, packs or fetch)`);
 }
 function cmdStyles(args) {
   if (args.flags.json === true) {
@@ -11236,7 +11539,7 @@ Node shapes (nodes: { id: { shape: ... } }): ${SHAPES2.join(", ")}
   );
 }
 function templates() {
-  if (!existsSync4(examplesDir)) return [];
+  if (!existsSync5(examplesDir)) return [];
   return readdirSync(examplesDir).filter((f) => /\.ya?ml$/.test(f)).map((f) => f.replace(/\.ya?ml$/, "")).sort();
 }
 function cmdInit(args) {
@@ -11247,16 +11550,16 @@ function cmdInit(args) {
     return;
   }
   const name = args._[0] ?? "starter";
-  const file = join6(examplesDir, `${name}.yaml`);
-  if (!existsSync4(file)) usage(`no template "${name}" (templates: ${list.join(", ")})`);
+  const file = join7(examplesDir, `${name}.yaml`);
+  if (!existsSync5(file)) usage(`no template "${name}" (templates: ${list.join(", ")})`);
   const out = resolve(typeof args.flags.out === "string" ? args.flags.out : "diagram.yaml");
-  if (existsSync4(out) && args.flags.force !== true) {
+  if (existsSync5(out) && args.flags.force !== true) {
     process.stderr.write(`${out} exists; pass --force to overwrite
 `);
     process.exitCode = 1;
     return;
   }
-  writeAtomic(out, readFileSync4(file, "utf8"));
+  writeAtomic(out, readFileSync5(file, "utf8"));
   process.stdout.write(
     `wrote ${out} from template ${name}
 next: diagramify render ${basename(out)}
@@ -11267,13 +11570,13 @@ function cmdImport(args) {
   const [kind, file] = args._;
   if (kind !== "mermaid") usage('import supports "mermaid" (flowchart and graph diagrams)');
   if (!file) usage("import mermaid needs a file, or - for stdin");
-  const text2 = file === "-" ? readFileSync4(0, "utf8") : readFileSync4(resolve(file), "utf8");
+  const text2 = file === "-" ? readFileSync5(0, "utf8") : readFileSync5(resolve(file), "utf8");
   const result = importMermaid(text2.replace(/^```mermaid\s*|```\s*$/gm, ""));
   for (const w of result.warnings) process.stderr.write(`warn  ${w}
 `);
   const out = typeof args.flags.out === "string" ? resolve(args.flags.out) : void 0;
   if (!out) return void process.stdout.write(result.yaml);
-  if (existsSync4(out) && args.flags.force !== true) {
+  if (existsSync5(out) && args.flags.force !== true) {
     process.stderr.write(`${out} exists; pass --force to overwrite
 `);
     process.exitCode = 1;
@@ -11299,12 +11602,19 @@ async function cmdDoctor() {
     `${total} icons in ${Object.keys(packs2).length} packs`
   ]);
   const missing = Object.keys(packs2).filter(
-    (p) => !existsSync4(join6(skillRoot, "assets", "icons", `${p}.json`))
+    (p) => !packs2[p]?.lib && !existsSync5(join7(skillRoot, "assets", "icons", `${p}.json`))
   );
   checks.push([
-    "icon pack files",
+    "bundled icon packs",
     !missing.length,
     missing.length ? `missing ${missing.join(", ")}` : "all present"
+  ]);
+  const libs = Object.values(packs2).flatMap((p) => p.lib ? [p.lib] : []);
+  const ready = libs.filter((lib) => librarySource(lib)).length;
+  checks.push([
+    "icon libraries",
+    true,
+    `${ready}/${libs.length} available offline${ready < libs.length ? "; the rest download on first use (icons fetch)" : ""}`
   ]);
   try {
     const parsed = parseSpec(
@@ -11337,7 +11647,7 @@ async function cmdDemo(args) {
   const dir = resolve(args._[0] ?? "diagramify-demo");
   let failed = 0;
   for (const t of templates()) {
-    const text2 = readFileSync4(join6(examplesDir, `${t}.yaml`), "utf8");
+    const text2 = readFileSync5(join7(examplesDir, `${t}.yaml`), "utf8");
     const parsed = parseSpec(text2, `${t}.yaml`);
     if (!parsed.model) {
       failed += 1;
@@ -11351,7 +11661,7 @@ async function cmdDemo(args) {
       themes: [parsed.model.theme],
       name: t
     });
-    for (const a of r.artifacts) writeAtomic(join6(dir, `${t}.${a.format}`), a.data);
+    for (const a of r.artifacts) writeAtomic(join7(dir, `${t}.${a.format}`), a.data);
     const scene = r.scenes[parsed.model.theme];
     process.stdout.write(`${t}: ${scene?.width}x${scene?.height}
 `);

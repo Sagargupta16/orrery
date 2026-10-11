@@ -51,11 +51,12 @@ npx -y @sagargupta1610/skillcheck lint skills
 - `src/spec.ts` -- spec parser and DG1xx diagnostics
 - `src/layout.ts` -- model -> ELK graph -> Scene (every renderer consumes the Scene)
 - `src/render/*.ts` -- svg, png, drawio, tsx, html
-- `scripts/sync-icons.mjs` -- official packs -> `skills/diagramify/assets/icons/*.json`
+- `scripts/sync-icons.mjs` -- official packs -> `skills/diagramify/assets/icons/*.json`; npm-published sets get only index rows and a `lib` pin
+- `src/libraries.ts` -- loads the npm-published sets (octicons, logos, simple-icons, tabler) at render time: node_modules, then the user cache, then jsDelivr/unpkg, sha256-checked
 
 ## Key files
 
-- `scripts/icon-sources.json` -- pinned vendor URLs + SHA-256; `scripts/icon-aliases.json` -- short names
+- `scripts/icon-sources.json` -- pinned vendor URLs + SHA-256; `scripts/icon-aliases.json` -- short names; `scripts/gcp-products.json` -- Google's product -> core/category icon list (May 2026 guide)
 - `src/styles.ts` -- group styles (AWS colors read from the official group tiles)
 - `skills/diagramify/references/spec.md` -- the spec contract; keep it in sync with `src/spec.ts`
 - `.claude-plugin/plugin.json` + `marketplace.json` -- versions must match `package.json` and SKILL.md
@@ -70,6 +71,8 @@ npx -y @sagargupta1610/skillcheck lint skills
 - YAML flow mappings split on commas: `note: Sharp, 512 MB` inside `{...}` becomes a key; DG108 says to quote it.
 - AWS `_Light`/`_Dark` resource files are named for the background they suit: `_Dark` is the white glyph for dark themes.
 - `python -I` ignores `PYTHONIOENCODING`; use `sys.stdout.reconfigure(encoding="utf-8")` when printing vendor text on Windows.
+- Library packs (`github`, `logos`, `si`, `tabler`) have no `<pack>.json`; `renderIcon` throws unless `loadIconLibraries` ran first (renderModel and `icons show` do it). Bumping one of those npm dev dependencies changes its sha256 pin, so re-run `pnpm sync-icons` with it.
+- SVGs animate by default (`animate: packets`, SMIL). PNG and draw.io always get a still scene (`animate: "none"`); keep it that way, resvg would draw packets at the origin.
 
 ## Repo-specific rules
 

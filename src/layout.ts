@@ -660,10 +660,16 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   }
 
   const edges: SceneEdge[] = [];
-  const attachBox = (id: string): Box | undefined => {
+  // Side: what a horizontal line meets (the icon of an icon node). Full: the node with its label
+  // and note, so a vertical line leaves below the text instead of through it.
+  const attachBox = (id: string): Attach | undefined => {
     const nd = nodes.find((x) => x.id === id);
-    if (nd) return nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
-    return groups.find((x) => x.id === id)?.box;
+    if (nd) {
+      const side = nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
+      return { side, full: union([nd.box, nd.iconBox, nd.labelBox, nd.noteBox]) };
+    }
+    const box = groups.find((x) => x.id === id)?.box;
+    return box ? { side: box, full: box } : undefined;
   };
   for (const e of model.edges) {
     if (!e.constraint) {
@@ -786,11 +792,29 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   };
 }
 
-/** An orthogonal connector between two placed boxes, for edges the layout ignored. */
-function freeRoute(a: Box, b: Box): Point[] {
-  const ac = { x: a.x + a.w / 2, y: a.y + a.h / 2 };
-  const bc = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
-  if (a.x + a.w <= b.x || b.x + b.w <= a.x) {
+interface Attach {
+  side: Box;
+  full: Box;
+}
+
+function union(boxes: (Box | undefined)[]): Box {
+  const list = boxes.filter((b): b is Box => !!b);
+  const x = Math.min(...list.map((b) => b.x));
+  const y = Math.min(...list.map((b) => b.y));
+  const w = Math.max(...list.map((b) => b.x + b.w)) - x;
+  const h = Math.max(...list.map((b) => b.y + b.h)) - y;
+  return { x, y, w, h };
+}
+
+/** An orthogonal connector between two placed nodes or groups, for edges the layout ignored. */
+function freeRoute(from: Attach, to: Attach): Point[] {
+  const sideBySide =
+    from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
+  const a = sideBySide ? from.side : from.full;
+  const b = sideBySide ? to.side : to.full;
+  const ac = { x: from.side.x + from.side.w / 2, y: a.y + a.h / 2 };
+  const bc = { x: to.side.x + to.side.w / 2, y: b.y + b.h / 2 };
+  if (sideBySide) {
     const right = a.x + a.w <= b.x;
     const sx = right ? a.x + a.w : a.x;
     const ex = right ? b.x : b.x + b.w;
