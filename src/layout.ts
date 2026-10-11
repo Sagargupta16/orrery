@@ -84,6 +84,8 @@ export const SIZES = {
   title: 20,
   subtitle: 13,
   iconLabelMax: 132,
+  // Step badges: official AWS, Azure and Google badges are 0.54 to 0.75 of the icon size.
+  step: 28,
   cardLabelMax: 168,
   shapeLabelMax: 156,
   edgeLabelMax: 150,
@@ -362,11 +364,11 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     if (!e.label && e.step === undefined && labelledFrom.has(e.from)) {
       elkEdge.labels = [{ id: `${e.id}__spacer`, text: " ", width: 1, height: 1 }];
     }
-    const stepW = e.step !== undefined ? 22 : 0;
+    const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
     if (e.label || e.step !== undefined) {
       const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
       const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-      const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? 20 : 0));
+      const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
       edgeLabels.set(e.id, { block, w, h, stepW });
       elkEdge.labels = [
         { id: `${e.id}__label`, text: e.label || `step ${e.step}`, width: w, height: h },
@@ -689,13 +691,18 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       };
       if (e.label || e.step !== undefined) {
         const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-        const stepW = e.step !== undefined ? 22 : 0;
+        const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
         const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-        const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? 20 : 0));
+        const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
         const mid = midpoint(points);
         const box = { x: round(mid.x - w / 2), y: round(mid.y - h - 3), w, h };
         if (e.step !== undefined)
-          edge.stepBox = { x: box.x, y: round(box.y + (h - 20) / 2), w: 20, h: 20 };
+          edge.stepBox = {
+            x: box.x,
+            y: round(box.y + (h - SIZES.step) / 2),
+            w: SIZES.step,
+            h: SIZES.step,
+          };
         if (e.label) {
           edge.label = block;
           edge.labelBox = {
@@ -728,7 +735,12 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     if (lab && elkLabel?.x !== undefined && elkLabel.y !== undefined) {
       const box = { x: round(elkLabel.x), y: round(elkLabel.y + top), w: lab.w, h: lab.h };
       if (e.step !== undefined) {
-        edge.stepBox = { x: box.x, y: round(box.y + (box.h - 20) / 2), w: 20, h: 20 };
+        edge.stepBox = {
+          x: box.x,
+          y: round(box.y + (box.h - SIZES.step) / 2),
+          w: SIZES.step,
+          h: SIZES.step,
+        };
       }
       if (e.label) {
         edge.label = lab.block;

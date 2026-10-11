@@ -276,7 +276,7 @@ function edge(ctx: Ctx, e: SceneEdge, boxes: Map<string, Box>) {
   );
   if (e.step !== undefined && e.stepBox) {
     ctx.cells.push(
-      `<mxCell id="${e.id}:step" value="${e.step}" style="${style({ ellipse: null, whiteSpace: "wrap", html: 1, fillColor: ctx.t.stepFill, strokeColor: "none", fontColor: ctx.t.stepText, fontStyle: 1, fontSize: 11, fontFamily: FONT })}" vertex="1" parent="1">${geometry(e.stepBox)}</mxCell>`,
+      `<mxCell id="${e.id}:step" value="${e.step}" style="${style({ ellipse: null, whiteSpace: "wrap", html: 1, fillColor: ctx.t.stepFill, strokeColor: "none", fontColor: ctx.t.stepText, fontStyle: 1, fontSize: 14, fontFamily: FONT })}" vertex="1" parent="1">${geometry(e.stepBox)}</mxCell>`,
     );
   }
 }

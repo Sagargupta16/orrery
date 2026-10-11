@@ -30,6 +30,7 @@ From the deck's guidance pages:
 - "Use straight lines and right angles to connect objects wherever possible." Preset arrows "use the 'Open Arrow' in Size 4" (the default `arrowhead: open`).
 - "AWS service names must fit on no more than two lines. AWS or Amazon should always be accompanied by the service name. Lines should never break mid-word."
 - Numbered callouts "are black with bold white type" (white with black type on dark backgrounds): the `step:` edges.
+- Callout size: badges in the 2025 and 2026 AWS Guidance PDFs are #232F3E circles about 0.72 of the icon size, set beside the middle of the line rather than on it; Azure Architecture Center diagrams use #107C10 green circles of about the same size, and Google colors each badge like its flow. Across the samples measured, badges ran 0.54 to 0.75 of the icon, so `step:` badges are 28 px circles with 14 px semibold digits (0.58 of a 48 px icon).
 - "Use the group with the AWS logo except in Regions where the AWS logo cannot be used"; there use `aws:cloud-alt`.
 
 ## Google Cloud

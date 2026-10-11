@@ -258,10 +258,10 @@ function edge(ctx: Ctx, e: SceneEdge, routing: Scene["routing"]): string {
     const s = e.stepBox;
     const cx = s.x + s.w / 2;
     const cy = s.y + s.h / 2;
-    if (motion?.stepped) parts.push(ping(ctx, cx, cy, motion));
-    parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="10" fill="${ctx.t.stepFill}"/>`);
+    if (motion?.stepped) parts.push(ping(ctx, cx, cy, s.w / 2, motion));
+    parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(s.w / 2)}" fill="${ctx.t.stepFill}"/>`);
     parts.push(
-      `<text x="${n(cx)}" y="${n(cy + 4)}" font-size="11" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`,
+      `<text x="${n(cx)}" y="${n(cy + 5)}" font-size="14" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`,
     );
   }
   return `<g id="${ctx.prefix}e-${e.id}">${parts.join("")}</g>`;
@@ -364,12 +364,12 @@ function packets(ctx: Ctx, e: SceneEdge, d: string, m: Motion): string {
 }
 
 /** A ring that ripples out of a step badge as its packet leaves. */
-function ping(ctx: Ctx, cx: number, cy: number, m: Motion): string {
+function ping(ctx: Ctx, cx: number, cy: number, r: number, m: Motion): string {
   const at = keyTimes([0, Math.max(0, m.start - 0.01), m.start, m.start + 0.6, m.cycle], m.cycle);
   const loop = `dur="${secs(m.cycle)}" repeatCount="indefinite"`;
   return (
-    `<circle cx="${n(cx)}" cy="${n(cy)}" r="10" fill="none" stroke="${ctx.t.flow}" stroke-width="2" opacity="0">` +
-    `<animate attributeName="r" values="10;10;10;17;17" keyTimes="${at}" ${loop}/>` +
+    `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" fill="none" stroke="${ctx.t.flow}" stroke-width="2" opacity="0">` +
+    `<animate attributeName="r" values="${n(r)};${n(r)};${n(r)};${n(r + 8)};${n(r + 8)}" keyTimes="${at}" ${loop}/>` +
     `<animate attributeName="opacity" values="0;0;0.7;0;0" keyTimes="${at}" ${loop}/></circle>`
   );
 }

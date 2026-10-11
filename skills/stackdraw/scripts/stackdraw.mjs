@@ -8823,6 +8823,8 @@ var SIZES = {
   title: 20,
   subtitle: 13,
   iconLabelMax: 132,
+  // Step badges: official AWS, Azure and Google badges are 0.54 to 0.75 of the icon size.
+  step: 28,
   cardLabelMax: 168,
   shapeLabelMax: 156,
   edgeLabelMax: 150,
@@ -9051,11 +9053,11 @@ async function layout(model, opts = {}) {
     if (!e.label && e.step === void 0 && labelledFrom.has(e.from)) {
       elkEdge.labels = [{ id: `${e.id}__spacer`, text: " ", width: 1, height: 1 }];
     }
-    const stepW = e.step !== void 0 ? 22 : 0;
+    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
     if (e.label || e.step !== void 0) {
       const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
       const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-      const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? 20 : 0));
+      const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
       edgeLabels.set(e.id, { block, w, h, stepW });
       elkEdge.labels = [
         { id: `${e.id}__label`, text: e.label || `step ${e.step}`, width: w, height: h }
@@ -9340,13 +9342,18 @@ async function layout(model, opts = {}) {
       };
       if (e.label || e.step !== void 0) {
         const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-        const stepW = e.step !== void 0 ? 22 : 0;
+        const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
         const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-        const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? 20 : 0));
+        const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
         const mid = midpoint(points2);
         const box = { x: round(mid.x - w / 2), y: round(mid.y - h - 3), w, h };
         if (e.step !== void 0)
-          edge4.stepBox = { x: box.x, y: round(box.y + (h - 20) / 2), w: 20, h: 20 };
+          edge4.stepBox = {
+            x: box.x,
+            y: round(box.y + (h - SIZES.step) / 2),
+            w: SIZES.step,
+            h: SIZES.step
+          };
         if (e.label) {
           edge4.label = block;
           edge4.labelBox = {
@@ -9379,7 +9386,12 @@ async function layout(model, opts = {}) {
     if (lab && elkLabel?.x !== void 0 && elkLabel.y !== void 0) {
       const box = { x: round(elkLabel.x), y: round(elkLabel.y + top), w: lab.w, h: lab.h };
       if (e.step !== void 0) {
-        edge3.stepBox = { x: box.x, y: round(box.y + (box.h - 20) / 2), w: 20, h: 20 };
+        edge3.stepBox = {
+          x: box.x,
+          y: round(box.y + (box.h - SIZES.step) / 2),
+          w: SIZES.step,
+          h: SIZES.step
+        };
       }
       if (e.label) {
         edge3.label = lab.block;
@@ -9731,10 +9743,10 @@ function edge(ctx, e, routing) {
     const s = e.stepBox;
     const cx = s.x + s.w / 2;
     const cy = s.y + s.h / 2;
-    if (motion?.stepped) parts.push(ping(ctx, cx, cy, motion));
-    parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="10" fill="${ctx.t.stepFill}"/>`);
+    if (motion?.stepped) parts.push(ping(ctx, cx, cy, s.w / 2, motion));
+    parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(s.w / 2)}" fill="${ctx.t.stepFill}"/>`);
     parts.push(
-      `<text x="${n(cx)}" y="${n(cy + 4)}" font-size="11" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`
+      `<text x="${n(cx)}" y="${n(cy + 5)}" font-size="14" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`
     );
   }
   return `<g id="${ctx.prefix}e-${e.id}">${parts.join("")}</g>`;
@@ -9803,10 +9815,10 @@ function packets(ctx, e, d, m) {
   if (e.arrow === "both") return one(false, 0) + one(true, cycle / 2);
   return one(e.arrow === "start", 0);
 }
-function ping(ctx, cx, cy, m) {
+function ping(ctx, cx, cy, r, m) {
   const at = keyTimes([0, Math.max(0, m.start - 0.01), m.start, m.start + 0.6, m.cycle], m.cycle);
   const loop = `dur="${secs(m.cycle)}" repeatCount="indefinite"`;
-  return `<circle cx="${n(cx)}" cy="${n(cy)}" r="10" fill="none" stroke="${ctx.t.flow}" stroke-width="2" opacity="0"><animate attributeName="r" values="10;10;10;17;17" keyTimes="${at}" ${loop}/><animate attributeName="opacity" values="0;0;0.7;0;0" keyTimes="${at}" ${loop}/></circle>`;
+  return `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" fill="none" stroke="${ctx.t.flow}" stroke-width="2" opacity="0"><animate attributeName="r" values="${n(r)};${n(r)};${n(r)};${n(r + 8)};${n(r + 8)}" keyTimes="${at}" ${loop}/><animate attributeName="opacity" values="0;0;0.7;0;0" keyTimes="${at}" ${loop}/></circle>`;
 }
 function shapePath(shape, b) {
   const { x, y, w, h } = b;
@@ -10162,7 +10174,7 @@ function edge2(ctx, e, boxes) {
   );
   if (e.step !== void 0 && e.stepBox) {
     ctx.cells.push(
-      `<mxCell id="${e.id}:step" value="${e.step}" style="${style({ ellipse: null, whiteSpace: "wrap", html: 1, fillColor: ctx.t.stepFill, strokeColor: "none", fontColor: ctx.t.stepText, fontStyle: 1, fontSize: 11, fontFamily: FONT })}" vertex="1" parent="1">${geometry(e.stepBox)}</mxCell>`
+      `<mxCell id="${e.id}:step" value="${e.step}" style="${style({ ellipse: null, whiteSpace: "wrap", html: 1, fillColor: ctx.t.stepFill, strokeColor: "none", fontColor: ctx.t.stepText, fontStyle: 1, fontSize: 14, fontFamily: FONT })}" vertex="1" parent="1">${geometry(e.stepBox)}</mxCell>`
     );
   }
 }
