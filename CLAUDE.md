@@ -10,7 +10,7 @@
 
 ## Project
 
-Public Agent Skill and Claude Code plugin (`stackdraw`) that turns a YAML spec into professional architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons (plus logo and generic sets), laid out by ELK and rendered to SVG, PNG, draw.io, TSX and HTML. The CLI is bundled into the skill so it runs with no install.
+Public Agent Skill and Claude Code plugin (`stackdraw`) that turns a YAML spec into professional, animated architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons (plus logo and generic sets), laid out by ELK and rendered to SVG, PNG, draw.io, TSX and HTML. The CLI is bundled into the skill so it runs with no install.
 
 Installed with `/plugin marketplace add Sagargupta16/stackdraw` then `/plugin install stackdraw@stackdraw`, or `npx skills add Sagargupta16/stackdraw`.
 
@@ -52,7 +52,7 @@ npx -y @sagargupta1610/skillcheck lint skills
 - `src/layout.ts` -- model -> ELK graph -> Scene (every renderer consumes the Scene)
 - `src/render/*.ts` -- svg, png, drawio, tsx, html
 - `scripts/sync-icons.mjs` -- official packs -> `skills/stackdraw/assets/icons/*.json`; npm-published sets get only index rows and a `lib` pin
-- `src/libraries.ts` -- loads the npm-published sets (octicons, logos, simple-icons, tabler) at render time: node_modules, then the user cache, then jsDelivr/unpkg, sha256-checked
+- `src/libraries.ts` -- loads the npm-published sets (octicons, carbon, logos, simple-icons, tabler) at render time: node_modules, then the user cache, then jsDelivr/unpkg, sha256-checked
 
 ## Key files
 
@@ -71,7 +71,7 @@ npx -y @sagargupta1610/skillcheck lint skills
 - YAML flow mappings split on commas: `note: Sharp, 512 MB` inside `{...}` becomes a key; DG108 says to quote it.
 - AWS `_Light`/`_Dark` resource files are named for the background they suit: `_Dark` is the white glyph for dark themes.
 - `python -I` ignores `PYTHONIOENCODING`; use `sys.stdout.reconfigure(encoding="utf-8")` when printing vendor text on Windows.
-- Library packs (`github`, `logos`, `si`, `tabler`) have no `<pack>.json`; `renderIcon` throws unless `loadIconLibraries` ran first (renderModel and `icons show` do it). Bumping one of those npm dev dependencies changes its sha256 pin, so re-run `pnpm sync-icons` with it.
+- Library packs (`github`, `ibm`, `logos`, `si`, `tabler`) have no `<pack>.json`; `renderIcon` throws unless `loadIconLibraries` ran first (renderModel and `icons show` do it). Bumping one of those npm dev dependencies changes its sha256 pin, so re-run `pnpm sync-icons` with it.
 - SVGs animate by default (`animate: packets`, SMIL). PNG and draw.io always get a still scene (`animate: "none"`); keep it that way, resvg would draw packets at the origin.
 
 ## Repo-specific rules

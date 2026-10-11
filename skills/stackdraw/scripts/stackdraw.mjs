@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// stackdraw 0.2.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// stackdraw 0.2.1 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -7869,7 +7869,12 @@ function unquote(s) {
   return t;
 }
 function cleanLabel(s) {
-  return unquote(s).replace(/<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, "").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  let text2 = unquote(s).replace(/<br\s*\/?>/gi, " ");
+  for (let prev = ""; prev !== text2; ) {
+    prev = text2;
+    text2 = text2.replace(/<[^<>]*>/g, "");
+  }
+  return text2.replace(/[<>]/g, "").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 }
 function readNodes(chunk, nodes, parent) {
   const ids = [];
@@ -11222,7 +11227,7 @@ function suggestIds(id, ids, kind) {
 }
 
 // src/cli.ts
-var VERSION = true ? "0.2.0" : "dev";
+var VERSION = true ? "0.2.1" : "dev";
 var HELP = `stackdraw ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:

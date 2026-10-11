@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-10-11
+
+### Fixed
+
+- Mermaid import strips HTML tags from labels until none are left, then any stray angle bracket, so a nested tag such as `<scr<b>ipt>` can no longer collapse into a new one (CodeQL js/incomplete-multi-character-sanitization).
+- The README tagline and the repository CLAUDE.md name the IBM pack and the animated output.
+
 ## [0.2.0] - 2026-10-11
 
 ### Changed

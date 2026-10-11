@@ -67,9 +67,15 @@ function unquote(s: string): string {
 }
 
 function cleanLabel(s: string): string {
-  return unquote(s)
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<[^>]+>/g, "")
+  // Strip tags until none are left ("<scr<b>ipt>" must not collapse into "<script>"), then any
+  // stray angle bracket.
+  let text = unquote(s).replace(/<br\s*\/?>/gi, " ");
+  for (let prev = ""; prev !== text; ) {
+    prev = text;
+    text = text.replace(/<[^<>]*>/g, "");
+  }
+  return text
+    .replace(/[<>]/g, "")
     .replace(/&quot;/g, '"')
     .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
