@@ -36,6 +36,15 @@ describe("Mermaid import", () => {
     expect(result.model, listDiagnostics(result.diagnostics)).toBeDefined();
   });
 
+  it("strips nested and broken tags from labels completely", () => {
+    const nodes = doc(
+      'flowchart LR\n  a["<scr<b>ipt>Login</scr<b>ipt> page"] --> b["x < y"]\n',
+    ).nodes;
+    const labels = JSON.stringify(nodes);
+    expect(labels).not.toMatch(/[<>]/);
+    expect(labels).toContain("Login page");
+  });
+
   it("maps the flowchart direction", () => {
     expect(doc(FLOW).direction).toBe("right");
     expect(doc("graph TD\n  a --> b\n").direction).toBe("down");
