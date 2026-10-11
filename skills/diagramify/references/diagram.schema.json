@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Sagargupta16/diagramify/main/skills/diagramify/references/diagram.schema.json",
+  "title": "diagramify diagram spec",
+  "description": "An architecture or system design diagram: nodes with official icons, nested groups and labelled edges. Validate with `diagramify validate`; render with `diagramify render`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["nodes"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": ["string", "number"] },
+    "title": { "type": "string", "description": "Drawn top left; the SVG title and the TSX component name." },
+    "subtitle": { "type": "string" },
+    "direction": { "enum": ["right", "down", "left", "up"], "default": "right" },
+    "theme": { "enum": ["light", "dark"], "default": "light" },
+    "look": { "enum": ["icon", "card"], "default": "icon", "description": "Default look for nodes with an icon." },
+    "arrowhead": { "enum": ["open", "filled"], "default": "open" },
+    "animate": { "type": "boolean", "default": false, "description": "Flowing dashes on edges in SVG, TSX and HTML." },
+    "background": { "type": "string", "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|transparent)$" },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "spacing": {
+          "oneOf": [{ "enum": ["compact", "normal", "loose"] }, { "type": "number", "minimum": 0.5, "maximum": 3 }]
+        },
+        "routing": { "enum": ["orthogonal", "polyline", "spline"] },
+        "layering": { "enum": ["source", "simplex"] },
+        "merge": { "type": "boolean", "default": true, "description": "Join edges that share an endpoint into one trunk." }
+      }
+    },
+    "nodes": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": { "$ref": "#/$defs/nodeValue" } },
+        { "type": "array", "items": { "$ref": "#/$defs/nodeItem" } }
+      ]
+    },
+    "groups": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": { "$ref": "#/$defs/groupValue" } },
+        { "type": "array", "items": { "$ref": "#/$defs/groupItem" } }
+      ]
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "string", "description": "\"a -> b\", \"a -> b: label\", \"a -> b, c\", \"a -[label]-> b -> c\"; arrows -> <- <-> -- --> ..> ==>" },
+          { "$ref": "#/$defs/edgeObject" },
+          {
+            "type": "object",
+            "description": "{ \"a -> b\": \"label\" } or { \"a -> b\": { label, step, color, line, arrow } }",
+            "minProperties": 1,
+            "maxProperties": 1,
+            "additionalProperties": {
+              "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "null" }, { "$ref": "#/$defs/edgeOptions" }]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "hex": { "type": "string", "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$" },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*$" },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "icon": { "type": "string", "description": "Icon id like aws:lambda; find ids with `diagramify icons search <words>`." },
+        "label": { "type": "string" },
+        "note": { "type": "string", "description": "Smaller muted second line." },
+        "sublabel": { "type": "string" },
+        "description": { "type": "string" },
+        "in": { "type": "string", "description": "Parent group id." },
+        "parent": { "type": "string" },
+        "group": { "type": "string" },
+        "look": { "enum": ["icon", "card", "shape"] },
+        "style": { "enum": ["icon", "card", "shape"] },
+        "shape": {
+          "enum": ["box", "rounded", "pill", "circle", "diamond", "hexagon", "cylinder", "queue", "document", "note", "person", "cloud", "stack"]
+        },
+        "color": { "$ref": "#/$defs/hex" },
+        "badge": { "type": "string" },
+        "url": { "type": "string" },
+        "link": { "type": "string" },
+        "href": { "type": "string" },
+        "size": { "oneOf": [{ "enum": ["sm", "md", "lg", "xl"] }, { "type": "number", "minimum": 16, "maximum": 128 }] }
+      }
+    },
+    "nodeValue": { "oneOf": [{ "$ref": "#/$defs/node" }, { "type": "string" }, { "type": "null" }] },
+    "nodeItem": { "allOf": [{ "$ref": "#/$defs/node" }, { "required": ["id"] }] },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": { "type": "string", "description": "Group style; `diagramify styles` lists them (aws:vpc, gcp:project, azure:vnet, k8s:namespace, zone, box...)." },
+        "style": { "type": "string" },
+        "kind": { "type": "string" },
+        "label": { "type": "string" },
+        "in": { "type": "string" },
+        "parent": { "type": "string" },
+        "contains": { "type": "array", "items": { "type": "string" } },
+        "around": { "type": "array", "items": { "type": "string" }, "description": "Outline these ids after layout without moving them (overlay)." },
+        "children": { "type": "array", "items": { "type": "string" } },
+        "nodes": { "type": "array", "items": { "type": "string" } },
+        "color": { "$ref": "#/$defs/hex" },
+        "fill": { "oneOf": [{ "$ref": "#/$defs/hex" }, { "const": "none" }] },
+        "icon": { "oneOf": [{ "type": "string" }, { "const": false }, { "type": "null" }] },
+        "dashed": { "type": "boolean" }
+      }
+    },
+    "groupValue": { "oneOf": [{ "$ref": "#/$defs/group" }, { "type": "string" }] },
+    "groupItem": { "allOf": [{ "$ref": "#/$defs/group" }, { "required": ["id"] }] },
+    "edgeOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string" },
+        "text": { "type": "string" },
+        "line": { "enum": ["solid", "dashed", "dotted", "thick"] },
+        "style": { "enum": ["solid", "dashed", "dotted", "thick"] },
+        "arrow": { "enum": ["end", "start", "both", "none"] },
+        "color": { "$ref": "#/$defs/hex" },
+        "step": { "type": "integer", "minimum": 0, "maximum": 99 },
+        "constraint": { "type": "boolean", "description": "false: drawn after layout, ignored by it." }
+      }
+    },
+    "edgeObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] },
+        "to": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] },
+        "source": { "type": "string" },
+        "target": { "type": "string" },
+        "label": { "type": "string" },
+        "text": { "type": "string" },
+        "line": { "enum": ["solid", "dashed", "dotted", "thick"] },
+        "style": { "enum": ["solid", "dashed", "dotted", "thick"] },
+        "arrow": { "enum": ["end", "start", "both", "none"] },
+        "color": { "$ref": "#/$defs/hex" },
+        "step": { "type": "integer", "minimum": 0, "maximum": 99 },
+        "constraint": { "type": "boolean" }
+      }
+    }
+  }
+}

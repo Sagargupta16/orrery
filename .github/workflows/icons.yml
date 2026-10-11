@@ -1,0 +1,87 @@
+name: Sync icon packs
+
+# Monthly: find the newest official AWS, Azure and Google Cloud packages, re-pin and rebuild the
+# catalogs, and open (or update) one pull request with the result.
+#
+# A pull request opened with GITHUB_TOKEN starts no pull_request workflow run, so this workflow
+# dispatches ci.yml on the sync branch itself; those check runs land on the branch head, which
+# is the pull request's head. Needs the repository setting "Allow GitHub Actions to create and
+# approve pull requests".
+on:
+  schedule:
+    - cron: "23 5 2 * *" # 05:23 UTC on the 2nd of every month
+  workflow_dispatch:
+
+# Nothing by default; the job asks for exactly what it writes.
+permissions: {}
+
+concurrency:
+  group: sync-icons
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the sync branch
+      pull-requests: write # open or update the pull request
+      actions: write # dispatch ci.yml on the sync branch
+    env:
+      BRANCH: chore/sync-icons
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Exits 1 when an alias in scripts/icon-aliases.json points nowhere or hides a real icon,
+      # so a vendor rename fails this run loudly instead of opening a broken pull request.
+      - name: Fetch the newest official packs and rebuild the catalogs
+        run: node scripts/sync-icons.mjs --latest
+
+      - name: Rebuild the bundled CLI
+        run: node scripts/build.mjs
+
+      # check-repo.mjs fails when the gallery does not match the renderer and its icons.
+      - name: Re-render the gallery
+        run: node scripts/gallery.mjs
+
+      - name: Detect changes
+        id: diff
+        run: |
+          git status --short
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update the pull request
+        id: pr
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: ${{ env.BRANCH }}
+          delete-branch: true
+          sign-commits: true
+          commit-message: "chore: sync official icon packs"
+          title: "chore: sync official icon packs"
+          body: |
+            Monthly run of `node scripts/sync-icons.mjs --latest`: re-pins the newest official packages in `scripts/icon-sources.json`, rebuilds `skills/diagramify/assets/icons/`, the bundled CLI and the gallery in `examples/`.
+
+            Before merging:
+            - Open the gallery PNGs that changed and check the new icons read well.
+            - If `check-repo.mjs` reports icon counts quoted in the docs, update those docs on this branch.
+            - Add a CHANGELOG entry under the next version.
+
+      - name: Start the checks on the pull request
+        if: steps.pr.outputs.pull-request-operation == 'created' || steps.pr.outputs.pull-request-operation == 'updated'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --ref "$BRANCH"

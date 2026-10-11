@@ -1,0 +1,397 @@
+import { mixHex } from "../color.ts";
+import { renderIcon } from "../icons.ts";
+import { FONT_STACK, THEME_TOKENS, type Theme } from "../themes.ts";
+import type { Box, Point, Scene, SceneEdge, SceneGroup, SceneNode, TextBlock } from "../types.ts";
+
+// Inter's vertical metrics (ascender 1984, descender -494 at 2048 units per em).
+const ASCENT = 0.96875;
+const DESCENT = 0.2412;
+
+export function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+const n = (v: number) => {
+  const r = Math.round(v * 100) / 100;
+  return Object.is(r, -0) ? "0" : String(r);
+};
+
+export interface SvgOptions {
+  /** Prefix for every id in the file, so several diagrams can share one page. */
+  idPrefix?: string;
+}
+
+interface Ctx {
+  t: Theme;
+  prefix: string;
+  icons: number;
+  scene: Scene;
+}
+
+function text(
+  block: TextBlock,
+  box: Box,
+  color: string,
+  anchor: "start" | "middle" = "middle",
+  extra = "",
+): string {
+  if (!block.lines.length) return "";
+  const x = anchor === "middle" ? box.x + box.w / 2 : box.x;
+  const first = box.y + (block.lead - block.size * (ASCENT + DESCENT)) / 2 + block.size * ASCENT;
+  const weight = block.weight === 600 ? ` font-weight="600"` : "";
+  const tspans = block.lines
+    .map((line, i) => `<tspan x="${n(x)}" y="${n(first + i * block.lead)}">${esc(line)}</tspan>`)
+    .join("");
+  const anchorAttr = anchor === "middle" ? ` text-anchor="middle"` : "";
+  return `<text font-size="${n(block.size)}"${weight} fill="${color}"${anchorAttr}${extra}>${tspans}</text>`;
+}
+
+function icon(ctx: Ctx, id: string, box: Box, color?: string, background?: string): string {
+  ctx.icons += 1;
+  const r = renderIcon(id, `${ctx.prefix}i${ctx.icons}`, {
+    theme: ctx.t.name,
+    background: background ?? ctx.t.background,
+    ink: ctx.t.text,
+    color,
+  });
+  const [vx, vy, vw, vh] = r.viewBox;
+  const scale = Math.min(box.w / vw, box.h / vh);
+  const ox = box.x + (box.w - vw * scale) / 2 - vx * scale;
+  const oy = box.y + (box.h - vh * scale) / 2 - vy * scale;
+  return `<g transform="translate(${n(ox)} ${n(oy)}) scale(${n(scale)})">${r.body}</g>`;
+}
+
+// ---------------------------------------------------------------- groups
+
+function groupFrame(g: SceneGroup): string {
+  const { box } = g;
+  const dash = g.dash ? ` stroke-dasharray="${g.dash}"` : "";
+  const inner = g.inner
+    ? `<rect x="${n(g.inner.box.x)}" y="${n(g.inner.box.y)}" width="${n(g.inner.box.w)}" height="${n(g.inner.box.h)}" rx="${Math.max(0, g.radius - 2)}" fill="${g.inner.fill}"/>`
+    : "";
+  return inner
+    ? `<rect x="${n(box.x)}" y="${n(box.y)}" width="${n(box.w)}" height="${n(box.h)}"${g.radius ? ` rx="${g.radius}"` : ""} fill="${g.fill}" stroke="${g.stroke}" stroke-width="${g.strokeWidth}"${dash}/>${inner}`
+    : `<rect x="${n(box.x)}" y="${n(box.y)}" width="${n(box.w)}" height="${n(box.h)}"${g.radius ? ` rx="${g.radius}"` : ""} fill="${g.fill}" stroke="${g.stroke}" stroke-width="${g.strokeWidth}"${dash}/>`;
+}
+
+/** The fill a group header sits on: its own, else the nearest filled ancestor's, else the canvas. */
+function surfaceBehind(ctx: Ctx, g: SceneGroup): string {
+  if (g.overlay) {
+    // An overlay legend sits on whatever is under its top-left corner.
+    const px = g.labelBox.x;
+    const py = g.box.y;
+    const under = ctx.scene.groups
+      .filter((x) => !x.overlay && x.fill !== "none")
+      .filter(
+        (x) => px >= x.box.x && px <= x.box.x + x.box.w && py >= x.box.y && py <= x.box.y + x.box.h,
+      )
+      .sort((a, b) => b.depth - a.depth)[0];
+    if (under) return under.fill;
+  }
+  let cur: SceneGroup | undefined = g.overlay ? undefined : g;
+  while (cur) {
+    if (cur.fill !== "none") return cur.fill;
+    const parent: string | undefined = cur.parent;
+    cur = parent ? ctx.scene.groups.find((x) => x.id === parent) : undefined;
+  }
+  const bg = ctx.scene.background;
+  return bg && bg !== "transparent" ? bg : ctx.t.background;
+}
+
+// Headers are drawn after the edges, on a chip of the surface color, so a line that crosses the
+// top border never runs through the label.
+function groupHeader(ctx: Ctx, g: SceneGroup): string {
+  const parts: string[] = [];
+  const surface = surfaceBehind(ctx, g);
+  if (g.label.lines.length) {
+    const b = g.labelBox;
+    const left = g.overlay && g.iconBox ? g.iconBox.x - 4 : b.x - 4;
+    parts.push(
+      `<rect x="${n(left)}" y="${n(b.y - 1)}" width="${n(b.x + b.w + 4 - left)}" height="${n(b.h + 2)}" rx="3" fill="${surface}"/>`,
+    );
+  }
+  if (g.icon && g.iconBox) parts.push(icon(ctx, g.icon, g.iconBox, undefined, surface));
+  parts.push(text(g.label, g.labelBox, g.labelColor, "start"));
+  return parts.join("");
+}
+
+// ---------------------------------------------------------------- edges
+
+function edgePath(points: Point[], routing: Scene["routing"]): string {
+  if (points.length < 2) return "";
+  const [first] = points;
+  if (!first) return "";
+  if (routing === "spline" && (points.length - 1) % 3 === 0 && points.length > 2) {
+    let d = `M${n(first.x)} ${n(first.y)}`;
+    for (let i = 1; i + 2 < points.length; i += 3) {
+      const [a, b, c] = [points[i], points[i + 1], points[i + 2]];
+      if (a && b && c) d += ` C${n(a.x)} ${n(a.y)} ${n(b.x)} ${n(b.y)} ${n(c.x)} ${n(c.y)}`;
+    }
+    const last = points[points.length - 1];
+    if (last) d += ` L${n(last.x)} ${n(last.y)}`;
+    return d;
+  }
+  const R = routing === "orthogonal" ? 8 : 4;
+  let d = `M${n(first.x)} ${n(first.y)}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const p = points[i];
+    const a = points[i - 1];
+    const b = points[i + 1];
+    if (!p || !a || !b) continue;
+    const inLen = Math.hypot(p.x - a.x, p.y - a.y);
+    const outLen = Math.hypot(b.x - p.x, b.y - p.y);
+    const r = Math.min(R, inLen / 2, outLen / 2);
+    if (r < 0.5) {
+      d += ` L${n(p.x)} ${n(p.y)}`;
+      continue;
+    }
+    const p1 = { x: p.x - ((p.x - a.x) / inLen) * r, y: p.y - ((p.y - a.y) / inLen) * r };
+    const p2 = { x: p.x + ((b.x - p.x) / outLen) * r, y: p.y + ((b.y - p.y) / outLen) * r };
+    d += ` L${n(p1.x)} ${n(p1.y)} Q${n(p.x)} ${n(p.y)} ${n(p2.x)} ${n(p2.y)}`;
+  }
+  const last = points[points.length - 1];
+  if (last) d += ` L${n(last.x)} ${n(last.y)}`;
+  return d;
+}
+
+/** Shortens one end of a polyline by `by` px so the stroke stops at the arrowhead's base. */
+function trim(points: Point[], atEnd: boolean, by: number): Point[] {
+  const pts = points.map((p) => ({ ...p }));
+  const i = atEnd ? pts.length - 1 : 0;
+  const j = atEnd ? pts.length - 2 : 1;
+  const tip = pts[i];
+  const prev = pts[j];
+  if (!tip || !prev) return pts;
+  const len = Math.hypot(tip.x - prev.x, tip.y - prev.y);
+  if (len <= by) return pts;
+  pts[i] = { x: tip.x - ((tip.x - prev.x) / len) * by, y: tip.y - ((tip.y - prev.y) / len) * by };
+  return pts;
+}
+
+function arrowHead(
+  tip: Point,
+  from: Point,
+  len: number,
+  half: number,
+  color: string,
+  open = false,
+  width = 1.5,
+): string {
+  if (open) {
+    const d = Math.hypot(tip.x - from.x, tip.y - from.y) || 1;
+    const ux = (tip.x - from.x) / d;
+    const uy = (tip.y - from.y) / d;
+    const bx = tip.x - ux * len;
+    const by = tip.y - uy * len;
+    return `<path d="M${n(bx - uy * half)} ${n(by + ux * half)} L${n(tip.x)} ${n(tip.y)} L${n(bx + uy * half)} ${n(by - ux * half)}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+  const d = Math.hypot(tip.x - from.x, tip.y - from.y) || 1;
+  const ux = (tip.x - from.x) / d;
+  const uy = (tip.y - from.y) / d;
+  const bx = tip.x - ux * len;
+  const by = tip.y - uy * len;
+  const pts = [
+    [tip.x, tip.y],
+    [bx - uy * half, by + ux * half],
+    [bx + ux * 1.5, by + uy * 1.5],
+    [bx + uy * half, by - ux * half],
+  ];
+  return `<path d="M${pts.map(([x, y]) => `${n(x ?? 0)} ${n(y ?? 0)}`).join(" L")} Z" fill="${color}"/>`;
+}
+
+function edge(ctx: Ctx, e: SceneEdge, routing: Scene["routing"]): string {
+  const color = e.color ?? ctx.t.edge;
+  const width = e.line === "thick" ? 2.5 : 1.5;
+  const len = e.line === "thick" ? 11 : 9;
+  const half = e.line === "thick" ? 5.5 : 4.5;
+  let pts = e.points;
+  if (pts.length < 2) return "";
+  const end = e.arrow === "end" || e.arrow === "both";
+  const start = e.arrow === "start" || e.arrow === "both";
+  const spline = routing === "spline" && (pts.length - 1) % 3 === 0 && pts.length > 2;
+  if (!spline) {
+    const cut = ctx.scene.arrowhead === "open" ? width / 2 : len - 1;
+    if (end) pts = trim(pts, true, cut);
+    if (start) pts = trim(pts, false, cut);
+  }
+  const dash =
+    e.line === "dashed"
+      ? ` stroke-dasharray="6 4"`
+      : e.line === "dotted"
+        ? ` stroke-dasharray="1.5 3.5" stroke-linecap="round"`
+        : "";
+  const flow = ctx.scene.animate
+    ? ` class="dfy-flow${e.line === "solid" || e.line === "thick" ? " dfy-solid" : ""}"`
+    : "";
+  const parts = [
+    `<path d="${edgePath(pts, routing)}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linejoin="round"${dash}${flow}/>`,
+  ];
+  const orig = e.points;
+  const last = orig[orig.length - 1];
+  const beforeLast = orig[orig.length - 2];
+  const firstPt = orig[0];
+  const second = orig[1];
+  const open = ctx.scene.arrowhead === "open";
+  if (end && last && beforeLast)
+    parts.push(arrowHead(last, beforeLast, len, half, color, open, width));
+  if (start && firstPt && second)
+    parts.push(arrowHead(firstPt, second, len, half, color, open, width));
+  if (e.labelBox && e.label) {
+    const b = e.labelBox;
+    parts.push(
+      `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="4" fill="${ctx.scene.background === "transparent" ? ctx.t.background : (ctx.scene.background ?? ctx.t.background)}" fill-opacity="0.92"/>`,
+    );
+    parts.push(text(e.label, { x: b.x, y: b.y + 3, w: b.w, h: b.h - 6 }, ctx.t.edgeLabel));
+  }
+  if (e.stepBox && e.step !== undefined) {
+    const s = e.stepBox;
+    const cx = s.x + s.w / 2;
+    const cy = s.y + s.h / 2;
+    parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="10" fill="${ctx.t.stepFill}"/>`);
+    parts.push(
+      `<text x="${n(cx)}" y="${n(cy + 4)}" font-size="11" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`,
+    );
+  }
+  return `<g id="${ctx.prefix}e-${e.id}">${parts.join("")}</g>`;
+}
+
+// ---------------------------------------------------------------- nodes
+
+function shapePath(shape: SceneNode["shape"], b: Box): string {
+  const { x, y, w, h } = b;
+  switch (shape) {
+    case "box":
+      return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="4"/>`;
+    case "pill":
+      return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(h / 2)}"/>`;
+    case "circle":
+      return `<ellipse cx="${n(x + w / 2)}" cy="${n(y + h / 2)}" rx="${n(w / 2)}" ry="${n(h / 2)}"/>`;
+    case "diamond":
+      return `<path d="M${n(x + w / 2)} ${n(y)} L${n(x + w)} ${n(y + h / 2)} L${n(x + w / 2)} ${n(y + h)} L${n(x)} ${n(y + h / 2)} Z"/>`;
+    case "hexagon": {
+      const k = Math.min(16, w / 4);
+      return `<path d="M${n(x + k)} ${n(y)} H${n(x + w - k)} L${n(x + w)} ${n(y + h / 2)} L${n(x + w - k)} ${n(y + h)} H${n(x + k)} L${n(x)} ${n(y + h / 2)} Z"/>`;
+    }
+    case "cylinder": {
+      const ry = 8;
+      return `<path d="M${n(x)} ${n(y + ry)} A${n(w / 2)} ${ry} 0 0 1 ${n(x + w)} ${n(y + ry)} V${n(y + h - ry)} A${n(w / 2)} ${ry} 0 0 1 ${n(x)} ${n(y + h - ry)} Z"/><path d="M${n(x)} ${n(y + ry)} A${n(w / 2)} ${ry} 0 0 0 ${n(x + w)} ${n(y + ry)}" fill="none"/>`;
+    }
+    case "queue": {
+      const rx = 10;
+      return `<path d="M${n(x + rx)} ${n(y)} H${n(x + w - rx)} A${rx} ${n(h / 2)} 0 0 1 ${n(x + w - rx)} ${n(y + h)} H${n(x + rx)} A${rx} ${n(h / 2)} 0 0 1 ${n(x + rx)} ${n(y)} Z"/><path d="M${n(x + w - rx)} ${n(y)} A${rx} ${n(h / 2)} 0 0 0 ${n(x + w - rx)} ${n(y + h)}" fill="none"/>`;
+    }
+    case "document":
+      return `<path d="M${n(x)} ${n(y)} H${n(x + w)} V${n(y + h - 10)} Q${n(x + (w * 3) / 4)} ${n(y + h - 20)} ${n(x + w / 2)} ${n(y + h - 10)} T${n(x)} ${n(y + h - 10)} Z"/>`;
+    case "note":
+      return `<path d="M${n(x)} ${n(y)} H${n(x + w - 14)} L${n(x + w)} ${n(y + 14)} V${n(y + h)} H${n(x)} Z"/><path d="M${n(x + w - 14)} ${n(y)} V${n(y + 14)} H${n(x + w)}" fill="none"/>`;
+    case "person": {
+      const cx = x + w / 2;
+      return `<circle cx="${n(cx)}" cy="${n(y + 14)}" r="13"/><rect x="${n(x)}" y="${n(y + 28)}" width="${n(w)}" height="${n(h - 28)}" rx="16"/>`;
+    }
+    case "cloud": {
+      const sx = w / 100;
+      const sy = h / 64;
+      const P = (px: number, py: number) => `${n(x + px * sx)} ${n(y + py * sy)}`;
+      return `<path d="M${P(22, 62)} C${P(8, 62)} ${P(0, 51)} ${P(2, 41)} C${P(4, 31)} ${P(13, 26)} ${P(22, 28)} C${P(24, 13)} ${P(38, 4)} ${P(52, 8)} C${P(62, 0)} ${P(81, 3)} ${P(85, 18)} C${P(97, 19)} ${P(101, 35)} ${P(95, 44)} C${P(99, 55)} ${P(90, 63)} ${P(79, 62)} Z"/>`;
+    }
+    case "stack":
+      return `<rect x="${n(x + 8)}" y="${n(y)}" width="${n(w - 8)}" height="${n(h - 8)}" rx="6"/><rect x="${n(x + 4)}" y="${n(y + 4)}" width="${n(w - 8)}" height="${n(h - 8)}" rx="6"/><rect x="${n(x)}" y="${n(y + 8)}" width="${n(w - 8)}" height="${n(h - 8)}" rx="6"/>`;
+    default:
+      return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="12"/>`;
+  }
+}
+
+function badge(ctx: Ctx, label: string, anchor: Box): string {
+  const w = Math.max(18, 8 + label.length * 6.4);
+  const x = anchor.x + anchor.w - w / 2 - 2;
+  const y = anchor.y - 7;
+  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="16" rx="8" fill="${ctx.t.stepFill}"/><text x="${n(x + w / 2)}" y="${n(y + 11.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
+}
+
+function node(ctx: Ctx, nd: SceneNode): string {
+  const parts: string[] = [];
+  const bg =
+    ctx.scene.background && ctx.scene.background !== "transparent"
+      ? ctx.scene.background
+      : ctx.t.background;
+  if (nd.look === "icon") {
+    if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, nd.color));
+    parts.push(text(nd.label, nd.labelBox, nd.ink ?? ctx.t.text));
+    if (nd.note && nd.noteBox) parts.push(text(nd.note, nd.noteBox, nd.inkMuted ?? ctx.t.muted));
+    if (nd.badge && nd.iconBox) parts.push(badge(ctx, nd.badge, nd.iconBox));
+  } else if (nd.look === "card") {
+    const b = nd.box;
+    const stroke = nd.color ?? ctx.t.border;
+    parts.push(
+      `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="8" fill="${ctx.t.surface}" stroke="${stroke}" stroke-width="1"/>`,
+    );
+    if (nd.color) {
+      parts.push(
+        `<rect x="${n(b.x)}" y="${n(b.y + 8)}" width="3" height="${n(b.h - 16)}" rx="1.5" fill="${nd.color}"/>`,
+      );
+    }
+    if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, undefined, ctx.t.surface));
+    parts.push(text(nd.label, nd.labelBox, ctx.t.text, "start"));
+    if (nd.note && nd.noteBox) parts.push(text(nd.note, nd.noteBox, ctx.t.muted, "start"));
+    if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box));
+  } else {
+    const stroke = nd.color ?? (ctx.t.name === "dark" ? "#6e7681" : "#8b95a1");
+    const fill = nd.color
+      ? mixHex(nd.color, bg, ctx.t.name === "dark" ? 0.16 : 0.1)
+      : ctx.t.surface;
+    parts.push(
+      `<g fill="${fill}" stroke="${stroke}" stroke-width="1.25">${shapePath(nd.shape, nd.box)}</g>`,
+    );
+    if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, nd.color, fill));
+    parts.push(text(nd.label, nd.labelBox, nd.ink ?? ctx.t.text));
+    if (nd.note && nd.noteBox) parts.push(text(nd.note, nd.noteBox, nd.inkMuted ?? ctx.t.muted));
+    if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box));
+  }
+  const inner = parts.join("");
+  const body = nd.url
+    ? `<a href="${esc(nd.url)}" xlink:href="${esc(nd.url)}" target="_blank">${inner}</a>`
+    : inner;
+  return `<g id="${ctx.prefix}n-${nd.id}">${body}</g>`;
+}
+
+// ---------------------------------------------------------------- document
+
+const FLOW_CSS = `@keyframes dfy-flow{to{stroke-dashoffset:-20}}.dfy-flow{animation:dfy-flow 1.1s linear infinite}.dfy-solid{stroke-dasharray:7 3}`;
+
+export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
+  const t = THEME_TOKENS[scene.theme];
+  const prefix = opts.idPrefix ? `${opts.idPrefix.replace(/[^A-Za-z0-9_-]/g, "")}-` : "";
+  const ctx: Ctx = { t, prefix, icons: 0, scene };
+  const { width: W, height: H } = scene;
+  const titleId = `${prefix}dfy-title`;
+  const descId = `${prefix}dfy-desc`;
+  const out: string[] = [];
+  out.push(
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="${titleId} ${descId}" font-family="${esc(FONT_STACK)}">`,
+  );
+  out.push(
+    `<title id="${titleId}">${esc(scene.title?.lines.join(" ") ?? "Architecture diagram")}</title>`,
+  );
+  out.push(`<desc id="${descId}">${esc(scene.description)}</desc>`);
+  if (scene.animate) out.push(`<style>${FLOW_CSS}</style>`);
+  if (scene.background !== "transparent") {
+    out.push(`<rect width="${W}" height="${H}" fill="${scene.background ?? t.background}"/>`);
+  }
+  if (scene.title && scene.titleBox) out.push(text(scene.title, scene.titleBox, t.text, "start"));
+  if (scene.subtitle && scene.subtitleBox)
+    out.push(text(scene.subtitle, scene.subtitleBox, t.muted, "start"));
+  for (const g of scene.groups) out.push(`<g id="${ctx.prefix}g-${g.id}">${groupFrame(g)}</g>`);
+  for (const e of scene.edges) out.push(edge(ctx, e, scene.routing));
+  for (const g of scene.groups) {
+    const header = groupHeader(ctx, g);
+    if (header) out.push(`<g id="${ctx.prefix}gh-${g.id}">${header}</g>`);
+  }
+  for (const nd of scene.nodes) out.push(node(ctx, nd));
+  out.push("</svg>");
+  return `${out.join("\n")}\n`;
+}

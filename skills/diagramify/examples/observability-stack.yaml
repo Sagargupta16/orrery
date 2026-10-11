@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Observability stack with OpenTelemetry
+subtitle: Services export OTLP to a Collector that fans metrics, logs and traces out to Prometheus, Loki and Tempo; Grafana and Alertmanager sit on top
+direction: right
+# One port per edge: dotted query edges and solid alert edges both leave Prometheus.
+layout: { merge: false }
+
+groups:
+  services: { type: zone, label: Services with the OpenTelemetry SDK }
+  backends: { type: zone, label: Telemetry backends }
+
+nodes:
+  checkout: { icon: logos:java, label: Checkout, note: Java, in: services }
+  payments: { icon: logos:go, label: Payments, note: Go, in: services }
+  search: { icon: logos:python, label: Search, note: Python, in: services }
+  collector: { icon: logos:opentelemetry-icon, label: OTel Collector, note: OTLP receiver and batching }
+  prometheus: { icon: logos:prometheus, label: Prometheus, note: Metrics, in: backends }
+  # No official Loki or Tempo mark in the packs: generic glyphs in Grafana orange.
+  loki: { icon: generic:logs, color: "#f46800", label: Loki, note: Logs, in: backends }
+  tempo: { icon: generic:stream, color: "#f46800", label: Tempo, note: Traces, in: backends }
+  grafana: { icon: logos:grafana, label: Grafana, note: Dashboards and explore }
+  alertmanager: { icon: logos:prometheus, label: Alertmanager, note: Routing and silences }
+  slack: { icon: logos:slack-icon, label: Slack, note: "#alerts channel" }
+  pagerduty: { icon: logos:pagerduty-icon, label: PagerDuty, note: On-call paging }
+
+edges:
+  - checkout, payments, search -> collector
+  - collector -> prometheus: metrics
+  - collector -> loki: logs
+  - collector -> tempo: traces
+  - prometheus, loki, tempo ..> grafana
+  - prometheus -> alertmanager: alerts
+  - alertmanager -> slack, pagerduty

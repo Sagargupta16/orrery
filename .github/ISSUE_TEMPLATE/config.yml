@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Install and usage
+    url: https://github.com/Sagargupta16/diagramify#install
+    about: How to add the plugin or the skill, the spec format, icons and outputs. Check here before filing an Issue.
+  - name: Contributing guide
+    url: https://github.com/Sagargupta16/diagramify/blob/main/CONTRIBUTING.md
+    about: How the renderer, icon sync, examples and checks fit together, and what a PR must pass.

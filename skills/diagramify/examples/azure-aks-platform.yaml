@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: AKS application platform on Azure
+subtitle: Application Gateway in front of an AKS cluster that pulls from Container Registry, reads Key Vault through workload identity and logs to Log Analytics
+direction: right
+arrowhead: filled
+layout: { merge: false }
+
+groups:
+  sub: { type: azure:subscription, label: Platform subscription }
+  rg: { type: azure:resource-group, label: rg-aks-prod, in: sub }
+  vnet: { type: azure:vnet, label: vnet-aks-prod 10.30.0.0/16, in: rg }
+  snet-agw: { type: azure:subnet, label: snet-appgateway, in: vnet }
+  snet-aks: { type: azure:subnet, label: snet-aks-nodes, in: vnet }
+  # The cluster is a plain box with the AKS icon in its header.
+  cluster: { type: box, label: AKS cluster aks-prod, icon: azure:aks, in: snet-aks }
+  system-pool: { type: azure:node-pool, label: System node pool, in: cluster }
+  user-pool: { type: azure:node-pool, label: User node pool, in: cluster }
+
+nodes:
+  users: { icon: azure:users, label: Users }
+  agw: { icon: azure:appgw, label: Application Gateway, note: WAF v2 with AGIC, in: snet-agw }
+  system: { icon: azure:vm-scale-sets, label: System nodes, note: CoreDNS and add-ons, in: system-pool }
+  apps: { icon: azure:vm-scale-sets, label: User nodes, note: Application pods, in: user-pool }
+  acr: { icon: azure:acr, label: Container Registry, in: rg }
+  identity: { icon: azure:managed-identity, label: Managed identity, note: Workload identity, in: rg }
+  kv: { icon: azure:key-vault, label: Key Vault, note: App secrets, in: rg }
+  logs: { icon: azure:log-analytics, label: Log Analytics, note: Container insights, in: rg }
+
+edges:
+  - users -> agw: HTTPS
+  - agw -> apps
+  - apps -> acr: pull images
+  - apps -> identity: federated token
+  - identity -> kv: read secrets
+  - system, apps ..> logs

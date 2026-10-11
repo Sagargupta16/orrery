@@ -1,0 +1,93 @@
+{
+  "aws": {
+    "title": "AWS Architecture Icons",
+    "version": "2026-07-31",
+    "page": "https://aws.amazon.com/architecture/icons/",
+    "url": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+    "sha256": "d2d166c453526471749d520e0db022c459abef759d2946cf2dd1d1c992dc6526",
+    "terms": "AWS allows customers and partners to use these toolkits and assets to create architecture diagrams."
+  },
+  "azure": {
+    "title": "Azure Architecture Icons",
+    "version": "V24",
+    "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+    "url": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V24.zip",
+    "sha256": "921594ccd1bf3d9c0a1bd7b6d924e050551a59342f2b353bb74bdcf761c35141",
+    "terms": "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft. Microsoft reserves all other rights."
+  },
+  "gcp": {
+    "title": "Google Cloud Icons",
+    "version": "2025 product icons",
+    "page": "https://cloud.google.com/icons",
+    "parts": {
+      "core": {
+        "url": "https://services.google.com/fh/files/misc/core-products-icons.zip",
+        "sha256": "6531a10f58bc599c24d9a455d81dd757c1a03c3c43da9cddf639b859c1c1eece"
+      },
+      "category": {
+        "url": "https://services.google.com/fh/files/misc/category-icons.zip",
+        "sha256": "e5bc3abd3527dc2500e9bff7f15870783e2c764129c49b7cd4c1b4e105345002"
+      },
+      "legacy": {
+        "url": "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip",
+        "sha256": "a6d9d7921758042538b462f03cf64614c2cebd96743b3ed63580a769fc7de3e9"
+      }
+    },
+    "terms": "Official library of Google Cloud product icons for diagrams, technical documentation, and more."
+  },
+  "k8s": {
+    "title": "Kubernetes Icons",
+    "version": "kubernetes/community@70a4bb2",
+    "page": "https://github.com/kubernetes/community/tree/master/icons",
+    "base": "https://raw.githubusercontent.com/kubernetes/community/70a4bb2d8cc35bb0672f221bad9bc60c27a6f94b/icons/svg",
+    "files": {
+      "resources/unlabeled": [
+        "c-role",
+        "cm",
+        "crb",
+        "crd",
+        "cronjob",
+        "deploy",
+        "ds",
+        "ep",
+        "group",
+        "hpa",
+        "ing",
+        "job",
+        "limits",
+        "netpol",
+        "ns",
+        "pod",
+        "psp",
+        "pv",
+        "pvc",
+        "quota",
+        "rb",
+        "role",
+        "rs",
+        "sa",
+        "sc",
+        "secret",
+        "sts",
+        "svc",
+        "user",
+        "vol"
+      ],
+      "infrastructure_components/unlabeled": [
+        "control-plane",
+        "etcd",
+        "node"
+      ],
+      "control_plane_components/labeled": [
+        "api",
+        "c-c-m",
+        "c-m",
+        "k-proxy",
+        "kubelet",
+        "sched"
+      ]
+    },
+    "logo": "https://raw.githubusercontent.com/kubernetes/kubernetes/d9a58a39b69a0eaec5797e0f7a0f9472b4829ab0/logo/logo.svg",
+    "license": "Apache-2.0"
+  }
+}

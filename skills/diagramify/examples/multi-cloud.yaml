@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Multi-cloud with a shared identity provider
+subtitle: One Okta tenant signs users in to AWS, Google Cloud and Azure; private interconnects meet at a colocation router
+direction: down
+layout: { merge: false }
+
+groups:
+  aws: { type: aws:cloud }
+  aws-region: { type: aws:region, label: us-east-1, in: aws }
+  gcloud: { type: gcp:cloud }
+  gcp-project: { type: gcp:project, label: Project analytics, in: gcloud }
+  azure: { type: azure:subscription, label: Azure subscription }
+  azure-rg: { type: azure:resource-group, label: rg-partner-portal, in: azure }
+
+nodes:
+  idp: { icon: logos:okta-icon, label: Okta, note: Workforce identity }
+  orders: { icon: aws:eks, label: Amazon EKS, note: Orders platform, in: aws-region }
+  dx: { icon: aws:direct-connect, label: AWS Direct Connect, in: aws-region }
+  analytics: { icon: gcp:bigquery, label: BigQuery, note: Analytics, in: gcp-project }
+  interconnect: { icon: gcp:partner-interconnect, label: Partner Interconnect, in: gcp-project }
+  portal: { icon: azure:app-service, label: Azure App Service, note: Partner portal, in: azure-rg }
+  er: { icon: azure:expressroute, label: Azure ExpressRoute, in: azure-rg }
+  router: { icon: generic:router, label: Colocation router, note: BGP to every cloud }
+
+edges:
+  # Federation lands on each cloud as a whole, so the edges end at the group borders.
+  - idp --> aws: SAML
+  - idp --> gcloud: OIDC
+  - idp --> azure: SAML
+  - orders -- dx
+  - analytics -- interconnect
+  - portal -- er
+  - dx, interconnect, er -- router

@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Container diagram for an online store
+subtitle: "C4 model, level 2: the containers inside the system, and the people and external systems around it"
+direction: down
+layout: { spacing: compact }
+
+groups:
+  store: { type: c4:boundary, label: "Online store [Software System]" }
+
+# C4-PlantUML colors: person #08427b, container #438dd5, external system #999999.
+nodes:
+  customer: { shape: person, label: Customer, note: Browses and buys products, color: "#08427b" }
+  staff: { shape: person, label: Support staff, note: Handles orders and refunds, color: "#08427b" }
+  web: { shape: box, label: Web application, note: "[React] The storefront", color: "#438dd5", in: store }
+  admin: { shape: box, label: Back office, note: "[React] Order management", color: "#438dd5", in: store }
+  api: { shape: box, label: API application, note: "[Go] Catalog, cart and checkout", color: "#438dd5", in: store }
+  db: { shape: cylinder, label: Database, note: "[PostgreSQL] Products and orders", color: "#438dd5", in: store }
+  payments: { shape: box, label: Payment provider, note: "[External system] Card payments", color: "#999999" }
+  email: { shape: box, label: Email service, note: "[External system] Receipts", color: "#999999" }
+
+edges:
+  - customer -> web: Uses [HTTPS]
+  - staff -> admin: Uses [HTTPS]
+  - web, admin -> api: "Calls [JSON, HTTPS]"
+  - api -> db: Reads and writes [SQL]
+  - api -> payments: Charges cards [HTTPS]
+  - api -> email: Sends receipts [SMTP]

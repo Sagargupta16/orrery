@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Event-driven order processing on AWS
+subtitle: One EventBridge bus fans order events out to a Step Functions workflow, a billing queue and an SNS topic
+direction: right
+# One port per edge, so the solid numbered path stays apart from the dashed consumers.
+layout: { merge: false }
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  workflow: { type: aws:step-functions, label: Fulfillment workflow, in: region }
+
+nodes:
+  customers: { icon: aws:users, label: Customers }
+  api: { icon: aws:api-gateway, label: Orders API, note: POST /orders, in: region }
+  bus: { icon: aws:eventbridge, label: Orders event bus, note: Amazon EventBridge, in: region }
+  reserve: { icon: aws:lambda, label: Reserve stock, in: workflow }
+  charge: { icon: aws:lambda, label: Charge payment, in: workflow }
+  ship: { icon: aws:lambda, label: Create shipment, in: workflow }
+  table: { icon: aws:dynamodb, label: Orders table, in: region }
+  billing: { icon: aws:sqs, label: Billing queue, in: region }
+  invoice: { icon: aws:lambda, label: Invoice generator, in: region }
+  notices: { icon: aws:sns, label: Order notifications, note: Amazon SNS topic, in: region }
+  email: { icon: aws:simple-notification-service-email-notification, label: Email subscription, in: region }
+  analytics: { icon: aws:sqs, label: Analytics queue, in: region }
+
+edges:
+  # The numbered path is the main story; the other consumers are asynchronous (dashed).
+  - customers -> api: { step: 1 }
+  - api -> bus: { label: OrderPlaced, step: 2 }
+  - bus -> workflow: { label: fulfillment rule, step: 3 }
+  - reserve -> charge -> ship
+  - workflow -> table: { label: order status, step: 4 }
+  - bus --> billing: billing rule
+  - billing --> invoice
+  - bus --> notices: notification rule
+  - notices --> email, analytics

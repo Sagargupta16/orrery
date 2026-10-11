@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # icons.yml dispatches this on its sync branch: a pull request opened with GITHUB_TOKEN starts
+  # no pull_request run, but dispatched check runs land on the branch head, which is the PR head.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # No version input: pnpm/action-setup reads packageManager (pnpm@11.28.1) from package.json
+      # and fails when both are set.
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint (Biome)
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Bundled CLI matches src/
+        run: node scripts/build.mjs --check
+
+      - name: Repo checks (dashes, paths, manifests, docs snippets, gallery)
+        run: node scripts/check-repo.mjs
+
+      # Pinned because no manifest lists it, so Renovate cannot bump it. Bump by hand.
+      - name: Lint skills (skillcheck)
+        run: npx -y @sagargupta1610/skillcheck@0.2.5 lint skills
+
+      - name: Doctor
+        run: node skills/diagramify/scripts/diagramify.mjs doctor
+
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows is load-bearing: paths in receipts and output names, CRLF-free checkouts
+        # (.gitattributes), and child processes in the CLI tests all differ there.
+        os: [ubuntu-latest, windows-latest]
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test

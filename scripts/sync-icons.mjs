@@ -1,0 +1,819 @@
+#!/usr/bin/env node
+// Builds the icon catalogs the skill ships, from the vendors' own downloads.
+//
+//   node scripts/sync-icons.mjs            rebuild from the pinned sources (checksums must match)
+//   node scripts/sync-icons.mjs --latest   find the newest official packages, re-pin, rebuild
+//
+// Output: skills/diagramify/assets/icons/<pack>.json (bodies) and index.json (names, search, aliases).
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { strFromU8, unzipSync } from "fflate";
+import { optimize } from "svgo";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const sourcesPath = join(root, "scripts/icon-sources.json");
+const aliasesPath = join(root, "scripts/icon-aliases.json");
+const outDir = join(root, "skills/diagramify/assets/icons");
+const cacheDir = join(root, ".cache/icons");
+const nodeModules = join(root, "node_modules");
+const latest = process.argv.includes("--latest");
+
+const sources = JSON.parse(readFileSync(sourcesPath, "utf8"));
+
+// ---------------------------------------------------------------- downloads
+
+const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
+
+async function download(url, expected) {
+  mkdirSync(cacheDir, { recursive: true });
+  const cached = join(cacheDir, `${sha256(Buffer.from(url)).slice(0, 16)}.bin`);
+  let buf;
+  if (existsSync(cached)) {
+    buf = readFileSync(cached);
+  } else {
+    const res = await fetch(url, {
+      headers: { "user-agent": "diagramify-sync-icons" },
+    });
+    if (!res.ok) throw new Error(`GET ${url} -> HTTP ${res.status}`);
+    buf = Buffer.from(await res.arrayBuffer());
+    writeFileSync(cached, buf);
+  }
+  const actual = sha256(buf);
+  if (expected && actual !== expected && !latest) {
+    throw new Error(
+      `checksum mismatch for ${url}\n  pinned ${expected}\n  actual ${actual}\nRe-run with --latest to re-pin.`,
+    );
+  }
+  return { buf, sha: actual };
+}
+
+async function pageText(url) {
+  const res = await fetch(url, {
+    headers: { "user-agent": "Mozilla/5.0 diagramify-sync-icons" },
+  });
+  if (!res.ok) throw new Error(`GET ${url} -> HTTP ${res.status}`);
+  return res.text();
+}
+
+// Finds the current official package links on the vendor pages.
+async function refreshPins() {
+  const aws = await pageText(sources.aws.page);
+  const awsZip = aws.match(
+    /https:\/\/d1\.awsstatic\.com\/[^"'\s]*Icon-package_(\d{8})[^"'\s]*\.zip/,
+  );
+  if (awsZip) {
+    sources.aws.url = awsZip[0];
+    const d = awsZip[1];
+    sources.aws.version = `${d.slice(4)}-${d.slice(0, 2)}-${d.slice(2, 4)}`;
+  }
+  const azure = await pageText(sources.azure.page);
+  const azureZip = azure.match(
+    /https:\/\/arch-center\.azureedge\.net\/icons\/Azure_Public_Service_Icons_(V\d+)\.zip/,
+  );
+  if (azureZip) {
+    sources.azure.url = azureZip[0];
+    sources.azure.version = azureZip[1];
+  }
+  const gcp = await pageText(sources.gcp.page);
+  for (const [part, name] of [
+    ["core", "core-products-icons"],
+    ["category", "category-icons"],
+    ["legacy", "google-cloud-legacy-icons"],
+  ]) {
+    const m = gcp.match(new RegExp(`https://services\\.google\\.com/fh/files/misc/${name}\\.zip`));
+    if (m) sources.gcp.parts[part].url = m[0];
+  }
+}
+
+// ---------------------------------------------------------------- normalizing
+
+// Every id an icon defines is rewritten to start with this token; the renderer swaps it for a
+// per-instance prefix so two copies of one icon (or two icons from the same export tool) never clash.
+const ID_TOKEN = "dfyid";
+// Monochrome glyphs carry this placeholder where their color goes.
+const COLOR_TOKEN = "{{c}}";
+
+const ROOT_PAINT = [
+  "fill",
+  "stroke",
+  "stroke-width",
+  "stroke-linecap",
+  "stroke-linejoin",
+  "fill-rule",
+  "clip-rule",
+  "opacity",
+];
+
+let idCounter = 0;
+function normalize(svg, { mono = false } = {}) {
+  idCounter += 1;
+  const { data } = optimize(svg, {
+    multipass: true,
+    plugins: [
+      {
+        name: "preset-default",
+        params: {
+          overrides: {
+            inlineStyles: { onlyMatchedOnce: false },
+            convertShapeToPath: false,
+          },
+        },
+      },
+      "convertStyleToAttrs",
+      "removeDimensions",
+      "removeTitle",
+      "removeDesc",
+      {
+        name: "prefixIds",
+        params: { prefix: `${ID_TOKEN}${idCounter.toString(36)}`, delim: "_" },
+      },
+    ],
+  });
+  const open = data.match(/^<svg\b([^>]*)>/);
+  if (!open) throw new Error("not an svg");
+  const attrs = Object.fromEntries(
+    [...open[1].matchAll(/([\w:-]+)="([^"]*)"/g)].map((m) => [m[1], m[2]]),
+  );
+  let body = data.slice(open[0].length).replace(/<\/svg>\s*$/, "");
+  const viewBox = attrs.viewBox ?? "0 0 24 24";
+  const paint = ROOT_PAINT.filter((k) => attrs[k] !== undefined).map((k) => `${k}="${attrs[k]}"`);
+  if (paint.length) body = `<g ${paint.join(" ")}>${body}</g>`;
+  if (mono) {
+    body = body.replaceAll("currentColor", COLOR_TOKEN);
+    if (!/\bfill="/.test(body) || !body.includes(COLOR_TOKEN))
+      body = `<g fill="${COLOR_TOKEN}">${body}</g>`;
+  }
+  return { v: viewBox, b: body };
+}
+
+// True when every painted color in an icon is near black, so a dark theme must recolor it.
+function allDark(body) {
+  if (/Gradient|<image/.test(body)) return false;
+  const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="(#[0-9a-fA-F]{3,6})"/g)].map(
+    (m) => m[1],
+  );
+  if (!colors.length) return false;
+  return colors.every((c) => luminance(c) < 0.06);
+}
+
+function luminance(hex) {
+  let h = hex.replace("#", "");
+  if (h.length === 3) h = [...h].map((x) => x + x).join("");
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const v = Number.parseInt(h.slice(i, i + 2), 16) / 255;
+    return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+// ---------------------------------------------------------------- naming
+
+const ACRONYMS = new Set([
+  "ai",
+  "api",
+  "apis",
+  "bi",
+  "cdn",
+  "cpu",
+  "dlp",
+  "dns",
+  "gke",
+  "gpu",
+  "hsm",
+  "http",
+  "https",
+  "iam",
+  "iot",
+  "kms",
+  "ml",
+  "nat",
+  "sdk",
+  "sql",
+  "ssh",
+  "tpu",
+  "vm",
+  "vpc",
+  "vpn",
+  "gcs",
+  "cli",
+  "ids",
+  "ssl",
+  "tls",
+  "url",
+  "os",
+  "ha",
+  "ci",
+  "cd",
+]);
+
+function slugify(s) {
+  return s
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/\+/g, " plus ")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const SMALL = new Set(["and", "for", "on", "to", "of", "in", "with", "the", "a", "by"]);
+const SPECIAL = { apis: "APIs", vmware: "VMware", powershell: "PowerShell", bigquery: "BigQuery" };
+
+function titleCase(words) {
+  return words
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((w, i) => {
+      const lower = w.toLowerCase();
+      if (SPECIAL[lower]) return SPECIAL[lower];
+      if (ACRONYMS.has(lower)) return w.toUpperCase();
+      if (i > 0 && SMALL.has(lower)) return lower;
+      return w[0].toUpperCase() + w.slice(1);
+    })
+    .join(" ");
+}
+
+// File names lose the punctuation of a few official AWS names.
+const AWS_NAME_FIXES = [
+  [/\bSite to Site\b/g, "Site-to-Site"],
+  [/\bX Ray\b/g, "X-Ray"],
+  [/\bWell Architected\b/g, "Well-Architected"],
+];
+const awsName = (n) => AWS_NAME_FIXES.reduce((acc, [re, to]) => acc.replace(re, to), n);
+
+// Vendor typos in file names.
+const NAME_TYPOS = [[/\bPrivleged\b/g, "Privileged"]];
+const fixTypos = (n) => NAME_TYPOS.reduce((acc, [re, to]) => acc.replace(re, to), n);
+
+class Pack {
+  constructor(key, meta) {
+    this.key = key;
+    this.meta = meta;
+    this.icons = new Map();
+  }
+  // A clash keeps the first icon on the plain slug; the later one gets `suffix` (or a counter).
+  add(slug, entry, suffix) {
+    let s = slug;
+    if (this.icons.has(s)) {
+      s = suffix ? `${slug}-${suffix}` : slug;
+      let n = 2;
+      while (this.icons.has(s)) {
+        s = `${slug}-${suffix ? `${suffix}-` : ""}${n}`;
+        n += 1;
+      }
+    }
+    this.icons.set(s, entry);
+    return s;
+  }
+}
+
+const files = (zip, re) =>
+  Object.keys(zip)
+    .filter((p) => re.test(p) && !p.includes("__MACOSX") && !p.split("/").pop().startsWith("._"))
+    .sort();
+const text = (zip, p) => strFromU8(zip[p]);
+
+// ---------------------------------------------------------------- AWS
+
+const AWS_CATEGORIES = {
+  "Front End Web Mobile": "Front-End Web & Mobile",
+  "Networking Content Delivery": "Networking & Content Delivery",
+  "Migration Modernization": "Migration & Modernization",
+  "Security Identity": "Security, Identity & Compliance",
+  "Security Identity Compliance": "Security, Identity & Compliance",
+  "Management Governance": "Management & Governance",
+  "Management Tools": "Management & Governance",
+  "Internet Of Things": "Internet of Things",
+  IOT: "Internet of Things",
+  "General Icons": "General",
+};
+const awsCategory = (c) => AWS_CATEGORIES[c] ?? c;
+
+async function buildAws() {
+  const s = sources.aws;
+  const { buf, sha } = await download(s.url, s.sha256);
+  s.sha256 = sha;
+  const zip = unzipSync(new Uint8Array(buf));
+  const pack = new Pack("aws", s);
+  const strip = (name) => name.replace(/^(AWS|Amazon)[- ]/, "");
+
+  for (const p of files(
+    zip,
+    /Architecture-Service-Icons_[^/]+\/Arch_[^/]+\/64\/Arch_.+_64\.svg$/,
+  )) {
+    const raw = p
+      .split("/")
+      .pop()
+      .replace(/^Arch_/, "")
+      .replace(/_64\.svg$/, "");
+    const category = awsCategory(
+      titleCase(
+        p
+          .split("/")
+          .at(-3)
+          .replace(/^Arch_/, ""),
+      ),
+    );
+    const name = awsName(raw.replace(/-/g, " "));
+    pack.add(slugify(strip(raw)), {
+      n: name,
+      c: category,
+      t: "service",
+      ...normalize(text(zip, p)),
+    });
+  }
+
+  const res = files(zip, /Resource-Icons_[^/]+\/.+\.svg$/);
+  const byBase = new Map();
+  for (const p of res) {
+    const file = p.split("/").pop();
+    const m = file.match(/^Res_(.+?)_48(?:_(Light|Dark))?\.svg$/);
+    if (!m) continue;
+    const base = m[1];
+    const variant = m[2] ?? "Light";
+    const category = awsCategory(
+      titleCase(
+        p
+          .split("/")
+          .find((d) => d.startsWith("Res_") && !d.endsWith(".svg") && !/^Res_48/.test(d))
+          ?.replace(/^Res_/, "") ?? "General",
+      ),
+    );
+    const entry = byBase.get(base) ?? { category };
+    entry[variant] = p;
+    byBase.set(base, entry);
+  }
+  for (const [base, entry] of [...byBase].sort(([a], [b]) => a.localeCompare(b))) {
+    const parts = base.split("_");
+    const name = awsName(parts.map((x) => x.replace(/-/g, " ")).join(" "));
+    const slug = slugify(parts.map(strip).join("-"));
+    const light = normalize(text(zip, entry.Light ?? entry.Dark));
+    const icon = { n: name, c: entry.category, t: "resource", ...light };
+    if (entry.Light && entry.Dark) icon.d = normalize(text(zip, entry.Dark)).b;
+    pack.add(slug, icon, "resource");
+  }
+
+  const groups = files(zip, /Architecture-Group-Icons_[^/]+\/[^/]+_32(?:_Dark)?\.svg$/);
+  for (const p of groups.filter((g) => !g.endsWith("_Dark.svg"))) {
+    const raw = p
+      .split("/")
+      .pop()
+      .replace(/_32\.svg$/, "");
+    const dark = p.replace(/_32\.svg$/, "_32_Dark.svg");
+    const icon = {
+      n: raw.replace(/-/g, " "),
+      c: "Groups",
+      t: "group",
+      ...normalize(text(zip, p)),
+    };
+    if (zip[dark]) icon.d = normalize(text(zip, dark)).b;
+    pack.add(`group-${slugify(raw)}`, icon);
+  }
+
+  for (const p of files(zip, /Category-Icons_[^/]+\/Arch-Category_64\/Arch-Category_.+_64\.svg$/)) {
+    const raw = p
+      .split("/")
+      .pop()
+      .replace(/^Arch-Category_/, "")
+      .replace(/_64\.svg$/, "");
+    pack.add(`category-${slugify(raw)}`, {
+      n: `${raw.replace(/-/g, " ")} category`,
+      c: "Categories",
+      t: "category",
+      ...normalize(text(zip, p)),
+    });
+  }
+  return pack;
+}
+
+// ---------------------------------------------------------------- Azure
+
+async function buildAzure() {
+  const s = sources.azure;
+  const { buf, sha } = await download(s.url, s.sha256);
+  s.sha256 = sha;
+  const zip = unzipSync(new Uint8Array(buf));
+  const pack = new Pack("azure", s);
+  const paths = files(zip, /Icons\/[^/]+\/[^/]+\.svg$/);
+  // Icons listed under "new icons" or "other" also live in their real category; prefer that one.
+  const rank = (p) => (/\/(new icons|other)\//i.test(p) ? 1 : 0);
+  paths.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  const seen = new Set();
+  for (const p of paths) {
+    const file = p.split("/").pop();
+    const m = file.match(/^\d+-icon-service-(.+)\.svg$/);
+    if (!m) continue;
+    const raw = m[1];
+    const slug = slugify(raw);
+    if (seen.has(slug)) continue;
+    seen.add(slug);
+    const category = titleCase(
+      p
+        .split("/")
+        .at(-2)
+        .replace(/\s*\+\s*/g, " and "),
+    )
+      .replace(/^IOT$/, "IoT")
+      .replace(/\bAnd\b/g, "and")
+      .replace(/^Devops$/, "DevOps");
+    pack.add(slug, {
+      n: fixTypos(raw.replace(/-/g, " ")),
+      c: category,
+      t: "service",
+      ...normalize(text(zip, p)),
+    });
+  }
+  return pack;
+}
+
+// ---------------------------------------------------------------- Google Cloud
+
+// Legacy folder names whose title case is wrong.
+const GCP_NAMES = {
+  automl: "AutoML",
+  automl_natural_language: "AutoML Natural Language",
+  automl_tables: "AutoML Tables",
+  automl_translation: "AutoML Translation",
+  automl_video_intelligence: "AutoML Video Intelligence",
+  automl_vision: "AutoML Vision",
+  bigquery: "BigQuery",
+  bigtable: "Bigtable",
+  vertexai: "Vertex AI",
+  dialogflow_cx: "Dialogflow CX",
+  dialogflow_insights: "Dialogflow Insights",
+  cloud_external_ip_addresses: "Cloud External IP Addresses",
+  cloud_sql: "Cloud SQL",
+  datastream: "Datastream",
+  google_kubernetes_engine: "Google Kubernetes Engine",
+  kuberun: "KubeRun",
+  memorystore: "Memorystore",
+  pubsub: "Pub/Sub",
+  firestore: "Firestore",
+  alloydb: "AlloyDB",
+  looker: "Looker",
+  cloud_tpu: "Cloud TPU",
+  cloud_gpu: "Cloud GPU",
+  iot_core: "IoT Core",
+  anthos_service_mesh: "Anthos Service Mesh",
+};
+
+async function buildGcp() {
+  const s = sources.gcp;
+  const pack = new Pack("gcp", s);
+  const zips = {};
+  for (const [part, info] of Object.entries(s.parts)) {
+    const { buf, sha } = await download(info.url, info.sha256);
+    info.sha256 = sha;
+    zips[part] = unzipSync(new Uint8Array(buf));
+  }
+  for (const p of files(zips.core, /\/SVG\/[^/]+\.svg$/)) {
+    const name = p.split("/").at(-3);
+    pack.add(slugify(name), {
+      n: name,
+      c: "Core products",
+      t: "service",
+      ...normalize(text(zips.core, p)),
+    });
+  }
+  for (const p of files(zips.category, /\/SVG\/[^/]+\.svg$/)) {
+    const name = p.split("/").at(-3).replace(/ _ /g, " and ");
+    pack.add(`category-${slugify(name)}`, {
+      n: `${name} category`,
+      c: "Categories",
+      t: "category",
+      ...normalize(text(zips.category, p)),
+    });
+  }
+  for (const p of files(zips.legacy, /^[^/]+\/[^/]+\.svg$/)) {
+    const dir = p.split("/")[0];
+    const name = GCP_NAMES[dir] ?? titleCase(dir.replace(/_/g, " "));
+    pack.add(
+      slugify(dir),
+      {
+        n: name,
+        c: "Console icons (legacy)",
+        t: "legacy",
+        ...normalize(text(zips.legacy, p)),
+      },
+      "legacy",
+    );
+  }
+  return pack;
+}
+
+// ---------------------------------------------------------------- Kubernetes
+
+const K8S_NAMES = {
+  "c-role": "ClusterRole",
+  cm: "ConfigMap",
+  crb: "ClusterRoleBinding",
+  crd: "CustomResourceDefinition",
+  cronjob: "CronJob",
+  deploy: "Deployment",
+  ds: "DaemonSet",
+  ep: "Endpoints",
+  group: "Group",
+  hpa: "HorizontalPodAutoscaler",
+  ing: "Ingress",
+  job: "Job",
+  limits: "LimitRange",
+  netpol: "NetworkPolicy",
+  ns: "Namespace",
+  pod: "Pod",
+  psp: "PodSecurityPolicy",
+  pv: "PersistentVolume",
+  pvc: "PersistentVolumeClaim",
+  quota: "ResourceQuota",
+  rb: "RoleBinding",
+  role: "Role",
+  rs: "ReplicaSet",
+  sa: "ServiceAccount",
+  sc: "StorageClass",
+  secret: "Secret",
+  sts: "StatefulSet",
+  svc: "Service",
+  user: "User",
+  vol: "Volume",
+  "control-plane": "Control Plane",
+  etcd: "etcd",
+  node: "Node",
+  api: "kube-apiserver",
+  "c-c-m": "cloud-controller-manager",
+  "c-m": "kube-controller-manager",
+  "k-proxy": "kube-proxy",
+  kubelet: "kubelet",
+  sched: "kube-scheduler",
+};
+
+async function buildK8s() {
+  const s = sources.k8s;
+  const pack = new Pack("k8s", s);
+  const category = {
+    "resources/unlabeled": "Resources",
+    "infrastructure_components/unlabeled": "Infrastructure",
+    "control_plane_components/labeled": "Control plane",
+  };
+  for (const [dir, list] of Object.entries(s.files)) {
+    for (const f of list) {
+      const { buf } = await download(`${s.base}/${dir}/${f}.svg`);
+      const name = K8S_NAMES[f] ?? f;
+      pack.add(slugify(name.replace(/^kube-/, "kube ")), {
+        n: name,
+        c: category[dir],
+        t: "resource",
+        short: f,
+        ...normalize(buf.toString("utf8")),
+      });
+    }
+  }
+  const { buf } = await download(s.logo);
+  pack.add("kubernetes", {
+    n: "Kubernetes",
+    c: "Logo",
+    t: "logo",
+    ...normalize(buf.toString("utf8")),
+  });
+  return pack;
+}
+
+// ---------------------------------------------------------------- npm-packaged sets
+
+function pkgVersion(name) {
+  return JSON.parse(readFileSync(join(nodeModules, name, "package.json"), "utf8")).version;
+}
+
+function buildOcticons() {
+  const data = JSON.parse(
+    readFileSync(join(nodeModules, "@primer/octicons/build/data.json"), "utf8"),
+  );
+  const pack = new Pack("github", {
+    title: "GitHub Octicons",
+    version: `@primer/octicons ${pkgVersion("@primer/octicons")}`,
+    page: "https://primer.style/octicons",
+    license: "MIT",
+  });
+  for (const name of Object.keys(data).sort()) {
+    const icon = data[name];
+    const h = icon.heights["24"] ? "24" : Object.keys(icon.heights).sort((a, b) => b - a)[0];
+    const { width, path } = icon.heights[h];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${width} ${h}">${path}</svg>`;
+    pack.add(name, {
+      n: titleCase(name),
+      c: "Octicons",
+      t: "glyph",
+      k: icon.keywords?.join(" "),
+      mono: 1,
+      ...normalize(svg, { mono: true }),
+    });
+  }
+  return pack;
+}
+
+// Simple Icons entries whose own license forbids redistribution here are skipped (see THIRD_PARTY_NOTICES.md).
+const SI_ALLOWED = new Set([
+  "CC0-1.0",
+  "CC-BY-2.5",
+  "CC-BY-3.0",
+  "CC-BY-4.0",
+  "Apache-2.0",
+  "MIT",
+  "BSD-3-Clause",
+  "Unlicense",
+]);
+
+function buildSimpleIcons() {
+  const dir = join(nodeModules, "simple-icons");
+  const data = JSON.parse(readFileSync(join(dir, "data/simple-icons.json"), "utf8"));
+  const pack = new Pack("si", {
+    title: "Simple Icons",
+    version: `simple-icons ${pkgVersion("simple-icons")}`,
+    page: "https://simpleicons.org",
+    license: "CC0-1.0 (collection); individual marks remain trademarks of their owners",
+  });
+  const skipped = [];
+  const attributed = [];
+  for (const icon of data) {
+    const slug = icon.slug ?? slugify(icon.title);
+    const lic = icon.license?.type;
+    if (lic && !SI_ALLOWED.has(lic)) {
+      skipped.push({ slug, title: icon.title, license: lic });
+      continue;
+    }
+    if (lic && lic !== "CC0-1.0")
+      attributed.push({
+        slug,
+        title: icon.title,
+        license: lic,
+        source: icon.source,
+      });
+    const svg = readFileSync(join(dir, "icons", `${slug}.svg`), "utf8");
+    const aka = [...(icon.aliases?.aka ?? []), ...Object.values(icon.aliases?.loc ?? {})];
+    pack.add(slug, {
+      n: icon.title,
+      c: "Brands",
+      t: "logo",
+      k: aka.join(" ") || undefined,
+      mono: 1,
+      col: `#${icon.hex}`,
+      ...normalize(svg, { mono: true }),
+    });
+  }
+  pack.skipped = skipped;
+  pack.attributed = attributed;
+  return pack;
+}
+
+let titles;
+/** Brand titles from Simple Icons ("PostgreSQL", "GitHub Actions"), keyed by collapsed slug and title. */
+function officialTitles() {
+  if (titles) return titles;
+  titles = new Map();
+  const data = JSON.parse(
+    readFileSync(join(nodeModules, "simple-icons/data/simple-icons.json"), "utf8"),
+  );
+  for (const icon of data) {
+    const key = (icon.slug ?? "").replace(/[^a-z0-9]/g, "");
+    if (key) titles.set(key, icon.title);
+    titles.set(icon.title.toLowerCase().replace(/[^a-z0-9]/g, ""), icon.title);
+  }
+  return titles;
+}
+
+function buildIconify(
+  pkg,
+  key,
+  title,
+  page,
+  license,
+  { mono = false, category = "Logos", type = "logo" } = {},
+) {
+  const dir = join(nodeModules, pkg);
+  const data = JSON.parse(readFileSync(join(dir, "icons.json"), "utf8"));
+  const info = JSON.parse(readFileSync(join(dir, "info.json"), "utf8"));
+  const pack = new Pack(key, {
+    title,
+    version: `${pkg} ${pkgVersion(pkg)}${info.version ? ` (${info.name} ${info.version})` : ""}`,
+    page,
+    license,
+  });
+  for (const name of Object.keys(data.icons).sort()) {
+    const icon = data.icons[name];
+    const w = icon.width ?? data.width ?? 16;
+    const h = icon.height ?? data.height ?? 16;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${icon.left ?? 0} ${icon.top ?? 0} ${w} ${h}">${icon.body}</svg>`;
+    const base = name.replace(/-icon$/, "");
+    const n = officialTitles().get(base.replace(/[^a-z0-9]/g, "")) ?? titleCase(base);
+    const entry = { n, c: category, t: type, ...normalize(svg, { mono }) };
+    if (mono) entry.mono = 1;
+    pack.add(name, entry);
+  }
+  return pack;
+}
+
+// ---------------------------------------------------------------- write
+
+function writePack(pack) {
+  const icons = {};
+  for (const slug of [...pack.icons.keys()].sort()) {
+    const { mono, col, k, short, ...rest } = pack.icons.get(slug);
+    const out = { v: rest.v, b: rest.b };
+    if (rest.d) out.d = rest.d;
+    if (mono) out.m = 1;
+    if (col) out.col = col;
+    if (!mono && allDark(rest.b)) out.k = 1;
+    icons[slug] = out;
+  }
+  const file = {
+    pack: pack.key,
+    title: pack.meta.title,
+    version: pack.meta.version,
+    source: pack.meta.page,
+    icons,
+  };
+  writeFileSync(join(outDir, `${pack.key}.json`), `${JSON.stringify(file)}\n`);
+}
+
+function indexRows(pack) {
+  const rows = [];
+  for (const slug of [...pack.icons.keys()].sort()) {
+    const e = pack.icons.get(slug);
+    const kw = [e.k, e.short].filter(Boolean).join(" ");
+    rows.push([`${pack.key}:${slug}`, e.n, e.c, e.t, kw]);
+  }
+  return rows;
+}
+
+async function main() {
+  if (latest) await refreshPins();
+  mkdirSync(outDir, { recursive: true });
+  const packs = [
+    await buildAws(),
+    await buildAzure(),
+    await buildGcp(),
+    await buildK8s(),
+    buildOcticons(),
+    buildIconify(
+      "@iconify-json/logos",
+      "logos",
+      "SVG Logos (gilbarbara/logos)",
+      "https://github.com/gilbarbara/logos",
+      "CC0-1.0 (collection); individual marks remain trademarks of their owners",
+    ),
+    buildSimpleIcons(),
+    buildIconify(
+      "@iconify-json/tabler",
+      "tabler",
+      "Tabler Icons",
+      "https://tabler.io/icons",
+      "MIT",
+      { mono: true, category: "Generic", type: "glyph" },
+    ),
+  ];
+
+  const aliasTable = existsSync(aliasesPath) ? JSON.parse(readFileSync(aliasesPath, "utf8")) : {};
+  const all = new Set(packs.flatMap((p) => [...p.icons.keys()].map((s) => `${p.key}:${s}`)));
+  const aliases = {};
+  const broken = [];
+  for (const [alias, target] of Object.entries(aliasTable).sort(([a], [b]) => a.localeCompare(b))) {
+    if (alias.startsWith("//")) continue;
+    if (!all.has(target)) broken.push(`${alias} -> ${target}`);
+    else if (all.has(alias)) broken.push(`${alias} shadows a real icon`);
+    else aliases[alias] = target;
+  }
+
+  const index = { packs: {}, icons: [], aliases };
+  for (const pack of packs) {
+    writePack(pack);
+    index.packs[pack.key] = {
+      title: pack.meta.title,
+      version: pack.meta.version,
+      source: pack.meta.page,
+      license: pack.meta.license ?? pack.meta.terms,
+      count: pack.icons.size,
+    };
+    index.icons.push(...indexRows(pack));
+  }
+  writeFileSync(join(outDir, "index.json"), `${JSON.stringify(index)}\n`);
+
+  const si = packs.find((p) => p.key === "si");
+  writeFileSync(
+    join(outDir, "simple-icons-licenses.json"),
+    `${JSON.stringify({ attributed: si.attributed, skipped: si.skipped }, null, 2)}\n`,
+  );
+  writeFileSync(sourcesPath, `${JSON.stringify(sources, null, 2)}\n`);
+
+  for (const p of packs)
+    console.log(`${p.key.padEnd(7)} ${String(p.icons.size).padStart(5)} icons  ${p.meta.version}`);
+  console.log(
+    `total   ${String(all.size).padStart(5)} icons, ${Object.keys(aliases).length} aliases`,
+  );
+  if (broken.length) {
+    console.error(`\n${broken.length} alias problem(s):\n  ${broken.join("\n  ")}`);
+    process.exitCode = 1;
+  }
+}
+
+await main();

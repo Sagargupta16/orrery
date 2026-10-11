@@ -1,0 +1,20 @@
+{
+  "name": "diagramify",
+  "owner": {
+    "name": "Sagar Gupta",
+    "url": "https://github.com/Sagargupta16"
+  },
+  "metadata": {
+    "description": "Professional architecture and system design diagrams with official cloud icons, rendered to SVG, PNG, draw.io, TSX and HTML."
+  },
+  "plugins": [
+    {
+      "name": "diagramify",
+      "source": "./",
+      "description": "The diagramify skill: official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, ELK auto-layout, SVG/PNG/draw.io/TSX/HTML output, a validator with fixes and 20 reference architectures.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "design"
+    }
+  ]
+}

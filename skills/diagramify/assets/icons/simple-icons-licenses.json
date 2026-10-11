@@ -1,0 +1,1174 @@
+{
+  "attributed": [
+    {
+      "slug": "30secondsofcode",
+      "title": "30 seconds of code",
+      "license": "CC-BY-4.0",
+      "source": "https://github.com/Chalarangelo/30-seconds-of-code/blob/44c0ba94857a7796026c6795c47e964126876d5a/logo/logo-resources/logo.svg"
+    },
+    {
+      "slug": "abdownloadmanager",
+      "title": "AB Download Manager",
+      "license": "Apache-2.0",
+      "source": "https://abdownloadmanager.com"
+    },
+    {
+      "slug": "aiohttp",
+      "title": "AIOHTTP",
+      "license": "Apache-2.0",
+      "source": "https://github.com/aio-libs/aiohttp/blob/fb5fe72b1bca3b899af579d376f5fe45745410e4/docs/aiohttp-plain.svg"
+    },
+    {
+      "slug": "airbrake",
+      "title": "Airbrake",
+      "license": "Apache-2.0",
+      "source": "https://github.com/airbrake/slate/blob/c116f2968bcf4dfda126511de0a2d0f0dc8b6a8e/source/images/logo.svg"
+    },
+    {
+      "slug": "ajv",
+      "title": "Ajv",
+      "license": "MIT",
+      "source": "https://github.com/ajv-validator/ajv/blob/95b15b683dfb60f63c5129b0426629b968d53af8/docs/.vuepress/public/img/ajv.svg"
+    },
+    {
+      "slug": "alacritty",
+      "title": "Alacritty",
+      "license": "Apache-2.0",
+      "source": "https://github.com/alacritty/alacritty/blob/6d8db6b9dfadd6164c4be7a053f25db8ef6b7998/extra/logo/alacritty-simple.svg"
+    },
+    {
+      "slug": "android",
+      "title": "Android",
+      "license": "CC-BY-3.0",
+      "source": "https://partnermarketinghub.withgoogle.com/brands/android/visual-identity/visual-identity/logo-lock-ups"
+    },
+    {
+      "slug": "angular",
+      "title": "Angular",
+      "license": "CC-BY-4.0",
+      "source": "https://angular.dev/press-kit"
+    },
+    {
+      "slug": "apache",
+      "title": "Apache",
+      "license": "Apache-2.0",
+      "source": "https://www.apache.org/foundation/press/kit"
+    },
+    {
+      "slug": "apacheairflow",
+      "title": "Apache Airflow",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apacheant",
+      "title": "Apache Ant",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachearrow",
+      "title": "Apache Arrow",
+      "license": "Apache-2.0",
+      "source": "https://arrow.apache.org/visual_identity"
+    },
+    {
+      "slug": "apacheavro",
+      "title": "Apache Avro",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachecassandra",
+      "title": "Apache Cassandra",
+      "license": "Apache-2.0",
+      "source": "https://www.apache.org/logos"
+    },
+    {
+      "slug": "apachecloudstack",
+      "title": "Apache CloudStack",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachecordova",
+      "title": "Apache Cordova",
+      "license": "Apache-2.0",
+      "source": "https://cordova.apache.org/artwork"
+    },
+    {
+      "slug": "apachecouchdb",
+      "title": "Apache CouchDB",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachedolphinscheduler",
+      "title": "Apache DolphinScheduler",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachedoris",
+      "title": "Apache Doris",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachedruid",
+      "title": "Apache Druid",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apacheecharts",
+      "title": "Apache ECharts",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apacheflink",
+      "title": "Apache Flink",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachefreemarker",
+      "title": "Apache FreeMarker",
+      "license": "Apache-2.0",
+      "source": "https://www.apache.org/logos"
+    },
+    {
+      "slug": "apachegroovy",
+      "title": "Apache Groovy",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apacheguacamole",
+      "title": "Apache Guacamole",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachehadoop",
+      "title": "Apache Hadoop",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachehbase",
+      "title": "Apache HBase",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachehive",
+      "title": "Apache Hive",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachejmeter",
+      "title": "Apache JMeter",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachekafka",
+      "title": "Apache Kafka",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachekylin",
+      "title": "Apache Kylin",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachelucene",
+      "title": "Apache Lucene",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachemaven",
+      "title": "Apache Maven",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachenetbeanside",
+      "title": "Apache NetBeans IDE",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachenifi",
+      "title": "Apache NiFi",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apacheopenoffice",
+      "title": "Apache OpenOffice",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apacheparquet",
+      "title": "Apache Parquet",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachepdfbox",
+      "title": "Apache PDFBox",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachepulsar",
+      "title": "Apache Pulsar",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apacherocketmq",
+      "title": "Apache RocketMQ",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachesolr",
+      "title": "Apache Solr",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachespark",
+      "title": "Apache Spark",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachestorm",
+      "title": "Apache Storm",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachesuperset",
+      "title": "Apache Superset",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "apachetomcat",
+      "title": "Apache Tomcat",
+      "license": "Apache-2.0",
+      "source": "https://apache.org/logos"
+    },
+    {
+      "slug": "authelia",
+      "title": "Authelia",
+      "license": "Apache-2.0",
+      "source": "https://github.com/authelia/authelia/blob/8316cd4eb7a6f0778c8f480c61ad76a88416fc3a/docs/static/images/branding/logo.svg"
+    },
+    {
+      "slug": "backbonedotjs",
+      "title": "Backbone.js",
+      "license": "MIT",
+      "source": "https://commons.wikimedia.org/wiki/File:Backbone.js_logo.svg"
+    },
+    {
+      "slug": "bootstrap",
+      "title": "Bootstrap",
+      "license": "MIT",
+      "source": "https://getbootstrap.com/docs/5.3/about/brand"
+    },
+    {
+      "slug": "cheerio",
+      "title": "Cheerio",
+      "license": "MIT",
+      "source": "https://github.com/cheeriojs/cheerio/blob/60b538772c34f2dd93e9c62e410b2751d0a69ff3/website/static/img/orange-c.svg"
+    },
+    {
+      "slug": "conventionalcommits",
+      "title": "Conventional Commits",
+      "license": "MIT",
+      "source": "https://www.conventionalcommits.org"
+    },
+    {
+      "slug": "deno",
+      "title": "Deno",
+      "license": "MIT",
+      "source": "https://github.com/denoland/docs/blob/5dee713844c7447f80acd4093caa9d350d80bf36/static/img/logo.svg"
+    },
+    {
+      "slug": "developmentcontainers",
+      "title": "Development Containers",
+      "license": "CC-BY-4.0",
+      "source": "https://github.com/microsoft/fluentui-system-icons/blob/3e1e525f4499a22d46039ef54e9b9a86b809bc66/assets/Cube/SVG/ic_fluent_cube_24_regular.svg"
+    },
+    {
+      "slug": "exercism",
+      "title": "Exercism",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/exercism/website-icons/blob/2ad12baa465acfaa74efc5da27a6a12f8b05e3d0/exercism/logo-icon.svg"
+    },
+    {
+      "slug": "flatpak",
+      "title": "Flatpak",
+      "license": "CC-BY-3.0",
+      "source": "https://flatpak.org/press"
+    },
+    {
+      "slug": "fluentd",
+      "title": "Fluentd",
+      "license": "Apache-2.0",
+      "source": "https://docs.fluentd.org/quickstart/logo"
+    },
+    {
+      "slug": "gin",
+      "title": "Gin",
+      "license": "CC-BY-4.0",
+      "source": "https://github.com/gin-gonic/logo/blob/eecb3150aa7ce5a77b97fd834276b2b6958eaa9d/wb.svg"
+    },
+    {
+      "slug": "git",
+      "title": "Git",
+      "license": "CC-BY-3.0",
+      "source": "https://git-scm.com/community/logos"
+    },
+    {
+      "slug": "githubcopilot",
+      "title": "GitHub Copilot",
+      "license": "MIT",
+      "source": "https://primer.style/foundations/icons/copilot-24"
+    },
+    {
+      "slug": "gleam",
+      "title": "Gleam",
+      "license": "Apache-2.0",
+      "source": "https://gleam.run"
+    },
+    {
+      "slug": "gnubash",
+      "title": "GNU Bash",
+      "license": "MIT",
+      "source": "https://github.com/odb/official-bash-logo/tree/61eff022f2dad3c7468f5deb4f06652d15f2c143"
+    },
+    {
+      "slug": "godotengine",
+      "title": "Godot Engine",
+      "license": "CC-BY-4.0",
+      "source": "https://godotengine.org/press"
+    },
+    {
+      "slug": "gradleplaypublisher",
+      "title": "Gradle Play Publisher",
+      "license": "MIT",
+      "source": "https://github.com/Triple-T/gradle-play-publisher/blob/df4eadf1ca6b5bad50e21be0b21816722ed50342/assets/logo.svg"
+    },
+    {
+      "slug": "haveibeenpwned",
+      "title": "Have I Been Pwned",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/HaveIBeenPwned/Branding/blob/d5a5d3c252a461c6c7e2ae60942fc80e50d2755d/Logos/Icon/Icon.svg"
+    },
+    {
+      "slug": "iconify",
+      "title": "Iconify",
+      "license": "MIT",
+      "source": "https://iconify.design"
+    },
+    {
+      "slug": "jabber",
+      "title": "Jabber",
+      "license": "CC-BY-2.5",
+      "source": "https://commons.wikimedia.org/wiki/File:Jabber-bulb.svg"
+    },
+    {
+      "slug": "javascript",
+      "title": "JavaScript",
+      "license": "MIT",
+      "source": "https://github.com/voodootikigod/logo.js/blob/1544bdeed6d618a6cfe4f0650d04ab8d9cfa76d9/js.svg"
+    },
+    {
+      "slug": "jekyll",
+      "title": "Jekyll",
+      "license": "CC-BY-4.0",
+      "source": "https://github.com/jekyll/brand/blob/8302ad3ecf045054a095020729a8d2cc7005faf8/jekyll-logo-black.svg"
+    },
+    {
+      "slug": "jhipster",
+      "title": "JHipster",
+      "license": "Apache-2.0",
+      "source": "https://github.com/jhipster/jhipster-artwork/blob/1085d85ab6d819b9ef7f6cc710ec8a4977b95e90/logos/JHipster%20bowtie.svg"
+    },
+    {
+      "slug": "kando",
+      "title": "Kando",
+      "license": "CC-BY-4.0",
+      "source": "https://github.com/kando-menu/design/blob/6506e2656f791b710b49a4774e7ebeaf419a1236/icons/source/blossom_tiny.svg"
+    },
+    {
+      "slug": "lobsters",
+      "title": "Lobsters",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/lobsters/lobsters/blob/dcd56c1d3f7190e33a73b86b77e7feb2665ddc50/app/assets/images/logo-color.svg"
+    },
+    {
+      "slug": "mantine",
+      "title": "Mantine",
+      "license": "MIT",
+      "source": "https://github.com/mantinedev/mantine/blob/f2da0287bfcda19dcf7866f4d03a05d1ee7b49f7/docs/src/images/logo.svg"
+    },
+    {
+      "slug": "materialdesignicons",
+      "title": "Material Design Icons",
+      "license": "Apache-2.0",
+      "source": "https://materialdesignicons.com/icon/vector-square"
+    },
+    {
+      "slug": "nanostores",
+      "title": "Nano Stores",
+      "license": "MIT",
+      "source": "https://github.com/nanostores/nanostores/blob/7fb5cd871fa00f484ebc866fdf330b56cab2aa20/img/logo-auto.svg"
+    },
+    {
+      "slug": "ngrx",
+      "title": "NgRx",
+      "license": "CC-BY-4.0",
+      "source": "https://ngrx.io"
+    },
+    {
+      "slug": "nixos",
+      "title": "NixOS",
+      "license": "CC-BY-4.0",
+      "source": "https://brand.nixos.org/logos/nixos-logomark-black-flat-minimal.svg"
+    },
+    {
+      "slug": "ocaml",
+      "title": "OCaml",
+      "license": "Unlicense",
+      "source": "https://ocaml.org/logo"
+    },
+    {
+      "slug": "omarchy",
+      "title": "Omarchy",
+      "license": "MIT",
+      "source": "https://omarchy.org"
+    },
+    {
+      "slug": "openjdk",
+      "title": "OpenJDK",
+      "license": "BSD-3-Clause",
+      "source": "https://hg.openjdk.java.net/duke/duke/file/ca00f100dafc/vector/Agent.svg"
+    },
+    {
+      "slug": "opentelemetry",
+      "title": "OpenTelemetry",
+      "license": "CC-BY-4.0",
+      "source": "https://cncf-branding.netlify.app/projects/opentelemetry/"
+    },
+    {
+      "slug": "dependencycheck",
+      "title": "OWASP Dependency-Check",
+      "license": "Apache-2.0",
+      "source": "https://github.com/jeremylong/DependencyCheck/blob/8ee82149179c6faeca78727e57039e987c387e26/src/site/resources/images/logo.svg"
+    },
+    {
+      "slug": "packagist",
+      "title": "Packagist",
+      "license": "MIT",
+      "source": "https://github.com/composer/packagist/issues/1147#issuecomment-747951608"
+    },
+    {
+      "slug": "pelican",
+      "title": "Pelican",
+      "license": "CC-BY-4.0",
+      "source": "https://blog.getpelican.com/pages/gratitude.html"
+    },
+    {
+      "slug": "phosphoricons",
+      "title": "Phosphor Icons",
+      "license": "MIT",
+      "source": "https://phosphoricons.com"
+    },
+    {
+      "slug": "purescript",
+      "title": "PureScript",
+      "license": "CC-BY-4.0",
+      "source": "https://github.com/purescript/logo/tree/1e7a57affdaeaf88ff594c08bd2b5a78fe2ed13c"
+    },
+    {
+      "slug": "radiantearth",
+      "title": "Radiant Earth",
+      "license": "CC-BY-4.0",
+      "source": "https://radiant.earth"
+    },
+    {
+      "slug": "rocksdb",
+      "title": "RocksDB",
+      "license": "CC-BY-4.0",
+      "source": "https://github.com/facebook/rocksdb/blob/9ed96703d11a1cf4af0e1c1db0e4a6057a8e5d42/docs/static/logo.svg"
+    },
+    {
+      "slug": "rook",
+      "title": "Rook",
+      "license": "Apache-2.0",
+      "source": "https://github.com/rook/artwork/blob/d252db9f43753e6abf64db0ce12d38916a5de464/logo/Rook_Icon.svg"
+    },
+    {
+      "slug": "root",
+      "title": "ROOT",
+      "license": "CC-BY-4.0",
+      "source": "https://root.cern/assets/images/logos/svg/ROOT.svg"
+    },
+    {
+      "slug": "saltproject",
+      "title": "Salt Project",
+      "license": "Apache-2.0",
+      "source": "https://saltproject.io"
+    },
+    {
+      "slug": "sanity",
+      "title": "Sanity",
+      "license": "MIT",
+      "source": "https://github.com/sanity-io/logos/blob/e298a1ac2757c83910fe08b496a115bc9aef06bd/src/sanityMonogram.tsx"
+    },
+    {
+      "slug": "setuptools",
+      "title": "Setuptools",
+      "license": "MIT",
+      "source": "https://github.com/pypa/setuptools/blob/c3f486f0f7ebf8fa141dfd7314cbcaba7370db0b/docs/images/logo.svg"
+    },
+    {
+      "slug": "solidity",
+      "title": "Solidity",
+      "license": "CC-BY-4.0",
+      "source": "https://docs.soliditylang.org/en/v0.8.6/brand-guide.html"
+    },
+    {
+      "slug": "sphinx",
+      "title": "Sphinx",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/sphinx-doc/sphinx/blob/ed84d63e6f2c4fd43b97fc43ee8be4156a13af9e/doc/_static/favicon.svg"
+    },
+    {
+      "slug": "sqlalchemy",
+      "title": "SQLAlchemy",
+      "license": "MIT",
+      "source": "https://commons.wikimedia.org/wiki/File:SQLAlchemy.svg"
+    },
+    {
+      "slug": "stopstalk",
+      "title": "StopStalk",
+      "license": "MIT",
+      "source": "https://github.com/stopstalk/media-resources/blob/265b728c26ba597b957e72134a3b49a10dc0c91d/stopstalk-small-black.svg"
+    },
+    {
+      "slug": "storybook",
+      "title": "Storybook",
+      "license": "MIT",
+      "source": "https://github.com/storybookjs/brand/tree/6f4d67f65f8275c53c310a73a8da6c6e96c8488c"
+    },
+    {
+      "slug": "textual",
+      "title": "Textual",
+      "license": "MIT",
+      "source": "https://github.com/Textualize/textual/blob/e66c098588360515864ce88982de494c64d2c097/docs/images/icons/logo%20light%20transparent.svg"
+    },
+    {
+      "slug": "typeorm",
+      "title": "TypeORM",
+      "license": "MIT",
+      "source": "https://github.com/typeorm/typeorm/blob/e7649d2746f907ff36b1efb600402dedd5f5a499/resources/logo_big.png"
+    },
+    {
+      "slug": "umami",
+      "title": "Umami",
+      "license": "MIT",
+      "source": "https://github.com/umami-software/umami/blob/3572df0a09503f357a06fe7f816295ba2c878325/assets/logo.svg"
+    },
+    {
+      "slug": "v",
+      "title": "V",
+      "license": "MIT",
+      "source": "https://github.com/vlang/v-logo/blob/eec050c901ed3afefce8cbe56092d55ed6770706/dist/v-logo.svg"
+    },
+    {
+      "slug": "vala",
+      "title": "Vala",
+      "license": "MIT",
+      "source": "https://commons.wikimedia.org/wiki/File:Vala_Logo.svg"
+    },
+    {
+      "slug": "vega",
+      "title": "Vega",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/vega/logos/blob/af32bc29f0c09c8de826aaafb037935fb69e960a/assets/VG_Black.svg"
+    },
+    {
+      "slug": "vivaldi",
+      "title": "Vivaldi",
+      "license": "CC-BY-4.0",
+      "source": "https://vivaldi.com/press"
+    },
+    {
+      "slug": "vuetify",
+      "title": "Vuetify",
+      "license": "MIT",
+      "source": "https://vuetifyjs.com/resources/brand-kit"
+    },
+    {
+      "slug": "wayland",
+      "title": "Wayland",
+      "license": "MIT",
+      "source": "https://gitlab.freedesktop.org/wayland/weston/-/blob/77ede00a938b8137bd638ce67b6f58cb52b1d1b0/data/wayland.svg"
+    },
+    {
+      "slug": "webgpu",
+      "title": "WebGPU",
+      "license": "CC-BY-4.0",
+      "source": "https://www.w3.org/2023/02/webgpu-logos.html"
+    },
+    {
+      "slug": "yarn",
+      "title": "Yarn",
+      "license": "CC-BY-4.0",
+      "source": "https://github.com/yarnpkg/assets/blob/76d30ca2aebed5b73ea8131d972218fb860bd32d/yarn-kitten-circle.svg"
+    },
+    {
+      "slug": "zod",
+      "title": "Zod",
+      "license": "MIT",
+      "source": "https://github.com/colinhacks/zod/blob/ff89187172ac6aa4a6264592980d1628ee785242/logo/Logo%20White.ai"
+    }
+  ],
+  "skipped": [
+    {
+      "slug": "akaunting",
+      "title": "Akaunting",
+      "license": "GPL-3.0-only"
+    },
+    {
+      "slug": "anki",
+      "title": "Anki",
+      "license": "AGPL-3.0-only"
+    },
+    {
+      "slug": "appmanager",
+      "title": "AppManager",
+      "license": "GPL-3.0-or-later"
+    },
+    {
+      "slug": "bioconductor",
+      "title": "Bioconductor",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "broadcom",
+      "title": "Broadcom",
+      "license": "custom"
+    },
+    {
+      "slug": "canonical",
+      "title": "Canonical",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "chianetwork",
+      "title": "Chia Network",
+      "license": "custom"
+    },
+    {
+      "slug": "cocoapods",
+      "title": "CocoaPods",
+      "license": "CC-BY-NC-4.0"
+    },
+    {
+      "slug": "contentstack",
+      "title": "Contentstack",
+      "license": "custom"
+    },
+    {
+      "slug": "coreboot",
+      "title": "Coreboot",
+      "license": "custom"
+    },
+    {
+      "slug": "debian",
+      "title": "Debian",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "deluge",
+      "title": "Deluge",
+      "license": "GPL-3.0-only"
+    },
+    {
+      "slug": "devuan",
+      "title": "Devuan",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "dicebear",
+      "title": "DiceBear",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "dify",
+      "title": "Dify",
+      "license": "custom"
+    },
+    {
+      "slug": "dolibarr",
+      "title": "Dolibarr",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "douban",
+      "title": "Douban",
+      "license": "custom"
+    },
+    {
+      "slug": "doubanread",
+      "title": "Douban Read",
+      "license": "custom"
+    },
+    {
+      "slug": "effect",
+      "title": "Effect",
+      "license": "custom"
+    },
+    {
+      "slug": "fdroid",
+      "title": "F-Droid",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "fcc",
+      "title": "FCC",
+      "license": "custom"
+    },
+    {
+      "slug": "fedora",
+      "title": "Fedora",
+      "license": "custom"
+    },
+    {
+      "slug": "fishshell",
+      "title": "fish shell",
+      "license": "GPL-2.0-only"
+    },
+    {
+      "slug": "floorp",
+      "title": "Floorp",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "flux",
+      "title": "Flux",
+      "license": "custom"
+    },
+    {
+      "slug": "forgejo",
+      "title": "Forgejo",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "freecodecamp",
+      "title": "freeCodeCamp",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "freedesktopdotorg",
+      "title": "freedesktop.org",
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "slug": "gamebanana",
+      "title": "GameBanana",
+      "license": "CC-BY-NC-ND-4.0"
+    },
+    {
+      "slug": "garudalinux",
+      "title": "Garuda Linux",
+      "license": "GPL-3.0-only"
+    },
+    {
+      "slug": "gentoo",
+      "title": "Gentoo",
+      "license": "CC-BY-SA-2.5"
+    },
+    {
+      "slug": "gimp",
+      "title": "GIMP",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "gnu",
+      "title": "GNU",
+      "license": "CC-BY-SA-2.0"
+    },
+    {
+      "slug": "gnuemacs",
+      "title": "GNU Emacs",
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "slug": "gnuprivacyguard",
+      "title": "GNU Privacy Guard",
+      "license": "GPL-3.0-or-later"
+    },
+    {
+      "slug": "graphite_editor",
+      "title": "Graphite",
+      "license": "custom"
+    },
+    {
+      "slug": "greasyfork",
+      "title": "Greasy Fork",
+      "license": "GPL-3.0-only"
+    },
+    {
+      "slug": "gtk",
+      "title": "GTK",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "harbor",
+      "title": "Harbor",
+      "license": "custom"
+    },
+    {
+      "slug": "hedgedoc",
+      "title": "HedgeDoc",
+      "license": "AGPL-3.0-or-later"
+    },
+    {
+      "slug": "inkscape",
+      "title": "Inkscape",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "iota",
+      "title": "IOTA",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "ipfs",
+      "title": "IPFS",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "jenkins",
+      "title": "Jenkins",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "jpeg",
+      "title": "JPEG",
+      "license": "CC-BY-ND-4.0"
+    },
+    {
+      "slug": "kedro",
+      "title": "Kedro",
+      "license": "custom"
+    },
+    {
+      "slug": "keycloak",
+      "title": "Keycloak",
+      "license": "custom"
+    },
+    {
+      "slug": "kicad",
+      "title": "KiCad",
+      "license": "GPL-3.0-or-later"
+    },
+    {
+      "slug": "kiwix",
+      "title": "Kiwix",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "lemmy",
+      "title": "Lemmy",
+      "license": "custom"
+    },
+    {
+      "slug": "letsencrypt",
+      "title": "Let's Encrypt",
+      "license": "CC-BY-NC-4.0"
+    },
+    {
+      "slug": "libreofficebase",
+      "title": "LibreOffice Base",
+      "license": "MPL-2.0"
+    },
+    {
+      "slug": "libreofficecalc",
+      "title": "LibreOffice Calc",
+      "license": "MPL-2.0"
+    },
+    {
+      "slug": "libreofficedraw",
+      "title": "LibreOffice Draw",
+      "license": "MPL-2.0"
+    },
+    {
+      "slug": "libreofficeimpress",
+      "title": "LibreOffice Impress",
+      "license": "MPL-2.0"
+    },
+    {
+      "slug": "libreofficemath",
+      "title": "LibreOffice Math",
+      "license": "MPL-2.0"
+    },
+    {
+      "slug": "libreofficewriter",
+      "title": "LibreOffice Writer",
+      "license": "MPL-2.0"
+    },
+    {
+      "slug": "luanti",
+      "title": "Luanti",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "maas",
+      "title": "MAAS",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "mercurial",
+      "title": "Mercurial",
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "slug": "minds",
+      "title": "Minds",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "minimax",
+      "title": "MiniMax",
+      "license": "custom"
+    },
+    {
+      "slug": "misskey",
+      "title": "Misskey",
+      "license": "CC-BY-NC-SA-4.0"
+    },
+    {
+      "slug": "monero",
+      "title": "Monero",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "monkeytype",
+      "title": "Monkeytype",
+      "license": "GPL-3.0-only"
+    },
+    {
+      "slug": "mxlinux",
+      "title": "MX Linux",
+      "license": "GPL-3.0-only"
+    },
+    {
+      "slug": "neovim",
+      "title": "Neovim",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "niri",
+      "title": "niri",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "nodebb",
+      "title": "NodeBB",
+      "license": "CC-BY-NC-4.0"
+    },
+    {
+      "slug": "opensourcehardware",
+      "title": "Open Source Hardware",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "openbao",
+      "title": "OpenBao",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "oshkosh",
+      "title": "Oshkosh",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "pandoc",
+      "title": "Pandoc",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "peertube",
+      "title": "PeerTube",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "php",
+      "title": "PHP",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "pleroma",
+      "title": "Pleroma",
+      "license": "custom"
+    },
+    {
+      "slug": "pycqa",
+      "title": "PyCQA",
+      "license": "CC-BY-NC-ND-4.0"
+    },
+    {
+      "slug": "qase",
+      "title": "Qase",
+      "license": "custom"
+    },
+    {
+      "slug": "quasar",
+      "title": "Quasar",
+      "license": "custom"
+    },
+    {
+      "slug": "quicklook",
+      "title": "QuickLook",
+      "license": "GPL-3.0-or-later"
+    },
+    {
+      "slug": "r",
+      "title": "R",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "redmine",
+      "title": "Redmine",
+      "license": "CC-BY-SA-2.5"
+    },
+    {
+      "slug": "robotframework",
+      "title": "Robot Framework",
+      "license": "CC-BY-NC-SA-4.0"
+    },
+    {
+      "slug": "rockylinux",
+      "title": "Rocky Linux",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "rubocop",
+      "title": "RuboCop",
+      "license": "CC-BY-NC-4.0"
+    },
+    {
+      "slug": "ruby",
+      "title": "Ruby",
+      "license": "CC-BY-SA-2.5"
+    },
+    {
+      "slug": "rust",
+      "title": "Rust",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "rustfs",
+      "title": "RustFS",
+      "license": "custom"
+    },
+    {
+      "slug": "sagemath",
+      "title": "SageMath",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "sass",
+      "title": "Sass",
+      "license": "CC-BY-NC-SA-3.0"
+    },
+    {
+      "slug": "sidekiq",
+      "title": "Sidekiq",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "slint",
+      "title": "Slint",
+      "license": "CC-BY-ND-4.0"
+    },
+    {
+      "slug": "snapcraft",
+      "title": "Snapcraft",
+      "license": "CC-BY-SA-3.0"
+    },
+    {
+      "slug": "softcatala",
+      "title": "Softcatalà",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "spacemacs",
+      "title": "Spacemacs",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "spidermonkey",
+      "title": "SpiderMonkey",
+      "license": "MPL-2.0"
+    },
+    {
+      "slug": "svg",
+      "title": "SVG",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "tauri",
+      "title": "Tauri",
+      "license": "CC-BY-NC-ND-4.0"
+    },
+    {
+      "slug": "vuedotjs",
+      "title": "Vue.js",
+      "license": "CC-BY-NC-SA-4.0"
+    },
+    {
+      "slug": "webex",
+      "title": "Webex",
+      "license": "custom"
+    },
+    {
+      "slug": "weblate",
+      "title": "Weblate",
+      "license": "GPL-3.0-only"
+    },
+    {
+      "slug": "webpack",
+      "title": "Webpack",
+      "license": "custom"
+    },
+    {
+      "slug": "zig",
+      "title": "Zig",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "slug": "zola",
+      "title": "Zola",
+      "license": "CC-BY-SA-4.0"
+    }
+  ]
+}
