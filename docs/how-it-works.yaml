@@ -1,10 +1,10 @@
-# yaml-language-server: $schema=../skills/diagramify/references/diagram.schema.json
-title: How diagramify works
+# yaml-language-server: $schema=../skills/stackdraw/references/diagram.schema.json
+title: How stackdraw works
 subtitle: One YAML spec in, five formats out, with official icons and automatic layout
 direction: right
 groups:
   author: { type: zone, label: You or your agent }
-  engine: { type: boundary, label: "diagramify CLI (bundled, no install)" }
+  engine: { type: boundary, label: "stackdraw CLI (bundled, no install)" }
   catalog: { type: zone, label: Official icon packs, in: engine }
   outputs: { type: zone, label: Outputs }
 nodes:
@@ -13,7 +13,7 @@ nodes:
   validate: { icon: tabler:list-check, label: Validate, note: codes with fixes, in: engine }
   aws: { icon: aws:category-compute, label: AWS, note: 810 icons, in: catalog }
   azure: { icon: azure:virtual-machine, label: Azure, note: 636 icons, in: catalog }
-  gcp: { icon: gcp:cloud-run, label: Google Cloud, note: 261 icons, in: catalog }
+  gcp: { icon: gcp:cloud-run, label: Google Cloud, note: 233 icons, in: catalog }
   k8s: { icon: k8s:kubernetes, label: Kubernetes, note: 40 icons, in: catalog }
   more: { icon: github:mark-github, label: GitHub and logos, note: "12,244 more", in: catalog }
   layout: { icon: tabler:hierarchy-3, label: ELK layout, in: engine }

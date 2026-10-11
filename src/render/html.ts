@@ -19,7 +19,7 @@ export function renderHtml(input: HtmlInput): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="generator" content="diagramify">
+<meta name="generator" content="stackdraw">
 <title>${esc(input.title)}</title>
 <style>
 :root{color-scheme:light dark;--bg:#f6f7f9;--panel:#ffffff;--ink:#1f2937;--muted:#5f6b7a;--line:#d8dde3;--accent:#2563eb}
@@ -35,7 +35,7 @@ button:hover,a.btn:hover{border-color:var(--accent)}
 button:active,a.btn:active{transform:scale(.97)}
 main{position:relative;flex:1;overflow:hidden;touch-action:none;cursor:grab}
 main.dragging{cursor:grabbing}
-#canvas{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#canvas{position:absolute;left:0;top:0}
 #canvas img{display:block;max-width:none;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);transition:opacity .2s ease}
 body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
 .hint{position:absolute;right:12px;bottom:10px;font-size:12px;color:var(--muted);pointer-events:none}
@@ -64,9 +64,9 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
   const body = document.body, stage = document.getElementById("stage"), canvas = document.getElementById("canvas"), img = document.getElementById("diagram");
   let theme = body.dataset.theme, scale = 1, x = 0, y = 0;
   const size = () => { const m = atob(svgs[theme].slice(0, 800)).match(/width="([\\d.]+)" height="([\\d.]+)"/); return m ? [Number(m[1]), Number(m[2])] : [1000, 600]; };
-  const apply = () => { canvas.style.transform = "translate(" + x + "px," + y + "px) scale(" + scale + ")"; };
+  const apply = () => { const [w, h] = size(); canvas.style.left = x + "px"; canvas.style.top = y + "px"; img.style.width = w * scale + "px"; img.style.height = h * scale + "px"; };
   const fit = () => { const [w, h] = size(); const r = stage.getBoundingClientRect(); scale = Math.min((r.width - 32) / w, (r.height - 32) / h, 2); x = (r.width - w * scale) / 2; y = Math.max(16, (r.height - h * scale) / 2); apply(); };
-  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; document.querySelector('[data-act=svg]').href = toUrl(svgs[theme]); };
+  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; apply(); document.querySelector('[data-act=svg]').href = toUrl(svgs[theme]); };
   const zoomAt = (f, cx, cy) => { const ns = Math.max(0.1, Math.min(8, scale * f)); x = cx - (cx - x) * (ns / scale); y = cy - (cy - y) * (ns / scale); scale = ns; apply(); };
   const pointers = new Map(); let pinch = 0;
   stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.classList.add("dragging"); });

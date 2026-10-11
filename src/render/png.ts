@@ -41,7 +41,7 @@ function fontBuffers(extra: string[]): Uint8Array[] {
 }
 
 export interface PngOptions {
-  /** Pixel density; 2 gives crisp output on high-density screens. */
+  /** Pixel density; the default 3 stays sharp when zoomed or projected. */
   scale?: number;
   /** Extra .ttf/.otf files for scripts Inter lacks (CJK, Devanagari...). */
   fonts?: string[];
@@ -52,7 +52,7 @@ export async function renderPng(svg: string, opts: PngOptions = {}): Promise<Uin
   resvg ??= load();
   const { Resvg } = await resvg;
   const r = new Resvg(svg, {
-    fitTo: { mode: "zoom", value: opts.scale ?? 2 },
+    fitTo: { mode: "zoom", value: opts.scale ?? 3 },
     background: opts.background,
     font: {
       fontBuffers: fontBuffers(opts.fonts ?? []),

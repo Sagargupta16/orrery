@@ -84,6 +84,8 @@ export const SIZES = {
   title: 20,
   subtitle: 13,
   iconLabelMax: 132,
+  // Step badges: official AWS, Azure and Google badges are 0.54 to 0.75 of the icon size.
+  step: 28,
   cardLabelMax: 168,
   shapeLabelMax: 156,
   edgeLabelMax: 150,
@@ -362,11 +364,11 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     if (!e.label && e.step === undefined && labelledFrom.has(e.from)) {
       elkEdge.labels = [{ id: `${e.id}__spacer`, text: " ", width: 1, height: 1 }];
     }
-    const stepW = e.step !== undefined ? 22 : 0;
+    const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
     if (e.label || e.step !== undefined) {
       const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
       const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-      const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? 20 : 0));
+      const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
       edgeLabels.set(e.id, { block, w, h, stepW });
       elkEdge.labels = [
         { id: `${e.id}__label`, text: e.label || `step ${e.step}`, width: w, height: h },
@@ -660,10 +662,16 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   }
 
   const edges: SceneEdge[] = [];
-  const attachBox = (id: string): Box | undefined => {
+  // Side: what a horizontal line meets (the icon of an icon node). Full: the node with its label
+  // and note, so a vertical line leaves below the text instead of through it.
+  const attachBox = (id: string): Attach | undefined => {
     const nd = nodes.find((x) => x.id === id);
-    if (nd) return nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
-    return groups.find((x) => x.id === id)?.box;
+    if (nd) {
+      const side = nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
+      return { side, full: union([nd.box, nd.iconBox, nd.labelBox, nd.noteBox]) };
+    }
+    const box = groups.find((x) => x.id === id)?.box;
+    return box ? { side: box, full: box } : undefined;
   };
   for (const e of model.edges) {
     if (!e.constraint) {
@@ -683,13 +691,18 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       };
       if (e.label || e.step !== undefined) {
         const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-        const stepW = e.step !== undefined ? 22 : 0;
+        const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
         const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-        const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? 20 : 0));
+        const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
         const mid = midpoint(points);
         const box = { x: round(mid.x - w / 2), y: round(mid.y - h - 3), w, h };
         if (e.step !== undefined)
-          edge.stepBox = { x: box.x, y: round(box.y + (h - 20) / 2), w: 20, h: 20 };
+          edge.stepBox = {
+            x: box.x,
+            y: round(box.y + (h - SIZES.step) / 2),
+            w: SIZES.step,
+            h: SIZES.step,
+          };
         if (e.label) {
           edge.label = block;
           edge.labelBox = {
@@ -722,7 +735,12 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     if (lab && elkLabel?.x !== undefined && elkLabel.y !== undefined) {
       const box = { x: round(elkLabel.x), y: round(elkLabel.y + top), w: lab.w, h: lab.h };
       if (e.step !== undefined) {
-        edge.stepBox = { x: box.x, y: round(box.y + (box.h - 20) / 2), w: 20, h: 20 };
+        edge.stepBox = {
+          x: box.x,
+          y: round(box.y + (box.h - SIZES.step) / 2),
+          w: SIZES.step,
+          h: SIZES.step,
+        };
       }
       if (e.label) {
         edge.label = lab.block;
@@ -786,11 +804,28 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   };
 }
 
-/** An orthogonal connector between two placed boxes, for edges the layout ignored. */
-function freeRoute(a: Box, b: Box): Point[] {
-  const ac = { x: a.x + a.w / 2, y: a.y + a.h / 2 };
-  const bc = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
-  if (a.x + a.w <= b.x || b.x + b.w <= a.x) {
+interface Attach {
+  side: Box;
+  full: Box;
+}
+
+function union(boxes: (Box | undefined)[]): Box {
+  const list = boxes.filter((b): b is Box => !!b);
+  const x = Math.min(...list.map((b) => b.x));
+  const y = Math.min(...list.map((b) => b.y));
+  const w = Math.max(...list.map((b) => b.x + b.w)) - x;
+  const h = Math.max(...list.map((b) => b.y + b.h)) - y;
+  return { x, y, w, h };
+}
+
+/** An orthogonal connector between two placed nodes or groups, for edges the layout ignored. */
+function freeRoute(from: Attach, to: Attach): Point[] {
+  const sideBySide = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
+  const a = sideBySide ? from.side : from.full;
+  const b = sideBySide ? to.side : to.full;
+  const ac = { x: from.side.x + from.side.w / 2, y: a.y + a.h / 2 };
+  const bc = { x: to.side.x + to.side.w / 2, y: b.y + b.h / 2 };
+  if (sideBySide) {
     const right = a.x + a.w <= b.x;
     const sx = right ? a.x + a.w : a.x;
     const ex = right ? b.x : b.x + b.w;

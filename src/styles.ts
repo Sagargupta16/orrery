@@ -1,6 +1,6 @@
 // Group (container) styles, each with its source. AWS values are read from the official
 // Architecture Icons deck; Google Cloud and Azure publish no container spec, so their values are
-// measured from the vendors' own reference diagrams (skills/diagramify/references/styles.md).
+// measured from the vendors' own reference diagrams (skills/stackdraw/references/styles.md).
 
 export interface GroupStyle {
   key: string;
@@ -66,7 +66,7 @@ const azure = (s: Partial2): StyleSpec => ({
 });
 
 const K8S_DECK = "kubernetes/community icon deck";
-const DIAGRAMIFY = "diagramify";
+const STACKDRAW = "stackdraw";
 const C4 = "C4-PlantUML v2.14.0 boundary style";
 
 const DEFS: Record<string, StyleSpec> = {
@@ -425,13 +425,13 @@ const DEFS: Record<string, StyleSpec> = {
   },
 
   // ------------------------------------------------------------- Generic
-  box: { label: "", stroke: "#9aa3ae", description: "A plain bordered box.", source: DIAGRAMIFY },
+  box: { label: "", stroke: "#9aa3ae", description: "A plain bordered box.", source: STACKDRAW },
   dashed: {
     label: "",
     stroke: "#9aa3ae",
     dash: "6 4",
     description: "A dashed boundary.",
-    source: DIAGRAMIFY,
+    source: STACKDRAW,
   },
   zone: {
     label: "",
@@ -439,7 +439,7 @@ const DEFS: Record<string, StyleSpec> = {
     fill: "#f4f6f8",
     rounded: 10,
     description: "A filled panel without a strong border, for tiers and lanes.",
-    source: DIAGRAMIFY,
+    source: STACKDRAW,
   },
   boundary: {
     label: "",
@@ -457,7 +457,7 @@ const DEFS: Record<string, StyleSpec> = {
     fill: "#f4f6f8",
     icon: "tabler:building",
     description: "An on-premises site, vendor-neutral.",
-    source: DIAGRAMIFY,
+    source: STACKDRAW,
   },
   internet: {
     label: "Internet",
@@ -465,7 +465,7 @@ const DEFS: Record<string, StyleSpec> = {
     dash: "2 3",
     icon: "tabler:world",
     description: "The public internet.",
-    source: DIAGRAMIFY,
+    source: STACKDRAW,
   },
 };
 

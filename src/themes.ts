@@ -13,6 +13,8 @@ export interface Theme {
   stepFill: string;
   stepText: string;
   shadow: string;
+  /** Packets traveling the edges in an animated SVG. */
+  flow: string;
 }
 
 export const THEME_TOKENS: Record<ThemeName, Theme> = {
@@ -29,6 +31,7 @@ export const THEME_TOKENS: Record<ThemeName, Theme> = {
     stepFill: "#232f3e",
     stepText: "#ffffff",
     shadow: "#0f172a",
+    flow: "#0972d3",
   },
   dark: {
     name: "dark",
@@ -43,6 +46,7 @@ export const THEME_TOKENS: Record<ThemeName, Theme> = {
     stepFill: "#e6edf3",
     stepText: "#0d1117",
     shadow: "#000000",
+    flow: "#58a6ff",
   },
 };
 

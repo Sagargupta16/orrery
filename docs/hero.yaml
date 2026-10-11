@@ -1,30 +1,33 @@
-# yaml-language-server: $schema=../skills/diagramify/references/diagram.schema.json
-title: Serverless web API on AWS
-subtitle: Single-page app on CloudFront, REST API on API Gateway and Lambda, Cognito sign-in
+# yaml-language-server: $schema=../skills/stackdraw/references/diagram.schema.json
+title: GitOps delivery to three clouds
+subtitle: GitHub Actions builds and signs the image, Argo CD syncs GKE, AKS and EKS, Cloudflare fronts all three and Grafana watches them
 direction: right
-# One port per edge: the dotted authorizer edge must not share the API's arrowhead.
-layout: { merge: false }
 
 groups:
-  cloud: { type: aws:cloud }
-  region: { type: aws:region, label: us-east-1, in: cloud }
+  github: { type: box, label: GitHub, icon: github:mark-github }
+  prod: { type: dashed, label: Production clusters }
+  gcloud: { type: gcp:cloud, in: prod }
+  azure: { type: azure:subscription, label: Azure subscription, in: prod }
+  aws: { type: aws:cloud, in: prod }
 
 nodes:
-  users: { icon: aws:users, label: Users }
-  cdn: { icon: aws:cloudfront, label: Amazon CloudFront, in: region }
-  auth: { icon: aws:cognito, label: Amazon Cognito, note: User pool, in: region }
-  site: { icon: aws:s3, label: Web app bucket, note: Static SPA assets, in: region }
-  api: { icon: aws:api-gateway, label: Amazon API Gateway, note: REST API, in: region }
-  fn: { icon: aws:lambda, label: Orders function, in: region }
-  table: { icon: aws:dynamodb, label: Orders table, in: region }
-  uploads: { icon: aws:s3, label: Receipts bucket, in: region }
+  dev: { icon: generic:user, label: Developer }
+  users: { icon: generic:users, label: Users }
+  actions: { icon: logos:github-actions, label: GitHub Actions, note: "Build, test, sign", in: github }
+  ghcr: { icon: github:container, label: Container registry, note: ghcr.io, in: github }
+  argocd: { icon: logos:argo-icon, label: Argo CD, note: Watches the manifests repo }
+  cdn: { icon: logos:cloudflare-icon, label: Cloudflare, note: "DNS, WAF, load balancing" }
+  gke: { icon: gcp:gke, label: GKE, in: gcloud }
+  aks: { icon: azure:kubernetes-services, label: AKS, in: azure }
+  eks: { icon: aws:eks, label: Amazon EKS, in: aws }
+  grafana: { icon: logos:grafana, label: Grafana, note: Metrics and logs }
 
 edges:
+  - dev -> actions: { label: git push, step: 1 }
+  - actions -> ghcr: { label: image, step: 2 }
+  - actions -> argocd: { label: new tag, step: 3 }
+  # Edges to the boundary, not to each cluster: one flow each, no repeated labels.
+  - argocd -> prod: { label: sync, step: 4 }
   - users -> cdn: HTTPS
-  - users --> auth: sign in
-  - cdn -> site: static files
-  - cdn -> api: /api/*
-  # Laid out Cognito -> API Gateway so Cognito shares a column with CloudFront.
-  - api <.. auth: JWT authorizer
-  - api -> fn
-  - fn -> table, uploads
+  - cdn -> prod: traffic
+  - prod --> grafana: metrics

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Every rendered file the repo commits comes from here: the examples gallery (examples/) and the
-// README art (docs/). `--check` renders into a temporary folder and fails when a committed file
+// README art (docs/). SVGs are animated (the default); PNGs are still frames. `--check` renders into a temporary folder and fails when a committed file
 // differs, so the pictures always match the current renderer.
 //
 //   node scripts/gallery.mjs           re-render everything
@@ -13,8 +13,8 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const cli = join(root, "skills/diagramify/scripts/diagramify.mjs");
-const examplesDir = join(root, "skills/diagramify/examples");
+const cli = join(root, "skills/stackdraw/scripts/stackdraw.mjs");
+const examplesDir = join(root, "skills/stackdraw/examples");
 const check = process.argv.includes("--check");
 
 /** [spec, output base relative to the root, extra CLI args, files the render writes] */
@@ -30,14 +30,14 @@ function jobs() {
     list.push({
       spec: join(examplesDir, f),
       base: `examples/${name}`,
-      args: ["-f", "svg,png", "--theme", theme],
+      args: ["-f", "svg,png", "--theme", theme, "--scale", "2"],
       files: [`examples/${name}.svg`, `examples/${name}.png`],
     });
   }
   list.push({
     spec: join(root, "docs/hero.yaml"),
     base: "docs/hero",
-    args: ["-f", "svg", "--theme", "both", "--animate"],
+    args: ["-f", "svg", "--theme", "both"],
     files: ["docs/hero-light.svg", "docs/hero-dark.svg"],
   });
   list.push({
@@ -50,7 +50,7 @@ function jobs() {
 }
 
 const sha = (p) => createHash("sha256").update(readFileSync(p)).digest("hex");
-const tmp = check ? mkdtempSync(join(tmpdir(), "dfy-gallery-")) : undefined;
+const tmp = check ? mkdtempSync(join(tmpdir(), "sdw-gallery-")) : undefined;
 const problems = [];
 
 for (const job of jobs()) {

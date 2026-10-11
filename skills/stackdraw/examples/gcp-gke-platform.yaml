@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: GKE application platform on Google Cloud
+subtitle: Cloud Build turns each push into an image in Artifact Registry and a Cloud Deploy release that rolls out to a regional GKE cluster
+direction: right
+# Product cards, as in Google Cloud's own architecture diagrams; the pods keep the Kubernetes icon look.
+look: card
+# One port per edge: roll out and pull image both end on the cluster border.
+layout: { merge: false, spacing: compact }
+
+groups:
+  source: { type: gcp:external, label: GitHub }
+  gcloud: { type: gcp:cloud }
+  project: { type: gcp:project, label: Project shop-prod, in: gcloud }
+  region: { type: gcp:region, label: us-central1, in: project }
+  cluster: { type: gcp:gke-cluster, label: GKE cluster shop, in: region }
+  ns-web: { type: k8s:namespace, label: Namespace web, in: cluster }
+  ns-api: { type: k8s:namespace, label: Namespace api, in: cluster }
+  observability: { type: gcp:tier, label: Observability, in: project }
+
+nodes:
+  devs: { icon: generic:users, label: Developers, in: source }
+  repo: { icon: logos:github-icon, label: App repository, note: main branch, in: source }
+  build: { icon: gcp:cloud-build, label: Cloud Build, note: Build and test, in: project }
+  registry: { icon: gcp:artifact-registry, label: Artifact Registry, note: Container images, in: region }
+  deploy: { icon: gcp:cloud-deploy, label: Cloud Deploy, note: Delivery pipeline, in: region }
+  web: { icon: k8s:pod, look: icon, label: Pods, note: frontend x3, in: ns-web }
+  api: { icon: k8s:pod, look: icon, label: Pods, note: orders-api x3, in: ns-api }
+  sql: { icon: gcp:cloud-sql, label: Cloud SQL, note: PostgreSQL with HA, in: region }
+  redis: { icon: gcp:memorystore, label: Memorystore, note: Redis cache, in: region }
+  secrets: { icon: gcp:secret-manager, label: Secret Manager, note: Regional secrets, in: region }
+  logging: { icon: gcp:cloud-logging, label: Cloud Logging, in: observability }
+  monitoring: { icon: gcp:cloud-monitoring, label: Cloud Monitoring, in: observability }
+
+edges:
+  # Drawn after layout, so Developers stack above the repository instead of taking a column.
+  - devs -> repo: { constraint: false }
+  - repo -> build: trigger
+  - build -> registry: push image
+  - build -> deploy: create release
+  - deploy -> cluster: roll out
+  - registry ..> cluster: pull image
+  - web -> redis
+  - api -> sql
+  - api -> secrets
+  - cluster ..> observability

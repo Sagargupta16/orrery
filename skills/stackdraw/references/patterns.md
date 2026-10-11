@@ -1,6 +1,6 @@
 # Patterns
 
-Reference architectures as spec fragments. Each has a complete example in `examples/` (start one with `diagramify init <name>`). Fragments use aliases; `diagramify icons search` confirms any id.
+Reference architectures as spec fragments. Each has a complete example in `examples/` (start one with `stackdraw init <name>`). Fragments use aliases; `stackdraw icons search` confirms any id.
 
 ## Web application, three tiers (`aws-three-tier`)
 

@@ -16,12 +16,12 @@ labels: bug
 ## Reproduction
 
 1. Spec (paste the YAML, trimmed to the smallest one that shows it):
-2. Command: `node skills/diagramify/scripts/diagramify.mjs render <spec> -f svg,png`
-3. Output of `diagramify validate <spec> --json`:
+2. Command: `node skills/stackdraw/scripts/stackdraw.mjs render <spec> -f svg,png`
+3. Output of `stackdraw validate <spec> --json`:
 
 ## Environment
 
-- `diagramify --version`:
+- `stackdraw --version`:
 - `node --version`:
 - OS:
 - Where it renders wrong (GitHub README, browser and version, draw.io, PowerPoint...):

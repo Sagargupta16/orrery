@@ -1,6 +1,6 @@
 # Group styles
 
-`groups: { id: { type: <key> } }` picks one of these. `diagramify styles` prints the live list. Every value below was read from, or measured on, the vendor's own material; "inferred" marks the few judgement calls. Values are px at 96 dpi.
+`groups: { id: { type: <key> } }` picks one of these. `stackdraw styles` prints the live list. Every value below was read from, or measured on, the vendor's own material; "inferred" marks the few judgement calls. Values are px at 96 dpi.
 
 ## AWS
 
@@ -30,6 +30,7 @@ From the deck's guidance pages:
 - "Use straight lines and right angles to connect objects wherever possible." Preset arrows "use the 'Open Arrow' in Size 4" (the default `arrowhead: open`).
 - "AWS service names must fit on no more than two lines. AWS or Amazon should always be accompanied by the service name. Lines should never break mid-word."
 - Numbered callouts "are black with bold white type" (white with black type on dark backgrounds): the `step:` edges.
+- Callout size: badges in the 2025 and 2026 AWS Guidance PDFs are #232F3E circles about 0.72 of the icon size, set beside the middle of the line rather than on it; Azure Architecture Center diagrams use #107C10 green circles of about the same size, and Google colors each badge like its flow. Across the samples measured, badges ran 0.54 to 0.75 of the icon, so `step:` badges are 28 px circles with 14 px semibold digits (0.58 of a 48 px icon).
 - "Use the group with the AWS logo except in Regions where the AWS logo cannot be used"; there use `aws:cloud-alt`.
 
 ## Google Cloud
@@ -53,7 +54,7 @@ Google's [icon library](https://cloud.google.com/icons) and its product icons PD
 
 Product cards in those diagrams are white, about 192 x 70 with a 35 px icon: `look: card`. Arrows are #202124, 2 px, with an open head.
 
-On icons, the PDF says: "In early 2025, we overhauled all of our Google Cloud product icons, greatly simplifying our system from over 250 unique icons to ~40" and, of the console icons, "these icons should not be used as of 2026". diagramify keeps the console icons as type `legacy` (`diagramify icons list --pack gcp --type legacy`) because many products have no core icon; for strictly current branding, use the product's category icon (`gcp:category-*`).
+On icons, the PDF says: "In early 2025, we overhauled all of our Google Cloud product icons, greatly simplifying our system from over 250 unique icons to ~40" and, of the console icons, "these icons should not be used as of 2026". So stackdraw leaves the console icons out and follows Google's own product list instead: core products draw their unique icon and every other product draws its category's icon, under the product's name (`gcp:pubsub` draws the Data Analytics icon and reads "Pub/Sub"). The mapping is `scripts/gcp-products.json`, transcribed from the guide's product pages.
 
 ## Azure
 
@@ -78,7 +79,7 @@ From Microsoft's guidelines: "In diagrams, we recommend including the product na
 
 ## Kubernetes
 
-The Kubernetes blue #326CE5 comes from the [community icon set](https://github.com/kubernetes/community/tree/master/icons). The repository has no layout rules; its source deck draws clusters, nodes and pod groups as solid blue rounded boxes and namespaces as dashed black rounded boxes, and diagramify follows that: `k8s:cluster`, `k8s:node`, `k8s:control-plane` (solid blue) and `k8s:namespace` (dashed). In the same deck, reference links are solid and "creates" links are dashed.
+The Kubernetes blue #326CE5 comes from the [community icon set](https://github.com/kubernetes/community/tree/master/icons). The repository has no layout rules; its source deck draws clusters, nodes and pod groups as solid blue rounded boxes and namespaces as dashed black rounded boxes, and stackdraw follows that: `k8s:cluster`, `k8s:node`, `k8s:control-plane` (solid blue) and `k8s:namespace` (dashed). In the same deck, reference links are solid and "creates" links are dashed.
 
 ## C4 model
 

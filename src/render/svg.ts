@@ -31,6 +31,8 @@ interface Ctx {
   prefix: string;
   icons: number;
   scene: Scene;
+  /** Packet timing per edge id, when the scene animates with packets. */
+  motion: Map<string, Motion>;
 }
 
 function text(
@@ -225,12 +227,16 @@ function edge(ctx: Ctx, e: SceneEdge, routing: Scene["routing"]): string {
       : e.line === "dotted"
         ? ` stroke-dasharray="1.5 3.5" stroke-linecap="round"`
         : "";
-  const flow = ctx.scene.animate
-    ? ` class="dfy-flow${e.line === "solid" || e.line === "thick" ? " dfy-solid" : ""}"`
-    : "";
+  const flow =
+    ctx.scene.animate === "flow"
+      ? ` class="sdw-flow${e.line === "solid" || e.line === "thick" ? " sdw-solid" : ""}"`
+      : "";
+  const d = edgePath(pts, routing);
   const parts = [
-    `<path d="${edgePath(pts, routing)}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linejoin="round"${dash}${flow}/>`,
+    `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linejoin="round"${dash}${flow}/>`,
   ];
+  const motion = ctx.motion.get(e.id);
+  if (motion) parts.push(packets(ctx, e, d, motion));
   const orig = e.points;
   const last = orig[orig.length - 1];
   const beforeLast = orig[orig.length - 2];
@@ -252,12 +258,120 @@ function edge(ctx: Ctx, e: SceneEdge, routing: Scene["routing"]): string {
     const s = e.stepBox;
     const cx = s.x + s.w / 2;
     const cy = s.y + s.h / 2;
-    parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="10" fill="${ctx.t.stepFill}"/>`);
+    if (motion?.stepped) parts.push(ping(ctx, cx, cy, s.w / 2, motion));
+    parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(s.w / 2)}" fill="${ctx.t.stepFill}"/>`);
     parts.push(
-      `<text x="${n(cx)}" y="${n(cy + 4)}" font-size="11" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`,
+      `<text x="${n(cx)}" y="${n(cy + 5)}" font-size="14" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`,
     );
   }
   return `<g id="${ctx.prefix}e-${e.id}">${parts.join("")}</g>`;
+}
+
+// ---------------------------------------------------------------- motion
+
+// Packets travel every directed edge at one speed, so a long edge takes longer than a short one.
+// Numbered edges run one after another in step order and loop as a story; the rest loop on their
+// own, staggered so neighbors never move in lockstep. Line styles are untouched (a dashed edge
+// stays dashed), and everything is SMIL, which GitHub keeps in SVGs shown as images.
+const SPEED = 150;
+const REST = 0.9;
+const FADE = 0.12;
+
+interface Motion {
+  /** Loop length in seconds. */
+  cycle: number;
+  /** When the packet leaves, and how long it travels, in seconds into the loop. */
+  start: number;
+  travel: number;
+  /** Phase shift of the whole loop (negative: already running at load). */
+  begin: number;
+  stepped: boolean;
+}
+
+function length(points: Point[]): number {
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    if (a && b) total += Math.hypot(b.x - a.x, b.y - a.y);
+  }
+  return total;
+}
+
+function motionPlan(scene: Scene): Map<string, Motion> {
+  const plan = new Map<string, Motion>();
+  if (scene.animate !== "packets") return plan;
+  const moving = scene.edges.filter((e) => e.arrow !== "none" && e.points.length > 1);
+  const travel = (e: SceneEdge) => Math.min(2.4, Math.max(0.6, length(e.points) / SPEED));
+  const stepped = moving.filter((e) => e.step !== undefined);
+  const steps = [...new Set(stepped.map((e) => e.step ?? 0))].sort((a, b) => a - b);
+  const starts = new Map<number, number>();
+  let t = 0;
+  for (const step of steps) {
+    starts.set(step, t);
+    t += Math.max(...stepped.filter((e) => e.step === step).map(travel)) + 0.15;
+  }
+  const story = t + REST;
+  for (const e of stepped) {
+    const start = starts.get(e.step ?? 0) ?? 0;
+    plan.set(e.id, { cycle: story, start, travel: travel(e), begin: 0, stepped: true });
+  }
+  moving
+    .filter((e) => e.step === undefined)
+    .forEach((e, i) => {
+      const tr = travel(e);
+      const cycle = tr + REST;
+      const begin = -(((i * 0.618034) % 1) * cycle);
+      plan.set(e.id, { cycle, start: 0, travel: tr, begin, stepped: false });
+    });
+  return plan;
+}
+
+const secs = (v: number) => `${Math.round(v * 1000) / 1000}s`;
+
+/** keyTimes for a list of seconds inside a loop: rounded, clamped and never decreasing. */
+function keyTimes(times: number[], cycle: number): string {
+  let prev = 0;
+  return times
+    .map((t, i) => {
+      const v = i === times.length - 1 ? 1 : Math.min(1, Math.max(prev, t / cycle));
+      prev = Math.round(v * 10000) / 10000;
+      return prev;
+    })
+    .join(";");
+}
+
+function packets(ctx: Ctx, e: SceneEdge, d: string, m: Motion): string {
+  const color = e.color ?? ctx.t.flow;
+  const r = e.line === "thick" ? 4.2 : 3.6;
+  const { cycle, start, travel } = m;
+  const end = start + travel;
+  const fadeIn = start === 0 ? [0, FADE] : [0, start, start + FADE];
+  const opacity = start === 0 ? "0;1;1;0;0" : "0;0;1;1;0;0";
+  const fade = keyTimes([...fadeIn, end - FADE, end, cycle], cycle);
+  const at = keyTimes([0, start, end, cycle], cycle);
+  const one = (reverse: boolean, shift: number) => {
+    const begin = m.begin - shift;
+    const loop = `dur="${secs(cycle)}" repeatCount="indefinite"${begin ? ` begin="${secs(begin)}"` : ""}`;
+    return (
+      `<g opacity="0"><circle r="${n(r * 2.3)}" fill="${color}" fill-opacity="0.22"/><circle r="${r}" fill="${color}"/>` +
+      `<animateMotion path="${d}" ${loop} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${at}"/>` +
+      `<animate attributeName="opacity" values="${opacity}" keyTimes="${fade}" ${loop}/></g>`
+    );
+  };
+  if (e.arrow === "both") return one(false, 0) + one(true, cycle / 2);
+  return one(e.arrow === "start", 0);
+}
+
+/** A ring that ripples out of a step badge as its packet leaves. */
+function ping(ctx: Ctx, cx: number, cy: number, r: number, m: Motion): string {
+  const at = keyTimes([0, Math.max(0, m.start - 0.01), m.start, m.start + 0.6, m.cycle], m.cycle);
+  const loop = `dur="${secs(m.cycle)}" repeatCount="indefinite"`;
+  return (
+    `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" fill="none" stroke="${ctx.t.flow}" stroke-width="2" opacity="0">` +
+    `<animate attributeName="r" values="${n(r)};${n(r)};${n(r)};${n(r + 8)};${n(r + 8)}" keyTimes="${at}" ${loop}/>` +
+    `<animate attributeName="opacity" values="0;0;0.7;0;0" keyTimes="${at}" ${loop}/></circle>`
+  );
 }
 
 // ---------------------------------------------------------------- nodes
@@ -361,15 +475,15 @@ function node(ctx: Ctx, nd: SceneNode): string {
 
 // ---------------------------------------------------------------- document
 
-const FLOW_CSS = `@keyframes dfy-flow{to{stroke-dashoffset:-20}}.dfy-flow{animation:dfy-flow 1.1s linear infinite}.dfy-solid{stroke-dasharray:7 3}`;
+const FLOW_CSS = `@keyframes sdw-flow{to{stroke-dashoffset:-20}}.sdw-flow{animation:sdw-flow 1.1s linear infinite}.sdw-solid{stroke-dasharray:7 3}`;
 
 export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
   const t = THEME_TOKENS[scene.theme];
   const prefix = opts.idPrefix ? `${opts.idPrefix.replace(/[^A-Za-z0-9_-]/g, "")}-` : "";
-  const ctx: Ctx = { t, prefix, icons: 0, scene };
+  const ctx: Ctx = { t, prefix, icons: 0, scene, motion: motionPlan(scene) };
   const { width: W, height: H } = scene;
-  const titleId = `${prefix}dfy-title`;
-  const descId = `${prefix}dfy-desc`;
+  const titleId = `${prefix}sdw-title`;
+  const descId = `${prefix}sdw-desc`;
   const out: string[] = [];
   out.push(
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="${titleId} ${descId}" font-family="${esc(FONT_STACK)}">`,
@@ -378,7 +492,7 @@ export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
     `<title id="${titleId}">${esc(scene.title?.lines.join(" ") ?? "Architecture diagram")}</title>`,
   );
   out.push(`<desc id="${descId}">${esc(scene.description)}</desc>`);
-  if (scene.animate) out.push(`<style>${FLOW_CSS}</style>`);
+  if (scene.animate === "flow") out.push(`<style>${FLOW_CSS}</style>`);
   if (scene.background !== "transparent") {
     out.push(`<rect width="${W}" height="${H}" fill="${scene.background ?? t.background}"/>`);
   }

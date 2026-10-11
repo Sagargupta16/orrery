@@ -2,7 +2,7 @@
 
 ## What this project is
 
-diagramify ships a Markdown skill, a bundled Node.js CLI, icon catalogs, fonts and two vendored engines (ELK layout in JavaScript, resvg in WebAssembly). It has no server. The CLI reads a local spec file and writes local files; it makes no network requests. `scripts/sync-icons.mjs`, a development script, downloads the official icon packages and checks them against pinned SHA-256 checksums.
+stackdraw ships a Markdown skill, a bundled Node.js CLI, icon catalogs, fonts and two vendored engines (ELK layout in JavaScript, resvg in WebAssembly). It has no server. The CLI reads a local spec file and writes local files; it makes no network requests. `scripts/sync-icons.mjs`, a development script, downloads the official icon packages and checks them against pinned SHA-256 checksums.
 
 Realistic concerns:
 
@@ -13,7 +13,7 @@ Realistic concerns:
 
 ## Reporting a vulnerability
 
-Do not open a public Issue or PR. Email **sg85207@gmail.com** with the subject `[diagramify security]`: what you found, how to reproduce it, the impact, and any suggested fix. Expect a first response within 7 days.
+Do not open a public Issue or PR. Email **sg85207@gmail.com** with the subject `[stackdraw security]`: what you found, how to reproduce it, the impact, and any suggested fix. Expect a first response within 7 days.
 
 ## In scope
 

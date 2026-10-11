@@ -119,11 +119,11 @@ describe("SVG", () => {
 
   it("carries an accessible title and description", () => {
     const svg = text(rich, "svg", "light");
-    expect(svg).toMatch(/<svg [^>]*role="img"[^>]*aria-labelledby="dfy-title dfy-desc"/);
+    expect(svg).toMatch(/<svg [^>]*role="img"[^>]*aria-labelledby="sdw-title sdw-desc"/);
     expect(svg).toContain(
-      '<title id="dfy-title">Orders &lt;v2&gt; &amp; &quot;friends&quot; &#39;quoted&#39; {braces}</title>',
+      '<title id="sdw-title">Orders &lt;v2&gt; &amp; &quot;friends&quot; &#39;quoted&#39; {braces}</title>',
     );
-    const desc = must(svg.match(/<desc id="dfy-desc">([^<]*)<\/desc>/), "desc")[1];
+    const desc = must(svg.match(/<desc id="sdw-desc">([^<]*)<\/desc>/), "desc")[1];
     expect(desc).toContain("5 components in 2 groups");
     expect(desc).toContain("VM &lt;1&gt; to VM 2 (a &amp; b)");
   });
@@ -131,7 +131,7 @@ describe("SVG", () => {
   it("falls back to a generic title", async () => {
     const svg = renderSvg(await layout(model("nodes: { a: A }\n")));
     expect(svg).toContain("<title");
-    expect(svg).toMatch(/<title id="dfy-title">Architecture diagram<\/title>/);
+    expect(svg).toMatch(/<title id="sdw-title">Architecture diagram<\/title>/);
   });
 
   it.each(THEMES)("uses unique ids that every internal reference resolves to (%s)", (theme) => {
@@ -169,20 +169,46 @@ describe("SVG", () => {
     const ids = attributeValues(svg, "id");
     expect(ids.filter((id) => !id.startsWith("d2-"))).toEqual([]);
     expect(references(svg).filter((r) => !r.startsWith("d2-"))).toEqual([]);
-    expect(svg).toContain('aria-labelledby="d2-dfy-title d2-dfy-desc"');
+    expect(svg).toContain('aria-labelledby="d2-sdw-title d2-sdw-desc"');
   });
 
-  it("adds the flow animation only when asked", async () => {
-    const still = text(sample, "svg", "light");
+  it("moves packets along the edges by default, with no CSS", () => {
+    const svg = text(sample, "svg", "light");
+    expect(svg).not.toContain("<style>");
+    expect(svg).toContain("<animateMotion");
+    expect(svg).not.toContain("sdw-flow");
+    expect(xmlProblems(svg)).toEqual([]);
+  });
+
+  it("runs numbered edges in step order and loops them as one story", async () => {
+    const s = await layout(
+      model(
+        "nodes: { a: A, b: B, c: C }\nedges:\n  - a -> b: { step: 1 }\n  - b -> c: { step: 2 }\n",
+      ),
+    );
+    const svg = renderSvg(s);
+    const loops = [...svg.matchAll(/<animateMotion [^>]*dur="([\d.]+)s"[^>]*keyTimes="([^"]+)"/g)];
+    expect(loops).toHaveLength(2);
+    expect(loops[0]?.[1]).toBe(loops[1]?.[1]);
+    const leaves = loops.map((m) => Number((m[2] ?? "").split(";")[1]));
+    expect(leaves[0]).toBe(0);
+    expect(leaves[1]).toBeGreaterThan(0);
+    expect(svg.match(/stroke-width="2" opacity="0">/g)).toHaveLength(2);
+  });
+
+  it("draws marching dashes for animate: flow and nothing for none", () => {
+    const flow = renderSvg({ ...scene(sample, "light"), animate: "flow" });
+    expect(flow).toMatch(/<style>@keyframes sdw-flow/);
+    expect(flow).toContain('class="sdw-flow');
+    expect(flow).not.toContain("<animateMotion");
+    expect(xmlProblems(flow)).toEqual([]);
+    const still = renderSvg({ ...scene(sample, "light"), animate: "none" });
+    expect(still).not.toContain("<animate");
     expect(still).not.toContain("<style>");
-    const moving = renderSvg({ ...scene(sample, "light"), animate: true });
-    expect(moving).toMatch(/<style>@keyframes dfy-flow/);
-    expect(moving).toContain('class="dfy-flow');
-    expect(xmlProblems(moving)).toEqual([]);
   });
 
   it("draws open chevrons by default and filled triangles for arrowhead: filled", () => {
-    const s = scene(sample, "light");
+    const s = { ...scene(sample, "light"), animate: "none" as const };
     expect(s.arrowhead).toBe("open");
     const groups = (svg: string) =>
       [...svg.matchAll(/<g id="e-e\d+">(.*?)<\/g>/g)].map((m) => m[1] ?? "");
@@ -226,8 +252,8 @@ describe("PNG", () => {
   it("stays a still frame when the diagram is animated", async () => {
     const request = { model: model(SAMPLE), formats: ["png" as const], themes: THEMES, name: "x" };
     const [still, animated] = await Promise.all([
-      renderModel({ ...request, scale: 1 }),
-      renderModel({ ...request, scale: 1, animate: true }),
+      renderModel({ ...request, scale: 1, animate: "none" }),
+      renderModel({ ...request, scale: 1, animate: "packets" }),
     ]);
     const bytes = (r: RenderResult) =>
       r.artifacts.map((a) => Buffer.from(a.data).toString("base64"));
@@ -351,7 +377,7 @@ describe("TSX", () => {
     const ids = [...tsx.matchAll(/\sid=(\S+)/g)].map((m) => m[1] ?? "");
     expect(ids.length).toBeGreaterThan(10);
     expect(ids.filter((id) => !/^\{`\$\{uid\}-/.test(id))).toEqual([]);
-    expect(tsx).not.toContain("DFYUID");
+    expect(tsx).not.toContain("SDWUID");
   });
 
   it("exports a component named after the title and spreads props onto the svg", () => {

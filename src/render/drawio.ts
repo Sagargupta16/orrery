@@ -276,7 +276,7 @@ function edge(ctx: Ctx, e: SceneEdge, boxes: Map<string, Box>) {
   );
   if (e.step !== undefined && e.stepBox) {
     ctx.cells.push(
-      `<mxCell id="${e.id}:step" value="${e.step}" style="${style({ ellipse: null, whiteSpace: "wrap", html: 1, fillColor: ctx.t.stepFill, strokeColor: "none", fontColor: ctx.t.stepText, fontStyle: 1, fontSize: 11, fontFamily: FONT })}" vertex="1" parent="1">${geometry(e.stepBox)}</mxCell>`,
+      `<mxCell id="${e.id}:step" value="${e.step}" style="${style({ ellipse: null, whiteSpace: "wrap", html: 1, fillColor: ctx.t.stepFill, strokeColor: "none", fontColor: ctx.t.stepText, fontStyle: 1, fontSize: 14, fontFamily: FONT })}" vertex="1" parent="1">${geometry(e.stepBox)}</mxCell>`,
     );
   }
 }
@@ -305,8 +305,8 @@ export function renderDrawio(scene: Scene, name = "Diagram"): string {
   for (const e of scene.edges) edge(ctx, e, boxes);
   const bg = scene.background === "transparent" ? "none" : (scene.background ?? t.background);
   return [
-    `<mxfile host="diagramify" agent="diagramify" type="device">`,
-    `<diagram id="diagramify" name="${esc(name)}">`,
+    `<mxfile host="stackdraw" agent="stackdraw" type="device">`,
+    `<diagram id="stackdraw" name="${esc(name)}">`,
     `<mxGraphModel dx="${scene.width}" dy="${scene.height}" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="${scene.width}" pageHeight="${scene.height}" background="${bg}" math="0" shadow="0">`,
     `<root><mxCell id="0"/><mxCell id="1" parent="0"/>`,
     ...ctx.cells,

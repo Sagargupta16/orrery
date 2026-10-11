@@ -155,6 +155,26 @@ describe("edge expressions", () => {
     expect(free?.label?.lines).toEqual(["replica"]);
   });
 
+  it("leaves a stacked icon node below its label and note, not through them", async () => {
+    const { layout } = await import("../src/layout.ts");
+    const scene = await layout(
+      model(
+        "direction: right\ngroups: { z: { type: zone } }\nnodes:\n  a: { icon: generic:server, label: Scheduler, note: Orchestration, in: z }\n  b: { icon: generic:database, label: Models, in: z }\n  c: { icon: generic:api, label: Engine }\nedges:\n  - a --> b: { constraint: false }\n  - b -> c\n",
+      ),
+    );
+    const a = must(
+      scene.nodes.find((n) => n.id === "a"),
+      "node a",
+    );
+    const free = must(
+      scene.edges.find((e) => e.id === "e1"),
+      "free edge",
+    );
+    const [start] = free.points;
+    const textBottom = Math.max(...[a.labelBox, a.noteBox].map((b) => (b ? b.y + b.h : 0)));
+    expect(start?.y).toBeGreaterThanOrEqual(textBottom);
+  });
+
   it("reads the object form with a list of targets", () => {
     const m = model(`${NODES}edges:\n  - { from: a, to: [b, c], label: poll, line: dashed }\n`);
     expect(m.edges.map(({ from, to, label, line }) => ({ from, to, label, line }))).toEqual([
@@ -323,7 +343,7 @@ describe("defaults", () => {
       layering: "source",
       merge: true,
       arrowhead: "open",
-      animate: false,
+      animate: "packets",
       title: undefined,
       background: undefined,
     });
@@ -452,7 +472,7 @@ describe("diagnostics", () => {
       /fix the YAML\/JSON syntax/,
     ],
     ["DG100", "a spec with no nodes", "title: Empty\n", /add at least one entry under nodes/],
-    ["DG100", "a spec that is not a mapping", "just words\n", /diagramify init/],
+    ["DG100", "a spec that is not a mapping", "just words\n", /stackdraw init/],
     ["DG101", "a misspelled icon", "nodes:\n  f: { icon: aws:lamda }\n", /^use icon "aws:lambda"$/],
     [
       "DG101",

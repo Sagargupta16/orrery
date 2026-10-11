@@ -1,6 +1,13 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { contrast, mixHex } from "./color.ts";
+import {
+  allDark,
+  type LibrarySource,
+  libraryIcon,
+  loadedLibrary,
+  loadLibrary,
+} from "./libraries.ts";
 import { iconsDir } from "./paths.ts";
 import type { ThemeName } from "./types.ts";
 
@@ -10,6 +17,8 @@ export interface PackInfo {
   source: string;
   license: string;
   count: number;
+  /** Set for packs loaded from their npm library at render time instead of bundled. */
+  lib?: LibrarySource;
 }
 
 interface Index {
@@ -17,6 +26,10 @@ interface Index {
   /** [id, name, category, type, keywords] */
   icons: [string, string, string, string, string][];
   aliases: Record<string, string>;
+  /** Brand colors of library icons, by id (Simple Icons). */
+  colors: Record<string, string>;
+  /** Library icon names that differ from slug + suffix, by id. */
+  names: Record<string, string>;
 }
 
 interface PackEntry {
@@ -26,6 +39,8 @@ interface PackEntry {
   m?: 1;
   col?: string;
   k?: 1;
+  /** Uses another entry's artwork (Google gives most products their category's icon). */
+  r?: string;
 }
 
 interface PackFile {
@@ -44,7 +59,7 @@ export interface IconInfo {
 }
 
 /** Official vendor packs rank above logo and glyph sets in search and suggestions. */
-export const PACK_ORDER = ["aws", "azure", "gcp", "k8s", "github", "logos", "si", "tabler"];
+export const PACK_ORDER = ["aws", "azure", "gcp", "k8s", "github", "ibm", "logos", "si", "tabler"];
 
 let index: Index | undefined;
 let infoById: Map<string, IconInfo> | undefined;
@@ -149,6 +164,7 @@ const PACK_WEIGHT: Record<string, number> = {
   gcp: 10,
   k8s: 10,
   github: 5,
+  ibm: 4,
   logos: 6,
   si: 3,
   tabler: 0,
@@ -156,7 +172,6 @@ const PACK_WEIGHT: Record<string, number> = {
 const TYPE_WEIGHT: Record<string, number> = {
   service: 4,
   logo: 3,
-  legacy: 2,
   resource: 1,
   glyph: 0,
   category: -6,
@@ -310,13 +325,52 @@ export interface IconPaint {
  * The icon's SVG body, ready to inline: ids made unique for this instance and monochrome glyphs
  * painted for the theme.
  */
+const libEntries = new Map<string, PackEntry>();
+
+function libraryEntry(info: IconInfo, lib: LibrarySource): PackEntry {
+  const done = libEntries.get(info.id);
+  if (done) return done;
+  const set = loadedLibrary(info.pack);
+  if (!set) throw new Error(`icon library ${lib.npm} is not loaded; call loadIconLibraries first`);
+  const name = loadIndex().names?.[info.id] ?? `${info.slug}${lib.suffix ?? ""}`;
+  const icon = libraryIcon(set, name, lib.mono);
+  if (!icon) throw new Error(`icon ${info.id} missing from ${lib.npm}@${lib.version}`);
+  const entry: PackEntry = { ...icon };
+  if (lib.mono) entry.m = 1;
+  const col = loadIndex().colors?.[info.id];
+  if (col) entry.col = col;
+  if (!lib.mono && allDark(icon.b)) entry.k = 1;
+  libEntries.set(info.id, entry);
+  return entry;
+}
+
+function packEntry(info: IconInfo): PackEntry {
+  const lib = loadIndex().packs[info.pack]?.lib;
+  if (lib) return libraryEntry(info, lib);
+  const icons = loadPack(info.pack).icons;
+  const own = icons[info.slug];
+  const entry = own?.r ? icons[own.r] : own;
+  if (!entry) throw new Error(`icon ${info.id} missing from ${info.pack}.json`);
+  return entry;
+}
+
+/** Loads the npm libraries behind these icons (bundled packs need nothing). */
+export async function loadIconLibraries(ids: Iterable<string>): Promise<void> {
+  const packs = new Map<string, LibrarySource>();
+  for (const id of ids) {
+    const info = iconInfo(id);
+    const lib = info ? loadIndex().packs[info.pack]?.lib : undefined;
+    if (info && lib) packs.set(info.pack, lib);
+  }
+  await Promise.all([...packs].map(([pack, lib]) => loadLibrary(pack, lib)));
+}
+
 export function renderIcon(id: string, instance: string, paint: IconPaint): IconRender {
   const info = iconInfo(id);
   if (!info) throw new Error(`unknown icon ${id}`);
-  const entry = loadPack(info.pack).icons[info.slug];
-  if (!entry) throw new Error(`icon ${info.id} missing from ${info.pack}.json`);
+  const entry = packEntry(info);
   let body = paint.theme === "dark" && entry.d ? entry.d : entry.b;
-  body = body.replaceAll("dfyid", `${instance}-`);
+  body = body.replaceAll("sdwid", `${instance}-`);
   if (entry.m) {
     let color = paint.color ?? entry.col ?? paint.ink;
     // Brand colors that vanish on the background (black marks on dark) fall back to the ink.
