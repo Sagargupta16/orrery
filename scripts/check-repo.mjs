@@ -7,7 +7,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, extname, join } from "node:path";
+import { dirname, extname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -126,6 +126,8 @@ for (const f of files.filter((f) => f.endsWith(".md"))) {
     const link = (m[1] ?? m[2] ?? "").split("#")[0];
     if (!link || /^(https?:|mailto:|data:)/.test(link)) continue;
     const target = join(dirname(join(root, f)), decodeURIComponent(link));
+    // CLAUDE.md's stacking preamble points at the maintainer's workspace, outside the repo.
+    if (relative(root, target).startsWith("..")) continue;
     if (!existsSync(target)) fail(f, `broken link ${link}`);
   }
 }
