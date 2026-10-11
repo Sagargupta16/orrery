@@ -1,0 +1,43 @@
+{
+  "name": "diagramify",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, rendered to SVG, PNG, draw.io, TSX and HTML.",
+  "license": "MIT",
+  "author": "Sagar Gupta (https://github.com/Sagargupta16)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sagargupta16/diagramify.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.28.1",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "sync-icons": "node scripts/sync-icons.mjs",
+    "gallery": "node scripts/gallery.mjs",
+    "check": "node scripts/check-repo.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@iconify-json/logos": "1.2.15",
+    "@iconify-json/tabler": "1.2.42",
+    "@primer/octicons": "19.40.0",
+    "@resvg/resvg-wasm": "2.6.2",
+    "@types/node": "26.6.5",
+    "elkjs": "0.12.0",
+    "esbuild": "0.28.2",
+    "fflate": "0.8.3",
+    "simple-icons": "16.34.0",
+    "svgo": "4.1.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3",
+    "yaml": "2.9.1"
+  }
+}
