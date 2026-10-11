@@ -259,7 +259,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
   }
   if (!isObj(raw)) {
     err("DG100", "the spec must be a mapping with nodes, groups and edges", {
-      fixes: ["start from `diagramify init`"],
+      fixes: ["start from `stackdraw init`"],
     });
     return { diagnostics };
   }
@@ -419,7 +419,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
         subject: { group: id, type },
         fixes: [
           ...(near ? [`use type "${near}"`] : []),
-          "run `diagramify styles` for every group type",
+          "run `stackdraw styles` for every group type",
         ],
       });
     }
@@ -507,7 +507,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
           subject: { node: id, icon: iconRaw },
           fixes: [
             ...suggestIcons(iconRaw).map((s) => `use icon "${s}"`),
-            `run \`diagramify icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``,
+            `run \`stackdraw icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``,
           ],
         });
       }

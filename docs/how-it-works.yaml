@@ -1,10 +1,10 @@
-# yaml-language-server: $schema=../skills/diagramify/references/diagram.schema.json
-title: How diagramify works
+# yaml-language-server: $schema=../skills/stackdraw/references/diagram.schema.json
+title: How stackdraw works
 subtitle: One YAML spec in, five formats out, with official icons and automatic layout
 direction: right
 groups:
   author: { type: zone, label: You or your agent }
-  engine: { type: boundary, label: "diagramify CLI (bundled, no install)" }
+  engine: { type: boundary, label: "stackdraw CLI (bundled, no install)" }
   catalog: { type: zone, label: Official icon packs, in: engine }
   outputs: { type: zone, label: Outputs }
 nodes:

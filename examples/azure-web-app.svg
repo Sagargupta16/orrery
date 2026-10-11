@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1227" height="706" viewBox="0 0 1227 706" role="img" aria-labelledby="dfy-title dfy-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
-<title id="dfy-title">Web app on Azure</title>
-<desc id="dfy-desc">Web app on Azure. 8 components in 5 groups. Connections: Users to Azure Front Door (HTTPS); Azure Front Door to App Service; App Service to Private endpoint; Private endpoint to Azure SQL Database; App Service to Private endpoint; Private endpoint to Key Vault; Application Insights to App Service.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1227" height="706" viewBox="0 0 1227 706" role="img" aria-labelledby="sdw-title sdw-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
+<title id="sdw-title">Web app on Azure</title>
+<desc id="sdw-desc">Web app on Azure. 8 components in 5 groups. Connections: Users to Azure Front Door (HTTPS); Azure Front Door to App Service; App Service to Private endpoint; Private endpoint to Azure SQL Database; App Service to Private endpoint; Private endpoint to Key Vault; Application Insights to App Service.</desc>
 <rect width="1227" height="706" fill="#ffffff"/>
 <text font-size="20" font-weight="600" fill="#232f3e"><tspan x="28" y="43.78">Web app on Azure</tspan></text>
 <text font-size="13" fill="#5f6b7a"><tspan x="28" y="66.18">Front Door sends traffic to App Service, which reaches Azure SQL and Key Vault through private endpoints over VNet integration</tspan></text>

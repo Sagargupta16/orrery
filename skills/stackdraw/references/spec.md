@@ -1,9 +1,9 @@
 # Diagram spec reference
 
-A diagram is one YAML (or JSON) file with three collections: `nodes`, `groups` and `edges`. Everything else is optional. `diagramify validate` checks a spec and prints every problem with a code and a fix; `diagramify render` refuses to write files while errors remain.
+A diagram is one YAML (or JSON) file with three collections: `nodes`, `groups` and `edges`. Everything else is optional. `stackdraw validate` checks a spec and prints every problem with a code and a fix; `stackdraw render` refuses to write files while errors remain.
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/diagramify/main/skills/diagramify/references/diagram.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/stackdraw/main/skills/stackdraw/references/diagram.schema.json
 title: Serverless image pipeline
 subtitle: Upload, resize and serve images on AWS
 direction: right
@@ -58,7 +58,7 @@ nodes:
 
 | Key | Meaning |
 | --- | --- |
-| `icon` | Icon id such as `aws:lambda` or an alias such as `aws:s3`. Find ids with `diagramify icons search <words>`. |
+| `icon` | Icon id such as `aws:lambda` or an alias such as `aws:s3`. Find ids with `stackdraw icons search <words>`. |
 | `label` | Text under (or inside) the node. Defaults to the icon's official name, so `{ icon: aws:sqs }` reads "Amazon Simple Queue Service". |
 | `note` | Second, smaller, muted line: instance type, version, count, purpose. Quote it if it contains a comma. |
 | `in` | Id of the group the node sits in. |
@@ -81,7 +81,7 @@ groups:
 
 | Key | Meaning |
 | --- | --- |
-| `type` | A group style; run `diagramify styles` for the list and see [styles.md](styles.md) for how each looks and where it comes from. AWS: `aws:cloud`, `aws:cloud-alt`, `aws:account`, `aws:region`, `aws:az`, `aws:vpc`, `aws:public-subnet`, `aws:private-subnet`, `aws:security-group`, `aws:auto-scaling`, `aws:corporate-dc`, `aws:server-contents`, `aws:ec2-contents`, `aws:spot-fleet`, `aws:iot-greengrass`, `aws:step-functions`, `aws:elastic-beanstalk`, `aws:generic`, `aws:generic-dashed`. Google Cloud: `gcp:cloud`, `gcp:project`, `gcp:region`, `gcp:zone`, `gcp:vpc`, `gcp:subnet`, `gcp:tier`, `gcp:gke-cluster`, `gcp:on-prem`, `gcp:external`, `gcp:optional`, `gcp:users`. Azure: `azure:tenant`, `azure:subscription`, `azure:resource-group`, `azure:region`, `azure:az`, `azure:vnet`, `azure:vnet-hub`, `azure:subnet`, `azure:service-group`, `azure:optional`, `azure:node-pool`, `azure:on-prem`. Kubernetes: `k8s:cluster`, `k8s:namespace`, `k8s:node`, `k8s:control-plane`. C4: `c4:boundary`. Neutral: `box`, `dashed`, `zone`, `boundary`, `on-prem`, `internet`. |
+| `type` | A group style; run `stackdraw styles` for the list and see [styles.md](styles.md) for how each looks and where it comes from. AWS: `aws:cloud`, `aws:cloud-alt`, `aws:account`, `aws:region`, `aws:az`, `aws:vpc`, `aws:public-subnet`, `aws:private-subnet`, `aws:security-group`, `aws:auto-scaling`, `aws:corporate-dc`, `aws:server-contents`, `aws:ec2-contents`, `aws:spot-fleet`, `aws:iot-greengrass`, `aws:step-functions`, `aws:elastic-beanstalk`, `aws:generic`, `aws:generic-dashed`. Google Cloud: `gcp:cloud`, `gcp:project`, `gcp:region`, `gcp:zone`, `gcp:vpc`, `gcp:subnet`, `gcp:tier`, `gcp:gke-cluster`, `gcp:on-prem`, `gcp:external`, `gcp:optional`, `gcp:users`. Azure: `azure:tenant`, `azure:subscription`, `azure:resource-group`, `azure:region`, `azure:az`, `azure:vnet`, `azure:vnet-hub`, `azure:subnet`, `azure:service-group`, `azure:optional`, `azure:node-pool`, `azure:on-prem`. Kubernetes: `k8s:cluster`, `k8s:namespace`, `k8s:node`, `k8s:control-plane`. C4: `c4:boundary`. Neutral: `box`, `dashed`, `zone`, `boundary`, `on-prem`, `internet`. |
 | `label` | Header text. Defaults to the style's label ("VPC", "Region", ...). |
 | `in` | Parent group id. Groups nest to any depth. |
 | `contains` | List of child ids; the same as writing `in:` on each child. |

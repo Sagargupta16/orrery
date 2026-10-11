@@ -1,6 +1,6 @@
 # Icons
 
-13,876 icons in 8 packs, all current official artwork. The four cloud packs are built from each vendor's own download by `scripts/sync-icons.mjs` (pinned by URL and SHA-256 in `scripts/icon-sources.json`; a monthly workflow re-pins newer releases) and ship inside the skill. The four sets that are published as npm libraries are not copied into the skill: they load from the library itself at render time (see [Where icons load from](#where-icons-load-from)). Every icon is drawn the same way either way: ids made unique per use, monochrome glyphs colored for the theme.
+16,652 icons in 9 packs, all current official artwork. The four cloud packs are built from each vendor's own download by `scripts/sync-icons.mjs` (pinned by URL and SHA-256 in `scripts/icon-sources.json`; a monthly workflow re-pins newer releases) and ship inside the skill. The five sets that are published as npm libraries are not copied into the skill: they load from the library itself at render time (see [Where icons load from](#where-icons-load-from)). Every icon is drawn the same way either way: ids made unique per use, monochrome glyphs colored for the theme.
 
 | Pack | Icons | Source | Version | What it covers | Ships |
 | --- | ---: | --- | --- | --- | --- |
@@ -9,6 +9,7 @@
 | `gcp` | 233 | [Google Cloud icons](https://cloud.google.com/icons) | May 2026 icon guide | 19 core product icons, 26 category icons, 188 products mapped to the icon Google assigns them | bundled |
 | `k8s` | 40 | [Kubernetes icons](https://github.com/kubernetes/community/tree/master/icons) | kubernetes/community@70a4bb2 | resource kinds, control plane, infrastructure, the Kubernetes logo | bundled |
 | `github` | 399 | [GitHub Octicons](https://primer.style/octicons) | @primer/octicons 19.40.0 | GitHub's own icon set | npm `@primer/octicons` |
+| `ibm` | 2,776 | [IBM Carbon icons](https://carbondesignsystem.com/elements/icons/library/) | Carbon 11.89.0 | IBM's UI icons, which IBM's technical diagram guide puts in diagram nodes, including 204 IBM product glyphs (`ibm:ibm-cloud-kubernetes-service`, `ibm:watsonx-ai`) | npm `@iconify-json/carbon` |
 | `logos` | 2,123 | [SVG Logos](https://github.com/gilbarbara/logos) | 1.2.15 | full-color logos of tools, languages, databases, SaaS | npm `@iconify-json/logos` |
 | `si` | 3,349 | [Simple Icons](https://simpleicons.org) | 16.34.0 | one-color brand marks in the brand's color | npm `@iconify-json/simple-icons` |
 | `tabler` | 6,286 | [Tabler Icons](https://tabler.io/icons) | 3.49.0 | neutral outline and filled glyphs | npm `@iconify-json/tabler` |
@@ -24,10 +25,10 @@ Only current artwork is in the catalog:
 The bundled packs need nothing. A library pack loads the first time a diagram uses one of its icons, from the first of these that has the pinned version:
 
 1. a `node_modules` folder above the skill (a development checkout),
-2. the user cache (`%LOCALAPPDATA%\diagramify` on Windows, `~/.cache/diagramify` elsewhere, or `DIAGRAMIFY_CACHE`),
+2. the user cache (`%LOCALAPPDATA%\stackdraw` on Windows, `~/.cache/stackdraw` elsewhere, or `STACKDRAW_CACHE`),
 3. jsDelivr (`https://cdn.jsdelivr.net/npm/<package>@<version>/<file>`), then unpkg; the file is cached after the first download.
 
-Every file is checked against the SHA-256 pinned in `assets/icons/index.json`, so a render is the same everywhere. Searching and validating never download anything. Without network and without a cached copy, a render that needs a library icon fails with DG301; run `diagramify icons fetch` once where there is network (and copy the cache folder, or point `DIAGRAMIFY_CACHE` at it), or use an icon from a bundled pack. `diagramify doctor` shows how many libraries are available offline.
+Every file is checked against the SHA-256 pinned in `assets/icons/index.json`, so a render is the same everywhere. Searching and validating never download anything. Without network and without a cached copy, a render that needs a library icon fails with DG301; run `stackdraw icons fetch` once where there is network (and copy the cache folder, or point `STACKDRAW_CACHE` at it), or use an icon from a bundled pack. `stackdraw doctor` shows how many libraries are available offline.
 
 ## Ids
 
@@ -57,7 +58,7 @@ Ids are case-insensitive and `aws/lambda` or `aws.lambda` also work. When an id 
 | `k8s:deploy`, `k8s:svc`, `k8s:ing`, `k8s:cm`, `k8s:pvc`, `k8s:hpa`, `k8s:sts` | kubectl short names |
 | `github:actions`, `github:copilot-logo`, `github:octocat`, `github:pr` | GitHub product marks and Octicons |
 
-`diagramify icons search` matches aliases too, so searching "s3" finds `aws:simple-storage-service`.
+`stackdraw icons search` matches aliases too, so searching "s3" finds `aws:simple-storage-service`.
 
 ## The `generic:` vocabulary
 
@@ -69,6 +70,7 @@ Glyph icons (`tabler:`, `github:`, `generic:`) take the theme's text color, or `
 
 - A vendor service always gets the vendor's icon, even in a mostly generic diagram.
 - AWS diagrams: services for the main components, resource icons (bucket, table, instance, queue) when the diagram is about the resources themselves.
+- IBM Cloud diagrams: `ibm:` product glyphs for IBM services and Carbon glyphs for the rest; IBM's guide asks for one icon color per diagram (black or white).
 - Third-party products: `logos:` first (full color), `si:` when `logos:` lacks it.
 - Concepts with no product behind them: `generic:`.
 - Do not mix two icons for one component, and do not use one vendor's icon for another vendor's service.
@@ -80,6 +82,6 @@ The icons are not covered by this project's MIT license. Each pack keeps its own
 - AWS: "We allow customers and partners to use these toolkits and assets to create architecture diagrams" ([AWS Architecture Icons](https://aws.amazon.com/architecture/icons/)).
 - Microsoft: "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft. Microsoft reserves all other rights." Their guidelines also ask not to crop, flip, rotate or distort the icons, and not to use them to represent your own product ([Azure icons](https://learn.microsoft.com/en-us/azure/architecture/icons/)).
 - Google Cloud: the official library "for your diagrams, technical documentation, and more" ([Google Cloud icons](https://cloud.google.com/icons)).
-- Kubernetes icons: Apache-2.0. Octicons and Tabler: MIT. SVG Logos and Simple Icons: CC0 for the collections, while each logo stays its owner's trademark. These four are not redistributed by this repository; they load from their own npm packages. Simple Icons entries whose own license is non-commercial, no-derivatives, share-alike or GPL are left out of the `si` pack; the skipped list and the attributed ones are in `assets/icons/simple-icons-licenses.json`.
+- Kubernetes icons and IBM Carbon: Apache-2.0. Octicons and Tabler: MIT. SVG Logos and Simple Icons: CC0 for the collections, while each logo stays its owner's trademark. The five npm sets are not redistributed by this repository; they load from their own npm packages. Simple Icons entries whose own license is non-commercial, no-derivatives, share-alike or GPL are left out of the `si` pack; the skipped list and the attributed ones are in `assets/icons/simple-icons-licenses.json`.
 
 Use vendor and brand icons to refer to those products in diagrams, which is what the vendors allow; do not use them as your own logo.

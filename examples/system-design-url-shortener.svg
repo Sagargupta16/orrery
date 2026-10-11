@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1648" height="676" viewBox="0 0 1648 676" role="img" aria-labelledby="dfy-title dfy-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
-<title id="dfy-title">URL shortener system design</title>
-<desc id="dfy-desc">URL shortener system design. 11 components in 1 groups. Connections: Clients to CDN (GET /abc123); CDN to Load balancer (cache miss); Load balancer to API servers; API servers to Redis (lookup); API servers to PostgreSQL (on miss); API servers to ID generator (new link); API servers to Kafka (click event); Kafka to Apache Flink; Apache Flink to ClickHouse; ClickHouse to Dashboards.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1648" height="676" viewBox="0 0 1648 676" role="img" aria-labelledby="sdw-title sdw-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
+<title id="sdw-title">URL shortener system design</title>
+<desc id="sdw-desc">URL shortener system design. 11 components in 1 groups. Connections: Clients to CDN (GET /abc123); CDN to Load balancer (cache miss); Load balancer to API servers; API servers to Redis (lookup); API servers to PostgreSQL (on miss); API servers to ID generator (new link); API servers to Kafka (click event); Kafka to Apache Flink; Apache Flink to ClickHouse; ClickHouse to Dashboards.</desc>
 <rect width="1648" height="676" fill="#ffffff"/>
 <text font-size="20" font-weight="600" fill="#232f3e"><tspan x="28" y="43.78">URL shortener system design</tspan></text>
 <text font-size="13" fill="#5f6b7a"><tspan x="28" y="66.18">Redirects are served from the CDN and a Redis cache in front of PostgreSQL; every click streams through Kafka into an analytics pipeline</tspan></text>

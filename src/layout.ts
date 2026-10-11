@@ -808,8 +808,7 @@ function union(boxes: (Box | undefined)[]): Box {
 
 /** An orthogonal connector between two placed nodes or groups, for edges the layout ignored. */
 function freeRoute(from: Attach, to: Attach): Point[] {
-  const sideBySide =
-    from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
+  const sideBySide = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
   const a = sideBySide ? from.side : from.full;
   const b = sideBySide ? to.side : to.full;
   const ac = { x: from.side.x + from.side.w / 2, y: a.y + a.h / 2 };

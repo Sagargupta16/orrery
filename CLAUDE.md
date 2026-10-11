@@ -10,9 +10,9 @@
 
 ## Project
 
-Public Agent Skill and Claude Code plugin (`diagramify`) that turns a YAML spec into professional architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons (plus logo and generic sets), laid out by ELK and rendered to SVG, PNG, draw.io, TSX and HTML. The CLI is bundled into the skill so it runs with no install.
+Public Agent Skill and Claude Code plugin (`stackdraw`) that turns a YAML spec into professional architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons (plus logo and generic sets), laid out by ELK and rendered to SVG, PNG, draw.io, TSX and HTML. The CLI is bundled into the skill so it runs with no install.
 
-Installed with `/plugin marketplace add Sagargupta16/diagramify` then `/plugin install diagramify@diagramify`, or `npx skills add Sagargupta16/diagramify`.
+Installed with `/plugin marketplace add Sagargupta16/stackdraw` then `/plugin install stackdraw@stackdraw`, or `npx skills add Sagargupta16/stackdraw`.
 
 ## Stack
 
@@ -26,10 +26,10 @@ Installed with `/plugin marketplace add Sagargupta16/diagramify` then `/plugin i
 
 ```
 pnpm install
-node skills/diagramify/scripts/diagramify.mjs render skills/diagramify/examples/aws-serverless-api.yaml -o out/demo -f all --theme both
-node skills/diagramify/scripts/diagramify.mjs icons search load balancer
-pnpm build          # src/ -> skills/diagramify/scripts/diagramify.mjs + vendor/
-pnpm gallery        # re-render examples/ from skills/diagramify/examples/
+node skills/stackdraw/scripts/stackdraw.mjs render skills/stackdraw/examples/aws-serverless-api.yaml -o out/demo -f all --theme both
+node skills/stackdraw/scripts/stackdraw.mjs icons search load balancer
+pnpm build          # src/ -> skills/stackdraw/scripts/stackdraw.mjs + vendor/
+pnpm gallery        # re-render examples/ from skills/stackdraw/examples/
 pnpm sync-icons     # rebuild icon catalogs from pinned vendor downloads (--latest re-pins)
 ```
 
@@ -46,19 +46,19 @@ npx -y @sagargupta1610/skillcheck lint skills
 
 ## Entry points
 
-- `skills/diagramify/SKILL.md` -- the skill (fast path, authoring rules, outputs)
+- `skills/stackdraw/SKILL.md` -- the skill (fast path, authoring rules, outputs)
 - `src/cli.ts` -- commands: render, validate, icons, styles, init, doctor, demo
 - `src/spec.ts` -- spec parser and DG1xx diagnostics
 - `src/layout.ts` -- model -> ELK graph -> Scene (every renderer consumes the Scene)
 - `src/render/*.ts` -- svg, png, drawio, tsx, html
-- `scripts/sync-icons.mjs` -- official packs -> `skills/diagramify/assets/icons/*.json`; npm-published sets get only index rows and a `lib` pin
+- `scripts/sync-icons.mjs` -- official packs -> `skills/stackdraw/assets/icons/*.json`; npm-published sets get only index rows and a `lib` pin
 - `src/libraries.ts` -- loads the npm-published sets (octicons, logos, simple-icons, tabler) at render time: node_modules, then the user cache, then jsDelivr/unpkg, sha256-checked
 
 ## Key files
 
 - `scripts/icon-sources.json` -- pinned vendor URLs + SHA-256; `scripts/icon-aliases.json` -- short names; `scripts/gcp-products.json` -- Google's product -> core/category icon list (May 2026 guide)
 - `src/styles.ts` -- group styles (AWS colors read from the official group tiles)
-- `skills/diagramify/references/spec.md` -- the spec contract; keep it in sync with `src/spec.ts`
+- `skills/stackdraw/references/spec.md` -- the spec contract; keep it in sync with `src/spec.ts`
 - `.claude-plugin/plugin.json` + `marketplace.json` -- versions must match `package.json` and SKILL.md
 
 ## Gotchas
@@ -77,6 +77,6 @@ npx -y @sagargupta1610/skillcheck lint skills
 ## Repo-specific rules
 
 - Everything here is public: no personal names in skill bodies (say "the user"), no home paths, no private project names. Author/owner fields are the exception.
-- Never hand-edit generated files: `skills/diagramify/scripts/diagramify.mjs`, `scripts/vendor/`, `assets/icons/*.json`, `assets/fonts/metrics.json`, `examples/*.svg|png`. Change the source and regenerate.
+- Never hand-edit generated files: `skills/stackdraw/scripts/stackdraw.mjs`, `scripts/vendor/`, `assets/icons/*.json`, `assets/fonts/metrics.json`, `examples/*.svg|png`. Change the source and regenerate.
 - Every PR updates CHANGELOG.md under a concrete version and bumps package.json, both manifests and SKILL.md metadata when it releases.
 - No en or em dashes anywhere; `scripts/check-repo.mjs` fails on them.

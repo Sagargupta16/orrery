@@ -472,7 +472,7 @@ describe("diagnostics", () => {
       /fix the YAML\/JSON syntax/,
     ],
     ["DG100", "a spec with no nodes", "title: Empty\n", /add at least one entry under nodes/],
-    ["DG100", "a spec that is not a mapping", "just words\n", /diagramify init/],
+    ["DG100", "a spec that is not a mapping", "just words\n", /stackdraw init/],
     ["DG101", "a misspelled icon", "nodes:\n  f: { icon: aws:lamda }\n", /^use icon "aws:lambda"$/],
     [
       "DG101",

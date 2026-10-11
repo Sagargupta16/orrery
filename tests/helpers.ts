@@ -6,8 +6,8 @@ import { parseSpec } from "../src/spec.ts";
 import type { Box, Diagnostic, Model, Point } from "../src/types.ts";
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-export const SKILL_DIR = join(ROOT, "skills", "diagramify");
-export const CLI_BUNDLE = join(SKILL_DIR, "scripts", "diagramify.mjs");
+export const SKILL_DIR = join(ROOT, "skills", "stackdraw");
+export const CLI_BUNDLE = join(SKILL_DIR, "scripts", "stackdraw.mjs");
 export const EXAMPLES_DIR = join(SKILL_DIR, "examples");
 
 /**
@@ -227,7 +227,7 @@ export interface CliRun {
   stderr: string;
 }
 
-/** Runs the bundled CLI the way an agent does: `node skills/diagramify/scripts/diagramify.mjs`. */
+/** Runs the bundled CLI the way an agent does: `node skills/stackdraw/scripts/stackdraw.mjs`. */
 export function runCli(args: string[], cwd = ROOT, stdin?: string): Promise<CliRun> {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [CLI_BUNDLE, ...args], {

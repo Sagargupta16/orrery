@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1791" height="476" viewBox="0 0 1791 476" role="img" aria-labelledby="dfy-title dfy-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
-<title id="dfy-title">CI/CD from GitHub Actions to AWS</title>
-<desc id="dfy-desc">CI/CD from GitHub Actions to AWS. 7 components in 3 groups. Connections: Developer to Pull request (open); Pull request to GitHub Actions (merge to main); GitHub Actions to IAM role (OIDC token); IAM role to Amazon ECR (push image); IAM role to AWS CloudFormation (deploy); AWS CloudFormation to Amazon ECS (update service); Amazon ECR to Amazon ECS (pull image).</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1791" height="476" viewBox="0 0 1791 476" role="img" aria-labelledby="sdw-title sdw-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
+<title id="sdw-title">CI/CD from GitHub Actions to AWS</title>
+<desc id="sdw-desc">CI/CD from GitHub Actions to AWS. 7 components in 3 groups. Connections: Developer to Pull request (open); Pull request to GitHub Actions (merge to main); GitHub Actions to IAM role (OIDC token); IAM role to Amazon ECR (push image); IAM role to AWS CloudFormation (deploy); AWS CloudFormation to Amazon ECS (update service); Amazon ECR to Amazon ECS (pull image).</desc>
 <rect width="1791" height="476" fill="#ffffff"/>
 <text font-size="20" font-weight="600" fill="#232f3e"><tspan x="28" y="43.78">CI/CD from GitHub Actions to AWS</tspan></text>
 <text font-size="13" fill="#5f6b7a"><tspan x="28" y="66.18">A merge to main runs a workflow that trades its OIDC token for a short-lived IAM role, pushes the image and deploys with CloudFormation</tspan></text>

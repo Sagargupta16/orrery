@@ -14,7 +14,7 @@ const files = existsSync(EXAMPLES_DIR)
       .sort()
   : [];
 
-/** What `diagramify validate` reports: parse diagnostics plus the layout checks. */
+/** What `stackdraw validate` reports: parse diagnostics plus the layout checks. */
 async function validate(file: string): Promise<Diagnostic[]> {
   const parsed = parseSpec(readFileSync(join(EXAMPLES_DIR, file), "utf8"), file);
   if (!parsed.model) return parsed.diagnostics;

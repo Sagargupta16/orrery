@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Sagargupta16/diagramify/main/skills/diagramify/references/diagram.schema.json",
-  "title": "diagramify diagram spec",
-  "description": "An architecture or system design diagram: nodes with official icons, nested groups and labelled edges. Validate with `diagramify validate`; render with `diagramify render`.",
+  "$id": "https://raw.githubusercontent.com/Sagargupta16/stackdraw/main/skills/stackdraw/references/diagram.schema.json",
+  "title": "stackdraw diagram spec",
+  "description": "An architecture or system design diagram: nodes with official icons, nested groups and labelled edges. Validate with `stackdraw validate`; render with `stackdraw render`.",
   "type": "object",
   "additionalProperties": false,
   "required": ["nodes"],
@@ -72,7 +72,7 @@
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "#/$defs/id" },
-        "icon": { "type": "string", "description": "Icon id like aws:lambda; find ids with `diagramify icons search <words>`." },
+        "icon": { "type": "string", "description": "Icon id like aws:lambda; find ids with `stackdraw icons search <words>`." },
         "label": { "type": "string" },
         "note": { "type": "string", "description": "Smaller muted second line." },
         "sublabel": { "type": "string" },
@@ -100,7 +100,7 @@
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "#/$defs/id" },
-        "type": { "type": "string", "description": "Group style; `diagramify styles` lists them (aws:vpc, gcp:project, azure:vnet, k8s:namespace, zone, box...)." },
+        "type": { "type": "string", "description": "Group style; `stackdraw styles` lists them (aws:vpc, gcp:project, azure:vnet, k8s:namespace, zone, box...)." },
         "style": { "type": "string" },
         "kind": { "type": "string" },
         "label": { "type": "string" },

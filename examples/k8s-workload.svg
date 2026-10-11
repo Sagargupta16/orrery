@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1217" height="618" viewBox="0 0 1217 618" role="img" aria-labelledby="dfy-title dfy-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
-<title id="dfy-title">Kubernetes web workload</title>
-<desc id="dfy-desc">Kubernetes web workload. 11 components in 2 groups. Connections: Users to Ingress (HTTPS); Ingress to Service; Service to Pods; HPA to Deployment; Deployment to ReplicaSet; ReplicaSet to Pods; Pods to ConfigMap; Pods to Secret; Pods to PVC; PVC to PersistentVolume.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1217" height="618" viewBox="0 0 1217 618" role="img" aria-labelledby="sdw-title sdw-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
+<title id="sdw-title">Kubernetes web workload</title>
+<desc id="sdw-desc">Kubernetes web workload. 11 components in 2 groups. Connections: Users to Ingress (HTTPS); Ingress to Service; Service to Pods; HPA to Deployment; Deployment to ReplicaSet; ReplicaSet to Pods; Pods to ConfigMap; Pods to Secret; Pods to PVC; PVC to PersistentVolume.</desc>
 <rect width="1217" height="618" fill="#ffffff"/>
 <text font-size="20" font-weight="600" fill="#232f3e"><tspan x="28" y="43.78">Kubernetes web workload</tspan></text>
 <text font-size="13" fill="#5f6b7a"><tspan x="28" y="66.18">Traffic reaches the pods through an Ingress and a Service; a Deployment owns them, an HPA scales them, a ConfigMap, Secret and PVC feed them</tspan></text>

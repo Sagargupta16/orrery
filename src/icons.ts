@@ -59,7 +59,7 @@ export interface IconInfo {
 }
 
 /** Official vendor packs rank above logo and glyph sets in search and suggestions. */
-export const PACK_ORDER = ["aws", "azure", "gcp", "k8s", "github", "logos", "si", "tabler"];
+export const PACK_ORDER = ["aws", "azure", "gcp", "k8s", "github", "ibm", "logos", "si", "tabler"];
 
 let index: Index | undefined;
 let infoById: Map<string, IconInfo> | undefined;
@@ -164,6 +164,7 @@ const PACK_WEIGHT: Record<string, number> = {
   gcp: 10,
   k8s: 10,
   github: 5,
+  ibm: 4,
   logos: 6,
   si: 3,
   tabler: 0,
@@ -369,7 +370,7 @@ export function renderIcon(id: string, instance: string, paint: IconPaint): Icon
   if (!info) throw new Error(`unknown icon ${id}`);
   const entry = packEntry(info);
   let body = paint.theme === "dark" && entry.d ? entry.d : entry.b;
-  body = body.replaceAll("dfyid", `${instance}-`);
+  body = body.replaceAll("sdwid", `${instance}-`);
   if (entry.m) {
     let color = paint.color ?? entry.col ?? paint.ink;
     // Brand colors that vanish on the background (black marks on dark) fall back to the ink.

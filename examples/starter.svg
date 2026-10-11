@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="779" height="544" viewBox="0 0 779 544" role="img" aria-labelledby="dfy-title dfy-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
-<title id="dfy-title">Web app on AWS</title>
-<desc id="dfy-desc">Web app on AWS. 6 components in 1 groups. Connections: Users to Application Load Balancer (HTTPS); Application Load Balancer to Web service; Web service to Orders database; Web service to Session cache; Web service to Uploads.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="779" height="544" viewBox="0 0 779 544" role="img" aria-labelledby="sdw-title sdw-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
+<title id="sdw-title">Web app on AWS</title>
+<desc id="sdw-desc">Web app on AWS. 6 components in 1 groups. Connections: Users to Application Load Balancer (HTTPS); Application Load Balancer to Web service; Web service to Orders database; Web service to Session cache; Web service to Uploads.</desc>
 <rect width="779" height="544" fill="#ffffff"/>
 <text font-size="20" font-weight="600" fill="#232f3e"><tspan x="28" y="43.78">Web app on AWS</tspan></text>
 <text font-size="13" fill="#5f6b7a"><tspan x="28" y="66.18">A container service behind a load balancer, with a database, a cache and file storage</tspan></text>

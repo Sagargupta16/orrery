@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../skills/diagramify/references/diagram.schema.json
+# yaml-language-server: $schema=../skills/stackdraw/references/diagram.schema.json
 title: GitOps delivery to three clouds
 subtitle: GitHub Actions builds and signs the image, Argo CD syncs GKE, AKS and EKS, Cloudflare fronts all three and Grafana watches them
 direction: right

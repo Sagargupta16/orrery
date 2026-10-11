@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1161" height="572" viewBox="0 0 1161 572" role="img" aria-labelledby="dfy-title dfy-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
-<title id="dfy-title">Serverless web API on AWS</title>
-<desc id="dfy-desc">Serverless web API on AWS. 8 components in 2 groups. Connections: Users to Amazon CloudFront (HTTPS); Users to Amazon Cognito (sign in); Amazon CloudFront to Web app bucket (static files); Amazon CloudFront to Amazon API Gateway (/api/*); Amazon Cognito to Amazon API Gateway (JWT authorizer); Amazon API Gateway to Orders function; Orders function to Orders table; Orders function to Receipts bucket.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1161" height="572" viewBox="0 0 1161 572" role="img" aria-labelledby="sdw-title sdw-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
+<title id="sdw-title">Serverless web API on AWS</title>
+<desc id="sdw-desc">Serverless web API on AWS. 8 components in 2 groups. Connections: Users to Amazon CloudFront (HTTPS); Users to Amazon Cognito (sign in); Amazon CloudFront to Web app bucket (static files); Amazon CloudFront to Amazon API Gateway (/api/*); Amazon Cognito to Amazon API Gateway (JWT authorizer); Amazon API Gateway to Orders function; Orders function to Orders table; Orders function to Receipts bucket.</desc>
 <rect width="1161" height="572" fill="#ffffff"/>
 <text font-size="20" font-weight="600" fill="#232f3e"><tspan x="28" y="43.78">Serverless web API on AWS</tspan></text>
 <text font-size="13" fill="#5f6b7a"><tspan x="28" y="66.18">Single-page app on CloudFront, REST API on API Gateway and Lambda, Cognito sign-in</tspan></text>

@@ -1,6 +1,6 @@
 # Outputs
 
-`diagramify render <spec> -o <base> -f <formats>` writes `<base>.<format>`. With `--theme both` every format except HTML gets `-light` and `-dark` files; the HTML file holds both. Without `-o` the files land next to the spec; `-o some/dir/` uses the spec's name inside that folder; `-o docs/arch.png` infers the format from the extension.
+`stackdraw render <spec> -o <base> -f <formats>` writes `<base>.<format>`. With `--theme both` every format except HTML gets `-light` and `-dark` files; the HTML file holds both. Without `-o` the files land next to the spec; `-o some/dir/` uses the spec's name inside that folder; `-o docs/arch.png` infers the format from the extension.
 
 Files are written atomically (temporary file, then rename), so a failed render never leaves a half-written diagram, and an error in the spec writes nothing.
 

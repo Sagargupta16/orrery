@@ -1,5 +1,5 @@
 {
-  "name": "diagramify",
+  "name": "stackdraw",
   "owner": {
     "name": "Sagar Gupta",
     "url": "https://github.com/Sagargupta16"
@@ -9,9 +9,9 @@
   },
   "plugins": [
     {
-      "name": "diagramify",
+      "name": "stackdraw",
       "source": "./",
-      "description": "The diagramify skill: official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, ELK auto-layout, SVG/PNG/draw.io/TSX/HTML output, a validator with fixes and 20 reference architectures.",
+      "description": "The stackdraw skill: official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, ELK auto-layout, SVG/PNG/draw.io/TSX/HTML output, a validator with fixes and 20 reference architectures.",
       "version": "0.2.0",
       "license": "MIT",
       "category": "design"

@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: GitOps delivery with Argo CD
+subtitle: GitHub Actions pushes the image and bumps its tag in the config repository; Argo CD syncs staging, then production on approval
+direction: right
+# One port per edge: the sync arrows and the dotted scrape edge end on cluster borders and must not share a point.
+layout: { layering: simplex, spacing: compact, merge: false }
+
+groups:
+  app-repo: { type: box, label: App repository, icon: github:repo }
+  staging: { type: k8s:cluster, label: Staging cluster }
+  staging-ns: { type: k8s:namespace, label: Namespace shop, in: staging }
+  prod: { type: k8s:cluster, label: Production cluster }
+  prod-ns: { type: k8s:namespace, label: Namespace shop, in: prod }
+
+nodes:
+  dev: { icon: github:person, label: Developer }
+  pr: { icon: github:git-pull-request, label: Pull request, note: Review and checks, in: app-repo }
+  actions: { icon: logos:github-actions, label: GitHub Actions, note: "Build, test, push", in: app-repo }
+  registry: { icon: github:package, label: Container registry, note: ghcr.io }
+  config: { icon: github:repo, label: Config repository, note: Kustomize overlays }
+  argocd: { icon: logos:argo-icon, label: Argo CD, note: Watches main }
+  stg-ing: { icon: k8s:ing, label: Ingress, in: staging-ns }
+  stg-svc: { icon: k8s:svc, label: Service, in: staging-ns }
+  stg-deploy: { icon: k8s:deploy, label: Deployment, in: staging-ns }
+  stg-pods: { icon: k8s:pod, label: Pods, note: web x2, in: staging-ns }
+  prod-ing: { icon: k8s:ing, label: Ingress, in: prod-ns }
+  prod-svc: { icon: k8s:svc, label: Service, in: prod-ns }
+  prod-deploy: { icon: k8s:deploy, label: Deployment, in: prod-ns }
+  prod-pods: { icon: k8s:pod, label: Pods, note: web x6, in: prod-ns }
+  grafana: { icon: logos:grafana, label: Grafana, note: Dashboards }
+  prometheus: { icon: logos:prometheus, label: Prometheus, note: Metrics and alerts }
+
+edges:
+  - dev -> pr: { label: open PR, step: 1 }
+  - pr -> actions: { label: merge to main, step: 2 }
+  - actions -> registry: { label: push image, step: 3 }
+  - actions -> config: { label: bump image tag, step: 4 }
+  # Laid out config -> Argo CD so Argo CD sits right of the repository; the arrowhead stays on the repository.
+  - { from: config, to: argocd, arrow: start, label: watch, step: 5 }
+  - argocd -> staging: { label: auto sync, step: 6 }
+  - argocd -> prod: { label: sync on approval, step: 7 }
+  # Traffic is solid; ownership and monitoring are dotted.
+  - stg-ing -> stg-svc -> stg-pods
+  - stg-deploy ..> stg-pods
+  - prod-ing -> prod-svc -> prod-pods
+  - prod-deploy ..> prod-pods
+  - grafana ..> prometheus: query
+  - prometheus ..> prod: scrape

@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1485" height="696" viewBox="0 0 1485 696" role="img" aria-labelledby="dfy-title dfy-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
-<title id="dfy-title">Open-source data platform</title>
-<desc id="dfy-desc">Open-source data platform. 12 components in 6 groups. Connections: SaaS APIs to Airbyte; Airbyte to Apache Kafka; PostgreSQL to Debezium (WAL); MySQL to Debezium (binlog); Debezium to Apache Kafka; Apache Kafka to Apache Flink; Apache Flink to Apache Iceberg; Apache Iceberg to Trino; Apache Airflow to dbt; dbt to Trino; Trino to Apache Superset.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1485" height="696" viewBox="0 0 1485 696" role="img" aria-labelledby="sdw-title sdw-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
+<title id="sdw-title">Open-source data platform</title>
+<desc id="sdw-desc">Open-source data platform. 12 components in 6 groups. Connections: SaaS APIs to Airbyte; Airbyte to Apache Kafka; PostgreSQL to Debezium (WAL); MySQL to Debezium (binlog); Debezium to Apache Kafka; Apache Kafka to Apache Flink; Apache Flink to Apache Iceberg; Apache Iceberg to Trino; Apache Airflow to dbt; dbt to Trino; Trino to Apache Superset.</desc>
 <rect width="1485" height="696" fill="#ffffff"/>
 <text font-size="20" font-weight="600" fill="#232f3e"><tspan x="28" y="43.78">Open-source data platform</tspan></text>
 <text font-size="13" fill="#5f6b7a"><tspan x="28" y="66.18">Debezium and Airbyte feed Kafka, Flink lands the streams as Iceberg tables on MinIO, and dbt models them on Trino for Superset on an Airflow schedule</tspan></text>

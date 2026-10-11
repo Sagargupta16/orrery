@@ -52,12 +52,12 @@ export class LibraryError extends Error {
 const loaded = new Map<string, IconifySet>();
 
 export function cacheDir(): string {
-  if (process.env.DIAGRAMIFY_CACHE) return process.env.DIAGRAMIFY_CACHE;
+  if (process.env.STACKDRAW_CACHE) return process.env.STACKDRAW_CACHE;
   const base =
     process.platform === "win32"
       ? (process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"))
       : (process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"));
-  return join(base, "diagramify");
+  return join(base, "stackdraw");
 }
 
 export const cachePath = (src: LibrarySource) =>
@@ -126,7 +126,7 @@ async function download(src: LibrarySource): Promise<Buffer> {
     `icon library ${src.npm}@${src.version} could not be downloaded (${problems.join("; ")})`,
     [
       "connect to the internet once; the library is cached after the first download",
-      `prefetch where there is network: diagramify icons fetch, then copy ${cacheDir()} (or set DIAGRAMIFY_CACHE)`,
+      `prefetch where there is network: stackdraw icons fetch, then copy ${cacheDir()} (or set STACKDRAW_CACHE)`,
       "use icons from the bundled official packs (aws, azure, gcp, k8s) instead",
     ],
   );
@@ -178,7 +178,7 @@ export function libraryIcon(
     const esc = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     body = body.replace(
       new RegExp(`(\\bid="|url\\(#|href="#)${esc}(?=["')])`, "g"),
-      `$1dfyid_${id}`,
+      `$1sdwid_${id}`,
     );
   }
   if (mono) {

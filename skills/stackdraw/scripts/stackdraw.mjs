@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// diagramify 0.2.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// stackdraw 0.2.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
-import { createRequire as __dfyRequire } from "node:module";
-const require = __dfyRequire(import.meta.url);
+import { createRequire as __sdwRequire } from "node:module";
+const require = __sdwRequire(import.meta.url);
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -7446,9 +7446,9 @@ var LibraryError = class extends Error {
 };
 var loaded = /* @__PURE__ */ new Map();
 function cacheDir() {
-  if (process.env.DIAGRAMIFY_CACHE) return process.env.DIAGRAMIFY_CACHE;
+  if (process.env.STACKDRAW_CACHE) return process.env.STACKDRAW_CACHE;
   const base = process.platform === "win32" ? process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local") : process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
-  return join(base, "diagramify");
+  return join(base, "stackdraw");
 }
 var cachePath = (src) => join(cacheDir(), `${src.npm.replace("/", "+")}@${src.version}`, src.file);
 var libraryUrls = (src) => [
@@ -7510,7 +7510,7 @@ async function download(src) {
     `icon library ${src.npm}@${src.version} could not be downloaded (${problems.join("; ")})`,
     [
       "connect to the internet once; the library is cached after the first download",
-      `prefetch where there is network: diagramify icons fetch, then copy ${cacheDir()} (or set DIAGRAMIFY_CACHE)`,
+      `prefetch where there is network: stackdraw icons fetch, then copy ${cacheDir()} (or set STACKDRAW_CACHE)`,
       "use icons from the bundled official packs (aws, azure, gcp, k8s) instead"
     ]
   );
@@ -7545,7 +7545,7 @@ function libraryIcon(set, name, mono = false) {
     const esc2 = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     body = body.replace(
       new RegExp(`(\\bid="|url\\(#|href="#)${esc2}(?=["')])`, "g"),
-      `$1dfyid_${id}`
+      `$1sdwid_${id}`
     );
   }
   if (mono) {
@@ -7575,12 +7575,12 @@ import { fileURLToPath as fileURLToPath2 } from "node:url";
 function findSkillRoot() {
   let dir = dirname2(fileURLToPath2(import.meta.url));
   for (let i = 0; i < 6; i++) {
-    for (const candidate of [dir, join2(dir, "skills", "diagramify")]) {
+    for (const candidate of [dir, join2(dir, "skills", "stackdraw")]) {
       if (existsSync2(join2(candidate, "assets", "icons", "index.json"))) return candidate;
     }
     dir = dirname2(dir);
   }
-  throw new Error("diagramify: cannot find the skill assets (assets/icons/index.json)");
+  throw new Error("stackdraw: cannot find the skill assets (assets/icons/index.json)");
 }
 var skillRoot = findSkillRoot();
 var iconsDir = join2(skillRoot, "assets", "icons");
@@ -7589,7 +7589,7 @@ var vendorDir = join2(skillRoot, "scripts", "vendor");
 var examplesDir = join2(skillRoot, "examples");
 
 // src/icons.ts
-var PACK_ORDER = ["aws", "azure", "gcp", "k8s", "github", "logos", "si", "tabler"];
+var PACK_ORDER = ["aws", "azure", "gcp", "k8s", "github", "ibm", "logos", "si", "tabler"];
 var index;
 var infoById;
 var packs = /* @__PURE__ */ new Map();
@@ -7664,6 +7664,7 @@ var PACK_WEIGHT = {
   gcp: 10,
   k8s: 10,
   github: 5,
+  ibm: 4,
   logos: 6,
   si: 3,
   tabler: 0
@@ -7819,7 +7820,7 @@ function renderIcon(id, instance, paint) {
   if (!info) throw new Error(`unknown icon ${id}`);
   const entry = packEntry(info);
   let body = paint.theme === "dark" && entry.d ? entry.d : entry.b;
-  body = body.replaceAll("dfyid", `${instance}-`);
+  body = body.replaceAll("sdwid", `${instance}-`);
   if (entry.m) {
     let color = paint.color ?? entry.col ?? paint.ink;
     if (contrast(color, paint.background) < 2.2) color = paint.ink;
@@ -8013,9 +8014,9 @@ function importMermaid(source) {
   doc.nodes = specNodes;
   doc.edges = specEdges;
   const header = [
-    "# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/diagramify/main/skills/diagramify/references/diagram.schema.json",
-    "# Imported from Mermaid by diagramify. Replace shapes with official icons (diagramify icons search <words>),",
-    "# turn zones into vendor groups (aws:vpc, gcp:project, azure:vnet...) and run diagramify validate."
+    "# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/stackdraw/main/skills/stackdraw/references/diagram.schema.json",
+    "# Imported from Mermaid by stackdraw. Replace shapes with official icons (stackdraw icons search <words>),",
+    "# turn zones into vendor groups (aws:vpc, gcp:project, azure:vnet...) and run stackdraw validate."
   ];
   if (Object.keys(guessed).length) {
     header.push(
@@ -8241,7 +8242,7 @@ var azure = (s) => ({
   ...s
 });
 var K8S_DECK = "kubernetes/community icon deck";
-var DIAGRAMIFY = "diagramify";
+var STACKDRAW = "stackdraw";
 var C4 = "C4-PlantUML v2.14.0 boundary style";
 var DEFS = {
   // ------------------------------------------------------------- AWS
@@ -8593,13 +8594,13 @@ var DEFS = {
     source: C4
   },
   // ------------------------------------------------------------- Generic
-  box: { label: "", stroke: "#9aa3ae", description: "A plain bordered box.", source: DIAGRAMIFY },
+  box: { label: "", stroke: "#9aa3ae", description: "A plain bordered box.", source: STACKDRAW },
   dashed: {
     label: "",
     stroke: "#9aa3ae",
     dash: "6 4",
     description: "A dashed boundary.",
-    source: DIAGRAMIFY
+    source: STACKDRAW
   },
   zone: {
     label: "",
@@ -8607,7 +8608,7 @@ var DEFS = {
     fill: "#f4f6f8",
     rounded: 10,
     description: "A filled panel without a strong border, for tiers and lanes.",
-    source: DIAGRAMIFY
+    source: STACKDRAW
   },
   boundary: {
     label: "",
@@ -8625,7 +8626,7 @@ var DEFS = {
     fill: "#f4f6f8",
     icon: "tabler:building",
     description: "An on-premises site, vendor-neutral.",
-    source: DIAGRAMIFY
+    source: STACKDRAW
   },
   internet: {
     label: "Internet",
@@ -8633,7 +8634,7 @@ var DEFS = {
     dash: "2 3",
     icon: "tabler:world",
     description: "The public internet.",
-    source: DIAGRAMIFY
+    source: STACKDRAW
   }
 };
 var GROUP_STYLES = Object.fromEntries(
@@ -9702,7 +9703,7 @@ function edge(ctx, e, routing) {
     if (start) pts = trim(pts, false, cut);
   }
   const dash = e.line === "dashed" ? ` stroke-dasharray="6 4"` : e.line === "dotted" ? ` stroke-dasharray="1.5 3.5" stroke-linecap="round"` : "";
-  const flow = ctx.scene.animate === "flow" ? ` class="dfy-flow${e.line === "solid" || e.line === "thick" ? " dfy-solid" : ""}"` : "";
+  const flow = ctx.scene.animate === "flow" ? ` class="sdw-flow${e.line === "solid" || e.line === "thick" ? " sdw-solid" : ""}"` : "";
   const d = edgePath(pts, routing);
   const parts = [
     `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linejoin="round"${dash}${flow}/>`
@@ -9894,14 +9895,14 @@ function node(ctx, nd) {
   const body = nd.url ? `<a href="${esc(nd.url)}" xlink:href="${esc(nd.url)}" target="_blank">${inner}</a>` : inner;
   return `<g id="${ctx.prefix}n-${nd.id}">${body}</g>`;
 }
-var FLOW_CSS = `@keyframes dfy-flow{to{stroke-dashoffset:-20}}.dfy-flow{animation:dfy-flow 1.1s linear infinite}.dfy-solid{stroke-dasharray:7 3}`;
+var FLOW_CSS = `@keyframes sdw-flow{to{stroke-dashoffset:-20}}.sdw-flow{animation:sdw-flow 1.1s linear infinite}.sdw-solid{stroke-dasharray:7 3}`;
 function renderSvg(scene, opts = {}) {
   const t = THEME_TOKENS[scene.theme];
   const prefix = opts.idPrefix ? `${opts.idPrefix.replace(/[^A-Za-z0-9_-]/g, "")}-` : "";
   const ctx = { t, prefix, icons: 0, scene, motion: motionPlan(scene) };
   const { width: W, height: H } = scene;
-  const titleId = `${prefix}dfy-title`;
-  const descId = `${prefix}dfy-desc`;
+  const titleId = `${prefix}sdw-title`;
+  const descId = `${prefix}sdw-desc`;
   const out = [];
   out.push(
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="${titleId} ${descId}" font-family="${esc(FONT_STACK)}">`
@@ -10189,8 +10190,8 @@ function renderDrawio(scene, name = "Diagram") {
   for (const e of scene.edges) edge2(ctx, e, boxes);
   const bg = scene.background === "transparent" ? "none" : scene.background ?? t.background;
   return [
-    `<mxfile host="diagramify" agent="diagramify" type="device">`,
-    `<diagram id="diagramify" name="${esc(name)}">`,
+    `<mxfile host="stackdraw" agent="stackdraw" type="device">`,
+    `<diagram id="stackdraw" name="${esc(name)}">`,
     `<mxGraphModel dx="${scene.width}" dy="${scene.height}" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="${scene.width}" pageHeight="${scene.height}" background="${bg}" math="0" shadow="0">`,
     `<root><mxCell id="0"/><mxCell id="1" parent="0"/>`,
     ...ctx.cells,
@@ -10208,7 +10209,7 @@ function renderHtml(input) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="generator" content="diagramify">
+<meta name="generator" content="stackdraw">
 <title>${esc(input.title)}</title>
 <style>
 :root{color-scheme:light dark;--bg:#f6f7f9;--panel:#ffffff;--ink:#1f2937;--muted:#5f6b7a;--line:#d8dde3;--accent:#2563eb}
@@ -10336,7 +10337,7 @@ async function renderPng(svg, opts = {}) {
 }
 
 // src/render/tsx.ts
-var UID = "DFYUID";
+var UID = "SDWUID";
 var KEEP = /* @__PURE__ */ new Set([
   "viewBox",
   "gradientUnits",
@@ -10428,7 +10429,7 @@ function renderTsx(scene, name) {
     out.push(`${indent()}${inStyle ? templateLiteral(textNode) : jsxText(textNode)}`);
   }
   return [
-    "// Generated by diagramify. Edit the diagram spec and re-render instead of editing this file.",
+    "// Generated by stackdraw. Edit the diagram spec and re-render instead of editing this file.",
     `import { type SVGProps, useId } from "react";`,
     "",
     `export default function ${name}(props: SVGProps<SVGSVGElement>) {`,
@@ -10721,7 +10722,7 @@ function parseSpec(source, filename = "diagram.yaml") {
   }
   if (!isObj(raw)) {
     err("DG100", "the spec must be a mapping with nodes, groups and edges", {
-      fixes: ["start from `diagramify init`"]
+      fixes: ["start from `stackdraw init`"]
     });
     return { diagnostics };
   }
@@ -10853,7 +10854,7 @@ function parseSpec(source, filename = "diagram.yaml") {
         subject: { group: id, type },
         fixes: [
           ...near ? [`use type "${near}"`] : [],
-          "run `diagramify styles` for every group type"
+          "run `stackdraw styles` for every group type"
         ]
       });
     }
@@ -10940,7 +10941,7 @@ function parseSpec(source, filename = "diagram.yaml") {
           subject: { node: id, icon: iconRaw },
           fixes: [
             ...suggestIcons(iconRaw).map((s) => `use icon "${s}"`),
-            `run \`diagramify icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``
+            `run \`stackdraw icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``
           ]
         });
       }
@@ -11210,23 +11211,23 @@ function suggestIds(id, ids, kind) {
 
 // src/cli.ts
 var VERSION = true ? "0.2.0" : "dev";
-var HELP = `diagramify ${VERSION}: architecture and system design diagrams with official icons
+var HELP = `stackdraw ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
-  diagramify render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
+  stackdraw render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
                     [--scale 3] [--animate packets|flow|none] [--static] [--font extra.ttf]
                     [--strict] [--force] [--json]
-  diagramify validate <spec.yaml> [--strict] [--json]
-  diagramify icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
-  diagramify icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
-  diagramify icons list [--pack aws] [--category Compute] [--type service] [--json]
-  diagramify icons packs [--json]
-  diagramify icons fetch [pack...]
-  diagramify styles [--json]
-  diagramify import mermaid <flowchart.mmd|-> [-o diagram.yaml]
-  diagramify init [template] [-o diagram.yaml] [--list]
-  diagramify doctor
-  diagramify demo [out-dir]
+  stackdraw validate <spec.yaml> [--strict] [--json]
+  stackdraw icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
+  stackdraw icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
+  stackdraw icons list [--pack aws] [--category Compute] [--type service] [--json]
+  stackdraw icons packs [--json]
+  stackdraw icons fetch [pack...]
+  stackdraw styles [--json]
+  stackdraw import mermaid <flowchart.mmd|-> [-o diagram.yaml]
+  stackdraw init [template] [-o diagram.yaml] [--list]
+  stackdraw doctor
+  stackdraw demo [out-dir]
 
 Packs: ${PACK_ORDER.join(", ")}. Spec reference: references/spec.md in the skill folder.
 Exit codes: 0 ok, 1 diagram errors (or warnings with --strict), 2 bad command line.`;
@@ -11269,7 +11270,7 @@ function parseArgs(argv) {
   return out;
 }
 function usage(message) {
-  process.stderr.write(`diagramify: ${message}
+  process.stderr.write(`stackdraw: ${message}
 
 ${HELP}
 `);
@@ -11562,7 +11563,7 @@ function cmdInit(args) {
   writeAtomic(out, readFileSync5(file, "utf8"));
   process.stdout.write(
     `wrote ${out} from template ${name}
-next: diagramify render ${basename(out)}
+next: stackdraw render ${basename(out)}
 `
   );
 }
@@ -11586,7 +11587,7 @@ function cmdImport(args) {
   const guessed = Object.keys(result.guessed).length;
   process.stdout.write(
     `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}
-next: add icons, then diagramify validate ${basename(out)}
+next: add icons, then stackdraw validate ${basename(out)}
 `
   );
 }
@@ -11644,7 +11645,7 @@ async function cmdDoctor() {
   process.exitCode = checks.every(([, p]) => p) ? 0 : 1;
 }
 async function cmdDemo(args) {
-  const dir = resolve(args._[0] ?? "diagramify-demo");
+  const dir = resolve(args._[0] ?? "stackdraw-demo");
   let failed = 0;
   for (const t of templates()) {
     const text2 = readFileSync5(join7(examplesDir, `${t}.yaml`), "utf8");
@@ -11705,7 +11706,7 @@ async function main(argv = process.argv.slice(2)) {
 
 // src/main.ts
 main().catch((e) => {
-  process.stderr.write(`diagramify: ${e?.stack ?? e}
+  process.stderr.write(`stackdraw: ${e?.stack ?? e}
 `);
   process.exitCode = 1;
 });

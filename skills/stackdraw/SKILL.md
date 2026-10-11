@@ -1,5 +1,5 @@
 ---
-name: diagramify
+name: stackdraw
 description: >-
   Draws professional architecture and system design diagrams with official icons (AWS, Azure,
   Google Cloud, Kubernetes, GitHub Octicons, 5,500 tech logos and 6,000 generic symbols) and
@@ -15,15 +15,15 @@ metadata:
   author: Sagar Gupta
 ---
 
-# diagramify
+# stackdraw
 
-Write a small YAML spec (nodes with official icons, nested groups, labelled edges); the bundled CLI lays it out with ELK and renders it. No install: the CLI, the layout engine, the PNG renderer, the fonts and the official AWS, Azure, Google Cloud and Kubernetes packs ship in this folder; the logo and glyph sets (13,876 icons in all) load from their npm libraries the first time a diagram uses them and are cached. Node.js 22 or newer is the only requirement.
+Write a small YAML spec (nodes with official icons, nested groups, labelled edges); the bundled CLI lays it out with ELK and renders it. No install: the CLI, the layout engine, the PNG renderer, the fonts and the official AWS, Azure, Google Cloud and Kubernetes packs ship in this folder; the logo and glyph sets (16,652 icons in all) load from their npm libraries the first time a diagram uses them and are cached. Node.js 22 or newer is the only requirement.
 
 ```bash
-node <this-skill-folder>/scripts/diagramify.mjs <command>
+node <this-skill-folder>/scripts/stackdraw.mjs <command>
 ```
 
-Below, `diagramify` means that command.
+Below, `stackdraw` means that command.
 
 ## Fast path
 
@@ -33,13 +33,13 @@ Follow this order. Write the spec early and let the validator steer; do not plan
 2. **Find every icon id**, never guess one:
 
    ```bash
-   diagramify icons search api gateway
-   diagramify icons search postgres
-   diagramify icons search load balancer --pack azure
+   stackdraw icons search api gateway
+   stackdraw icons search postgres
+   stackdraw icons search load balancer --pack azure
    ```
 
    Official vendor icons for vendor services (`aws:`, `azure:`, `gcp:`, `k8s:`, `github:`), `logos:` (color) or `si:` (one-color brand) for third-party products, `generic:` aliases or `tabler:` for neutral concepts (user, browser, server, queue, cache). Short aliases work: `aws:s3`, `aws:alb`, `azure:aks`, `gcp:bq`, `k8s:deploy`, `generic:database`.
-3. **Start from the nearest example** when one fits (`diagramify init --list`, then `diagramify init aws-three-tier -o docs/architecture.yaml`), otherwise write the spec from scratch. The format is in [references/spec.md](references/spec.md); a minimal one:
+3. **Start from the nearest example** when one fits (`stackdraw init --list`, then `stackdraw init aws-three-tier -o docs/architecture.yaml`), otherwise write the spec from scratch. The format is in [references/spec.md](references/spec.md); a minimal one:
 
    ```yaml
    title: Orders API
@@ -57,15 +57,15 @@ Follow this order. Write the spec early and let the validator steer; do not plan
      - api -> fn -> table
    ```
 
-4. **Validate and repair**: `diagramify validate docs/architecture.yaml --strict`. Each finding has a code, a subject and `fix:` lines; apply the first fix that keeps the meaning, change only the reported subject, and re-run. Two rounds without improvement means stop and report what is left.
-5. **Render**: `diagramify render docs/architecture.yaml -o docs/architecture -f svg,png` (add `drawio`, `tsx`, `html` or `-f all` when asked; `--theme both` writes `-light` and `-dark` files). A non-zero exit means nothing usable was written; never describe it as success.
+4. **Validate and repair**: `stackdraw validate docs/architecture.yaml --strict`. Each finding has a code, a subject and `fix:` lines; apply the first fix that keeps the meaning, change only the reported subject, and re-run. Two rounds without improvement means stop and report what is left.
+5. **Render**: `stackdraw render docs/architecture.yaml -o docs/architecture -f svg,png` (add `drawio`, `tsx`, `html` or `-f all` when asked; `--theme both` writes `-light` and `-dark` files). A non-zero exit means nothing usable was written; never describe it as success.
 6. **Look at the PNG** (open the image file and view it). Check that the main path reads in one direction, nothing overlaps, labels are legible and groups nest the way the real system does. If something reads badly, change the spec (node order, `direction`, grouping, `layout.layering: simplex`, `layout.spacing: loose`) and render again.
 7. **Report** the written paths, node/group/edge counts, any warnings that remain and why, and the embed snippet if it goes into a README.
 
 ## What makes it look professional
 
 - One obvious main flow. List nodes in the order data moves through them; ELK keeps that order where it can.
-- Boundaries from the outside in, with the vendor's group types: `aws:cloud` > `aws:account` > `aws:region` > `aws:vpc` > `aws:az` > `aws:public-subnet` / `aws:private-subnet`; Google Cloud `gcp:cloud` > `gcp:project` > `gcp:region` > `gcp:zone`; Azure `azure:subscription` > `azure:resource-group` > `azure:vnet` > `azure:subnet`; Kubernetes `k8s:cluster` > `k8s:namespace`. Neutral diagrams use `zone`, `box`, `dashed` and `boundary`. Run `diagramify styles` for all of them.
+- Boundaries from the outside in, with the vendor's group types: `aws:cloud` > `aws:account` > `aws:region` > `aws:vpc` > `aws:az` > `aws:public-subnet` / `aws:private-subnet`; Google Cloud `gcp:cloud` > `gcp:project` > `gcp:region` > `gcp:zone`; Azure `azure:subscription` > `azure:resource-group` > `azure:vnet` > `azure:subnet`; Kubernetes `k8s:cluster` > `k8s:namespace`. Neutral diagrams use `zone`, `box`, `dashed` and `boundary`. Run `stackdraw styles` for all of them.
 - Official names, short. Labels default to the icon's official name; override with the name readers know ("Amazon SQS", "Orders queue") and put specifics in `note` ("t3.medium x3", "PostgreSQL 16").
 - Label an edge only when it says something the endpoints do not: protocol, action, sync vs async, cross-boundary mechanism. Numbered `step:` edges for walkthroughs.
 - Dashed edges for async or optional paths, thick for the hot path, `<->` for request/response only when both directions matter.
@@ -99,7 +99,7 @@ Details, the JSON receipt and per-format notes: [references/outputs.md](referenc
 - **A repository**: read the deploy and infra files (Terraform, CDK, CloudFormation, Kubernetes manifests, Helm values, docker-compose, serverless.yml, workflow files) and draw what they create. Every node must trace to a file; when something is inferred, say so in your report rather than inventing a component.
 - **Terraform**: one node per meaningful resource (`aws_lambda_function` -> `aws:lambda`, `aws_db_instance` -> `aws:rds`), groups from VPC/subnet/region/account structure; skip glue resources (policies, attachments) unless they are the point.
 - **Kubernetes**: `k8s:` icons for kinds, `k8s:namespace` groups, Ingress -> Service -> Deployment -> Pods edges.
-- **Mermaid flowchart**: `diagramify import mermaid flow.mmd -o docs/architecture.yaml` converts nodes, subgraphs, edge styles and shapes, and sets an official icon where a label is exactly a product name (listed in a comment to check). Then swap the remaining shapes for icons, turn the `zone` groups into vendor groups and validate. Mermaid styling (`classDef`, `style`) is dropped on purpose.
+- **Mermaid flowchart**: `stackdraw import mermaid flow.mmd -o docs/architecture.yaml` converts nodes, subgraphs, edge styles and shapes, and sets an official icon where a label is exactly a product name (listed in a comment to check). Then swap the remaining shapes for icons, turn the `zone` groups into vendor groups and validate. Mermaid styling (`classDef`, `style`) is dropped on purpose.
 
 Patterns with spec fragments (three-tier, serverless, event-driven, data lake, streaming, RAG, CI/CD, hybrid network, Kubernetes, system design primitives): [references/patterns.md](references/patterns.md).
 

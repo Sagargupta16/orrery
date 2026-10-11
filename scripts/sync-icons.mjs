@@ -4,7 +4,7 @@
 //   node scripts/sync-icons.mjs            rebuild from the pinned sources (checksums must match)
 //   node scripts/sync-icons.mjs --latest   find the newest official packages, re-pin, rebuild
 //
-// Output: skills/diagramify/assets/icons/<pack>.json (bodies) and index.json (names, search, aliases).
+// Output: skills/stackdraw/assets/icons/<pack>.json (bodies) and index.json (names, search, aliases).
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -15,7 +15,7 @@ import { optimize } from "svgo";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const sourcesPath = join(root, "scripts/icon-sources.json");
 const aliasesPath = join(root, "scripts/icon-aliases.json");
-const outDir = join(root, "skills/diagramify/assets/icons");
+const outDir = join(root, "skills/stackdraw/assets/icons");
 const cacheDir = join(root, ".cache/icons");
 const nodeModules = join(root, "node_modules");
 const latest = process.argv.includes("--latest");
@@ -34,7 +34,7 @@ async function download(url, expected) {
     buf = readFileSync(cached);
   } else {
     const res = await fetch(url, {
-      headers: { "user-agent": "diagramify-sync-icons" },
+      headers: { "user-agent": "stackdraw-sync-icons" },
     });
     if (!res.ok) throw new Error(`GET ${url} -> HTTP ${res.status}`);
     buf = Buffer.from(await res.arrayBuffer());
@@ -51,7 +51,7 @@ async function download(url, expected) {
 
 async function pageText(url) {
   const res = await fetch(url, {
-    headers: { "user-agent": "Mozilla/5.0 diagramify-sync-icons" },
+    headers: { "user-agent": "Mozilla/5.0 stackdraw-sync-icons" },
   });
   if (!res.ok) throw new Error(`GET ${url} -> HTTP ${res.status}`);
   return res.text();
@@ -90,7 +90,7 @@ async function refreshPins() {
 
 // Every id an icon defines is rewritten to start with this token; the renderer swaps it for a
 // per-instance prefix so two copies of one icon (or two icons from the same export tool) never clash.
-const ID_TOKEN = "dfyid";
+const ID_TOKEN = "sdwid";
 
 const ROOT_PAINT = [
   "fill",
@@ -164,6 +164,7 @@ function luminance(hex) {
 
 const ACRONYMS = new Set([
   "ai",
+  "ibm",
   "api",
   "apis",
   "bi",
@@ -212,7 +213,13 @@ function slugify(s) {
 }
 
 const SMALL = new Set(["and", "for", "on", "to", "of", "in", "with", "the", "a", "by"]);
-const SPECIAL = { apis: "APIs", vmware: "VMware", powershell: "PowerShell", bigquery: "BigQuery" };
+const SPECIAL = {
+  apis: "APIs",
+  vmware: "VMware",
+  powershell: "PowerShell",
+  bigquery: "BigQuery",
+  watsonx: "watsonx",
+};
 
 function titleCase(words) {
   return words
@@ -692,7 +699,7 @@ function buildIconify(
   title,
   page,
   license,
-  { mono = false, category = "Logos", type = "logo" } = {},
+  { mono = false, category = "Logos", type = "logo", kind } = {},
 ) {
   const data = iconifySet(pkg);
   const info = JSON.parse(readFileSync(join(nodeModules, pkg, "info.json"), "utf8"));
@@ -714,7 +721,7 @@ function buildIconify(
     if ([...dated.values()].includes(name)) continue;
     const base = name.replace(/-icon$/, "");
     const n = officialTitles().get(base.replace(/[^a-z0-9]/g, "")) ?? titleCase(base);
-    pack.add(name, { n, c: category, t: type, name: dated.get(name) });
+    pack.add(name, { n, c: category, t: type, ...kind?.(name), name: dated.get(name) });
   }
   return pack;
 }
@@ -769,6 +776,22 @@ async function main() {
     await buildGcp(),
     await buildK8s(),
     buildOcticons(),
+    // IBM's technical diagram guide puts Carbon UI icons in diagram nodes; the ibm-* ones are
+    // IBM's product glyphs.
+    buildIconify(
+      "@iconify-json/carbon",
+      "ibm",
+      "IBM Carbon icons",
+      "https://carbondesignsystem.com/elements/icons/library/",
+      "Apache-2.0",
+      {
+        mono: true,
+        category: "Carbon",
+        type: "glyph",
+        kind: (name) =>
+          /^(ibm|watson)/.test(name) ? { c: "IBM products", t: "service" } : undefined,
+      },
+    ),
     buildIconify(
       "@iconify-json/logos",
       "logos",

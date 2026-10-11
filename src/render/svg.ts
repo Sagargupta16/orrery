@@ -229,7 +229,7 @@ function edge(ctx: Ctx, e: SceneEdge, routing: Scene["routing"]): string {
         : "";
   const flow =
     ctx.scene.animate === "flow"
-      ? ` class="dfy-flow${e.line === "solid" || e.line === "thick" ? " dfy-solid" : ""}"`
+      ? ` class="sdw-flow${e.line === "solid" || e.line === "thick" ? " sdw-solid" : ""}"`
       : "";
   const d = edgePath(pts, routing);
   const parts = [
@@ -475,15 +475,15 @@ function node(ctx: Ctx, nd: SceneNode): string {
 
 // ---------------------------------------------------------------- document
 
-const FLOW_CSS = `@keyframes dfy-flow{to{stroke-dashoffset:-20}}.dfy-flow{animation:dfy-flow 1.1s linear infinite}.dfy-solid{stroke-dasharray:7 3}`;
+const FLOW_CSS = `@keyframes sdw-flow{to{stroke-dashoffset:-20}}.sdw-flow{animation:sdw-flow 1.1s linear infinite}.sdw-solid{stroke-dasharray:7 3}`;
 
 export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
   const t = THEME_TOKENS[scene.theme];
   const prefix = opts.idPrefix ? `${opts.idPrefix.replace(/[^A-Za-z0-9_-]/g, "")}-` : "";
   const ctx: Ctx = { t, prefix, icons: 0, scene, motion: motionPlan(scene) };
   const { width: W, height: H } = scene;
-  const titleId = `${prefix}dfy-title`;
-  const descId = `${prefix}dfy-desc`;
+  const titleId = `${prefix}sdw-title`;
+  const descId = `${prefix}sdw-desc`;
   const out: string[] = [];
   out.push(
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="${titleId} ${descId}" font-family="${esc(FONT_STACK)}">`,

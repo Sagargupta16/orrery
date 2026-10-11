@@ -1,4 +1,4 @@
-// Runs the bundled CLI (skills/diagramify/scripts/diagramify.mjs), which is what ships in the
+// Runs the bundled CLI (skills/stackdraw/scripts/stackdraw.mjs), which is what ships in the
 // skill. `node scripts/build.mjs --check` in CI keeps it in step with src/.
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -32,7 +32,7 @@ let dir = "";
 const cli = (...args: string[]) => runCli(args, dir);
 
 beforeAll(() => {
-  dir = mkdtempSync(join(tmpdir(), "diagramify-cli-"));
+  dir = mkdtempSync(join(tmpdir(), "stackdraw-cli-"));
   writeFileSync(join(dir, "good.yaml"), SAMPLE);
   writeFileSync(join(dir, "bad.yaml"), "nodes:\n  f: { icon: aws:lamda }\n");
   writeFileSync(join(dir, "lonely.yaml"), "nodes: { a: A, b: B, c: C }\nedges:\n  - a -> b\n");
@@ -195,6 +195,6 @@ describe("CLI", () => {
   ])("exits 2 for %s", async (_what, args) => {
     const r = await cli(...args);
     expect(r.code).toBe(2);
-    expect(r.stderr).toMatch(/^diagramify: /);
+    expect(r.stderr).toMatch(/^stackdraw: /);
   });
 });

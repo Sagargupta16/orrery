@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1811" height="709" viewBox="0 0 1811 709" role="img" aria-labelledby="dfy-title dfy-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
-<title id="dfy-title">GitOps delivery to three clouds</title>
-<desc id="dfy-desc">GitOps delivery to three clouds. 10 components in 5 groups. Connections: Developer to GitHub Actions (git push); GitHub Actions to Container registry (image); GitHub Actions to Argo CD (new tag); Argo CD to Production clusters (sync); Users to Cloudflare (HTTPS); Cloudflare to Production clusters (traffic); Production clusters to Grafana (metrics).</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1811" height="709" viewBox="0 0 1811 709" role="img" aria-labelledby="sdw-title sdw-desc" font-family="Inter, &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif">
+<title id="sdw-title">GitOps delivery to three clouds</title>
+<desc id="sdw-desc">GitOps delivery to three clouds. 10 components in 5 groups. Connections: Developer to GitHub Actions (git push); GitHub Actions to Container registry (image); GitHub Actions to Argo CD (new tag); Argo CD to Production clusters (sync); Users to Cloudflare (HTTPS); Cloudflare to Production clusters (traffic); Production clusters to Grafana (metrics).</desc>
 <rect width="1811" height="709" fill="#0d1117"/>
 <text font-size="20" font-weight="600" fill="#e6edf3"><tspan x="28" y="43.78">GitOps delivery to three clouds</tspan></text>
 <text font-size="13" fill="#9aa4b2"><tspan x="28" y="66.18">GitHub Actions builds and signs the image, Argo CD syncs GKE, AKS and EKS, Cloudflare fronts all three and Grafana watches them</tspan></text>
