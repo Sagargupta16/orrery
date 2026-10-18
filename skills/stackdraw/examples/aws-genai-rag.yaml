@@ -1,14 +1,20 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Retrieval augmented generation on AWS
 subtitle: Documents are chunked and embedded into OpenSearch Serverless; an AgentCore agent retrieves context and answers with a Bedrock model
-direction: right
-# Separate ports: the dotted telemetry edges would otherwise share trunks with the data edges.
+direction: down
+# merge: false gives every edge into the models, the vector index and CloudWatch its own port;
+# merged trunks would hide which flow is which.
 layout: { merge: false }
+
+legend:
+  solid: Requests and data
+  dashed: Authentication
+  dotted: Telemetry
 
 groups:
   cloud: { type: aws:cloud }
   region: { type: aws:region, label: us-east-1, in: cloud }
-  # Two lanes so the flows do not interleave; the vector index sits outside both, where they meet.
+  # Two lanes so the flows do not interleave; both models and the vector index sit outside them, where the flows meet.
   query: { type: zone, label: Query, in: region }
   ingestion: { type: zone, label: Ingestion, in: region }
 
@@ -16,20 +22,21 @@ nodes:
   users: { icon: aws:users, label: Users }
   auth: { icon: aws:cognito, label: Amazon Cognito, note: User pool, in: query }
   api: { icon: aws:api-gateway, label: Amazon API Gateway, in: query }
-  agent: { icon: aws:bedrock-agentcore, label: RAG agent, note: AgentCore Runtime, in: query }
-  llm: { icon: aws:bedrock, label: Amazon Bedrock, note: Text generation model, in: query }
-  docs: { icon: aws:s3, label: Documents, note: S3 bucket, in: ingestion }
-  ingest: { icon: aws:lambda, label: Ingestion function, note: Chunk and embed, in: ingestion }
-  embed: { icon: aws:bedrock, label: Amazon Bedrock, note: Titan Embeddings V2, in: ingestion }
-  vectors: { icon: aws:opensearch, label: Vector index, note: OpenSearch Serverless, in: region }
+  agent: { icon: aws:bedrock-agentcore, label: RAG agent, note: Amazon Bedrock AgentCore Runtime, in: query }
+  llm: { icon: aws:bedrock, label: Amazon Bedrock, note: Text generation model, in: region }
+  docs: { icon: aws:simple-storage-service-bucket, label: Documents, note: Amazon S3 bucket, in: ingestion }
+  ingest: { icon: aws:lambda-lambda-function, label: Ingestion function, note: Chunk and embed, in: ingestion }
+  embed: { icon: aws:bedrock, label: Amazon Bedrock, note: Titan Text Embeddings V2, in: region }
+  vectors: { icon: aws:opensearch-service-index, label: Vector index, note: Amazon OpenSearch Serverless, in: region }
   logs: { icon: aws:cloudwatch, label: Amazon CloudWatch, note: Logs and traces, in: region }
 
 edges:
   - users --> auth: sign in
   - users -> api: question
-  - api <.. auth
+  - { from: auth, to: api, arrow: start, line: dashed, label: verify token }
   - api -> agent
   - agent -> llm: prompt and context
+  - agent -> embed: embed question
   - agent -> vectors: retrieve
   - docs -> ingest: ObjectCreated
   - ingest -> embed: chunks

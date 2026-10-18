@@ -1,23 +1,27 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Chat system design
 subtitle: WebSocket gateways keep clients connected; messages go through Kafka to Cassandra and to push providers for offline users
-direction: right
-# One port per edge: two-way WebSocket arrows and dashed media edges leave the same nodes.
+direction: down
+# One port per edge: same-style edges that leave one node (the topic's two outputs, push to APNs and FCM) keep their own lines.
 layout: { merge: false }
+
+legend:
+  solid: Chat traffic
+  dashed: Media transfer
 
 nodes:
   clients: { icon: generic:mobile, label: Clients, note: Mobile and web }
-  lb: { icon: generic:load-balancer, label: Load balancer, note: Sticky sessions }
+  lb: { icon: generic:load-balancer, label: Load balancer, note: "L4, Upgrade-aware" }
   gateway: { icon: logos:websocket, label: WebSocket gateway, note: Open connections, badge: x4 }
-  chat: { icon: generic:servers, label: Chat service, note: Ordering and fan-out }
+  chat: { icon: generic:servers, label: Chat service, note: "Ordering, fan-out, presigned URLs" }
   presence: { icon: generic:server, label: Presence service, note: Heartbeats }
   # Shapes give the whiteboard look: cylinders for stores, a queue for the topic.
-  status: { shape: cylinder, icon: logos:redis, label: Presence store, note: Redis with TTL keys }
   topic: { shape: queue, icon: logos:kafka-icon, label: messages, note: Kafka topic }
+  status: { shape: cylinder, icon: logos:redis, label: Presence store, note: Redis with TTL keys }
   history: { shape: cylinder, icon: si:apachecassandra, label: Message store, note: Cassandra }
   push: { icon: generic:notification, label: Push service, note: Offline users }
-  apns: { icon: logos:apple, label: APNs }
-  fcm: { icon: logos:firebase-icon, label: FCM }
+  apns: { icon: tabler:device-mobile-message, label: APNs, note: Apple Push Notification service }
+  fcm: { icon: logos:firebase-icon, label: FCM, note: Firebase Cloud Messaging }
   media: { icon: generic:bucket, label: Media storage, note: Presigned uploads }
   cdn: { icon: generic:cdn, label: CDN, note: Media downloads }
 
@@ -25,9 +29,14 @@ edges:
   - clients <-> lb: WebSocket
   - lb <-> gateway <-> chat
   - gateway -> presence -> status
+  - chat -> status: who is online
+  - push -> status: offline?
+  - chat -> history: load history
   - chat -> topic
   - topic -> history: persist
   - topic -> push: notify
   - push -> apns, fcm
   - clients --> media: upload
   - media --> cdn
+  # Written in layout order with the arrow flipped, so the download does not loop back to the first row.
+  - { from: clients, to: cdn, arrow: start, line: dashed, label: download }

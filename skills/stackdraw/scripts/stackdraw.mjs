@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// stackdraw 0.2.1 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// stackdraw 0.3.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -7393,7 +7393,7 @@ function parseHex(hex) {
   if (!/^[0-9a-fA-F]{6}$/.test(h)) return void 0;
   return [0, 2, 4].map((i) => Number.parseInt(h.slice(i, i + 2), 16));
 }
-var isHex = (s) => parseHex(s) !== void 0;
+var isHex = (s) => /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(s);
 function toHex([r, g, b]) {
   return `#${[r, g, b].map(
     (v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")
@@ -7423,7 +7423,7 @@ function contrast(a, b) {
 }
 function ensureContrast(fg, bg, ratio = 4.5) {
   if (!isHex(fg) || !isHex(bg) || contrast(fg, bg) >= ratio) return fg;
-  const target = luminance(bg) > 0.4 ? "#000000" : "#ffffff";
+  const target = contrast("#000000", bg) >= contrast("#ffffff", bg) ? "#000000" : "#ffffff";
   for (let t = 0.05; t <= 1.0001; t += 0.05) {
     const c = mixHex(target, fg, t);
     if (contrast(c, bg) >= ratio) return c;
@@ -7561,11 +7561,11 @@ function libraryIcon(set, name, mono = false) {
   return { v, b: body };
 }
 function allDark(body) {
-  if (/Gradient|<image/.test(body)) return false;
-  const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="(#[0-9a-fA-F]{3,6})"/g)].map(
-    (m) => m[1] ?? ""
+  if (/Gradient|<image|style="[^"]*(?:fill|stroke)\s*:/.test(body)) return false;
+  const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="([^"]+)"/g)].map((m) => m[1] ?? "").filter((c) => c !== "none");
+  return colors.every(
+    (c) => c === "black" || /^#[0-9a-fA-F]{3,6}$/.test(c) && luminance(c) < 0.06
   );
-  return colors.length > 0 && colors.every((c) => luminance(c) < 0.06);
 }
 
 // src/paths.ts
@@ -7616,6 +7616,9 @@ function loadPack(pack) {
 }
 function packInfo() {
   return loadIndex().packs;
+}
+function aliases() {
+  return loadIndex().aliases;
 }
 function clean(id) {
   return id.trim().toLowerCase().replace(/\s+/g, "-").replace(/^([a-z0-9]+)[/.]/, "$1:");
@@ -7806,6 +7809,13 @@ function packEntry(info) {
   if (!entry) throw new Error(`icon ${info.id} missing from ${info.pack}.json`);
   return entry;
 }
+function iconAspect(id) {
+  const info = iconInfo(id);
+  if (!info) return void 0;
+  if (loadIndex().packs[info.pack]?.lib && !loadedLibrary(info.pack)) return void 0;
+  const [, , w, h] = packEntry(info).v.split(/[\s,]+/).map(Number);
+  return w && h ? w / h : void 0;
+}
 async function loadIconLibraries(ids) {
   const packs2 = /* @__PURE__ */ new Map();
   for (const id of ids) {
@@ -7815,6 +7825,7 @@ async function loadIconLibraries(ids) {
   }
   await Promise.all([...packs2].map(([pack, lib]) => loadLibrary(pack, lib)));
 }
+var BLACK_OR_WHITE = /* @__PURE__ */ new Set(["github:mark-github"]);
 function renderIcon(id, instance, paint) {
   const info = iconInfo(id);
   if (!info) throw new Error(`unknown icon ${id}`);
@@ -7824,10 +7835,16 @@ function renderIcon(id, instance, paint) {
   if (entry.m) {
     let color = paint.color ?? entry.col ?? paint.ink;
     if (contrast(color, paint.background) < 2.2) color = paint.ink;
+    if (BLACK_OR_WHITE.has(info.id))
+      color = paint.color ?? (contrast("#000000", paint.background) >= contrast("#ffffff", paint.background) ? "#000000" : "#ffffff");
     body = body.replaceAll("{{c}}", color);
   } else if (entry.k && paint.theme === "dark" && !entry.d) {
     const light = paint.color ?? mixHex(paint.ink, paint.background, 0.92);
-    body = body.replace(/(fill|stroke|stop-color)="#(?:[0-9a-fA-F]{3}){1,2}"/g, `$1="${light}"`);
+    body = body.replace(
+      /(fill|stroke|stop-color)="(?:#(?:[0-9a-fA-F]{3}){1,2}|black)"/g,
+      `$1="${light}"`
+    );
+    body = `<g fill="${light}">${body}</g>`;
   }
   const vb = entry.v.split(/[\s,]+/).map(Number);
   return { viewBox: [vb[0] ?? 0, vb[1] ?? 0, vb[2] ?? 24, vb[3] ?? 24], body };
@@ -7862,6 +7879,30 @@ var SHAPES = [
   [">", "]", "note"]
 ];
 var ID = "[A-Za-z0-9_][A-Za-z0-9_.-]*";
+var FRONTMATTER = /^\s*---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;
+function splitStatements(line) {
+  const out = [];
+  let depth = 0;
+  let quoted = false;
+  let piped = false;
+  let start = 0;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') quoted = !quoted;
+    else if (!quoted) {
+      if (piped) piped = c !== "|";
+      else if (c === "|" && depth === 0) piped = true;
+      else if (c === "[" || c === "(" || c === "{") depth += 1;
+      else if (c === "]" || c === ")" || c === "}") depth = Math.max(0, depth - 1);
+      else if (c === ";" && depth === 0) {
+        out.push(line.slice(start, i));
+        start = i + 1;
+      }
+    }
+  }
+  out.push(line.slice(start));
+  return out;
+}
 function unquote(s) {
   const t = s.trim();
   if (t.startsWith('"') && t.endsWith('"') || t.startsWith("'") && t.endsWith("'"))
@@ -7912,7 +7953,12 @@ function importMermaid(source) {
   const stack = [];
   let direction = "right";
   let title;
-  const lines = source.replace(/%%.*$/gm, "").split(/\r?\n|;/).map((l) => l.trim()).filter(Boolean);
+  const front = source.match(FRONTMATTER);
+  if (front) {
+    const frontTitle = (front[1] ?? "").match(/^title:[ \t]*(.+)$/m);
+    if (frontTitle) title = cleanLabel(frontTitle[1] ?? "");
+  }
+  const lines = (front ? source.slice(front[0].length) : source).replace(/%%.*$/gm, "").split(/\r?\n/).flatMap(splitStatements).map((l) => l.trim()).filter(Boolean);
   const first = lines.find((l) => l !== "---" && !/^title:/.test(l)) ?? "";
   if (!/^(flowchart|graph)\b/i.test(first)) {
     const kind = first.split(/\s/)[0] || "empty input";
@@ -7955,15 +8001,15 @@ function importMermaid(source) {
       parts.push(line.slice(last, m.index));
       const [, l1, l2, l3, lt, body = "", head2, pipeLabel] = m;
       const text2 = pipeLabel ?? l1 ?? l2 ?? l3;
-      let lineStyle = "solid";
-      if (l2 !== void 0 || body.startsWith("=")) lineStyle = "thick";
-      else if (l3 !== void 0 || body.includes(".")) lineStyle = "dotted";
+      let lineStyle2 = "solid";
+      if (l2 !== void 0 || body.startsWith("=")) lineStyle2 = "thick";
+      else if (l3 !== void 0 || body.includes(".")) lineStyle2 = "dotted";
       const hasHead = head2 === ">" || l1 !== void 0 || l2 !== void 0 || l3 !== void 0;
       parts.push({
         from: "",
         to: "",
         label: text2 ? cleanLabel(text2) : void 0,
-        line: lineStyle,
+        line: lineStyle2,
         arrow: lt && hasHead ? "both" : hasHead ? "end" : "none"
       });
       last = (m.index ?? 0) + m[0].length;
@@ -8049,6 +8095,49 @@ function guessIcon(label) {
 
 // src/check.ts
 var overlaps = (a, b, pad = 0) => a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
+var EPS = 0.5;
+var tenth = (v) => Math.round(v * 10) / 10;
+var boxOf = (b) => ({ x: tenth(b.x), y: tenth(b.y), w: tenth(b.w), h: tenth(b.h) });
+var pointOf = (p) => ({ x: tenth(p.x), y: tenth(p.y) });
+var same = (a, b) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
+function circleHitsBox(c, b) {
+  const r = c.w / 2;
+  const cx = c.x + r;
+  const cy = c.y + c.h / 2;
+  const nx = Math.min(Math.max(cx, b.x), b.x + b.w);
+  const ny = Math.min(Math.max(cy, b.y), b.y + b.h);
+  return Math.hypot(cx - nx, cy - ny) < r - EPS;
+}
+function headerChip(g) {
+  if (!g.label.lines.length) return void 0;
+  const b = g.labelBox;
+  const icon2 = g.overlay ? g.iconBox : void 0;
+  const parts = icon2 && icon2.y < b.y + b.h && b.y < icon2.y + icon2.h ? [b, icon2] : [b];
+  const x = Math.min(...parts.map((b2) => b2.x));
+  const y = Math.min(...parts.map((b2) => b2.y));
+  const r = Math.max(...parts.map((b2) => b2.x + b2.w));
+  const bt = Math.max(...parts.map((b2) => b2.y + b2.h));
+  return { x: x - 4, y: y - 1, w: r - x + 8, h: bt - y + 2 };
+}
+function badgeRect(n3) {
+  if (!n3.badge) return void 0;
+  if (n3.badgeBox) return n3.badgeBox;
+  const anchor2 = n3.look === "icon" ? n3.iconBox : n3.box;
+  if (!anchor2) return void 0;
+  const w = Math.max(18, 8 + n3.badge.length * 6.4);
+  return { x: anchor2.x + anchor2.w - w / 2 - 2, y: anchor2.y - 7, w, h: 16 };
+}
+function nodeParts(n3) {
+  const parts = [];
+  const add = (what, box) => {
+    if (box && box.w > 0 && box.h > 0) parts.push({ what, box });
+  };
+  add("label", n3.labelBox);
+  add("note", n3.noteBox);
+  if (n3.iconBox && !same(n3.iconBox, n3.box)) add("icon", n3.iconBox);
+  add(n3.look === "icon" ? "icon" : "shape", n3.box);
+  return parts;
+}
 function segmentHitsBox(p, q, b, inset = 3) {
   const box = { x: b.x + inset, y: b.y + inset, w: b.w - inset * 2, h: b.h - inset * 2 };
   if (box.w <= 0 || box.h <= 0) return false;
@@ -8175,6 +8264,17 @@ function checkScene(scene, model, opts = {}) {
       fixes: ["use direction: down for long chains", "group stages into zones"]
     });
   }
+  const tall = scene.height / Math.max(1, scene.width);
+  if (tall > 4.5 && scene.height > 1800 && scene.nodes.length > 6) {
+    warn("DG205", `diagram is a ${tall.toFixed(1)}:1 tall strip, hard to read in docs`, {
+      evidence: { width: scene.width, height: scene.height },
+      fixes: [
+        "use direction: right for long chains",
+        "arrange stages in side-by-side zones",
+        "split into two diagrams"
+      ]
+    });
+  }
   if (model.nodes.length > 40) {
     warn("DG206", `${model.nodes.length} nodes in one diagram`, {
       fixes: [
@@ -8208,6 +8308,246 @@ function checkScene(scene, model, opts = {}) {
         fixes: [`connect "${n3.id}" or remove it (fine for a legend or a standalone service)`]
       });
     }
+  }
+  for (const g of scene.groups) {
+    const chip = headerChip(g);
+    if (!chip) continue;
+    for (const e of scene.edges) {
+      for (let i = 0; i + 1 < e.points.length; i++) {
+        const p = e.points[i];
+        const q = e.points[i + 1];
+        if (p && q && segmentHitsBox(p, q, chip, EPS)) {
+          warn(
+            "DG209",
+            `edge ${e.from} -> ${e.to} runs through the header label of group "${g.id}"`,
+            {
+              subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
+              evidence: { header: boxOf(chip), segment: [pointOf(p), pointOf(q)] },
+              fixes: [
+                `shorten the label of group "${g.id}" so the edge clears it`,
+                `move "${e.from}" or "${e.to}" in the nodes list so the edge enters the group elsewhere`,
+                "use layout: { spacing: loose }"
+              ]
+            }
+          );
+          break;
+        }
+      }
+    }
+  }
+  const off = (what, subject, box, fixes) => {
+    if (!box) return;
+    const past = {
+      left: -box.x,
+      top: -box.y,
+      right: box.x + box.w - scene.width,
+      bottom: box.y + box.h - scene.height
+    };
+    const sides = Object.entries(past).filter(([, v]) => v > EPS);
+    if (!sides.length) return;
+    warn(
+      "DG210",
+      `${what} sticks out of the ${scene.width}x${scene.height} canvas (${sides.map(([k, v]) => `${tenth(v)}px past the ${k}`).join(", ")})`,
+      {
+        subject,
+        evidence: {
+          box: boxOf(box),
+          canvas: { width: scene.width, height: scene.height },
+          past: Object.fromEntries(sides.map(([k, v]) => [k, tenth(v)]))
+        },
+        fixes
+      }
+    );
+  };
+  const hull = (boxes) => {
+    const bs = boxes.filter((b) => !!b && (b.w > 0 || b.h > 0));
+    if (!bs.length) return void 0;
+    const x = Math.min(...bs.map((b) => b.x));
+    const y = Math.min(...bs.map((b) => b.y));
+    return {
+      x,
+      y,
+      w: Math.max(...bs.map((b) => b.x + b.w)) - x,
+      h: Math.max(...bs.map((b) => b.y + b.h)) - y
+    };
+  };
+  const pathBox = (pts) => {
+    if (!pts.length) return void 0;
+    const x = Math.min(...pts.map((p) => p.x));
+    const y = Math.min(...pts.map((p) => p.y));
+    return {
+      x,
+      y,
+      w: Math.max(...pts.map((p) => p.x)) - x,
+      h: Math.max(...pts.map((p) => p.y)) - y
+    };
+  };
+  const spread = ["use layout: { spacing: loose }", "move it elsewhere in the nodes list"];
+  off("the title", { title: true }, scene.titleBox, spread);
+  off("the subtitle", { subtitle: true }, scene.subtitleBox, spread);
+  for (const n3 of scene.nodes) {
+    const parts = [n3.box, n3.iconBox, n3.labelBox, n3.noteBox, badgeRect(n3)];
+    off(`node "${n3.id}"`, { node: n3.id }, hull(parts), [
+      `move "${n3.id}" in the nodes list`,
+      ...spread
+    ]);
+  }
+  for (const g of scene.groups) {
+    const parts = [g.box, g.label.lines.length ? g.labelBox : void 0, g.iconBox];
+    off(`group "${g.id}"`, { group: g.id }, hull(parts), spread);
+  }
+  for (const e of scene.edges) {
+    const free = model.edges.some((x) => x.id === e.id && !x.constraint);
+    const fixes = free ? [
+      "remove constraint: false from this edge so layout reserves room for its label and step",
+      "shorten the label"
+    ] : ["shorten the label", "use layout: { spacing: loose }"];
+    const who = `${e.from} -> ${e.to}`;
+    off(`the path of edge ${who}`, { edge: e.id, part: "path" }, pathBox(e.points), fixes);
+    off(`the label of edge ${who}`, { edge: e.id, part: "label" }, e.labelBox, fixes);
+    off(`step ${e.step} of edge ${who}`, { edge: e.id, part: "step" }, e.stepBox, fixes);
+  }
+  off("the legend", { legend: true }, scene.legend?.box, spread);
+  const pills = [];
+  for (const e of scene.edges) {
+    if (e.stepBox && e.step !== void 0) {
+      const subject = { edge: e.id, from: e.from, to: e.to, step: e.step };
+      pills.push({
+        round: true,
+        box: e.stepBox,
+        what: `step ${e.step} on ${e.from} -> ${e.to}`,
+        subject
+      });
+    }
+  }
+  for (const n3 of scene.nodes) {
+    const box = badgeRect(n3);
+    if (n3.badge && box) {
+      const what = `badge "${n3.badge}" on node "${n3.id}"`;
+      pills.push({ round: false, box, what, subject: { node: n3.id }, node: n3.id });
+    }
+  }
+  const hits = (p, b) => p.round ? circleHitsBox(p.box, b) : overlaps(p.box, b, -EPS);
+  const pillFixes = (p) => p.round ? ["shorten the edge label next to it", "use layout: { spacing: loose }"] : ["shorten the badge text", "use layout: { spacing: loose }"];
+  const pillWarn = (p, over, subject, box) => warn("DG211", `${p.what} covers ${over}`, {
+    subject: { ...p.subject, ...subject },
+    evidence: { badge: boxOf(p.box), over: boxOf(box) },
+    fixes: pillFixes(p)
+  });
+  for (const p of pills) {
+    for (const n3 of scene.nodes) {
+      const own = p.node === n3.id;
+      const hit = nodeParts(n3).filter((x) => !own || x.what === "label" || x.what === "note").find((x) => hits(p, x.box));
+      if (hit) pillWarn(p, `the ${hit.what} of node "${n3.id}"`, { over: n3.id }, hit.box);
+    }
+    for (const e of scene.edges) {
+      if (e.labelBox && hits(p, e.labelBox)) {
+        pillWarn(p, `the label of edge ${e.from} -> ${e.to}`, { over: e.id }, e.labelBox);
+      }
+    }
+  }
+  for (let i = 0; i < pills.length; i++) {
+    for (let j = i + 1; j < pills.length; j++) {
+      const a = pills[i];
+      const b = pills[j];
+      if (!a || !b) continue;
+      const [ra, rb] = [a.box.w / 2, b.box.w / 2];
+      const hit = a.round && b.round ? Math.hypot(a.box.x + ra - (b.box.x + rb), a.box.y + ra - (b.box.y + rb)) < ra + rb - EPS : a.round ? circleHitsBox(a.box, b.box) : hits(b, a.box);
+      if (hit) pillWarn(a, `${b.what}`, { over: b.node ?? b.subject.edge }, b.box);
+    }
+  }
+  for (const a of scene.edges) {
+    if (!a.labelBox) continue;
+    for (const b of scene.edges) {
+      if (b === a) continue;
+      for (let i = 0; i + 1 < b.points.length; i++) {
+        const p = b.points[i];
+        const q = b.points[i + 1];
+        if (p && q && segmentHitsBox(p, q, a.labelBox, EPS)) {
+          warn(
+            "DG212",
+            `edge ${b.from} -> ${b.to} runs through the label "${a.label?.lines.join(" ")}" of ${a.from} -> ${a.to}`,
+            {
+              subject: { edge: b.id, from: b.from, to: b.to, labelOf: a.id },
+              evidence: { label: boxOf(a.labelBox), segment: [pointOf(p), pointOf(q)] },
+              fixes: [
+                "shorten the label or drop a redundant one",
+                `move "${b.from}" or "${b.to}" in the nodes list so the two edges separate`,
+                "use layout: { spacing: loose }"
+              ]
+            }
+          );
+          break;
+        }
+      }
+    }
+  }
+  const member = (id, g) => {
+    for (let p = id; p; p = parentOf.get(p)) {
+      if (p === g.id || g.around?.includes(p)) return true;
+    }
+    return false;
+  };
+  for (const mg of model.groups) {
+    const ov = mg.around?.length ? scene.groups.find((x) => x.id === mg.id) : void 0;
+    if (!ov) continue;
+    const enclosed = [];
+    for (const n3 of scene.nodes) {
+      if (!member(n3.id, mg) && overlaps(n3.box, ov.box, -EPS))
+        enclosed.push({ id: n3.id, kind: "node", box: n3.box });
+    }
+    for (const g of scene.groups) {
+      const b = g.box;
+      const inside = b.x >= ov.box.x - EPS && b.y >= ov.box.y - EPS && b.x + b.w <= ov.box.x + ov.box.w + EPS && b.y + b.h <= ov.box.y + ov.box.h + EPS;
+      if (!g.overlay && inside && !member(g.id, mg))
+        enclosed.push({ id: g.id, kind: "group", box: b });
+    }
+    for (const x of enclosed) {
+      warn(
+        "DG213",
+        `overlay group "${mg.id}" encloses ${x.kind} "${x.id}", which it does not list in around:`,
+        {
+          subject: { group: mg.id, enclosed: x.id, kind: x.kind },
+          evidence: { overlay: boxOf(ov.box), enclosed: boxOf(x.box) },
+          fixes: [
+            `add "${x.id}" to around: of "${mg.id}" if it belongs to it`,
+            `move "${x.id}" in the nodes list so it sits outside the overlay`,
+            "put the members of the overlay next to each other (same parent group, adjacent in the nodes list)"
+          ]
+        }
+      );
+    }
+  }
+  const explained = new Set((model.legend ?? []).map((l) => l.line));
+  const styles = /* @__PURE__ */ new Map();
+  for (const e of model.edges) {
+    if (e.line !== "solid" && !explained.has(e.line))
+      styles.set(e.line, (styles.get(e.line) ?? 0) + 1);
+  }
+  if (styles.size) {
+    const counts = [...styles].map(([line, k]) => `${line} (${k} edge${k === 1 ? "" : "s"})`);
+    warn("DG217", `line styles without a legend entry: ${counts.join(", ")}`, {
+      subject: { lines: [...styles.keys()] },
+      evidence: Object.fromEntries(styles),
+      fixes: [
+        `add legend: { ${[...styles.keys()].map((l) => `${l}: <what ${l} means>`).join(", ")} }`,
+        "or draw these edges solid"
+      ]
+    });
+  }
+  if (scene.layoutFallback) {
+    warn(
+      "DG218",
+      `layout used the "${scene.layoutFallback}" fallback; spec order may not be kept`,
+      {
+        evidence: { fallback: scene.layoutFallback },
+        fixes: [
+          "check that the node order in the picture still tells the story",
+          "simplify nested groups or links between groups",
+          "try layout: { layering: simplex }"
+        ]
+      }
+    );
   }
   return out;
 }
@@ -8248,6 +8588,7 @@ var azure = (s) => ({
 });
 var K8S_DECK = "kubernetes/community icon deck";
 var STACKDRAW = "stackdraw";
+var OUTLINE = "#888f99";
 var C4 = "C4-PlantUML v2.14.0 boundary style";
 var DEFS = {
   // ------------------------------------------------------------- AWS
@@ -8375,16 +8716,18 @@ var DEFS = {
   "gcp:cloud": gcp({
     label: "Google Cloud",
     stroke: "#1f2124",
-    fill: "#4285f4",
+    fill: "#1a73e8",
     innerFill: "#ffffff",
     labelColor: "#ffffff",
-    description: "The Google Cloud frame (Google blue band, white label, white inner panel)."
+    description: "The Google Cloud frame (Google blue band, white label, white inner panel).",
+    source: `${GCP_SVG}; frame #1a73e8 + #1f2124 2px in 6/6 SVGs (#4285f4 in 0/6)`
   }),
   "gcp:region": gcp({
     label: "Region",
-    stroke: "#1f2124",
-    fill: "#e8eaed",
-    description: "A Google Cloud region (grey panel)."
+    stroke: "#202124",
+    fill: "#ffffff",
+    description: "A Google Cloud region (white panel, dark outline).",
+    source: `${GCP_SVG}; 7 regions in 4/6 SVGs, all white + solid #202124 2px (#e8eaed in 0/6)`
   }),
   "gcp:zone": gcp({
     label: "Zone",
@@ -8599,20 +8942,20 @@ var DEFS = {
     source: C4
   },
   // ------------------------------------------------------------- Generic
-  box: { label: "", stroke: "#9aa3ae", description: "A plain bordered box.", source: STACKDRAW },
+  box: { label: "", stroke: OUTLINE, description: "A plain bordered box.", source: STACKDRAW },
   dashed: {
     label: "",
-    stroke: "#9aa3ae",
+    stroke: OUTLINE,
     dash: "6 4",
     description: "A dashed boundary.",
     source: STACKDRAW
   },
   zone: {
     label: "",
-    stroke: "#e3e7ec",
+    stroke: OUTLINE,
     fill: "#f4f6f8",
     rounded: 10,
-    description: "A filled panel without a strong border, for tiers and lanes.",
+    description: "A filled panel with a soft outline, for tiers and lanes.",
     source: STACKDRAW
   },
   boundary: {
@@ -8635,7 +8978,7 @@ var DEFS = {
   },
   internet: {
     label: "Internet",
-    stroke: "#9aa3ae",
+    stroke: OUTLINE,
     dash: "2 3",
     icon: "tabler:world",
     description: "The public internet.",
@@ -8784,7 +9127,8 @@ var THEME_TOKENS = {
     surface: "#ffffff",
     border: "#c6ccd4",
     zone: "#f4f6f8",
-    stepFill: "#232f3e",
+    // Numbered callouts are black with white digits in the AWS deck.
+    stepFill: "#000000",
     stepText: "#ffffff",
     shadow: "#0f172a",
     flow: "#0972d3"
@@ -8833,11 +9177,21 @@ var SIZES = {
   cardLabelMax: 168,
   shapeLabelMax: 156,
   edgeLabelMax: 150,
-  tile: 32,
+  // AWS group tiles are 40x40 next to 48px service icons in the deck ("DON'T: Resize group icons").
+  tile: 40,
   inlineIcon: 20
 };
-var ELK_DIRECTION = { right: "RIGHT", down: "DOWN", left: "LEFT", up: "UP" };
-var ELK_ROUTING = { orthogonal: "ORTHOGONAL", polyline: "POLYLINE", spline: "SPLINES" };
+var ELK_DIRECTION = {
+  right: "RIGHT",
+  down: "DOWN",
+  left: "LEFT",
+  up: "UP"
+};
+var ELK_ROUTING = {
+  orthogonal: "ORTHOGONAL",
+  polyline: "POLYLINE",
+  spline: "SPLINES"
+};
 var round = (v) => Math.round(v * 100) / 100;
 function nodeGeometry(n3, horizontal) {
   const S = n3.iconSize;
@@ -8852,9 +9206,14 @@ function nodeGeometry(n3, horizontal) {
         h: S,
         label: label2,
         note: note2,
-        outside: { w: Math.ceil(textW2 + 4), h: Math.ceil(textH2 + 2) }
+        outside: { w: Math.ceil(textW2), h: Math.ceil(textH2) }
       };
-    return { w: Math.ceil(Math.max(S, textW2 + 4)), h: Math.ceil(S + 8 + textH2), label: label2, note: note2 };
+    return {
+      w: Math.ceil(Math.max(S, textW2)),
+      h: Math.ceil(S + 6 + textH2),
+      label: label2,
+      note: note2
+    };
   }
   if (n3.look === "card") {
     const label2 = textBlock(n3.label, SIZES.nodeLabel, SIZES.cardLabelMax, 600);
@@ -8915,6 +9274,11 @@ function nodeGeometry(n3, horizontal) {
   }
   return { w: Math.ceil(w), h: Math.ceil(h), label, note };
 }
+function badgePill(text2, anchor2) {
+  const w = round(Math.max(18, measure(text2, 10, 600) + 10));
+  const x = Math.max(anchor2.x + anchor2.w - w / 2 - 2, anchor2.x + anchor2.w / 2 + 6);
+  return { x: round(x), y: round(anchor2.y - 7), w, h: 16 };
+}
 function groupGeometry(g) {
   const style2 = resolveGroupStyle(g.type);
   const icon2 = g.icon === null ? void 0 : g.icon ?? style2?.icon;
@@ -8927,10 +9291,10 @@ function groupGeometry(g) {
     header = (icon2 ? SIZES.tile + 3 : 6) + label.height + 4;
     minWidth = Math.max(icon2 ? SIZES.tile : 0, label.width) + 32;
   } else if (iconStyle === "tile") {
-    header = icon2 ? SIZES.tile : label.height + 12;
+    header = icon2 ? Math.max(SIZES.tile, label.height + 12) : label.height + 12;
     minWidth = (icon2 ? SIZES.tile + 8 : 12) + label.width + 16;
   } else {
-    header = 34;
+    header = Math.max(34, label.height + 17);
     minWidth = 12 + (icon2 ? SIZES.inlineIcon + 8 : 0) + label.width + 16;
   }
   return {
@@ -8947,6 +9311,7 @@ async function layout(model, opts = {}) {
   const t = THEME_TOKENS[theme];
   const horizontal = model.direction === "right" || model.direction === "left";
   const s = model.spacing;
+  const minWidthOf = (id, gg) => !horizontal && opts.widen?.has(id) ? Math.max(gg.minWidth, 2 * (gg.minWidth - 10)) : gg.minWidth;
   const base = {
     "elk.algorithm": "layered",
     "elk.direction": ELK_DIRECTION[model.direction],
@@ -8955,8 +9320,9 @@ async function layout(model, opts = {}) {
     "elk.layered.layering.strategy": model.layering === "simplex" ? "NETWORK_SIMPLEX" : "LONGEST_PATH_SOURCE",
     "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
     "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-    // Keeps siblings in spec order where it costs no crossings (AZ A left of AZ B).
-    "elk.layered.considerModelOrder.strategy": "PREFER_EDGES",
+    // Orders each layer by the elk.position hints below, so siblings keep spec order (AZ A left
+    // of AZ B). considerModelOrder would do the same but crashes elkjs 0.12 on nested graphs.
+    "elk.layered.crossingMinimization.semiInteractive": "true",
     "elk.spacing.nodeNode": String(Math.round(40 * s)),
     "elk.layered.spacing.nodeNodeBetweenLayers": String(Math.round(64 * s)),
     "elk.spacing.edgeNode": String(Math.round(18 * s)),
@@ -8966,6 +9332,8 @@ async function layout(model, opts = {}) {
     "elk.spacing.edgeLabel": "4",
     "elk.spacing.labelNode": "6",
     "elk.edgeLabels.placement": "CENTER",
+    // One side for every label (and its step badge); ELK's default picks per edge.
+    "elk.layered.edgeLabels.sideSelection": "ALWAYS_UP",
     "elk.json.shapeCoords": "ROOT",
     "elk.json.edgeCoords": "ROOT",
     "elk.layered.mergeEdges": model.merge ? "true" : "false",
@@ -8978,22 +9346,58 @@ async function layout(model, opts = {}) {
   for (const n3 of model.nodes) {
     const g = nodeGeometry(n3, horizontal);
     nodeGeom.set(n3.id, g);
-    const node3 = { id: n3.id, width: g.w, height: g.h };
+    const node3 = {
+      id: n3.id,
+      width: g.w,
+      height: g.h,
+      layoutOptions: { "elk.alignment": "CENTER" }
+    };
     if (g.outside) {
       node3.labels = [
-        { id: `${n3.id}__label`, text: n3.label, width: g.outside.w, height: g.outside.h }
+        {
+          id: `${n3.id}__label`,
+          text: n3.label,
+          width: g.outside.w,
+          height: g.outside.h
+        }
       ];
       node3.layoutOptions = {
+        ...node3.layoutOptions,
         "elk.nodeLabels.placement": "OUTSIDE V_BOTTOM H_CENTER",
         "elk.spacing.labelNode": "6"
       };
     }
+    if (n3.badge) {
+      const S = n3.iconSize;
+      const anchor2 = n3.look === "icon" ? { x: horizontal ? 0 : (g.w - S) / 2, y: 0, w: S, h: S } : { x: 0, y: 0, w: g.w, h: g.h };
+      const pill = badgePill(n3.badge, anchor2);
+      const overhang = Math.ceil(pill.x + pill.w - g.w);
+      if (overhang > 0)
+        node3.labels = [
+          ...node3.labels ?? [],
+          {
+            id: `${n3.id}__badge`,
+            text: n3.badge,
+            width: overhang,
+            height: 16,
+            layoutOptions: {
+              "elk.nodeLabels.placement": "OUTSIDE V_TOP H_RIGHT H_PRIORITY"
+            }
+          }
+        ];
+    }
     elkNodes.set(n3.id, node3);
   }
+  for (const grp of model.groups) groupGeom.set(grp.id, groupGeometry(grp));
   for (const grp of model.groups) {
-    const gg = groupGeometry(grp);
-    groupGeom.set(grp.id, gg);
-    if (grp.around) continue;
+    const gg = groupGeom.get(grp.id);
+    if (!gg || grp.around) continue;
+    const siblings = model.groups.filter((o) => !o.around && o.parent === grp.parent);
+    gg.header = Math.max(...siblings.map((o) => groupGeom.get(o.id)?.header ?? 0));
+  }
+  for (const grp of model.groups) {
+    const gg = groupGeom.get(grp.id);
+    if (!gg || grp.around) continue;
     const top2 = gg.header + 18;
     elkNodes.set(grp.id, {
       id: grp.id,
@@ -9003,7 +9407,11 @@ async function layout(model, opts = {}) {
         "elk.padding": `[top=${top2},left=20,bottom=20,right=20]`,
         "elk.nodeSize.constraints": "MINIMUM_SIZE",
         // ELK applies a compound minimum in its rotated frame when the flow is vertical.
-        "elk.nodeSize.minimum": horizontal ? `(${gg.minWidth}, ${top2 + 24})` : `(${top2 + 24}, ${gg.minWidth})`
+        "elk.nodeSize.minimum": horizontal ? `(${gg.minWidth}, ${top2 + 24})` : `(${top2 + 24}, ${minWidthOf(grp.id, gg)})`,
+        // Centered in a column; frames side by side in a row share their top edge.
+        "elk.alignment": horizontal ? "CENTER" : "TOP",
+        // A group widened by its label keeps its children centered under the header.
+        "elk.contentAlignment": horizontal ? "V_TOP H_CENTER" : "V_CENTER H_CENTER"
       }
     });
   }
@@ -9023,6 +9431,14 @@ async function layout(model, opts = {}) {
     if (!el) continue;
     const parent = item.parent ? elkNodes.get(item.parent) : root;
     (parent?.children ?? root.children)?.push(el);
+  }
+  for (const parent of [root, ...elkNodes.values()]) {
+    parent.children?.forEach((c, i) => {
+      c.layoutOptions = {
+        ...c.layoutOptions,
+        "elk.position": horizontal ? `(0,${i * 10})` : `(${i * 10},0)`
+      };
+    });
   }
   for (const grp of model.groups) {
     const el = elkNodes.get(grp.id);
@@ -9065,13 +9481,30 @@ async function layout(model, opts = {}) {
       const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
       edgeLabels.set(e.id, { block, w, h, stepW });
       elkEdge.labels = [
-        { id: `${e.id}__label`, text: e.label || `step ${e.step}`, width: w, height: h }
+        {
+          id: `${e.id}__label`,
+          text: e.label || `step ${e.step}`,
+          width: w,
+          height: h
+        }
       ];
     }
     root.edges?.push(elkEdge);
   }
-  const result = await runElk(root);
-  const top = titleBlock ? SIZES.pad + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6 : 0;
+  let { graph: result, fallback } = await runElk(root);
+  const strict = crossings(result);
+  if (strict.count > 0) {
+    const free = structuredClone(root);
+    const leaves = new Set(model.nodes.map((n3) => n3.id).filter((id) => strict.nodes.has(id)));
+    const unpin = (n3) => {
+      if (leaves.has(n3.id) && n3.layoutOptions) delete n3.layoutOptions["elk.position"];
+      for (const c of n3.children ?? []) unpin(c);
+    };
+    unpin(free);
+    const alt = await runElk(free);
+    if (crossings(alt.graph).count < strict.count) ({ graph: result, fallback } = alt);
+  }
+  const top = titleBlock ? Math.ceil(SIZES.pad + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6) : 0;
   const shift = (p) => ({ x: round(p.x), y: round(p.y + top) });
   const placed = /* @__PURE__ */ new Map();
   const walk = (n3) => {
@@ -9088,20 +9521,74 @@ async function layout(model, opts = {}) {
     }
     return d;
   };
+  const elkEdges = [...placed.values()].flatMap((n3) => n3.edges ?? []);
+  const edgeMarks = elkEdges.flatMap((e) => [
+    ...(e.sections ?? []).flatMap(
+      (s2) => [s2.startPoint, ...s2.bendPoints ?? [], s2.endPoint].map((p) => ({
+        ...p,
+        w: 0,
+        h: 0
+      }))
+    ),
+    ...(e.labels ?? []).map((l) => ({
+      x: l.x ?? 0,
+      y: l.y ?? 0,
+      w: l.width,
+      h: l.height
+    }))
+  ]);
+  const byDepth = model.groups.filter((g) => !g.around).sort((a, b) => depth(b.parent) - depth(a.parent));
+  for (const grp of byDepth) {
+    const el = placed.get(grp.id);
+    const gg = groupGeom.get(grp.id);
+    if (!el?.children?.length || !gg) continue;
+    const kids = el.children.flatMap((c) => [
+      { x: c.x ?? 0, y: c.y ?? 0, w: c.width ?? 0, h: c.height ?? 0 },
+      ...(c.labels ?? []).map((l) => ({
+        x: l.x ?? 0,
+        y: l.y ?? 0,
+        w: l.width,
+        h: l.height
+      }))
+    ]);
+    const old = {
+      x: el.x ?? 0,
+      y: el.y ?? 0,
+      w: el.width ?? 0,
+      h: el.height ?? 0
+    };
+    const k = union(kids);
+    let x0 = Math.max(old.x, k.x - 20);
+    let y0 = Math.max(old.y, k.y - gg.header - 18);
+    let x1 = Math.min(old.x + old.w, k.x + k.w + 20);
+    let y1 = Math.min(old.y + old.h, k.y + k.h + 20);
+    if (x1 - x0 < minWidthOf(grp.id, gg)) [x0, x1] = [old.x, old.x + old.w];
+    if (y1 - y0 < gg.header + 42) [y0, y1] = [old.y, old.y + old.h];
+    for (const b of edgeMarks) {
+      if (!contains(old, b)) continue;
+      if (b.x < x0) x0 = old.x;
+      if (b.y < y0) y0 = old.y;
+      if (b.x + b.w > x1) x1 = old.x + old.w;
+      if (b.y + b.h > y1) y1 = old.y + old.h;
+    }
+    Object.assign(el, { x: x0, y: y0, width: x1 - x0, height: y1 - y0 });
+  }
+  stretchColumns(model, placed, elkEdges);
   const groups = [];
+  const headerRoom = /* @__PURE__ */ new Map();
   const paintGroup = (grp, box, overlay) => {
     const gg = groupGeom.get(grp.id);
     const style2 = resolveGroupStyle(grp.type);
     if (!gg || !style2) return void 0;
     const strokeBase = grp.color ?? style2.stroke;
-    let stroke = strokeBase;
+    let stroke2 = strokeBase;
     let fill = grp.fill === "none" ? "none" : grp.fill ?? style2.fill ?? "none";
     if (overlay) fill = "none";
     const ink = style2.labelColor === "ink" || !style2.labelColor;
     let labelColor = grp.color ?? (ink ? t.text : style2.labelColor ?? t.text);
     if (theme === "dark") {
-      if (luminance(strokeBase) < 0.04) stroke = "#c9d1d9";
-      else if (contrast(strokeBase, t.background) < 2) stroke = mixHex(strokeBase, "#ffffff", 0.55);
+      if (luminance(strokeBase) < 0.04) stroke2 = "#c9d1d9";
+      else if (contrast(strokeBase, t.background) < 2) stroke2 = mixHex(strokeBase, "#ffffff", 0.55);
       if (fill !== "none") fill = mixHex(fill, t.background, 0.14);
       if (!grp.color && !ink && luminance(style2.labelColor ?? "#000000") < 0.04)
         labelColor = t.text;
@@ -9111,23 +9598,49 @@ async function layout(model, opts = {}) {
     let iconBox;
     let labelX;
     let labelY;
-    if (overlay) {
+    if (overlay && gg.iconStyle === "tile-center" && gg.icon) {
+      iconBox = {
+        x: box.x + (box.w - SIZES.tile) / 2,
+        y: box.y - SIZES.tile / 2,
+        w: SIZES.tile,
+        h: SIZES.tile
+      };
+      labelX = box.x + (box.w - L.width) / 2;
+      labelY = iconBox.y + SIZES.tile + 3;
+    } else if (overlay) {
       iconBox = gg.icon ? { x: box.x + 10, y: box.y - 8, w: 16, h: 16 } : void 0;
       labelX = iconBox ? iconBox.x + iconBox.w + 5 : box.x + 12;
       labelY = box.y - L.height / 2;
     } else if (gg.iconStyle === "tile-center") {
-      iconBox = gg.icon ? { x: box.x + (box.w - SIZES.tile) / 2, y: box.y, w: SIZES.tile, h: SIZES.tile } : void 0;
+      iconBox = gg.icon ? {
+        x: box.x + (box.w - SIZES.tile) / 2,
+        y: box.y,
+        w: SIZES.tile,
+        h: SIZES.tile
+      } : void 0;
       labelX = box.x + (box.w - L.width) / 2;
       labelY = box.y + (gg.icon ? SIZES.tile + 3 : 6);
     } else if (gg.iconStyle === "tile") {
       iconBox = gg.icon ? { x: box.x, y: box.y, w: SIZES.tile, h: SIZES.tile } : void 0;
       labelX = gg.center ? box.x + (box.w - L.width) / 2 : iconBox ? box.x + SIZES.tile + 8 : box.x + 12;
-      labelY = iconBox ? box.y + (SIZES.tile - L.height) / 2 : box.y + 6;
+      labelY = iconBox ? box.y + Math.max(6, (SIZES.tile - L.height) / 2) : box.y + 6;
     } else {
-      iconBox = gg.icon ? { x: box.x + 12, y: box.y + 9, w: SIZES.inlineIcon, h: SIZES.inlineIcon } : void 0;
+      iconBox = gg.icon ? {
+        x: box.x + 12,
+        y: box.y + 9,
+        w: SIZES.inlineIcon,
+        h: SIZES.inlineIcon
+      } : void 0;
       labelX = gg.center && !iconBox ? box.x + (box.w - L.width) / 2 : iconBox ? iconBox.x + iconBox.w + 8 : box.x + 12;
       labelY = box.y + 10;
     }
+    const cornerTile = !overlay && gg.iconStyle === "tile" && !!iconBox;
+    const inset = overlay ? 10 : 12;
+    headerRoom.set(grp.id, {
+      moveIcon: !!iconBox && !cornerTile,
+      lo: cornerTile ? box.x + SIZES.tile + 8 : box.x + inset,
+      hi: box.x + box.w - inset
+    });
     const innerFill = !overlay && style2.innerFill ? theme === "dark" ? mixHex(style2.innerFill, t.background, 0.06) : style2.innerFill : void 0;
     const headerH = gg.header + 4;
     const inner = innerFill ? {
@@ -9154,7 +9667,7 @@ async function layout(model, opts = {}) {
       },
       iconBox,
       icon: gg.icon,
-      stroke,
+      stroke: stroke2,
       fill,
       labelColor,
       dash: grp.dashed === false ? void 0 : style2.dash ?? (grp.dashed ? "6 4" : void 0),
@@ -9230,10 +9743,15 @@ async function layout(model, opts = {}) {
           h: round(g.label.height)
         };
       } else {
-        node3.iconBox = { x: round(box.x + (box.w - S) / 2), y: box.y, w: S, h: S };
+        node3.iconBox = {
+          x: round(box.x + (box.w - S) / 2),
+          y: box.y,
+          w: S,
+          h: S
+        };
         node3.labelBox = {
           x: round(box.x + (box.w - g.label.width) / 2),
-          y: round(box.y + S + 8),
+          y: round(box.y + S + 6),
           w: round(g.label.width),
           h: round(g.label.height)
         };
@@ -9249,7 +9767,13 @@ async function layout(model, opts = {}) {
     } else if (n3.look === "card") {
       const textH = g.label.height + (g.note ? g.note.height + 2 : 0);
       const ix = box.x + 16;
-      if (n3.icon) node3.iconBox = { x: round(ix), y: round(box.y + (box.h - S) / 2), w: S, h: S };
+      if (n3.icon)
+        node3.iconBox = {
+          x: round(ix),
+          y: round(box.y + (box.h - S) / 2),
+          w: S,
+          h: S
+        };
       const tx = n3.icon ? ix + S + 12 : box.x + 16;
       const ty = box.y + (box.h - textH) / 2;
       node3.labelBox = {
@@ -9274,7 +9798,12 @@ async function layout(model, opts = {}) {
       const startX = box.x + (box.w - (textW + iconW)) / 2;
       const ty = box.y + extraTop + (innerH - textH) / 2;
       if (n3.icon)
-        node3.iconBox = { x: round(startX), y: round(ty + (textH - 20) / 2), w: 20, h: 20 };
+        node3.iconBox = {
+          x: round(startX),
+          y: round(ty + (textH - 20) / 2),
+          w: 20,
+          h: 20
+        };
       const tx = startX + iconW;
       node3.labelBox = {
         x: round(tx + (textW - g.label.width) / 2),
@@ -9291,6 +9820,8 @@ async function layout(model, opts = {}) {
         };
       }
     }
+    if (n3.badge)
+      node3.badgeBox = badgePill(n3.badge, node3.iconBox && n3.look === "icon" ? node3.iconBox : box);
     nodes.push(node3);
   }
   for (const grp of model.groups) {
@@ -9301,16 +9832,21 @@ async function layout(model, opts = {}) {
       const nd = nodes.find((x) => x.id === id);
       if (nd)
         boxes.push(
-          ...[nd.box, nd.iconBox, nd.labelBox, nd.noteBox].filter((b) => !!b && b.w > 0)
+          ...[nd.box, nd.iconBox, nd.labelBox, nd.noteBox, nd.badgeBox].filter(
+            (b) => !!b && b.w > 0
+          )
         );
       const sg2 = groups.find((x) => x.id === id);
       if (sg2) boxes.push(sg2.box);
     }
     if (!boxes.length || !gg) continue;
     const pad = 12;
-    const x0 = Math.min(...boxes.map((b) => b.x)) - pad;
-    const y0 = Math.min(...boxes.map((b) => b.y)) - pad - 2;
-    const x1 = Math.max(...boxes.map((b) => b.x + b.w), x0 + gg.minWidth) + pad;
+    const head = gg.iconStyle === "tile-center" && gg.icon ? Math.ceil(SIZES.tile / 2 + 3 + gg.label.height + 6) : pad + 2;
+    let x0 = Math.min(...boxes.map((b) => b.x)) - pad;
+    let x1 = Math.max(...boxes.map((b) => b.x + b.w)) + pad;
+    const short = gg.minWidth + 2 * pad - (x1 - x0);
+    if (short > 0) [x0, x1] = [x0 - short / 2, x1 + short / 2];
+    const y0 = Math.min(...boxes.map((b) => b.y)) - head;
     const y1 = Math.max(...boxes.map((b) => b.y + b.h)) + pad;
     const sg = paintGroup(
       grp,
@@ -9324,52 +9860,60 @@ async function layout(model, opts = {}) {
     const nd = nodes.find((x) => x.id === id);
     if (nd) {
       const side = nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
-      return { side, full: union([nd.box, nd.iconBox, nd.labelBox, nd.noteBox]) };
+      return {
+        side,
+        full: union([nd.box, nd.iconBox, nd.labelBox, nd.noteBox])
+      };
     }
     const box = groups.find((x) => x.id === id)?.box;
     return box ? { side: box, full: box } : void 0;
   };
-  for (const e of model.edges) {
-    if (!e.constraint) {
+  const freeRoutes = /* @__PURE__ */ new Map();
+  const claimed = [];
+  const related = (a, b) => [a.from, a.to].some((id) => id === b.from || id === b.to);
+  const fits = (points, e) => {
+    const [s2, p, q, t2] = points;
+    if (!s2 || !p || !q || !t2) return true;
+    const v = Math.abs(p.x - q.x) < 0.5;
+    const at = v ? p.x : p.y;
+    const [lo, hi] = v ? [s2.x, t2.x].sort((m, n3) => m - n3) : [s2.y, t2.y].sort((m, n3) => m - n3);
+    if (at < (lo ?? at) + 8 || at > (hi ?? at) - 8) return false;
+    const span = (a, b) => (v ? [a.y, b.y] : [a.x, b.x]).sort((m, n3) => m - n3);
+    const [a0 = 0, a1 = 0] = span(p, q);
+    return !claimed.some((c) => {
+      if (related(c.e, e) || Math.abs(c.p.x - c.q.x) < 0.5 !== v) return false;
+      if (Math.abs((v ? c.p.x : c.p.y) - at) >= 6) return false;
+      const [b0 = 0, b1 = 0] = span(c.p, c.q);
+      return Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
+    });
+  };
+  for (const straight of [true, false]) {
+    for (const e of model.edges) {
       const a = attachBox(e.from);
       const b = attachBox(e.to);
-      if (!a || !b) continue;
-      const points2 = freeRoute(a, b);
-      const edge4 = {
-        id: e.id,
-        from: e.from,
-        to: e.to,
-        points: points2,
-        line: e.line,
-        arrow: e.arrow,
-        color: e.color,
-        step: e.step
-      };
-      if (e.label || e.step !== void 0) {
-        const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-        const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
-        const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-        const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
-        const mid = midpoint(points2);
-        const box = { x: round(mid.x - w / 2), y: round(mid.y - h - 3), w, h };
-        if (e.step !== void 0)
-          edge4.stepBox = {
-            x: box.x,
-            y: round(box.y + (h - SIZES.step) / 2),
-            w: SIZES.step,
-            h: SIZES.step
-          };
-        if (e.label) {
-          edge4.label = block;
-          edge4.labelBox = {
-            x: round(box.x + stepW + (stepW ? 2 : 0)),
-            y: box.y,
-            w: round(w - stepW - (stepW ? 2 : 0)),
-            h
-          };
-        }
-      }
-      edges.push(edge4);
+      if (e.constraint || !a || !b) continue;
+      let points = freeRoute(a, b, 0);
+      if (points.length === 2 !== straight) continue;
+      if (!straight)
+        points = [0, 12, -12, 24, -24, 36, -36].map((d) => freeRoute(a, b, d)).find((p) => fits(p, e)) ?? points;
+      freeRoutes.set(e.id, points);
+      claimed.push(...points.slice(1).map((q, i) => ({ e, p: points[i] ?? q, q })));
+    }
+  }
+  for (const e of model.edges) {
+    if (!e.constraint) {
+      const points2 = freeRoutes.get(e.id);
+      if (points2)
+        edges.push({
+          id: e.id,
+          from: e.from,
+          to: e.to,
+          points: points2,
+          line: e.line,
+          arrow: e.arrow,
+          color: e.color,
+          step: e.step
+        });
       continue;
     }
     const el = result.edges?.find((x) => x.id === e.id) ?? findEdge(result, e.id);
@@ -9389,7 +9933,12 @@ async function layout(model, opts = {}) {
     const lab = edgeLabels.get(e.id);
     const elkLabel = el.labels?.[0];
     if (lab && elkLabel?.x !== void 0 && elkLabel.y !== void 0) {
-      const box = { x: round(elkLabel.x), y: round(elkLabel.y + top), w: lab.w, h: lab.h };
+      const box = {
+        x: round(elkLabel.x),
+        y: round(elkLabel.y + top),
+        w: lab.w,
+        h: lab.h
+      };
       if (e.step !== void 0) {
         edge3.stepBox = {
           x: box.x,
@@ -9410,11 +9959,129 @@ async function layout(model, opts = {}) {
     }
     edges.push(edge3);
   }
-  let width = round(result.width ?? 0);
-  let height = round((result.height ?? 0) + top);
+  if (model.routing !== "spline") for (const e of edges) e.points = dropStraightPoints(e.points);
+  if (model.routing === "orthogonal") {
+    const sides = new Map([
+      ...groups.filter((g) => !g.overlay).map((g) => [g.id, [g.box]]),
+      ...nodes.map((n3) => [
+        n3.id,
+        n3.look === "icon" && n3.iconBox ? [n3.iconBox, n3.box] : [n3.box]
+      ])
+    ]);
+    for (const e of edges) {
+      straightenEnd(e, "to", sides.get(e.to), edges);
+      straightenEnd(e, "from", sides.get(e.from), edges);
+      e.points = dropStraightPoints(e.points);
+    }
+  }
+  const footprints = nodes.map((n3) => union([n3.box, n3.iconBox, n3.labelBox, n3.noteBox]));
+  for (const e of model.edges) {
+    const edge3 = edges.find((x) => x.id === e.id);
+    if (e.constraint || !edge3 || !e.label && e.step === void 0) continue;
+    const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
+    const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
+    const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
+    const box = freeLabelBox(edge3.points, w, h, [
+      ...footprints,
+      ...edges.flatMap((x) => [x.labelBox, x.stepBox]),
+      ...groups.map((g) => g.labelBox)
+    ]);
+    if (e.step !== void 0)
+      edge3.stepBox = {
+        x: box.x,
+        y: round(box.y + (h - SIZES.step) / 2),
+        w: SIZES.step,
+        h: SIZES.step
+      };
+    if (e.label) {
+      edge3.label = block;
+      edge3.labelBox = {
+        x: round(box.x + stepW + (stepW ? 2 : 0)),
+        y: box.y,
+        w: round(w - stepW - (stepW ? 2 : 0)),
+        h
+      };
+    }
+  }
+  for (const [i, g] of groups.entries()) {
+    const grp = g.overlay ? model.groups.find((x) => x.id === g.id) : void 0;
+    if (!grp) continue;
+    let [x0, y0, x1, y1] = [g.box.x, g.box.y, g.box.x + g.box.w, g.box.y + g.box.h];
+    for (const e of edges)
+      for (let k = 1; k < e.points.length; k++) {
+        const p = e.points[k - 1];
+        const q = e.points[k];
+        if (!p || !q) continue;
+        const flat = Math.abs(p.y - q.y) < 0.5;
+        if (!flat && Math.abs(p.x - q.x) >= 0.5) continue;
+        const [lo, hi] = flat ? [Math.min(p.x, q.x), Math.max(p.x, q.x)] : [Math.min(p.y, q.y), Math.max(p.y, q.y)];
+        const [from, to] = flat ? [x0, x1] : [y0, y1];
+        if (Math.min(hi, to) - Math.max(lo, from) < 20) continue;
+        const at = flat ? p.y : p.x;
+        if (flat && Math.abs(at - y0) < 8) y0 = Math.min(y0, at - 8);
+        if (flat && Math.abs(at - y1) < 8) y1 = Math.max(y1, at + 8);
+        if (!flat && Math.abs(at - x0) < 8) x0 = Math.min(x0, at - 8);
+        if (!flat && Math.abs(at - x1) < 8) x1 = Math.max(x1, at + 8);
+      }
+    if (x0 === g.box.x && y0 === g.box.y && x1 === g.box.x + g.box.w && y1 === g.box.y + g.box.h)
+      continue;
+    const box = { x: round(x0), y: round(y0), w: round(x1 - x0), h: round(y1 - y0) };
+    const sg = paintGroup(grp, box, true);
+    if (sg) groups[i] = sg;
+  }
+  const blocked = [];
   for (const g of groups) {
-    width = Math.max(width, round(g.box.x + g.box.w + SIZES.pad));
-    height = Math.max(height, round(g.box.y + g.box.h + SIZES.pad));
+    const room = headerRoom.get(g.id);
+    if (room && !clearHeader(g, room, groups, nodes, edges)) blocked.push(g.id);
+  }
+  const widen = blocked.filter((id) => {
+    const gg = groupGeom.get(id);
+    const box = groups.find((g) => g.id === id)?.box;
+    if (!gg || !box || gg.center || gg.iconStyle === "tile-center") return false;
+    if (model.groups.find((g) => g.id === id)?.around) return false;
+    return box.w + 0.5 < Math.max(gg.minWidth, 2 * (gg.minWidth - 10));
+  });
+  if (!horizontal && !opts.widen && widen.length)
+    return layout(model, { ...opts, widen: new Set(widen) });
+  const drawn = [
+    ...groups.flatMap((g) => [g.box, g.labelBox, g.iconBox]),
+    ...nodes.flatMap((n3) => [n3.box, n3.iconBox, n3.labelBox, n3.noteBox, n3.badgeBox]),
+    ...edges.flatMap((e) => [
+      e.labelBox,
+      e.stepBox,
+      ...e.points.map((p) => ({ ...p, w: 0, h: 0 }))
+    ])
+  ].filter((b) => !!b);
+  const dx = Math.max(0, Math.ceil(4 - Math.min(...drawn.map((b) => b.x))));
+  const dy = Math.max(
+    0,
+    Math.ceil(top + (titleBlock ? 8 : 4) - Math.min(...drawn.map((b) => b.y)))
+  );
+  if (dx || dy) {
+    const moved = /* @__PURE__ */ new Set();
+    const move = (b) => {
+      if (!b || moved.has(b)) return;
+      moved.add(b);
+      b.x = round(b.x + dx);
+      b.y = round(b.y + dy);
+    };
+    for (const g of groups) [g.box, g.labelBox, g.iconBox, g.inner?.box].forEach(move);
+    for (const n3 of nodes) [n3.box, n3.iconBox, n3.labelBox, n3.noteBox, n3.badgeBox].forEach(move);
+    for (const e of edges) {
+      [e.labelBox, e.stepBox].forEach(move);
+      e.points = e.points.map((p) => ({
+        x: round(p.x + dx),
+        y: round(p.y + dy)
+      }));
+    }
+  }
+  let width = round((result.width ?? 0) + dx);
+  let height = round((result.height ?? 0) + top + dy);
+  for (const b of [...groups.map((g) => g.box), ...edges.flatMap((e) => [e.labelBox, e.stepBox])]) {
+    if (!b) continue;
+    width = Math.max(width, round(b.x + b.w + SIZES.pad));
+    height = Math.max(height, round(b.y + b.h + SIZES.pad));
   }
   let titleBox;
   let subtitleBox;
@@ -9438,6 +10105,12 @@ async function layout(model, opts = {}) {
   }
   width = Math.ceil(width);
   height = Math.ceil(height);
+  let legend3;
+  if (model.legend?.length) {
+    legend3 = placeLegend(model.legend, width, height);
+    width = Math.max(width, Math.ceil(legend3.box.w + SIZES.pad * 2));
+    height = Math.ceil(legend3.box.y + legend3.box.h + SIZES.pad);
+  }
   return {
     width,
     height,
@@ -9454,9 +10127,174 @@ async function layout(model, opts = {}) {
     nodes,
     groups,
     edges,
+    legend: legend3,
+    layoutFallback: fallback,
     description: describe(model)
   };
 }
+function placeLegend(entries, width, height) {
+  const P = 10;
+  const rows = entries.map((e) => ({
+    line: e.line,
+    label: textBlock(e.label, SIZES.edgeLabel, 240)
+  }));
+  const w = Math.ceil(P + 28 + 8 + Math.max(...rows.map((r) => r.label.width)) + P);
+  const pitch = rows.map((r) => Math.max(18, r.label.height + 3));
+  const last = rows[rows.length - 1]?.label.height ?? 0;
+  const h = Math.ceil(P + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P);
+  const box = {
+    x: Math.max(SIZES.pad, width - SIZES.pad - w),
+    y: height - SIZES.pad + 12,
+    w,
+    h
+  };
+  let y = box.y + P;
+  const items = rows.map((r, i) => {
+    const swatch = {
+      x: box.x + P,
+      y: round(y + (r.label.lead - 12) / 2),
+      w: 28,
+      h: 12
+    };
+    const labelBox = {
+      x: box.x + P + 36,
+      y: round(y),
+      w: round(r.label.width),
+      h: round(r.label.height)
+    };
+    y += pitch[i] ?? 18;
+    return { line: r.line, swatch, label: r.label, labelBox };
+  });
+  return { box, items };
+}
+function fitIcons(scene) {
+  if (scene.direction !== "right" && scene.direction !== "left") return;
+  for (const n3 of scene.nodes) {
+    const b = n3.iconBox;
+    const aspect = n3.look === "icon" && n3.icon ? iconAspect(n3.icon) : void 0;
+    if (!b || !aspect || aspect >= 1) continue;
+    const w = round(b.h * aspect);
+    if (w >= b.w - 0.01) continue;
+    const x = round(b.x + (b.w - w) / 2);
+    for (const e of scene.edges) {
+      const ends = [e.from === n3.id ? 0 : -1, e.to === n3.id ? e.points.length - 1 : -1];
+      for (const i of ends) {
+        const p = e.points[i];
+        const next = e.points[i === 0 ? 1 : i - 1];
+        if (!p || !next || Math.abs(next.y - p.y) > 0.5 || p.y < b.y || p.y > b.y + b.h) continue;
+        if (Math.abs(p.x - b.x) < 0.5) e.points[i] = { x, y: p.y };
+        else if (Math.abs(p.x - (b.x + b.w)) < 0.5) e.points[i] = { x: round(x + w), y: p.y };
+      }
+    }
+    n3.iconBox = { ...b, x, w };
+    if (n3.badge) n3.badgeBox = badgePill(n3.badge, n3.iconBox);
+  }
+}
+function stretchColumns(model, placed, edges) {
+  const parentOf = new Map([...model.groups, ...model.nodes].map((x) => [x.id, x.parent]));
+  const related = (a, b) => {
+    for (let p = parentOf.get(a); p; p = parentOf.get(p)) if (p === b) return true;
+    for (let p = parentOf.get(b); p; p = parentOf.get(p)) if (p === a) return true;
+    return a === b;
+  };
+  const boxOf2 = (n3) => ({
+    x: n3.x ?? 0,
+    y: n3.y ?? 0,
+    w: n3.width ?? 0,
+    h: n3.height ?? 0
+  });
+  const items = [...placed.values()].filter((n3) => n3.id !== "__root").flatMap((n3) => [
+    { id: n3.id, box: boxOf2(n3) },
+    ...(n3.labels ?? []).map((l) => ({
+      id: n3.id,
+      box: { x: l.x ?? 0, y: l.y ?? 0, w: l.width, h: l.height }
+    }))
+  ]);
+  const labels = edges.flatMap(
+    (e) => (e.labels ?? []).map((l) => ({
+      x: l.x ?? 0,
+      y: l.y ?? 0,
+      w: l.width,
+      h: l.height
+    }))
+  );
+  const segments2 = edges.flatMap(
+    (e) => (e.sections ?? []).flatMap((s) => {
+      const pts = dropStraightPoints([s.startPoint, ...s.bendPoints ?? [], s.endPoint]);
+      return pts.slice(1).map((q, i) => [pts[i] ?? q, q]);
+    })
+  );
+  const columns = [];
+  for (const grp of model.groups) {
+    const el = placed.get(grp.id);
+    if (grp.around || !el) continue;
+    const b = boxOf2(el);
+    const column = columns.find(
+      (c) => c.every((o) => {
+        const ob = boxOf2(placed.get(o.id) ?? el);
+        const shared = Math.min(b.x + b.w, ob.x + ob.w) - Math.max(b.x, ob.x);
+        const stacked = b.y >= ob.y + ob.h || ob.y >= b.y + b.h;
+        return o.type === grp.type && o.parent === grp.parent && stacked && shared > b.w / 2;
+      })
+    );
+    if (column) column.push(grp);
+    else columns.push([grp]);
+  }
+  for (const column of columns.filter((c) => c.length > 1)) {
+    const els = column.map((g) => placed.get(g.id)).filter((n3) => !!n3);
+    const x0 = Math.min(...els.map((n3) => n3.x ?? 0));
+    const x1 = Math.max(...els.map((n3) => (n3.x ?? 0) + (n3.width ?? 0)));
+    for (const el of els) {
+      const b = boxOf2(el);
+      if (b.w < (x1 - x0) * 0.75) continue;
+      const strips = [
+        { x: x0, y: b.y, w: b.x - x0, h: b.h, left: true },
+        { x: b.x + b.w, y: b.y, w: x1 - b.x - b.w, h: b.h, left: false }
+      ];
+      const open = strips.every((s) => {
+        if (s.w < 0.5) return true;
+        const hit = (o) => overlaps2(s, { x: o.x, y: o.y, w: o.w || 0.01, h: o.h || 0.01 });
+        if (items.some((it) => !related(it.id, el.id) && hit(it.box))) return false;
+        if (labels.some(hit)) return false;
+        return segments2.every(([p, q]) => {
+          const [lo, hi] = [Math.min(p.x, q.x), Math.max(p.x, q.x)];
+          const across = s.left ? lo <= s.x + 0.01 && hi > b.x + 0.5 : hi >= x1 - 0.01 && lo < s.x - 0.5;
+          return !hit(segmentBox(p, q)) || Math.abs(p.y - q.y) < 0.5 && across;
+        });
+      });
+      if (open) Object.assign(el, { x: x0, width: x1 - x0 });
+    }
+  }
+}
+var segmentBox = (p, q) => ({
+  x: Math.min(p.x, q.x),
+  y: Math.min(p.y, q.y),
+  w: Math.abs(q.x - p.x),
+  h: Math.abs(q.y - p.y)
+});
+function clearHeader(g, room, groups, nodes, edges) {
+  const icon2 = room.moveIcon ? g.iconBox : void 0;
+  const u = union([g.labelBox, icon2]);
+  const chip = { x: u.x - 6, y: u.y - 1, w: u.w + 12, h: u.h + 2 };
+  const inBand = (b) => b.y < chip.y + chip.h - 0.5 && b.y + b.h > chip.y + 0.5;
+  const hit = (b, dx2) => b.x < chip.x + dx2 + chip.w - 0.01 && b.x + b.w > chip.x + dx2 + 0.01;
+  const segments2 = edges.flatMap((e) => e.points.slice(1).map((q, i) => segmentBox(e.points[i] ?? q, q))).filter(inBand);
+  const others = [
+    ...segments2,
+    ...nodes.flatMap((n3) => [n3.box, n3.iconBox, n3.labelBox, n3.noteBox, n3.badgeBox]),
+    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
+    ...groups.filter((o) => o !== g).flatMap((o) => [o.labelBox, o.iconBox])
+  ].filter((b) => !!b && inBand(b));
+  if (!(g.overlay ? others : segments2).some((b) => hit(b, 0))) return true;
+  const min = room.lo - u.x;
+  const max = room.hi - (u.x + u.w);
+  const dx = others.flatMap((b) => [b.x - (chip.x + chip.w), b.x + b.w - chip.x]).filter((d) => d >= min - 0.01 && d <= max + 0.01 && !others.some((b) => hit(b, d))).sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)[0];
+  if (dx === void 0) return false;
+  g.labelBox.x = round(g.labelBox.x + dx);
+  if (icon2) icon2.x = round(icon2.x + dx);
+  return true;
+}
+var contains = (outer, b) => b.x >= outer.x - 0.01 && b.y >= outer.y - 0.01 && b.x + b.w <= outer.x + outer.w + 0.01 && b.y + b.h <= outer.y + outer.h + 0.01;
 function union(boxes) {
   const list = boxes.filter((b) => !!b);
   const x = Math.min(...list.map((b) => b.x));
@@ -9465,7 +10303,7 @@ function union(boxes) {
   const h = Math.max(...list.map((b) => b.y + b.h)) - y;
   return { x, y, w, h };
 }
-function freeRoute(from, to) {
+function freeRoute(from, to, shift) {
   const sideBySide = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
   const a = sideBySide ? from.side : from.full;
   const b = sideBySide ? to.side : to.full;
@@ -9480,7 +10318,7 @@ function freeRoute(from, to) {
         { x: sx, y: ac.y },
         { x: ex, y: ac.y }
       ];
-    const mx = round((sx + ex) / 2);
+    const mx = round((sx + ex) / 2 + shift);
     return [
       { x: sx, y: ac.y },
       { x: mx, y: ac.y },
@@ -9496,7 +10334,7 @@ function freeRoute(from, to) {
       { x: ac.x, y: sy },
       { x: ac.x, y: ey }
     ];
-  const my = round((sy + ey) / 2);
+  const my = round((sy + ey) / 2 + shift);
   return [
     { x: ac.x, y: sy },
     { x: ac.x, y: my },
@@ -9504,11 +10342,84 @@ function freeRoute(from, to) {
     { x: bc.x, y: ey }
   ];
 }
+function straightenEnd(e, end, sides, edges) {
+  const n3 = e.points.length;
+  const at = (i) => e.points[end === "to" ? n3 - 1 - i : i];
+  const E = at(0);
+  const P = at(1);
+  const Q = at(2);
+  if (!E || !P || !sides) return;
+  const vertical = Math.abs(P.y - E.y) > Math.abs(P.x - E.x);
+  const k = vertical ? "x" : "y";
+  const a = vertical ? "y" : "x";
+  let target = P[k];
+  let moveP = false;
+  if (Q) {
+    const lateral = Math.abs(Q[k] - P[k]);
+    const along2 = Math.abs(Q[a] - P[a]);
+    const jog = along2 < 0.01 && lateral > 0.01 && lateral < 6 && n3 >= 4;
+    const skew = lateral > 0.01 && lateral <= 1 && along2 > lateral;
+    if (jog || skew) [target, moveP] = [Q[k], true];
+  }
+  if (Math.abs(target - E[k]) < 0.01 || Math.abs(target - E[k]) > 6) return;
+  const side = sides.find((b) => {
+    const edge3 = vertical ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
+    const [lo2, hi2] = vertical ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+    return edge3.some((v) => Math.abs(v - E[a]) < 0.5) && E[k] >= lo2 - 0.5 && E[k] <= hi2 + 0.5;
+  });
+  if (!side) return;
+  const [lo, hi] = vertical ? [side.x, side.x + side.w] : [side.y, side.y + side.h];
+  if (target < lo + 2 || target > hi - 2) return;
+  const others = edges.flatMap(
+    (o) => o === e ? [] : [o.points[0], o.points[o.points.length - 1]]
+  );
+  const near = (p, q, d) => !!p && Math.abs(p.x - q.x) < d && Math.abs(p.y - q.y) < d;
+  const moved = { ...E, [k]: target };
+  if (others.some((p) => near(p, E, 0.5) || near(p, moved, 4))) return;
+  const iE = end === "to" ? n3 - 1 : 0;
+  e.points[iE] = moved;
+  if (moveP) e.points[end === "to" ? n3 - 2 : 1] = { ...P, [k]: target };
+}
+function dropStraightPoints(points) {
+  const out = [];
+  for (const p of points) {
+    const last = out[out.length - 1];
+    const prev = out[out.length - 2];
+    if (last && Math.abs(last.x - p.x) < 0.01 && Math.abs(last.y - p.y) < 0.01) continue;
+    if (prev && last) {
+      const cross = (last.x - prev.x) * (p.y - prev.y) - (last.y - prev.y) * (p.x - prev.x);
+      const ahead = (last.x - prev.x) * (p.x - last.x) + (last.y - prev.y) * (p.y - last.y) >= 0;
+      if (Math.abs(cross) < 0.01 && ahead) out.pop();
+    }
+    out.push(p);
+  }
+  return out.length >= 2 ? out : points;
+}
 function midpoint(points) {
   const i = Math.max(0, Math.floor((points.length - 1) / 2));
   const a = points[i] ?? { x: 0, y: 0 };
   const b = points[i + 1] ?? a;
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+var overlaps2 = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+function freeLabelBox(points, w, h, avoid) {
+  const runs = points.slice(1).map((q2, i) => [points[i] ?? q2, q2]).filter(([p2, q2]) => Math.abs(p2.x - q2.x) < 0.5 && Math.abs(p2.y - q2.y) > 0.5).sort(([a, b], [c, d]) => Math.abs(d.y - c.y) - Math.abs(b.y - a.y));
+  const inside = (b) => ({
+    ...b,
+    x: round(Math.max(0, b.x)),
+    y: round(Math.max(0, b.y))
+  });
+  const clear = (b) => !avoid.some((o) => o && overlaps2(b, o));
+  const pick = (first, second) => clear(first) || !clear(second) ? first : second;
+  const run = runs[0];
+  if (!run) {
+    const mid = midpoint(points);
+    const above = inside({ x: mid.x - w / 2, y: mid.y - h - 3, w, h });
+    return pick(above, inside({ ...above, y: mid.y + 3 }));
+  }
+  const [p, q] = run;
+  const y = (p.y + q.y) / 2 - h / 2;
+  return pick(inside({ x: p.x + 6, y, w, h }), inside({ x: p.x - 6 - w, y, w, h }));
 }
 function findEdge(n3, id) {
   for (const e of n3.edges ?? []) if (e.id === id) return e;
@@ -9518,27 +10429,74 @@ function findEdge(n3, id) {
   }
   return void 0;
 }
+var elkRuns = /* @__PURE__ */ new Map();
 async function runElk(root) {
-  const noOrder = { "elk.layered.considerModelOrder.strategy": "NONE" };
-  const fallbacks = [
-    {},
-    noOrder,
-    {
-      ...noOrder,
-      "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
-      "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED"
-    },
-    {
-      ...noOrder,
-      "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
-      "elk.layered.nodePlacement.strategy": "SIMPLE"
+  const key = JSON.stringify(root);
+  let run = elkRuns.get(key);
+  if (!run) {
+    run = runElkUncached(root);
+    elkRuns.set(key, run);
+    run.catch(() => elkRuns.delete(key));
+    if (elkRuns.size > 16) {
+      const oldest = elkRuns.keys().next().value;
+      if (oldest !== void 0) elkRuns.delete(oldest);
     }
+  }
+  const { graph, fallback } = await run;
+  return { graph: structuredClone(graph), fallback };
+}
+function crossings(graph) {
+  const nodeOf = (ref) => (ref ?? "").split("::")[0];
+  const lines = (graph.edges ?? []).flatMap((e) => {
+    const s = e.sections?.[0];
+    if (!s) return [];
+    const pts = [s.startPoint, ...s.bendPoints ?? [], s.endPoint];
+    const ends = [nodeOf(e.sources[0]), nodeOf(e.targets[0])];
+    return [{ ends, segs: pts.slice(1).map((q, i) => [pts[i] ?? q, q]) }];
+  });
+  const cross = (a, b, c, d) => {
+    const o = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+    return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+  };
+  let count = 0;
+  const nodes = /* @__PURE__ */ new Set();
+  for (let i = 0; i < lines.length; i++)
+    for (let j = i + 1; j < lines.length; j++) {
+      const a = lines[i];
+      const b = lines[j];
+      if (!a || !b || a.ends.some((x) => b.ends.includes(x))) continue;
+      for (const [p, q] of a.segs)
+        for (const [r, t] of b.segs)
+          if (cross(p, q, r, t)) {
+            count++;
+            for (const x of [...a.ends, ...b.ends]) if (x) nodes.add(x);
+          }
+    }
+  return { count, nodes };
+}
+async function runElkUncached(root) {
+  const fallbacks = [
+    [void 0, {}],
+    [
+      "brandes-koepf placement",
+      {
+        "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+        "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED"
+      }
+    ],
+    [
+      "network-simplex layering, simple placement",
+      {
+        "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
+        "elk.layered.nodePlacement.strategy": "SIMPLE"
+      }
+    ]
   ];
   let lastError;
-  for (const extra of fallbacks) {
+  for (const [fallback, extra] of fallbacks) {
     const graph = applyOptions(structuredClone(root), extra);
     try {
-      return await elk().layout(graph);
+      return { graph: await elk().layout(graph), fallback };
     } catch (e) {
       lastError = e;
     }
@@ -9582,19 +10540,25 @@ function text(block, box, color, anchor2 = "middle", extra = "") {
   const anchorAttr = anchor2 === "middle" ? ` text-anchor="middle"` : "";
   return `<text font-size="${n(block.size)}"${weight} fill="${color}"${anchorAttr}${extra}>${tspans}</text>`;
 }
+var SYMBOL_ID = "SDWSYM";
 function icon(ctx, id, box, color, background) {
-  ctx.icons += 1;
-  const r = renderIcon(id, `${ctx.prefix}i${ctx.icons}`, {
+  const r = renderIcon(id, SYMBOL_ID, {
     theme: ctx.t.name,
     background: background ?? ctx.t.background,
     ink: ctx.t.text,
     color
   });
-  const [vx, vy, vw, vh] = r.viewBox;
-  const scale = Math.min(box.w / vw, box.h / vh);
-  const ox = box.x + (box.w - vw * scale) / 2 - vx * scale;
-  const oy = box.y + (box.h - vh * scale) / 2 - vy * scale;
-  return `<g transform="translate(${n(ox)} ${n(oy)}) scale(${n(scale)})">${r.body}</g>`;
+  const viewBox = r.viewBox.join(" ");
+  const key = `${viewBox}|${r.body}`;
+  let ref = ctx.symbols.get(key);
+  if (!ref) {
+    ref = `${ctx.prefix}s${ctx.symbols.size + 1}`;
+    ctx.symbols.set(key, ref);
+    ctx.defs.push(
+      `<symbol id="${ref}" viewBox="${viewBox}" overflow="visible">${r.body.replaceAll(`${SYMBOL_ID}-`, `${ref}-`)}</symbol>`
+    );
+  }
+  return `<use href="#${ref}" x="${n(box.x)}" y="${n(box.y)}" width="${n(box.w)}" height="${n(box.h)}"/>`;
 }
 function groupFrame(g) {
   const { box } = g;
@@ -9625,7 +10589,8 @@ function groupHeader(ctx, g) {
   const surface = surfaceBehind(ctx, g);
   if (g.label.lines.length) {
     const b = g.labelBox;
-    const left = g.overlay && g.iconBox ? g.iconBox.x - 4 : b.x - 4;
+    const iconInRow = g.overlay && g.iconBox && g.iconBox.y < b.y + b.h && b.y < g.iconBox.y + g.iconBox.h;
+    const left = iconInRow && g.iconBox ? g.iconBox.x - 4 : b.x - 4;
     parts.push(
       `<rect x="${n(left)}" y="${n(b.y - 1)}" width="${n(b.x + b.w + 4 - left)}" height="${n(b.h + 2)}" rx="3" fill="${surface}"/>`
     );
@@ -9704,9 +10669,14 @@ function arrowHead(tip, from, len, half, color, open = false, width = 1.5) {
   ];
   return `<path d="M${pts.map(([x, y]) => `${n(x ?? 0)} ${n(y ?? 0)}`).join(" L")} Z" fill="${color}"/>`;
 }
+function stroke(line) {
+  const width = line === "thick" ? 2.5 : 1.5;
+  const dash = line === "dashed" ? ` stroke-dasharray="6 4"` : line === "dotted" ? ` stroke-dasharray="1.5 3.5" stroke-linecap="round"` : "";
+  return { width, dash };
+}
 function edge(ctx, e, routing) {
   const color = e.color ?? ctx.t.edge;
-  const width = e.line === "thick" ? 2.5 : 1.5;
+  const { width, dash } = stroke(e.line);
   const len = e.line === "thick" ? 11 : 9;
   const half = e.line === "thick" ? 5.5 : 4.5;
   let pts = e.points;
@@ -9719,7 +10689,6 @@ function edge(ctx, e, routing) {
     if (end) pts = trim(pts, true, cut);
     if (start) pts = trim(pts, false, cut);
   }
-  const dash = e.line === "dashed" ? ` stroke-dasharray="6 4"` : e.line === "dotted" ? ` stroke-dasharray="1.5 3.5" stroke-linecap="round"` : "";
   const flow = ctx.scene.animate === "flow" ? ` class="sdw-flow${e.line === "solid" || e.line === "thick" ? " sdw-solid" : ""}"` : "";
   const d = edgePath(pts, routing);
   const parts = [
@@ -9737,24 +10706,31 @@ function edge(ctx, e, routing) {
     parts.push(arrowHead(last, beforeLast, len, half, color, open, width));
   if (start && firstPt && second)
     parts.push(arrowHead(firstPt, second, len, half, color, open, width));
+  return `<g id="${ctx.prefix}e-${e.id}">${parts.join("")}</g>`;
+}
+function edgeLabel(ctx, e) {
+  if (e.points.length < 2) return "";
+  const parts = [];
   if (e.labelBox && e.label) {
     const b = e.labelBox;
     parts.push(
       `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="4" fill="${ctx.scene.background === "transparent" ? ctx.t.background : ctx.scene.background ?? ctx.t.background}" fill-opacity="0.92"/>`
     );
-    parts.push(text(e.label, { x: b.x, y: b.y + 3, w: b.w, h: b.h - 6 }, ctx.t.edgeLabel));
+    const h = e.label.height;
+    parts.push(text(e.label, { x: b.x, y: b.y + (b.h - h) / 2, w: b.w, h }, ctx.t.edgeLabel));
   }
   if (e.stepBox && e.step !== void 0) {
     const s = e.stepBox;
     const cx = s.x + s.w / 2;
     const cy = s.y + s.h / 2;
+    const motion = ctx.motion.get(e.id);
     if (motion?.stepped) parts.push(ping(ctx, cx, cy, s.w / 2, motion));
     parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(s.w / 2)}" fill="${ctx.t.stepFill}"/>`);
     parts.push(
-      `<text x="${n(cx)}" y="${n(cy + 5)}" font-size="14" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`
+      `<text x="${n(cx)}" y="${n(cy + 5)}" font-size="14" font-weight="700" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`
     );
   }
-  return `<g id="${ctx.prefix}e-${e.id}">${parts.join("")}</g>`;
+  return parts.length ? `<g id="${ctx.prefix}el-${e.id}">${parts.join("")}</g>` : "";
 }
 var SPEED = 150;
 var REST = 0.9;
@@ -9775,11 +10751,12 @@ function motionPlan(scene) {
   const travel = (e) => Math.min(2.4, Math.max(0.6, length(e.points) / SPEED));
   const stepped = moving.filter((e) => e.step !== void 0);
   const steps = [...new Set(stepped.map((e) => e.step ?? 0))].sort((a, b) => a - b);
+  const slot = (e) => travel(e) * (e.arrow === "both" ? 2 : 1);
   const starts = /* @__PURE__ */ new Map();
   let t = 0;
   for (const step of steps) {
     starts.set(step, t);
-    t += Math.max(...stepped.filter((e) => e.step === step).map(travel)) + 0.15;
+    t += Math.max(...stepped.filter((e) => e.step === step).map(slot)) + 0.15;
   }
   const story = t + REST;
   for (const e of stepped) {
@@ -9807,18 +10784,19 @@ function packets(ctx, e, d, m) {
   const color = e.color ?? ctx.t.flow;
   const r = e.line === "thick" ? 4.2 : 3.6;
   const { cycle, start, travel } = m;
-  const end = start + travel;
-  const fadeIn = start === 0 ? [0, FADE] : [0, start, start + FADE];
-  const opacity = start === 0 ? "0;1;1;0;0" : "0;0;1;1;0;0";
-  const fade = keyTimes([...fadeIn, end - FADE, end, cycle], cycle);
-  const at = keyTimes([0, start, end, cycle], cycle);
-  const one = (reverse, shift) => {
+  const one = (reverse, from, shift = 0) => {
+    const end = from + travel;
+    const fadeIn = from === 0 ? [0, FADE] : [0, from, from + FADE];
+    const opacity = from === 0 ? "0;1;1;0;0" : "0;0;1;1;0;0";
+    const fade = keyTimes([...fadeIn, end - FADE, end, cycle], cycle);
+    const at = keyTimes([0, from, end, cycle], cycle);
     const begin = m.begin - shift;
     const loop = `dur="${secs(cycle)}" repeatCount="indefinite"${begin ? ` begin="${secs(begin)}"` : ""}`;
     return `<g opacity="0"><circle r="${n(r * 2.3)}" fill="${color}" fill-opacity="0.22"/><circle r="${r}" fill="${color}"/><animateMotion path="${d}" ${loop} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${at}"/><animate attributeName="opacity" values="${opacity}" keyTimes="${fade}" ${loop}/></g>`;
   };
-  if (e.arrow === "both") return one(false, 0) + one(true, cycle / 2);
-  return one(e.arrow === "start", 0);
+  if (e.arrow === "both")
+    return m.stepped ? one(false, start) + one(true, start + travel) : one(false, start) + one(true, start, cycle / 2);
+  return one(e.arrow === "start", start);
 }
 function ping(ctx, cx, cy, r, m) {
   const at = keyTimes([0, Math.max(0, m.start - 0.01), m.start, m.start + 0.6, m.cycle], m.cycle);
@@ -9868,11 +10846,12 @@ function shapePath(shape, b) {
       return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="12"/>`;
   }
 }
-function badge(ctx, label, anchor2) {
-  const w = Math.max(18, 8 + label.length * 6.4);
-  const x = anchor2.x + anchor2.w - w / 2 - 2;
-  const y = anchor2.y - 7;
-  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="16" rx="8" fill="${ctx.t.stepFill}"/><text x="${n(x + w / 2)}" y="${n(y + 11.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
+function badge(ctx, label, anchor2, placed) {
+  const w = placed?.w ?? Math.max(18, 8 + label.length * 6.4);
+  const h = placed?.h ?? 16;
+  const x = placed?.x ?? anchor2.x + anchor2.w - w / 2 - 2;
+  const y = placed?.y ?? anchor2.y - 7;
+  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(h / 2)}" fill="${ctx.t.stepFill}"/><text x="${n(x + w / 2)}" y="${n(y + h / 2 + 3.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
 }
 function node(ctx, nd) {
   const parts = [];
@@ -9881,12 +10860,12 @@ function node(ctx, nd) {
     if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, nd.color));
     parts.push(text(nd.label, nd.labelBox, nd.ink ?? ctx.t.text));
     if (nd.note && nd.noteBox) parts.push(text(nd.note, nd.noteBox, nd.inkMuted ?? ctx.t.muted));
-    if (nd.badge && nd.iconBox) parts.push(badge(ctx, nd.badge, nd.iconBox));
+    if (nd.badge && nd.iconBox) parts.push(badge(ctx, nd.badge, nd.iconBox, nd.badgeBox));
   } else if (nd.look === "card") {
     const b = nd.box;
-    const stroke = nd.color ?? ctx.t.border;
+    const stroke2 = nd.color ?? ctx.t.border;
     parts.push(
-      `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="8" fill="${ctx.t.surface}" stroke="${stroke}" stroke-width="1"/>`
+      `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="8" fill="${ctx.t.surface}" stroke="${stroke2}" stroke-width="1"/>`
     );
     if (nd.color) {
       parts.push(
@@ -9896,27 +10875,43 @@ function node(ctx, nd) {
     if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, void 0, ctx.t.surface));
     parts.push(text(nd.label, nd.labelBox, ctx.t.text, "start"));
     if (nd.note && nd.noteBox) parts.push(text(nd.note, nd.noteBox, ctx.t.muted, "start"));
-    if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box));
+    if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box, nd.badgeBox));
   } else {
-    const stroke = nd.color ?? (ctx.t.name === "dark" ? "#6e7681" : "#8b95a1");
+    const stroke2 = nd.color ?? (ctx.t.name === "dark" ? "#6e7681" : "#8b95a1");
     const fill = nd.color ? mixHex(nd.color, bg, ctx.t.name === "dark" ? 0.16 : 0.1) : ctx.t.surface;
     parts.push(
-      `<g fill="${fill}" stroke="${stroke}" stroke-width="1.25">${shapePath(nd.shape, nd.box)}</g>`
+      `<g fill="${fill}" stroke="${stroke2}" stroke-width="1.25">${shapePath(nd.shape, nd.box)}</g>`
     );
     if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, nd.color, fill));
     parts.push(text(nd.label, nd.labelBox, nd.ink ?? ctx.t.text));
     if (nd.note && nd.noteBox) parts.push(text(nd.note, nd.noteBox, nd.inkMuted ?? ctx.t.muted));
-    if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box));
+    if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box, nd.badgeBox));
   }
   const inner = parts.join("");
   const body = nd.url ? `<a href="${esc(nd.url)}" xlink:href="${esc(nd.url)}" target="_blank">${inner}</a>` : inner;
   return `<g id="${ctx.prefix}n-${nd.id}">${body}</g>`;
 }
+function legend(ctx, l) {
+  const b = l.box;
+  const parts = [
+    `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="6" fill="${ctx.t.surface}" stroke="${ctx.t.border}" stroke-width="1"/>`
+  ];
+  for (const item of l.items) {
+    const s = item.swatch;
+    const { width, dash } = stroke(item.line);
+    const y = s.y + s.h / 2;
+    parts.push(
+      `<path d="M${n(s.x)} ${n(y)} H${n(s.x + s.w)}" fill="none" stroke="${ctx.t.edge}" stroke-width="${width}"${dash}/>`
+    );
+    parts.push(text(item.label, item.labelBox, ctx.t.text, "start"));
+  }
+  return `<g id="${ctx.prefix}legend">${parts.join("")}</g>`;
+}
 var FLOW_CSS = `@keyframes sdw-flow{to{stroke-dashoffset:-20}}.sdw-flow{animation:sdw-flow 1.1s linear infinite}.sdw-solid{stroke-dasharray:7 3}`;
 function renderSvg(scene, opts = {}) {
   const t = THEME_TOKENS[scene.theme];
   const prefix = opts.idPrefix ? `${opts.idPrefix.replace(/[^A-Za-z0-9_-]/g, "")}-` : "";
-  const ctx = { t, prefix, icons: 0, scene, motion: motionPlan(scene) };
+  const ctx = { t, prefix, scene, motion: motionPlan(scene), symbols: /* @__PURE__ */ new Map(), defs: [] };
   const { width: W, height: H } = scene;
   const titleId = `${prefix}sdw-title`;
   const descId = `${prefix}sdw-desc`;
@@ -9929,6 +10924,7 @@ function renderSvg(scene, opts = {}) {
   );
   out.push(`<desc id="${descId}">${esc(scene.description)}</desc>`);
   if (scene.animate === "flow") out.push(`<style>${FLOW_CSS}</style>`);
+  const defsAt = out.length;
   if (scene.background !== "transparent") {
     out.push(`<rect width="${W}" height="${H}" fill="${scene.background ?? t.background}"/>`);
   }
@@ -9937,11 +10933,17 @@ function renderSvg(scene, opts = {}) {
     out.push(text(scene.subtitle, scene.subtitleBox, t.muted, "start"));
   for (const g of scene.groups) out.push(`<g id="${ctx.prefix}g-${g.id}">${groupFrame(g)}</g>`);
   for (const e of scene.edges) out.push(edge(ctx, e, scene.routing));
+  for (const e of scene.edges) {
+    const label = edgeLabel(ctx, e);
+    if (label) out.push(label);
+  }
   for (const g of scene.groups) {
     const header = groupHeader(ctx, g);
     if (header) out.push(`<g id="${ctx.prefix}gh-${g.id}">${header}</g>`);
   }
   for (const nd of scene.nodes) out.push(node(ctx, nd));
+  if (scene.legend?.items.length) out.push(legend(ctx, scene.legend));
+  if (ctx.defs.length) out.splice(defsAt, 0, `<defs>${ctx.defs.join("")}</defs>`);
   out.push("</svg>");
   return `${out.join("\n")}
 `;
@@ -10054,7 +11056,8 @@ function node2(ctx, nd) {
       fillColor: "none",
       strokeColor: "none",
       html: 1,
-      whiteSpace: "wrap",
+      // Layout already broke the label into lines; draw.io's own wrap would break them again.
+      whiteSpace: "nowrap",
       fontColor: nd.ink ?? ctx.t.text,
       fontSize: 13,
       fontFamily: FONT,
@@ -10069,7 +11072,9 @@ function node2(ctx, nd) {
       labelPosition: "center",
       align: "center",
       html: 1,
-      whiteSpace: "wrap",
+      // The label sits under a 48px image; wrapping to that width stacked "Amazon API
+      // Gateway" three lines deep into the next icon.
+      whiteSpace: "nowrap",
       fontColor: nd.ink ?? ctx.t.text,
       fontSize: 13,
       fontFamily: FONT,
@@ -10102,7 +11107,7 @@ function node2(ctx, nd) {
     });
     geom = geometry(nd.box, nd.parent, ctx);
   } else {
-    const stroke = nd.color ?? (ctx.t.name === "dark" ? "#6e7681" : "#8b95a1");
+    const stroke2 = nd.color ?? (ctx.t.name === "dark" ? "#6e7681" : "#8b95a1");
     const fill = nd.color ? mixHex(nd.color, bg, ctx.t.name === "dark" ? 0.16 : 0.1) : ctx.t.surface;
     const img = nd.icon ? iconData(ctx, nd.icon, nd.color, fill) : void 0;
     s = style({
@@ -10110,7 +11115,7 @@ function node2(ctx, nd) {
       whiteSpace: "wrap",
       html: 1,
       fillColor: fill,
-      strokeColor: stroke,
+      strokeColor: stroke2,
       fontColor: ctx.t.text,
       fontSize: 13,
       fontStyle: 1,
@@ -10129,6 +11134,11 @@ function anchor(p, b) {
   const clamp = (v) => Math.max(0, Math.min(1, Math.round(v * 1e3) / 1e3));
   return [clamp((p.x - b.x) / (b.w || 1)), clamp((p.y - b.y) / (b.h || 1))];
 }
+var lineStyle = (line) => ({
+  strokeWidth: line === "thick" ? 2.5 : 1.5,
+  dashed: line === "dashed" || line === "dotted" ? 1 : 0,
+  dashPattern: line === "dotted" ? "1 3" : line === "dashed" ? "6 4" : void 0
+});
 function edge2(ctx, e, boxes) {
   const first = e.points[0];
   const last = e.points[e.points.length - 1];
@@ -10153,9 +11163,7 @@ function edge2(ctx, e, boxes) {
     startFill: 1,
     startSize: 6,
     strokeColor: e.color ?? ctx.t.edge,
-    strokeWidth: e.line === "thick" ? 2.5 : 1.5,
-    dashed: e.line === "dashed" || e.line === "dotted" ? 1 : 0,
-    dashPattern: e.line === "dotted" ? "1 3" : e.line === "dashed" ? "6 4" : void 0,
+    ...lineStyle(e.line),
     fontColor: ctx.t.edgeLabel,
     fontSize: 11,
     fontFamily: FONT,
@@ -10183,6 +11191,19 @@ function edge2(ctx, e, boxes) {
     );
   }
 }
+function legend2(ctx, l) {
+  const { box } = l;
+  const local = (b) => ({ ...b, x: b.x - box.x, y: b.y - box.y });
+  ctx.cells.push(
+    `<mxCell id="legend" value="" style="${style({ rounded: 1, absoluteArcSize: 1, arcSize: 12, html: 1, fillColor: ctx.t.surface, strokeColor: ctx.t.border, container: 1, collapsible: 0, recursiveResize: 0 })}" vertex="1" parent="1">${geometry(box)}</mxCell>`
+  );
+  for (const [i, item] of l.items.entries()) {
+    ctx.cells.push(
+      `<mxCell id="legend:${i}:line" value="" style="${style({ line: null, html: 1, fillColor: "none", strokeColor: ctx.t.edge, ...lineStyle(item.line) })}" vertex="1" parent="legend">${geometry(local(item.swatch))}</mxCell>`,
+      `<mxCell id="legend:${i}:text" value="${esc(esc(item.label.lines.join(" ")))}" style="${style({ text: null, html: 1, align: "left", verticalAlign: "middle", whiteSpace: "nowrap", fontSize: item.label.size, fontColor: ctx.t.text, fontFamily: FONT, spacing: 0 })}" vertex="1" parent="legend">${geometry(local(item.labelBox))}</mxCell>`
+    );
+  }
+}
 function renderDrawio(scene, name = "Diagram") {
   const t = THEME_TOKENS[scene.theme];
   const ctx = { t, scene, icons: 0, cells: [], groupBox: /* @__PURE__ */ new Map() };
@@ -10205,6 +11226,7 @@ function renderDrawio(scene, name = "Diagram") {
     node2(ctx, nd);
   }
   for (const e of scene.edges) edge2(ctx, e, boxes);
+  if (scene.legend?.items.length) legend2(ctx, scene.legend);
   const bg = scene.background === "transparent" ? "none" : scene.background ?? t.background;
   return [
     `<mxfile host="stackdraw" agent="stackdraw" type="device">`,
@@ -10219,8 +11241,10 @@ function renderDrawio(scene, name = "Diagram") {
 
 // src/render/html.ts
 function renderHtml(input) {
-  const lightB64 = Buffer.from(input.light).toString("base64");
-  const darkB64 = Buffer.from(input.dark).toString("base64");
+  const b64 = (svg) => Buffer.from(svg).toString("base64");
+  const lightB64 = b64(input.light);
+  const darkB64 = b64(input.dark);
+  const stills = input.lightStill && input.darkStill ? `{ light: "${b64(input.lightStill)}", dark: "${b64(input.darkStill)}" }` : "svgs";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -10237,7 +11261,7 @@ body{background:var(--bg);color:var(--ink);font:14px/1.4 Inter,"Segoe UI",-apple
 header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
 h1{font-size:15px;font-weight:600;margin:0;flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tools{display:flex;flex-wrap:wrap;gap:6px}
-button,a.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;text-decoration:none;min-height:36px;display:inline-flex;align-items:center;gap:6px;transition:border-color .15s ease,transform .15s ease}
+button,a.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;text-decoration:none;min-height:44px;min-width:44px;justify-content:center;display:inline-flex;align-items:center;gap:6px;transition:border-color .15s ease,transform .15s ease}
 button:hover,a.btn:hover{border-color:var(--accent)}
 button:active,a.btn:active{transform:scale(.97)}
 main{position:relative;flex:1;overflow:hidden;touch-action:none;cursor:grab}
@@ -10267,13 +11291,14 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
 <script>
 (() => {
   const svgs = { light: "${lightB64}", dark: "${darkB64}" };
+  const stills = ${stills};
   const toUrl = (b64) => "data:image/svg+xml;base64," + b64;
   const body = document.body, stage = document.getElementById("stage"), canvas = document.getElementById("canvas"), img = document.getElementById("diagram");
   let theme = body.dataset.theme, scale = 1, x = 0, y = 0;
   const size = () => { const m = atob(svgs[theme].slice(0, 800)).match(/width="([\\d.]+)" height="([\\d.]+)"/); return m ? [Number(m[1]), Number(m[2])] : [1000, 600]; };
   const apply = () => { const [w, h] = size(); canvas.style.left = x + "px"; canvas.style.top = y + "px"; img.style.width = w * scale + "px"; img.style.height = h * scale + "px"; };
   const fit = () => { const [w, h] = size(); const r = stage.getBoundingClientRect(); scale = Math.min((r.width - 32) / w, (r.height - 32) / h, 2); x = (r.width - w * scale) / 2; y = Math.max(16, (r.height - h * scale) / 2); apply(); };
-  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; apply(); document.querySelector('[data-act=svg]').href = toUrl(svgs[theme]); };
+  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; apply(); const a = document.querySelector('[data-act=svg]'); a.href = toUrl(svgs[theme]); a.download = "${esc(input.name)}-" + theme + ".svg"; };
   const zoomAt = (f, cx, cy) => { const ns = Math.max(0.1, Math.min(8, scale * f)); x = cx - (cx - x) * (ns / scale); y = cy - (cy - y) * (ns / scale); scale = ns; apply(); };
   const pointers = new Map(); let pinch = 0;
   stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.classList.add("dragging"); });
@@ -10293,9 +11318,10 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
   document.querySelector("[data-act=out]").onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(0.8, r.width / 2, r.height / 2); };
   document.querySelector("[data-act=fit]").onclick = fit;
   document.querySelector("[data-act=png]").onclick = () => {
-    const [w, h] = size(); const c = document.createElement("canvas"); c.width = w * 2; c.height = h * 2;
-    const im = new Image(); im.onload = () => { const g = c.getContext("2d"); g.scale(2, 2); g.drawImage(im, 0, 0); const a = document.createElement("a"); a.download = "${esc(input.name)}-" + theme + ".png"; a.href = c.toDataURL("image/png"); a.click(); };
-    im.src = toUrl(svgs[theme]);
+    // 3x like the CLI, capped at 16.7M pixels, the largest canvas iOS Safari will export.
+    const [w, h] = size(); const k = Math.min(3, Math.sqrt(16.7e6 / (w * h))); const c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+    const im = new Image(); im.onload = () => { const g = c.getContext("2d"); g.scale(c.width / w, c.height / h); g.drawImage(im, 0, 0, w, h); const a = document.createElement("a"); a.download = "${esc(input.name)}-" + theme + ".png"; a.href = c.toDataURL("image/png"); a.click(); };
+    im.src = toUrl(stills[theme]);
   };
   addEventListener("resize", fit);
   show(); fit();
@@ -10387,7 +11413,7 @@ function attrName(name) {
 function attrValue(name, value) {
   const decoded = value.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
   if (name === "style") {
-    const obj = decoded.split(";").map((d) => d.trim()).filter(Boolean).map((d) => {
+    const obj = decoded.split(";").map((d) => d.trim()).filter((d) => d && !d.startsWith("-")).map((d) => {
       const [k = "", ...v] = d.split(":");
       const key = k.trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase());
       return `${JSON.stringify(key)}: ${JSON.stringify(v.join(":").trim())}`;
@@ -10468,8 +11494,6 @@ async function renderModel(req) {
   ];
   const scenes = {};
   for (const theme of themes) scenes[theme] = await layout(model, { theme });
-  const first = scenes[req.themes[0] ?? model.theme] ?? Object.values(scenes)[0];
-  const diagnostics = first ? checkScene(first, model) : [];
   if (req.formats.length) {
     const ids = Object.values(scenes).flatMap((s) => [
       ...s.nodes.map((n3) => n3.icon),
@@ -10477,16 +11501,22 @@ async function renderModel(req) {
     ]);
     await loadIconLibraries(ids.filter((id) => !!id));
   }
+  for (const s of Object.values(scenes)) fitIcons(s);
+  const first = scenes[req.themes[0] ?? model.theme] ?? Object.values(scenes)[0];
+  const diagnostics = first ? checkScene(first, model) : [];
+  const idPrefix = (theme) => `${req.name}-${theme}`.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^(?=[^A-Za-z_])/, "sd-");
+  const svgOf = (theme, scene) => renderSvg(scene, { idPrefix: idPrefix(theme) });
+  const stillOf = (theme, scene) => scene.animate !== "none" ? svgOf(theme, { ...scene, animate: "none" }) : void 0;
   const artifacts = [];
   for (const theme of req.themes) {
     const scene = scenes[theme];
     if (!scene || !req.formats.length) continue;
-    const svg = renderSvg(scene);
+    const svg = svgOf(theme, scene);
     for (const format of req.formats) {
       const base = { format, theme, width: scene.width, height: scene.height };
       if (format === "svg") artifacts.push({ ...base, data: svg });
       if (format === "png") {
-        const still = scene.animate !== "none" ? renderSvg({ ...scene, animate: "none" }) : svg;
+        const still = stillOf(theme, scene) ?? svg;
         artifacts.push({
           ...base,
           data: await renderPng(still, { scale: req.scale, fonts: req.fonts }),
@@ -10508,8 +11538,10 @@ async function renderModel(req) {
       format: "html",
       data: renderHtml({
         title: model.title ?? req.name,
-        light: renderSvg(scenes.light),
-        dark: renderSvg(scenes.dark),
+        light: svgOf("light", scenes.light),
+        dark: svgOf("dark", scenes.dark),
+        lightStill: stillOf("light", scenes.light),
+        darkStill: stillOf("dark", scenes.dark),
         name: req.name,
         initial: req.themes[0] ?? model.theme
       }),
@@ -10518,6 +11550,1966 @@ async function renderModel(req) {
     });
   }
   return { artifacts, diagnostics, scenes };
+}
+
+// src/review.ts
+var DEFAULT_REVIEW_WIDTH = 880;
+var DIMENSIONS = ["conventions", "layout", "grid", "flow", "overlap", "quality"];
+var WEIGHTS = {
+  conventions: 0.15,
+  layout: 0.15,
+  grid: 0.1,
+  flow: 0.2,
+  overlap: 0.2,
+  quality: 0.2
+};
+var FINDINGS = {
+  "overlap.edge-through-node": {
+    dimension: "overlap",
+    rule: "DG201",
+    cap: 60,
+    about: "an edge runs through a node it does not connect"
+  },
+  "overlap.label-over-node": {
+    dimension: "overlap",
+    rule: "DG202",
+    cap: 40,
+    about: "an edge label covers a node"
+  },
+  "overlap.labels-collide": {
+    dimension: "overlap",
+    rule: "DG202",
+    cap: 40,
+    about: "two edge labels overlap"
+  },
+  "overlap.nodes-collide": {
+    dimension: "overlap",
+    rule: "DG203",
+    cap: 60,
+    about: "two nodes' drawn footprints overlap"
+  },
+  "overlap.edge-through-header": {
+    dimension: "overlap",
+    rule: "DG209",
+    cap: 40,
+    about: "an edge runs under a group header label, so it looks broken"
+  },
+  "overlap.edge-through-label": {
+    dimension: "overlap",
+    rule: "DG212",
+    cap: 40,
+    about: "an edge runs through another edge's label or step badge, or a node's label text"
+  },
+  "overlap.off-canvas": {
+    dimension: "overlap",
+    rule: "DG210",
+    cap: 60,
+    about: "something is drawn outside the canvas and gets cut off"
+  },
+  "overlap.badge": {
+    dimension: "overlap",
+    rule: "DG211",
+    cap: 40,
+    about: "a step badge or node badge covers a node, a label or another badge"
+  },
+  "overlap.overlay-encloses": {
+    dimension: "overlap",
+    rule: "DG213",
+    cap: 30,
+    about: "an overlay (around:) group draws around a node that is not a member"
+  },
+  "overlap.outside-group": {
+    dimension: "overlap",
+    cap: 30,
+    about: "a node or group sticks out of its parent group or into its header"
+  },
+  "overlap.groups-collide": {
+    dimension: "overlap",
+    cap: 30,
+    about: "two groups that do not nest overlap"
+  },
+  "flow.head-hidden": {
+    dimension: "flow",
+    cap: 40,
+    about: "an arrowhead sits under a label, badge, header or node, so the direction is lost"
+  },
+  "flow.shared-trunk": {
+    dimension: "flow",
+    cap: 32,
+    about: "two unrelated edges run on the same line, so readers cannot tell them apart"
+  },
+  "flow.step-order": {
+    dimension: "flow",
+    rule: "AWS-14",
+    cap: 32,
+    about: "step numbers do not follow reading order (left to right, top to bottom, or clockwise)"
+  },
+  "flow.step-numbering": {
+    dimension: "flow",
+    cap: 8,
+    about: "step numbers skip a number or do not start at 1"
+  },
+  "flow.bidirectional": {
+    dimension: "flow",
+    rule: "AZ-04",
+    cap: 12,
+    about: "a two-headed arrow hides who initiates"
+  },
+  "flow.undirected": {
+    dimension: "flow",
+    rule: "AZ-03",
+    cap: 12,
+    about: "a line without an arrowhead leaves the relationship unclear"
+  },
+  "flow.unlabelled-boundary": {
+    dimension: "flow",
+    cap: 10,
+    about: "an unlabelled edge crosses a group boundary"
+  },
+  "flow.head-on-bend": {
+    dimension: "flow",
+    cap: 15,
+    about: "the last straight run is shorter than the arrowhead, so the head sits on the bend"
+  },
+  "flow.arrow-short": {
+    dimension: "flow",
+    cap: 10,
+    about: "an edge stops short of the drawn icon glyph"
+  },
+  "flow.unconnected": {
+    dimension: "flow",
+    rule: "DG208",
+    cap: 12,
+    about: "a node nothing connects to"
+  },
+  "layout.against-flow": {
+    dimension: "layout",
+    cap: 30,
+    about: "an arrowhead points against the diagram direction"
+  },
+  "layout.crossings": {
+    dimension: "layout",
+    cap: 30,
+    about: "edges cross each other"
+  },
+  "layout.empty-space": {
+    dimension: "layout",
+    cap: 25,
+    about: "a large empty rectangle inside the content"
+  },
+  "layout.aspect": {
+    dimension: "layout",
+    rule: "DG205",
+    cap: 25,
+    about: "the picture is a strip, hard to read in a document column"
+  },
+  "layout.too-wide": {
+    dimension: "layout",
+    rule: "DG205",
+    cap: 15,
+    about: "the canvas is wider than 2400px"
+  },
+  "layout.long-edge": {
+    dimension: "layout",
+    cap: 15,
+    about: "an edge is far longer than the median edge"
+  },
+  "layout.fallback": {
+    dimension: "layout",
+    rule: "DG218",
+    cap: 5,
+    about: "ELK needed a fallback strategy, so spec order may not be kept"
+  },
+  "layout.empty-group": {
+    dimension: "layout",
+    rule: "DG207",
+    cap: 10,
+    about: "a group with nothing in it"
+  },
+  "grid.ragged": {
+    dimension: "grid",
+    cap: 24,
+    about: "items in one layer share no start, center or end line"
+  },
+  "grid.jog": {
+    dimension: "grid",
+    cap: 24,
+    about: "an edge has a tiny step (under 6px) where it could run straight"
+  },
+  "grid.off-center": {
+    dimension: "grid",
+    cap: 21,
+    about: "a group's content is off its center by more than 6px"
+  },
+  "grid.uneven-gaps": {
+    dimension: "grid",
+    cap: 15,
+    about: "gaps between layers vary a lot"
+  },
+  "quality.label-size": {
+    dimension: "quality",
+    rule: "LEG-01",
+    cap: 60,
+    about: "node labels are too small at the display width"
+  },
+  "quality.text-size": {
+    dimension: "quality",
+    rule: "LEG-02",
+    cap: 20,
+    about: "the smallest text (notes, edge labels, badges) is too small at the display width"
+  },
+  "quality.icon-size": {
+    dimension: "quality",
+    rule: "LEG-03",
+    cap: 15,
+    about: "icons are too small to recognize at the display width"
+  },
+  "quality.contrast": {
+    dimension: "quality",
+    rule: "LEG-04",
+    cap: 40,
+    about: "text below the WCAG 2.2 contrast minimum"
+  },
+  "quality.node-count": {
+    dimension: "quality",
+    rule: "DG206",
+    cap: 20,
+    about: "more nodes than one diagram can carry"
+  },
+  "quality.long-label": {
+    dimension: "quality",
+    rule: "DG204",
+    cap: 12,
+    about: "a node label wraps to more than three lines"
+  },
+  "quality.mid-word-break": {
+    dimension: "quality",
+    rule: "AWS-07",
+    cap: 12,
+    about: "a label breaks in the middle of a word"
+  },
+  "conventions.legend-missing": {
+    dimension: "conventions",
+    rule: "DG217",
+    cap: 30,
+    about: "a line style is used without a legend that explains it"
+  },
+  "conventions.legend-unused": {
+    dimension: "conventions",
+    cap: 6,
+    about: "the legend explains a line style the diagram does not draw"
+  },
+  "conventions.title-missing": {
+    dimension: "conventions",
+    rule: "C4-01",
+    cap: 8,
+    about: "the diagram has no title"
+  },
+  "conventions.short-name": {
+    dimension: "conventions",
+    rule: "AWS-08",
+    cap: 20,
+    about: "an AWS short form with no full service name anywhere in the diagram"
+  },
+  "conventions.label-lines": {
+    dimension: "conventions",
+    rule: "AWS-07",
+    cap: 15,
+    about: "an AWS service label runs over two lines"
+  },
+  "conventions.callout-sizes": {
+    dimension: "conventions",
+    rule: "AWS-13",
+    cap: 5,
+    about: "step callouts come in more than one size"
+  },
+  "conventions.c4-element": {
+    dimension: "conventions",
+    rule: "C4-04",
+    cap: 24,
+    about: "a C4 element lacks its type, description or technology"
+  },
+  "conventions.c4-relationship": {
+    dimension: "conventions",
+    rule: "C4-07",
+    cap: 15,
+    about: "a C4 relationship lacks a specific label or its technology"
+  },
+  "conventions.icon-recolored": {
+    dimension: "conventions",
+    rule: "AZ-06",
+    cap: 15,
+    about: "a brand mark is recolored"
+  },
+  "conventions.gcp-product-icon": {
+    dimension: "conventions",
+    rule: "GCP-02",
+    cap: 24,
+    about: "a Google Cloud product is drawn with another product's icon"
+  }
+};
+var EPS2 = 0.5;
+var r1 = (v) => Math.round(v * 10) / 10;
+var r2 = (v) => Math.round(v * 100) / 100;
+var real = (b) => !!b && b.w > 0 && b.h > 0;
+function union2(list) {
+  const l = list.filter(real);
+  if (!l.length) return void 0;
+  const x = Math.min(...l.map((b) => b.x));
+  const y = Math.min(...l.map((b) => b.y));
+  return {
+    x,
+    y,
+    w: Math.max(...l.map((b) => b.x + b.w)) - x,
+    h: Math.max(...l.map((b) => b.y + b.h)) - y
+  };
+}
+function interArea(a, b) {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+var inBox = (x, y, b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+function clipLen(p, q, b, inset = 0) {
+  const box = { x: b.x + inset, y: b.y + inset, w: b.w - 2 * inset, h: b.h - 2 * inset };
+  if (box.w <= 0 || box.h <= 0) return 0;
+  let t0 = 0;
+  let t1 = 1;
+  const dx = q.x - p.x;
+  const dy = q.y - p.y;
+  const sides = [
+    [-dx, p.x - box.x],
+    [dx, box.x + box.w - p.x],
+    [-dy, p.y - box.y],
+    [dy, box.y + box.h - p.y]
+  ];
+  for (const [pp, qq] of sides) {
+    if (pp === 0) {
+      if (qq < 0) return 0;
+    } else {
+      const r = qq / pp;
+      if (pp < 0) {
+        if (r > t1) return 0;
+        if (r > t0) t0 = r;
+      } else {
+        if (r < t0) return 0;
+        if (r < t1) t1 = r;
+      }
+    }
+  }
+  return t0 < t1 ? (t1 - t0) * Math.hypot(dx, dy) : 0;
+}
+function pathClipLen(points, b, inset = 0) {
+  let total = 0;
+  for (let i = 0; i + 1 < points.length; i++) {
+    const p = points[i];
+    const q = points[i + 1];
+    if (p && q) total += clipLen(p, q, b, inset);
+  }
+  return total;
+}
+var segments = (points) => points.slice(1).flatMap((q, i) => {
+  const p = points[i];
+  return p ? [[p, q]] : [];
+});
+var pathLen = (points) => segments(points).reduce((s, [p, q]) => s + Math.hypot(q.x - p.x, q.y - p.y), 0);
+function simplify(points) {
+  const out = [];
+  for (const p of points) {
+    const last = out.at(-1);
+    if (last && Math.abs(last.x - p.x) < 0.01 && Math.abs(last.y - p.y) < 0.01) continue;
+    out.push(p);
+    while (out.length >= 3) {
+      const [a, b, c] = out.slice(-3);
+      if (Math.abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) < 0.01)
+        out.splice(out.length - 2, 1);
+      else break;
+    }
+  }
+  return out;
+}
+function midpoint2(points) {
+  const half = pathLen(points) / 2;
+  let walked = 0;
+  for (const [p, q] of segments(points)) {
+    const l = Math.hypot(q.x - p.x, q.y - p.y);
+    if (walked + l >= half && l > 0) {
+      const t = (half - walked) / l;
+      return { x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t };
+    }
+    walked += l;
+  }
+  return points[0] ?? { x: 0, y: 0 };
+}
+var horizontalFlow = (d) => d === "right" || d === "left";
+var along = (d, dx, dy) => d === "right" ? dx : d === "left" ? -dx : d === "down" ? dy : -dy;
+function footprint(n3) {
+  return union2([n3.box, n3.iconBox, n3.labelBox, n3.noteBox]) ?? n3.box;
+}
+function headerChip2(g) {
+  if (!g.label.lines.length) return void 0;
+  const parts = g.overlay && g.iconBox ? [g.labelBox, g.iconBox] : [g.labelBox];
+  const u = union2(parts);
+  return u ? { x: u.x - 4, y: u.y - 1, w: u.w + 8, h: u.h + 2 } : void 0;
+}
+function badgeRect2(n3) {
+  if (!n3.badge) return void 0;
+  if (n3.badgeBox) return n3.badgeBox;
+  const anchor2 = n3.look === "icon" ? n3.iconBox : n3.box;
+  if (!anchor2) return void 0;
+  const w = Math.max(18, 8 + n3.badge.length * 6.4);
+  return { x: anchor2.x + anchor2.w - w / 2 - 2, y: anchor2.y - 7, w, h: 16 };
+}
+function headerBottom(g) {
+  if (g.overlay) return g.box.y;
+  const parts = [g.labelBox, g.iconBox].filter(real);
+  return Math.max(g.box.y, ...parts.map((b) => b.y + b.h));
+}
+var norm = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+var escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+var hasPhrase = (text2, phrase) => !!phrase && new RegExp(`(^| )${escapeRe(norm(phrase))}s?( |$)`).test(text2);
+var edgeName = (e) => `${e.from} -> ${e.to}`;
+var OVERLAP_RULES = {
+  DG201: {
+    id: "overlap.edge-through-node",
+    severity: "blocker",
+    cost: 15,
+    hard: "edgesThroughNodes",
+    ids: ["edge", "node"]
+  },
+  DG202: {
+    id: "overlap.label-over-node",
+    severity: "major",
+    cost: 12,
+    hard: "overlaps",
+    ids: ["edge", "node"]
+  },
+  "DG202:labels": {
+    id: "overlap.labels-collide",
+    severity: "major",
+    cost: 12,
+    hard: "overlaps",
+    ids: ["edges"]
+  },
+  DG203: {
+    id: "overlap.nodes-collide",
+    severity: "blocker",
+    cost: 15,
+    hard: "overlaps",
+    ids: ["nodes"]
+  },
+  DG209: {
+    id: "overlap.edge-through-header",
+    severity: "major",
+    cost: 8,
+    hard: "edgesThroughHeaders",
+    ids: ["edge", "group"]
+  },
+  DG210: {
+    id: "overlap.off-canvas",
+    severity: "blocker",
+    cost: 15,
+    hard: "offCanvas",
+    ids: ["node", "group", "edge", "legend", "title", "subtitle"]
+  },
+  DG211: {
+    id: "overlap.badge",
+    severity: "major",
+    cost: 8,
+    hard: "overlaps",
+    ids: ["edge", "node", "over"]
+  },
+  DG212: {
+    id: "overlap.edge-through-label",
+    severity: "major",
+    cost: 8,
+    hard: "edgesThroughLabels",
+    ids: ["edge", "labelOf"]
+  },
+  DG213: {
+    id: "overlap.overlay-encloses",
+    severity: "major",
+    cost: 10,
+    hard: "overlaps",
+    ids: ["group", "enclosed"]
+  }
+};
+function flatEvidence(v, key = "", out = {}) {
+  if (typeof v === "number" || typeof v === "string") out[key] = v;
+  else if (v && typeof v === "object")
+    for (const [k, x] of Object.entries(v)) flatEvidence(x, key ? `${key}.${k}` : k, out);
+  return out;
+}
+var subjectIds = (d, keys) => keys.flatMap((k) => {
+  const v = d.subject?.[k];
+  if (v === true) return [k];
+  if (Array.isArray(v)) return v.map(String);
+  return typeof v === "string" ? [v] : [];
+});
+function measureOverlap(c, diagnostics) {
+  const { scene, add, hard } = c;
+  const m = c.metrics.overlap;
+  const count = (code) => diagnostics.filter((d) => d.code === code).length;
+  for (const d of diagnostics) {
+    const rule = OVERLAP_RULES[d.code === "DG202" && d.subject?.edges ? "DG202:labels" : d.code];
+    if (!rule) continue;
+    hard[rule.hard]++;
+    add(
+      rule.id,
+      rule.severity,
+      subjectIds(d, rule.ids),
+      flatEvidence(d.evidence),
+      d.message,
+      d.fixes ?? [],
+      rule.cost
+    );
+  }
+  for (const g of scene.groups) {
+    if (!g.iconBox) continue;
+    for (const e of scene.edges) {
+      const len = pathClipLen(e.points, g.iconBox, EPS2);
+      const reported = diagnostics.some(
+        (d) => d.code === "DG209" && d.subject?.edge === e.id && d.subject?.group === g.id
+      );
+      if (len <= 1 || reported) continue;
+      hard.edgesThroughHeaders++;
+      add(
+        "overlap.edge-through-header",
+        "major",
+        [e.id, g.id],
+        { edge: edgeName(e), group: g.id, lengthPx: r1(len) },
+        `edge ${edgeName(e)} runs ${r1(len)}px through the icon of group "${g.id}", so it looks broken`,
+        [
+          `reorder the nodes inside "${g.id}" so the edge enters away from the header`,
+          `shorten the label of "${g.id}"`,
+          "change direction"
+        ],
+        8
+      );
+    }
+  }
+  const horizontal = horizontalFlow(scene.direction);
+  for (const e of scene.edges) {
+    for (const o of scene.edges) {
+      const len = o.id !== e.id && real(o.stepBox) ? pathClipLen(e.points, o.stepBox, 1) : 0;
+      if (len > 1) {
+        hard.edgesThroughLabels++;
+        add(
+          "overlap.edge-through-label",
+          "major",
+          [e.id, o.id],
+          { edge: edgeName(e), other: edgeName(o), part: "step", lengthPx: r1(len) },
+          `edge ${edgeName(e)} runs ${r1(len)}px through the step of ${edgeName(o)}`,
+          [
+            "move one endpoint earlier or later in the nodes list",
+            `shorten or drop the label on ${edgeName(o)}`,
+            "use layout: { spacing: loose }"
+          ],
+          8
+        );
+      }
+    }
+    for (const n3 of scene.nodes) {
+      const own = n3.id === e.from || n3.id === e.to;
+      if (own && !horizontal && n3.look === "icon") continue;
+      for (const [part, b] of [
+        ["label", n3.labelBox],
+        ["note", n3.noteBox]
+      ]) {
+        if (!real(b) || n3.look !== "icon" && own) continue;
+        const len = pathClipLen(e.points, b, 1);
+        if (len > 1) {
+          hard.edgesThroughLabels++;
+          add(
+            "overlap.edge-through-label",
+            "major",
+            [e.id, n3.id],
+            { edge: edgeName(e), node: n3.id, part, lengthPx: r1(len) },
+            `edge ${edgeName(e)} runs ${r1(len)}px through the ${part} text of "${n3.id}"`,
+            [`move "${n3.id}" earlier or later in the nodes list`, "change direction"],
+            8
+          );
+        }
+      }
+    }
+  }
+  let nesting = 0;
+  const check = (id, box, parentId) => {
+    const p = parentId ? c.groups.get(parentId) : void 0;
+    if (!p || !box || p.overlay) return;
+    const hb = headerBottom(p);
+    const clear = {
+      left: box.x - p.box.x,
+      right: p.box.x + p.box.w - (box.x + box.w),
+      top: box.y - hb,
+      bottom: p.box.y + p.box.h - (box.y + box.h)
+    };
+    const min = Math.min(clear.left, clear.right, clear.top, clear.bottom);
+    if (min < -EPS2) {
+      nesting++;
+      add(
+        "overlap.outside-group",
+        "major",
+        [id, p.id],
+        {
+          parent: p.id,
+          left: r1(clear.left),
+          right: r1(clear.right),
+          top: r1(clear.top),
+          bottom: r1(clear.bottom)
+        },
+        `"${id}" sticks ${r1(-min)}px out of "${p.id}" or into its header`,
+        [`shorten the label of "${id}"`, `shorten the label of "${p.id}"`],
+        8
+      );
+    }
+  };
+  for (const n3 of scene.nodes) check(n3.id, c.foot.get(n3.id), n3.parent);
+  for (const g of scene.groups) if (!g.overlay) check(g.id, g.box, g.parent);
+  const frames = scene.groups.filter((g) => !g.overlay);
+  for (let i = 0; i < frames.length; i++)
+    for (let j = i + 1; j < frames.length; j++) {
+      const a = frames[i];
+      const b = frames[j];
+      if (!a || !b || c.isDescendant(a.id, b.id) || c.isDescendant(b.id, a.id)) continue;
+      const area = interArea(a.box, b.box);
+      if (area > 1) {
+        nesting++;
+        add(
+          "overlap.groups-collide",
+          "major",
+          [a.id, b.id],
+          { areaPx: r1(area) },
+          `groups "${a.id}" and "${b.id}" overlap but do not nest`,
+          ["nest one inside the other with in:", "use around: for a group that spans others"],
+          10
+        );
+      }
+    }
+  hard.overlaps += nesting;
+  Object.assign(m, {
+    edgesThroughNodes: hard.edgesThroughNodes,
+    labelsOverNodesOrLabels: count("DG202"),
+    nodesColliding: count("DG203"),
+    edgesThroughHeaders: hard.edgesThroughHeaders,
+    edgesThroughLabels: hard.edgesThroughLabels,
+    offCanvas: hard.offCanvas,
+    badgeOverlaps: count("DG211"),
+    nestingProblems: count("DG213") + nesting
+  });
+}
+function measureFlow(c, diagnostics) {
+  const { scene, model, add, dir } = c;
+  const m = c.metrics.flow;
+  const horizontal = horizontalFlow(dir);
+  let hidden = 0;
+  let onBend = 0;
+  let short = 0;
+  const chips = scene.groups.flatMap((g) => {
+    const chip = headerChip2(g);
+    return [
+      ...chip ? [{ id: g.id, box: chip }] : [],
+      ...g.iconBox ? [{ id: g.id, box: g.iconBox }] : []
+    ];
+  });
+  for (const e of scene.edges) {
+    const pts = simplify(e.points);
+    const heads = [];
+    const last = pts.at(-1);
+    const before = pts.at(-2);
+    const first = pts[0];
+    const second = pts[1];
+    if ((e.arrow === "end" || e.arrow === "both") && last && before)
+      heads.push({ at: "to", tip: last, prev: before, target: e.to });
+    if ((e.arrow === "start" || e.arrow === "both") && first && second)
+      heads.push({ at: "from", tip: first, prev: second, target: e.from });
+    const len = e.line === "thick" ? 11 : 9;
+    const half = e.line === "thick" ? 5.5 : 4.5;
+    for (const h of heads) {
+      const L = Math.hypot(h.tip.x - h.prev.x, h.tip.y - h.prev.y);
+      const ux = (h.tip.x - h.prev.x) / (L || 1);
+      const uy = (h.tip.y - h.prev.y) / (L || 1);
+      const bx = h.tip.x - ux * len;
+      const by = h.tip.y - uy * len;
+      const xs = [h.tip.x, bx - uy * half, bx + uy * half];
+      const ys = [h.tip.y, by + ux * half, by - ux * half];
+      const hb = {
+        x: Math.min(...xs),
+        y: Math.min(...ys),
+        w: Math.max(...xs) - Math.min(...xs),
+        h: Math.max(...ys) - Math.min(...ys)
+      };
+      const hit = (b) => {
+        const ib = { x: b.x + EPS2, y: b.y + EPS2, w: b.w - 2 * EPS2, h: b.h - 2 * EPS2 };
+        return interArea(hb, ib) > EPS2;
+      };
+      const covers = [];
+      for (const o of scene.edges) {
+        if (real(o.labelBox) && hit(o.labelBox)) covers.push(`label of ${o.id}`);
+        if (real(o.stepBox) && hit(o.stepBox)) covers.push(`step of ${o.id}`);
+      }
+      for (const ch of chips) if (hit(ch.box)) covers.push(`header of ${ch.id}`);
+      for (const n3 of scene.nodes) {
+        const parts = [
+          ["label", n3.labelBox],
+          ["note", n3.noteBox],
+          ["badge", badgeRect2(n3)]
+        ];
+        if (n3.id !== h.target) parts.push(["node", n3.iconBox ?? n3.box]);
+        for (const [what, b] of parts) if (real(b) && hit(b)) covers.push(`${what} of ${n3.id}`);
+      }
+      if (covers.length) {
+        hidden++;
+        add(
+          "flow.head-hidden",
+          "major",
+          [e.id, h.target],
+          { edge: edgeName(e), end: h.at, under: covers.join(", ") },
+          `the arrowhead of ${edgeName(e)} at "${h.target}" sits under the ${covers.join(", ")}`,
+          [
+            `move "${h.target}" earlier or later in the nodes list`,
+            "shorten the covering label or badge"
+          ],
+          10
+        );
+      }
+      if (L < len - EPS2) {
+        onBend++;
+        add(
+          "flow.head-on-bend",
+          "minor",
+          [e.id],
+          { edge: edgeName(e), lastRunPx: r1(L), headPx: len },
+          `the last straight run of ${edgeName(e)} is ${r1(L)}px, shorter than its ${len}px arrowhead`,
+          ["use layout: { spacing: loose }", `reorder so "${h.target}" lines up with its source`],
+          3
+        );
+      }
+    }
+    if (horizontal) {
+      for (const [id, p] of [
+        [e.from, first],
+        [e.to, last]
+      ]) {
+        const n3 = c.nodes.get(id);
+        if (!n3 || !p || n3.look !== "icon" || !n3.icon || !n3.iconBox) continue;
+        const aspect = iconAspect(n3.icon);
+        if (!aspect || aspect >= 0.98) continue;
+        const ib = n3.iconBox;
+        const onSide = (Math.abs(p.x - ib.x) < 1.5 || Math.abs(p.x - (ib.x + ib.w)) < 1.5) && p.y >= ib.y - EPS2 && p.y <= ib.y + ib.h + EPS2;
+        const gap = (ib.w - ib.h * aspect) / 2;
+        if (onSide && gap > 1.5) {
+          short++;
+          add(
+            "flow.arrow-short",
+            "minor",
+            [e.id, id],
+            { edge: edgeName(e), node: id, gapPx: r1(gap), aspect: r2(aspect) },
+            `${edgeName(e)} stops ${r1(gap)}px short of the "${n3.icon}" glyph`,
+            [`use a square icon for "${id}"`, "use look: card for that node"],
+            2
+          );
+        }
+      }
+    }
+  }
+  let trunks = 0;
+  const E = scene.edges;
+  for (let i = 0; i < E.length; i++)
+    for (let j = i + 1; j < E.length; j++) {
+      const a = E[i];
+      const b = E[j];
+      if (!a || !b) continue;
+      if (a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to) continue;
+      let olap = 0;
+      for (const [p, q] of segments(a.points))
+        for (const [u, v] of segments(b.points)) {
+          const ah = Math.abs(p.y - q.y) < EPS2;
+          const av = Math.abs(p.x - q.x) < EPS2;
+          const bh = Math.abs(u.y - v.y) < EPS2;
+          const bv = Math.abs(u.x - v.x) < EPS2;
+          if (ah && bh && Math.abs(p.y - u.y) < 1.5)
+            olap += Math.max(
+              0,
+              Math.min(Math.max(p.x, q.x), Math.max(u.x, v.x)) - Math.max(Math.min(p.x, q.x), Math.min(u.x, v.x))
+            );
+          else if (av && bv && Math.abs(p.x - u.x) < 1.5)
+            olap += Math.max(
+              0,
+              Math.min(Math.max(p.y, q.y), Math.max(u.y, v.y)) - Math.max(Math.min(p.y, q.y), Math.min(u.y, v.y))
+            );
+        }
+      if (olap > 10) {
+        trunks++;
+        add(
+          "flow.shared-trunk",
+          olap > 40 ? "major" : "minor",
+          [a.id, b.id],
+          { a: edgeName(a), b: edgeName(b), sharedPx: r1(olap) },
+          `${edgeName(a)} and ${edgeName(b)} share ${r1(olap)}px of line, so readers cannot tell them apart`,
+          [
+            "reorder nodes so the two edges take different channels",
+            "use layout: { merge: false }",
+            "use layout: { spacing: loose }"
+          ],
+          8
+        );
+      }
+    }
+  const stepped = scene.edges.filter((e) => e.step !== void 0).map((e) => {
+    const at = real(e.stepBox) ? { x: e.stepBox.x + e.stepBox.w / 2, y: e.stepBox.y + e.stepBox.h / 2 } : midpoint2(e.points);
+    return { e, step: e.step, at };
+  }).sort((a, b) => a.step - b.step);
+  let inversions = 0;
+  if (stepped.length >= 2) {
+    const nums = [...new Set(stepped.map((x) => x.step))];
+    const gaps = nums.filter((n3, i) => n3 !== i + 1);
+    if (gaps.length) {
+      add(
+        "flow.step-numbering",
+        "minor",
+        stepped.map((x) => x.e.id),
+        { steps: nums.join(",") },
+        `step numbers ${nums.join(", ")} do not run 1 to ${nums.length}`,
+        ["renumber the steps from 1 without gaps"],
+        4
+      );
+    }
+    const reps = nums.map((n3) => {
+      const same2 = stepped.filter((x) => x.step === n3);
+      return {
+        step: n3,
+        ids: same2.map((x) => x.e.id),
+        x: same2.reduce((s, x) => s + x.at.x, 0) / same2.length,
+        y: same2.reduce((s, x) => s + x.at.y, 0) / same2.length
+      };
+    });
+    const tol = 24;
+    const linearBad = [];
+    for (let i = 1; i < reps.length; i++) {
+      const p = reps[i - 1];
+      const q = reps[i];
+      if (!p || !q) continue;
+      const d = along(dir, q.x - p.x, q.y - p.y);
+      const cross = horizontal ? q.y - p.y : q.x - p.x;
+      if (d < -tol && !(cross > tol && Math.abs(cross) > Math.abs(d) / 2))
+        linearBad.push(`${p.step}->${q.step}`);
+    }
+    let clockBad = linearBad;
+    if (reps.length >= 3) {
+      const cx = reps.reduce((s, r) => s + r.x, 0) / reps.length;
+      const cy = reps.reduce((s, r) => s + r.y, 0) / reps.length;
+      const angle = (r) => Math.atan2(r.y - cy, r.x - cx);
+      const bad = [];
+      for (let i = 1; i < reps.length; i++) {
+        const p = reps[i - 1];
+        const q = reps[i];
+        if (!p || !q) continue;
+        let d = angle(q) - angle(p);
+        while (d <= -Math.PI) d += 2 * Math.PI;
+        while (d > Math.PI) d -= 2 * Math.PI;
+        if (d < -0.05) bad.push(`${p.step}->${q.step}`);
+      }
+      if (bad.length < clockBad.length) clockBad = bad;
+    }
+    inversions = clockBad.length;
+    if (inversions) {
+      add(
+        "flow.step-order",
+        inversions > 1 ? "major" : "minor",
+        reps.flatMap((r) => r.ids),
+        { inversions, jumps: clockBad.join(" "), direction: dir },
+        `step numbers jump against reading order at ${clockBad.join(", ")}`,
+        [
+          "renumber the steps in the order they appear left to right, top to bottom or clockwise",
+          "reorder the nodes so the walkthrough runs with the direction"
+        ],
+        8
+      );
+    }
+  }
+  const both = scene.edges.filter((e) => e.arrow === "both");
+  const none = scene.edges.filter((e) => e.arrow === "none");
+  for (const e of both)
+    add(
+      "flow.bidirectional",
+      "minor",
+      [e.id],
+      { edge: edgeName(e) },
+      `${edgeName(e)} has two heads, so it does not say who initiates`,
+      [
+        `split it into ${edgeName(e)} and ${e.to} -> ${e.from} with their own labels`,
+        `keep one direction (${edgeName(e)}) from the caller to the dependency`
+      ],
+      3
+    );
+  for (const e of none)
+    add(
+      "flow.undirected",
+      "minor",
+      [e.id],
+      { edge: edgeName(e) },
+      `${edgeName(e)} has no arrowhead`,
+      [`give it a direction (${edgeName(e)}) or explain the plain line in the legend`],
+      3
+    );
+  const chain = (id) => {
+    const out = /* @__PURE__ */ new Set();
+    for (let p = c.parentOf(id); p; p = c.parentOf(p)) out.add(p);
+    return out;
+  };
+  const crossing = model.edges.filter((e) => {
+    if (e.label) return false;
+    const a = chain(e.from);
+    const b = chain(e.to);
+    if (a.has(e.to) || b.has(e.from)) return false;
+    return [...a].some((g) => !b.has(g)) || [...b].some((g) => !a.has(g));
+  });
+  if (crossing.length) {
+    add(
+      "flow.unlabelled-boundary",
+      "minor",
+      crossing.map((e) => e.id),
+      { count: crossing.length, edges: crossing.map(edgeName).slice(0, 6).join("; ") },
+      `${crossing.length} unlabelled edge(s) cross a group boundary; the mechanism is left to guess`,
+      ["label the edge with the protocol or action (HTTPS, VPC peering, PrivateLink)"],
+      Math.min(10, 2 * crossing.length)
+    );
+  }
+  const unconnected = diagnostics.filter((d) => d.code === "DG208");
+  for (const d of unconnected) {
+    const node3 = String(d.subject?.node ?? "");
+    add("flow.unconnected", "minor", node3 ? [node3] : [], { node: node3 }, d.message, d.fixes ?? [], 3);
+  }
+  Object.assign(m, {
+    hiddenHeads: hidden,
+    headsOnBends: onBend,
+    shortEnds: short,
+    sharedTrunks: trunks,
+    steps: stepped.length,
+    stepInversions: inversions,
+    bidirectional: both.length,
+    undirected: none.length,
+    unlabelledCrossings: crossing.length,
+    unconnected: unconnected.length
+  });
+  c.hard.overlaps += hidden;
+}
+function measureLayout(c, diagnostics) {
+  const { scene, model, add, dir } = c;
+  const m = c.metrics.layout;
+  const W = scene.width;
+  const H = scene.height;
+  const edges = scene.edges;
+  let forward = 0;
+  const against = [];
+  for (const e of edges) {
+    const a = e.points[0];
+    const b = e.points.at(-1);
+    if (!a || !b) continue;
+    const p = along(dir, b.x - a.x, b.y - a.y);
+    if (p > 8) forward++;
+    if (e.arrow === "end" && p < -8) against.push(e);
+  }
+  if (against.length) {
+    const share = against.length / Math.max(1, edges.length);
+    add(
+      "layout.against-flow",
+      share > 0.25 ? "major" : "minor",
+      against.map((e) => e.id),
+      {
+        count: against.length,
+        sharePct: r1(100 * share),
+        direction: dir,
+        edges: against.map(edgeName).slice(0, 6).join("; ")
+      },
+      `${against.length} of ${edges.length} arrowheads point against direction: ${dir}`,
+      [
+        "list nodes in the order data moves, so the target comes after its source",
+        "write the edge the way data flows and use <- or arrow: start only for replies",
+        "change direction"
+      ],
+      6 * against.length
+    );
+  }
+  let crossings2 = 0;
+  const crossingPairs = [];
+  for (let i = 0; i < edges.length; i++)
+    for (let j = i + 1; j < edges.length; j++) {
+      const A = edges[i];
+      const B = edges[j];
+      if (!A || !B) continue;
+      let n3 = 0;
+      for (const [p, q] of segments(A.points))
+        for (const [s, t] of segments(B.points)) {
+          const rx = q.x - p.x;
+          const ry = q.y - p.y;
+          const sx = t.x - s.x;
+          const sy = t.y - s.y;
+          const den = rx * sy - ry * sx;
+          if (Math.abs(den) < 1e-9) continue;
+          const tt = ((s.x - p.x) * sy - (s.y - p.y) * sx) / den;
+          const uu = ((s.x - p.x) * ry - (s.y - p.y) * rx) / den;
+          const e1 = 1.5 / (Math.hypot(rx, ry) || 1);
+          const e2 = 1.5 / (Math.hypot(sx, sy) || 1);
+          if (tt > e1 && tt < 1 - e1 && uu > e2 && uu < 1 - e2) n3++;
+        }
+      if (n3) {
+        crossings2 += n3;
+        crossingPairs.push(`${A.id}x${B.id}`);
+      }
+    }
+  if (crossings2) {
+    add(
+      "layout.crossings",
+      crossings2 > Math.max(3, edges.length / 4) ? "major" : "minor",
+      [...new Set(crossingPairs.flatMap((p) => p.split("x")))],
+      { crossings: crossings2, pairs: crossingPairs.slice(0, 8).join(" ") },
+      `${crossings2} edge crossing(s)`,
+      [
+        "reorder nodes inside their group so connected nodes sit side by side",
+        "try layout: { layering: simplex }",
+        "split a hub with many edges into two nodes"
+      ],
+      3 * crossings2
+    );
+  }
+  const lens = edges.map((e) => ({ e, len: pathLen(e.points) }));
+  const sorted = lens.map((l) => l.len).sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  const median = sorted.length ? sorted.length % 2 ? sorted[mid] ?? 0 : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2 : 0;
+  const long = lens.filter((l) => l.len > 2.5 * median && l.len > 300);
+  for (const l of long)
+    add(
+      "layout.long-edge",
+      "minor",
+      [l.e.id],
+      { edge: edgeName(l.e), lengthPx: Math.round(l.len), medianPx: Math.round(median) },
+      `${edgeName(l.e)} is ${Math.round(l.len)}px, ${r1(l.len / (median || 1))}x the median edge`,
+      [`move "${l.e.from}" or "${l.e.to}" next to the other in the nodes list`],
+      3
+    );
+  const ink = [
+    ...scene.nodes.map((n3) => c.foot.get(n3.id)),
+    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
+    ...scene.groups.flatMap((g) => [g.labelBox, g.iconBox]),
+    scene.titleBox,
+    scene.subtitleBox,
+    scene.legend?.box
+  ].filter(real);
+  const edgeBoxes = edges.map((e) => {
+    const xs = e.points.map((p) => p.x);
+    const ys = e.points.map((p) => p.y);
+    return {
+      x: Math.min(...xs),
+      y: Math.min(...ys),
+      w: Math.max(...xs) - Math.min(...xs) || 1,
+      h: Math.max(...ys) - Math.min(...ys) || 1
+    };
+  });
+  const content = union2([...ink, ...scene.groups.map((g) => g.box), ...edgeBoxes]) ?? {
+    x: 0,
+    y: 0,
+    w: W,
+    h: H
+  };
+  const C = 8;
+  const cols = Math.ceil(W / C);
+  const rows = Math.ceil(H / C);
+  const grid = new Uint8Array(cols * rows);
+  const paint = (b) => {
+    for (let r = Math.max(0, Math.floor(b.y / C)); r < Math.min(rows, Math.ceil((b.y + b.h) / C)); r++)
+      for (let k = Math.max(0, Math.floor(b.x / C)); k < Math.min(cols, Math.ceil((b.x + b.w) / C)); k++)
+        grid[r * cols + k] = 1;
+  };
+  for (const b of ink) paint(b);
+  for (const e of edges)
+    for (const [s, t] of segments(e.points))
+      paint({
+        x: Math.min(s.x, t.x) - 2,
+        y: Math.min(s.y, t.y) - 2,
+        w: Math.abs(t.x - s.x) + 4,
+        h: Math.abs(t.y - s.y) + 4
+      });
+  const c0 = Math.max(0, Math.floor(content.x / C));
+  const c1 = Math.min(cols, Math.ceil((content.x + content.w) / C));
+  const row0 = Math.max(0, Math.floor(content.y / C));
+  const row1 = Math.min(rows, Math.ceil((content.y + content.h) / C));
+  const hist = new Array(cols + 1).fill(0);
+  let hole = { area: 0, x: 0, y: 0, w: 0, h: 0 };
+  for (let r = row0; r < row1; r++) {
+    for (let k = c0; k < c1; k++) hist[k] = grid[r * cols + k] ? 0 : (hist[k] ?? 0) + 1;
+    const stack = [];
+    for (let k = c0; k <= c1; k++) {
+      const h = k < c1 ? hist[k] ?? 0 : 0;
+      let start = k;
+      while (stack.length && (stack.at(-1)?.[1] ?? 0) >= h) {
+        const [sc, sh] = stack.pop();
+        const area = sh * (k - sc);
+        if (area > hole.area)
+          hole = { area, x: sc * C, y: (r - sh + 1) * C, w: (k - sc) * C, h: sh * C };
+        start = sc;
+      }
+      stack.push([start, h]);
+    }
+  }
+  const holePct = 100 * hole.w * hole.h / Math.max(1, W * H);
+  if (holePct > 22 && Math.min(hole.w, hole.h) >= 80) {
+    const inside = scene.groups.filter((g) => !g.overlay && interArea(g.box, hole) > 0.9 * hole.w * hole.h).sort((a, b) => b.depth - a.depth)[0];
+    add(
+      "layout.empty-space",
+      holePct > 32 ? "major" : "minor",
+      inside ? [inside.id] : [],
+      { holePct: r1(holePct), x: hole.x, y: hole.y, w: hole.w, h: hole.h },
+      `an empty ${hole.w}x${hole.h}px rectangle covers ${r1(holePct)}% of the canvas`,
+      [
+        "change direction so the long chain wraps",
+        "move a side branch next to the empty area in the nodes list",
+        "split the diagram"
+      ],
+      Math.max(0, holePct - 18) * 1.5
+    );
+  }
+  const aspect = W / Math.max(1, H);
+  const tall = H / Math.max(1, W);
+  if (aspect > 3 || tall > 2.5) {
+    const wide = aspect > 3;
+    const ratio = wide ? aspect : tall;
+    const strip = ratio > 4.5 && scene.nodes.length > 6;
+    add(
+      "layout.aspect",
+      strip ? "major" : "minor",
+      [],
+      { aspect: r2(aspect), width: W, height: H },
+      `the canvas is ${r1(ratio)}:1 ${wide ? "wide" : "tall"} (${W}x${H}px)`,
+      wide ? ["use direction: down for long chains", "group stages into zones"] : ["use direction: right", "put independent tiers side by side"],
+      (ratio - (wide ? 3 : 2.5)) * 10
+    );
+  }
+  if (W > 2400)
+    add(
+      "layout.too-wide",
+      "major",
+      [],
+      { width: W },
+      `the canvas is ${W}px wide (over 2400px)`,
+      ["use direction: down", "group related nodes", "split into two diagrams"],
+      15
+    );
+  if (scene.layoutFallback)
+    add(
+      "layout.fallback",
+      "minor",
+      [],
+      { strategy: scene.layoutFallback },
+      `ELK needed the fallback strategy "${scene.layoutFallback}", so spec order may not be kept`,
+      ["reorder or regroup nodes and render again", "try layout: { layering: simplex }"],
+      5
+    );
+  for (const d of diagnostics.filter((x) => x.code === "DG207")) {
+    const group2 = String(d.subject?.group ?? "");
+    add(
+      "layout.empty-group",
+      "minor",
+      group2 ? [group2] : [],
+      { group: group2 },
+      d.message,
+      d.fixes ?? [],
+      5
+    );
+  }
+  const cross = horizontalFlow(dir) ? "y" : "x";
+  let pairs = 0;
+  let inOrder = 0;
+  const parents = [void 0, ...model.groups.filter((g) => !g.around).map((g) => g.id)];
+  for (const P of parents) {
+    const kids = [
+      ...model.groups.filter((g) => !g.around && g.parent === P).map((g) => ({ kind: "g", box: c.groups.get(g.id)?.box })),
+      ...model.nodes.filter((n3) => n3.parent === P).map((n3) => ({ kind: "n", box: c.nodes.get(n3.id)?.box }))
+    ].filter((k) => !!k.box);
+    for (let i = 0; i < kids.length; i++)
+      for (let j = i + 1; j < kids.length; j++) {
+        const a = kids[i];
+        const b = kids[j];
+        if (!a || !b || a.kind !== b.kind) continue;
+        const ca = cross === "y" ? a.box.y + a.box.h / 2 : a.box.x + a.box.w / 2;
+        const cb = cross === "y" ? b.box.y + b.box.h / 2 : b.box.x + b.box.w / 2;
+        if (Math.abs(ca - cb) < 1) continue;
+        const pa = cross === "y" ? [a.box.x, a.box.x + a.box.w] : [a.box.y, a.box.y + a.box.h];
+        const pb = cross === "y" ? [b.box.x, b.box.x + b.box.w] : [b.box.y, b.box.y + b.box.h];
+        const ov = Math.min(pa[1] ?? 0, pb[1] ?? 0) - Math.max(pa[0] ?? 0, pb[0] ?? 0);
+        const span = Math.min((pa[1] ?? 0) - (pa[0] ?? 0), (pb[1] ?? 0) - (pb[0] ?? 0));
+        if (ov < 0.5 * span) continue;
+        pairs++;
+        if (ca < cb) inOrder++;
+      }
+  }
+  Object.assign(m, {
+    forwardPct: r1(100 * forward / Math.max(1, edges.length)),
+    againstFlow: against.length,
+    crossings: crossings2,
+    holePct: r1(holePct),
+    aspect: r2(aspect),
+    longEdges: long.length,
+    edgeMedianPx: Math.round(median),
+    edgeMaxPx: Math.round(Math.max(0, ...lens.map((l) => l.len))),
+    specOrderPct: pairs ? r1(100 * inOrder / pairs) : 100,
+    fallback: scene.layoutFallback ?? "none"
+  });
+}
+function measureGrid(c) {
+  const { scene, add } = c;
+  const m = c.metrics.grid;
+  const horizontal = horizontalFlow(scene.direction);
+  const F = horizontal ? "x" : "y";
+  const FW = horizontal ? "w" : "h";
+  const frames = scene.groups.filter((g) => !g.overlay);
+  let ragged = 0;
+  const gaps = [];
+  for (const P of /* @__PURE__ */ new Set([void 0, ...frames.map((g) => g.id)])) {
+    const items = [
+      ...scene.nodes.filter((n3) => n3.parent === P).map((n3) => ({ id: n3.id, box: n3.box, v: c.foot.get(n3.id) ?? n3.box })),
+      ...frames.filter((g) => g.parent === P).map((g) => ({ id: g.id, box: g.box, v: g.box }))
+    ].sort((a, b) => a.box[F] - b.box[F]);
+    const layers = [];
+    for (const it of items) {
+      const L = layers.at(-1);
+      if (L && it.box[F] < L.end - 0.01) {
+        L.items.push(it);
+        L.end = Math.max(L.end, it.box[F] + it.box[FW]);
+      } else layers.push({ items: [it], end: it.box[F] + it.box[FW] });
+    }
+    for (const L of layers) {
+      if (L.items.length < 2) continue;
+      const spread = (f) => Math.max(...L.items.map(f)) - Math.min(...L.items.map(f));
+      const st = spread((i) => i.v[F]);
+      const ce = spread((i) => i.v[F] + i.v[FW] / 2);
+      const en = spread((i) => i.v[F] + i.v[FW]);
+      if (Math.min(st, ce, en) > 2) {
+        ragged++;
+        add(
+          "grid.ragged",
+          "minor",
+          L.items.map((i) => i.id),
+          { startPx: r1(st), centerPx: r1(ce), endPx: r1(en), parent: P ?? "(root)" },
+          `${L.items.map((i) => `"${i.id}"`).join(", ")} share no start, center or end line (best ${r1(Math.min(st, ce, en))}px off)`,
+          ["give the items in this layer the same look and similar label lengths"],
+          4
+        );
+      }
+    }
+    for (let i = 1; i < layers.length; i++) {
+      const prev = layers[i - 1];
+      const next = layers[i];
+      if (!prev || !next) continue;
+      const end = Math.max(...prev.items.map((it) => it.v[F] + it.v[FW]));
+      const start = Math.min(...next.items.map((it) => it.v[F]));
+      gaps.push(start - end);
+    }
+  }
+  let jogs = 0;
+  for (const e of scene.edges) {
+    const pts = simplify(e.points);
+    for (let i = 1; i < pts.length - 2; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      if (!a || !b) continue;
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      if (len > 0.01 && len < 6) {
+        jogs++;
+        add(
+          "grid.jog",
+          "minor",
+          [e.id],
+          { edge: edgeName(e), jogPx: r2(len), x: r1(a.x), y: r1(a.y) },
+          `${edgeName(e)} steps ${r2(len)}px sideways where it could run straight`,
+          [`give "${e.from}" and "${e.to}" the same look and size`, "use layout: { merge: false }"],
+          3
+        );
+      }
+    }
+  }
+  let offCenter = 0;
+  for (const g of frames) {
+    const kids = [
+      ...scene.nodes.filter((n3) => n3.parent === g.id).map((n3) => c.foot.get(n3.id)),
+      ...frames.filter((x) => x.parent === g.id).map((x) => x.box)
+    ];
+    const u = union2(kids);
+    if (!u) continue;
+    const left = u.x - g.box.x;
+    const right = g.box.x + g.box.w - (u.x + u.w);
+    if (Math.abs(left - right) > 6) {
+      offCenter++;
+      add(
+        "grid.off-center",
+        "minor",
+        [g.id],
+        { leftPx: r1(left), rightPx: r1(right) },
+        `the content of "${g.id}" sits ${r1(Math.abs(left - right) / 2)}px off center (left ${r1(left)}, right ${r1(right)})`,
+        [`shorten the label of "${g.id}" so it does not widen the frame`],
+        3
+      );
+    }
+  }
+  const mean = gaps.reduce((s, v) => s + v, 0) / Math.max(1, gaps.length);
+  const sd = Math.sqrt(gaps.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, gaps.length));
+  const cv = mean > 0 ? sd / mean : 0;
+  if (gaps.length >= 3 && cv > 0.35) {
+    add(
+      "grid.uneven-gaps",
+      "minor",
+      [],
+      {
+        gapCv: r2(cv),
+        gapMinPx: r1(Math.min(...gaps)),
+        gapMaxPx: r1(Math.max(...gaps)),
+        layers: gaps.length + 1
+      },
+      `gaps between layers range from ${r1(Math.min(...gaps))} to ${r1(Math.max(...gaps))}px (spread ${r2(cv)})`,
+      ["shorten the longest edge labels; a labelled edge widens its gap"],
+      (cv - 0.35) * 40
+    );
+  }
+  Object.assign(m, {
+    raggedLayers: ragged,
+    jogs,
+    offCenterGroups: offCenter,
+    gapCv: r2(cv),
+    gapMinPx: gaps.length ? r1(Math.min(...gaps)) : 0,
+    gapMaxPx: gaps.length ? r1(Math.max(...gaps)) : 0
+  });
+}
+function textItems(scene) {
+  const t = THEME_TOKENS[scene.theme];
+  const canvas = scene.background && scene.background !== "transparent" ? scene.background : t.background;
+  const byDepth = [...scene.groups].sort((a, b) => a.depth - b.depth);
+  const surfaceAt = (x, y) => {
+    let col = canvas;
+    for (const g of byDepth) {
+      if (g.fill !== "none" && inBox(x, y, g.box)) col = g.fill;
+      if (g.inner && inBox(x, y, g.inner.box)) col = g.inner.fill;
+    }
+    return col;
+  };
+  const samples = (b) => [
+    surfaceAt(b.x + b.w / 2, b.y + b.h / 2),
+    surfaceAt(b.x + 1, b.y + 1),
+    surfaceAt(b.x + b.w - 1, b.y + 1),
+    surfaceAt(b.x + 1, b.y + b.h - 1),
+    surfaceAt(b.x + b.w - 1, b.y + b.h - 1)
+  ];
+  const behind = (g) => {
+    if (g.overlay) {
+      const under = scene.groups.filter((x) => !x.overlay && x.fill !== "none" && inBox(g.labelBox.x, g.box.y, x.box)).sort((a, b) => b.depth - a.depth)[0];
+      if (under) return under.fill;
+    }
+    let cur = g.overlay ? void 0 : g;
+    while (cur) {
+      if (cur.fill !== "none") return cur.fill;
+      const parent = cur.parent;
+      cur = parent ? scene.groups.find((x) => x.id === parent) : void 0;
+    }
+    return canvas;
+  };
+  const out = [];
+  const push = (id, what, fg, bgs, size, weight) => {
+    const valid = bgs.filter(isHex);
+    if (!isHex(fg) || !valid.length) return;
+    const bg = valid.reduce((w, b) => contrast(fg, b) < contrast(fg, w) ? b : w);
+    out.push({ id, what, fg, bg, size, weight });
+  };
+  if (scene.title && scene.titleBox)
+    push("title", "title", t.text, [canvas], scene.title.size, scene.title.weight);
+  if (scene.subtitle && scene.subtitleBox)
+    push("subtitle", "subtitle", t.muted, [canvas], scene.subtitle.size, scene.subtitle.weight);
+  for (const g of scene.groups)
+    if (g.label.lines.length)
+      push(g.id, "group label", g.labelColor, [behind(g)], g.label.size, g.label.weight);
+  for (const n3 of scene.nodes) {
+    const shapeFill = n3.color ? mixHex(n3.color, canvas, scene.theme === "dark" ? 0.16 : 0.1) : t.surface;
+    const under = (b) => n3.look === "card" ? [t.surface] : n3.look === "shape" ? [shapeFill] : samples(b);
+    const ink = n3.look === "card" ? t.text : n3.ink ?? t.text;
+    const muted = n3.look === "card" ? t.muted : n3.inkMuted ?? t.muted;
+    if (n3.label.lines.length)
+      push(n3.id, "label", ink, under(n3.labelBox), n3.label.size, n3.label.weight);
+    if (n3.note && n3.noteBox)
+      push(n3.id, "note", muted, under(n3.noteBox), n3.note.size, n3.note.weight);
+    if (n3.badge) push(n3.id, "badge", t.stepText, [t.stepFill], 10, 600);
+  }
+  const chipFill = scene.background === "transparent" ? t.background : scene.background ?? t.background;
+  for (const e of scene.edges) {
+    if (e.label && e.labelBox)
+      push(
+        e.id,
+        "edge label",
+        t.edgeLabel,
+        samples(e.labelBox).map((u) => mixHex(chipFill, u, 0.92)),
+        e.label.size,
+        e.label.weight
+      );
+    if (e.step !== void 0 && e.stepBox) push(e.id, "step", t.stepText, [t.stepFill], 14, 600);
+  }
+  for (const item of scene.legend?.items ?? [])
+    push("legend", `legend ${item.line}`, t.text, [t.surface], item.label.size, item.label.weight);
+  return out;
+}
+function measureQuality(c, scenes) {
+  const { scene, add, s } = c;
+  const m = c.metrics.quality;
+  const nodeSizes = scene.nodes.filter((n4) => n4.label.lines.length).map((n4) => n4.label.size);
+  const nodeLabelPx = (nodeSizes.length ? Math.min(...nodeSizes) : 13) * s;
+  if (nodeLabelPx < 10) {
+    add(
+      "quality.label-size",
+      nodeLabelPx < 6 ? "blocker" : nodeLabelPx < 8 ? "major" : "minor",
+      [],
+      {
+        nodeLabelPx: r2(nodeLabelPx),
+        scale: r2(s),
+        canvasW: scene.width,
+        width: c.width
+      },
+      `node labels render at ${r2(nodeLabelPx)}px at this width (${scene.width}px canvas shown at ${r2(s)}x)`,
+      [
+        "use direction: down so the diagram is narrower",
+        "split into an overview and detail diagrams",
+        "move detail from labels into note and drop nodes the reader does not need"
+      ],
+      (10 - nodeLabelPx) * 9
+    );
+  }
+  const others = [
+    ...scene.nodes.flatMap((n4) => [n4.note?.size, n4.badge ? 10 : void 0]),
+    ...scene.edges.flatMap((e) => [e.label?.size, e.step !== void 0 ? 14 : void 0]),
+    ...scene.groups.map((g) => g.label.lines.length ? g.label.size : void 0),
+    scene.subtitle?.size,
+    ...scene.legend?.items.map((i) => i.label.size) ?? []
+  ].filter((v) => typeof v === "number");
+  const smallest = others.length ? Math.min(...others) : 0;
+  const textPx = smallest * s;
+  if (others.length && textPx < 8) {
+    add(
+      "quality.text-size",
+      textPx < 6 ? "major" : "minor",
+      [],
+      { smallestTextPx: r2(textPx), fontPx: smallest, scale: r2(s) },
+      `the smallest text (${smallest}px notes, edge labels or badges) renders at ${r2(textPx)}px`,
+      [
+        "shorten notes and edge labels or drop them",
+        "use direction: down so the diagram is narrower"
+      ],
+      (8 - textPx) * 4
+    );
+  }
+  const icons = scene.nodes.filter((n4) => n4.look === "icon" && n4.iconBox).map((n4) => n4.iconBox?.h ?? 0);
+  const iconPx = (icons.length ? Math.min(...icons) : 48) * s;
+  if (icons.length && iconPx < 20)
+    add(
+      "quality.icon-size",
+      "minor",
+      [],
+      { iconPx: r1(iconPx), scale: r2(s) },
+      `icons render at ${r1(iconPx)}px, too small to tell apart`,
+      ["use direction: down so the diagram is narrower", "split the diagram"],
+      (20 - iconPx) * 1.5
+    );
+  let failures = 0;
+  let worst = 21;
+  const themes = [];
+  for (const sc of scenes) {
+    themes.push(sc.theme);
+    for (const it of textItems(sc)) {
+      const ratio = contrast(it.fg, it.bg);
+      worst = Math.min(worst, ratio);
+      const large = it.size >= 24 || it.size >= 18.66 && it.weight >= 600;
+      const need = large ? 3 : 4.5;
+      if (ratio + 1e-6 >= need) continue;
+      failures++;
+      add(
+        "quality.contrast",
+        ratio < 2 ? "blocker" : "major",
+        it.id === "title" || it.id === "subtitle" || it.id === "legend" ? [] : [it.id],
+        { theme: sc.theme, what: it.what, fg: it.fg, bg: it.bg, ratio: r2(ratio), needed: need },
+        `the ${it.what} of "${it.id}" is ${r2(ratio)}:1 against ${it.bg} in the ${sc.theme} theme (needs ${need}:1)`,
+        ["drop the custom color: or fill:", "pick a darker or lighter color: for that element"],
+        10
+      );
+    }
+  }
+  c.hard.contrastFailures = failures;
+  const n3 = c.model.nodes.length;
+  if (n3 > 25)
+    add(
+      "quality.node-count",
+      n3 > 40 ? "major" : "minor",
+      [],
+      { nodes: n3 },
+      `${n3} nodes in one diagram (6 to 25 read well)`,
+      ["split into an overview and detail diagrams", "collapse repeated nodes and use badge: x3"],
+      (n3 - 25) * 2
+    );
+  for (const node3 of scene.nodes) {
+    if (node3.label.lines.length > 3)
+      add(
+        "quality.long-label",
+        "minor",
+        [node3.id],
+        { lines: node3.label.lines.length },
+        `the label of "${node3.id}" wraps to ${node3.label.lines.length} lines`,
+        ["shorten the label and move detail into note"],
+        3
+      );
+    const text2 = c.model.nodes.find((x) => x.id === node3.id)?.label ?? "";
+    const broken = midWordBreak(text2, node3.label.lines);
+    if (broken)
+      add(
+        "quality.mid-word-break",
+        "minor",
+        [node3.id],
+        { at: broken },
+        `the label of "${node3.id}" breaks mid-word at "${broken}"`,
+        ["use shorter words or a shorter label", "put a line break (\\n) where it should wrap"],
+        3
+      );
+  }
+  Object.assign(m, {
+    nodeLabelPx: r2(nodeLabelPx),
+    smallestTextPx: others.length ? r2(textPx) : "none",
+    iconPx: r1(iconPx),
+    contrastFailures: failures,
+    contrastMin: r2(worst),
+    themes: themes.join(","),
+    nodes: n3,
+    edges: c.model.edges.length,
+    groups: c.model.groups.length
+  });
+}
+function midWordBreak(text2, lines) {
+  const flat = text2.replace(/\s+/g, " ").trim();
+  let pos = 0;
+  for (let i = 0; i < lines.length - 1; i++) {
+    const line = lines[i] ?? "";
+    if (!flat.startsWith(line, pos)) return void 0;
+    pos += line.length;
+    if (flat[pos] === " ") {
+      pos++;
+      continue;
+    }
+    const prev = flat[pos - 1] ?? "";
+    const next = flat[pos] ?? "";
+    if (prev === "-" || /[a-z0-9]/.test(prev) && /[A-Z]/.test(next)) continue;
+    return `${prev}|${next}`;
+  }
+  return void 0;
+}
+var shortForms;
+function aliasesFor(id) {
+  if (!shortForms) {
+    shortForms = /* @__PURE__ */ new Map();
+    for (const alias of Object.keys(aliases())) {
+      const target = resolveIcon(alias);
+      if (!target) continue;
+      const slug = alias.split(":")[1]?.replace(/-/g, " ") ?? "";
+      shortForms.set(target, [...shortForms.get(target) ?? [], slug]);
+    }
+  }
+  return shortForms.get(id) ?? [];
+}
+var C4_TYPE = /\[(person|software system|external (software )?system|system|container|component|database|queue)\b([^\]]*)\]/i;
+function measureConventions(c) {
+  const { scene, model, add } = c;
+  const m = c.metrics.conventions;
+  const packs2 = /* @__PURE__ */ new Set();
+  for (const n3 of model.nodes) {
+    const info = n3.icon ? iconInfo(n3.icon) : void 0;
+    if (info) packs2.add(info.pack);
+  }
+  for (const g of model.groups) {
+    const prefix = g.type.split(":")[0];
+    if (g.type.includes(":") && prefix) packs2.add(prefix);
+  }
+  const c4 = model.groups.some((g) => g.type.startsWith("c4:")) || /\bC4\b/.test(`${model.title ?? ""} ${model.subtitle ?? ""}`);
+  const vendors = [
+    ...["aws", "azure", "gcp", "k8s"].filter((p) => packs2.has(p)),
+    ...c4 ? ["c4"] : []
+  ];
+  const rubrics = vendors.filter((v) => v !== "k8s").map((v) => `conventions-${v}.md`);
+  const used = [...new Set(model.edges.map((e) => e.line))].filter((l) => l !== "solid");
+  const keyed = new Set((model.legend ?? []).map((l) => l.line));
+  const missing = used.filter((l) => !keyed.has(l));
+  if (missing.length || c4 && !model.legend?.length) {
+    const styles = missing.length ? missing : ["solid"];
+    add(
+      "conventions.legend-missing",
+      "major",
+      model.edges.filter((e) => styles.includes(e.line)).map((e) => e.id),
+      {
+        styles: styles.join(","),
+        edges: model.edges.filter((e) => styles.includes(e.line)).length
+      },
+      `${styles.join(" and ")} line(s) are drawn but no legend says what they mean`,
+      [`add legend: { ${styles.map((l) => `${l}: <what it means>`).join(", ")} }`],
+      15 * styles.length
+    );
+  }
+  const unusedKey = (model.legend ?? []).filter((l) => !model.edges.some((e) => e.line === l.line));
+  if (unusedKey.length)
+    add(
+      "conventions.legend-unused",
+      "minor",
+      [],
+      { styles: unusedKey.map((l) => l.line).join(",") },
+      `the legend explains ${unusedKey.map((l) => l.line).join(", ")} but no edge uses it`,
+      [`remove ${unusedKey.map((l) => l.line).join(", ")} from legend:`],
+      3 * unusedKey.length
+    );
+  if (!model.title)
+    add(
+      "conventions.title-missing",
+      "minor",
+      [],
+      { title: "none" },
+      "the diagram has no title, so readers do not know its scope",
+      ["add title: <system and scope>, for example title: Orders API on AWS"],
+      8
+    );
+  const allText = norm(
+    [
+      model.title,
+      model.subtitle,
+      ...model.nodes.flatMap((n3) => [n3.label, n3.note]),
+      ...model.groups.map((g) => g.label),
+      ...model.edges.map((e) => e.label),
+      ...(model.legend ?? []).map((l) => l.label)
+    ].filter(Boolean).join(" | ")
+  );
+  let shorts = 0;
+  let longAws = 0;
+  for (const n3 of model.nodes) {
+    const info = n3.icon ? iconInfo(n3.icon) : void 0;
+    if (info?.pack !== "aws" || info.type !== "service" || !/^(Amazon|AWS) /.test(info.name))
+      continue;
+    const full = info.name;
+    const label = norm(`${n3.label} ${n3.note ?? ""}`);
+    if (!hasPhrase(allText, full)) {
+      const core = full.replace(/^(Amazon|AWS)\s+/, "");
+      const acronym = core.split(/\s+/).filter((w) => /^[A-Z]/.test(w)).map((w) => w[0]).join("");
+      const form = [core, acronym.length >= 2 ? acronym : "", ...aliasesFor(info.id)].find(
+        (f) => hasPhrase(label, f)
+      );
+      if (form) {
+        shorts++;
+        const where = hasPhrase(norm(n3.label), form) ? `"${n3.label}"` : `the note of "${n3.label}"`;
+        add(
+          "conventions.short-name",
+          "minor",
+          [n3.id],
+          { label: n3.label, shortForm: form, fullName: full },
+          `${where} uses the short form "${form}" but "${full}" appears nowhere in the diagram`,
+          [`set label: ${full} on one "${info.id}" node, or note: ${full}`],
+          4
+        );
+      }
+    }
+    const sn = c.nodes.get(n3.id);
+    if (sn && sn.label.lines.length > 2) {
+      longAws++;
+      add(
+        "conventions.label-lines",
+        "minor",
+        [n3.id],
+        { lines: sn.label.lines.length },
+        `the AWS label of "${n3.id}" runs over ${sn.label.lines.length} lines (the deck allows two)`,
+        ["shorten the label and move the rest into note"],
+        3
+      );
+    }
+  }
+  const callouts = new Set(
+    scene.edges.filter((e) => real(e.stepBox)).map((e) => `${r1(e.stepBox?.w ?? 0)}`)
+  );
+  if (callouts.size > 1)
+    add(
+      "conventions.callout-sizes",
+      "minor",
+      [],
+      { sizes: [...callouts].join(",") },
+      `step callouts come in ${callouts.size} sizes (${[...callouts].join(", ")}px)`,
+      ["report it: callout size is set by the renderer, not the spec"],
+      5
+    );
+  let c4Elements = 0;
+  let c4Relations = 0;
+  if (c4) {
+    for (const n3 of model.nodes) {
+      const text2 = `${n3.label} ${n3.note ?? ""}`;
+      const tag = text2.match(C4_TYPE);
+      const lacks = [];
+      if (!tag) lacks.push("type");
+      const kind = tag?.[1]?.toLowerCase() ?? "";
+      if ((kind === "container" || kind === "component") && !/:\s*\S/.test(tag?.[3] ?? ""))
+        lacks.push("technology");
+      const desc = (n3.note ?? "").replace(/\[[^\]]*\]/g, "").trim();
+      if (!desc) lacks.push("description");
+      if (lacks.length) {
+        c4Elements++;
+        add(
+          "conventions.c4-element",
+          "minor",
+          [n3.id],
+          { lacks: lacks.join(",") },
+          `C4 element "${n3.id}" has no ${lacks.join(", ")}`,
+          [`set note: "[Container: <technology>] <what it does>" (or [Person], [Software System])`],
+          4
+        );
+      }
+    }
+    for (const e of model.edges) {
+      const label = e.label ?? "";
+      const words = label.replace(/\[[^\]]*\]/g, "").trim();
+      const lacks = [];
+      if (!label) lacks.push("label");
+      else {
+        if (!/\[[^\]]+\]/.test(label)) lacks.push("technology");
+        if (!/\s/.test(words)) lacks.push("specific intent");
+      }
+      if (lacks.length) {
+        c4Relations++;
+        add(
+          "conventions.c4-relationship",
+          "minor",
+          [e.id],
+          { edge: edgeName(e), label, lacks: lacks.join(",") },
+          `C4 relationship ${edgeName(e)} has no ${lacks.join(", ")}`,
+          [`label it with the intent and protocol, for example "Reads orders from [SQL]"`],
+          3
+        );
+      }
+    }
+  }
+  let recolored = 0;
+  for (const n3 of model.nodes) {
+    const info = n3.icon ? iconInfo(n3.icon) : void 0;
+    if (!n3.color || !info || n3.look !== "icon" || !["si", "github"].includes(info.pack)) continue;
+    recolored++;
+    add(
+      "conventions.icon-recolored",
+      "minor",
+      [n3.id],
+      { icon: info.id, color: n3.color },
+      `"${n3.id}" recolors the ${info.name} mark to ${n3.color}`,
+      [`remove color: from "${n3.id}"`],
+      5
+    );
+  }
+  let gcpWrong = 0;
+  for (const n3 of model.nodes) {
+    const info = n3.icon ? iconInfo(n3.icon) : void 0;
+    if (info?.pack !== "gcp") continue;
+    const slug = n3.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const product = iconInfo(`gcp:${slug}`) ?? iconInfo(`gcp:${slug.replace(/-/g, "")}`);
+    if (!product || product.type === "category" || product.id === info.id) continue;
+    if (norm(product.name) !== norm(n3.label)) continue;
+    const ok = info.name === product.name || product.category !== "Core products" && info.name === `${product.category} category`;
+    if (ok) continue;
+    gcpWrong++;
+    add(
+      "conventions.gcp-product-icon",
+      "major",
+      [n3.id],
+      { label: n3.label, icon: info.id, expected: product.id },
+      `"${n3.label}" is drawn with ${info.id}; Google assigns it ${product.id}`,
+      [`set icon: ${product.id} on "${n3.id}"`],
+      8
+    );
+  }
+  Object.assign(m, {
+    vendors: vendors.join(",") || "none",
+    title: model.title ? "yes" : "no",
+    legendMissing: missing.length,
+    shortNames: shorts,
+    longAwsLabels: longAws,
+    calloutSizes: callouts.size,
+    c4Elements,
+    c4Relations,
+    recolored,
+    gcpIconMismatches: gcpWrong
+  });
+  return { vendors, rubrics };
+}
+function reviewScene(scene, model, diagnostics, opts) {
+  const width = opts.width > 0 ? opts.width : DEFAULT_REVIEW_WIDTH;
+  const s = Math.min(1, width / Math.max(1, scene.width));
+  const findings = [];
+  const spent = /* @__PURE__ */ new Map();
+  const metrics = Object.fromEntries(DIMENSIONS.map((d) => [d, {}]));
+  const hard = {
+    overlaps: 0,
+    edgesThroughNodes: 0,
+    edgesThroughHeaders: 0,
+    edgesThroughLabels: 0,
+    offCanvas: 0,
+    contrastFailures: 0
+  };
+  const modelGroups = new Map(model.groups.map((g) => [g.id, g]));
+  const modelNodes = new Map(model.nodes.map((n3) => [n3.id, n3]));
+  const parentOf = (id) => (modelGroups.get(id) ?? modelNodes.get(id))?.parent;
+  const ctx = {
+    scene,
+    model,
+    s,
+    width,
+    dir: scene.direction,
+    nodes: new Map(scene.nodes.map((n3) => [n3.id, n3])),
+    groups: new Map(scene.groups.map((g) => [g.id, g])),
+    foot: new Map(scene.nodes.map((n3) => [n3.id, footprint(n3)])),
+    parentOf,
+    isDescendant: (id, ancestor) => {
+      for (let p = parentOf(id); p; p = parentOf(p)) if (p === ancestor) return true;
+      return false;
+    },
+    add: (id, severity, subjects, evidence, claim, fixes, cost) => {
+      const kind = FINDINGS[id];
+      spent.set(id, (spent.get(id) ?? 0) + Math.max(0, cost));
+      findings.push({
+        id,
+        dimension: kind.dimension,
+        severity,
+        subjects: [...new Set(subjects.filter(Boolean))],
+        evidence,
+        claim,
+        fixes,
+        ...kind.rule ? { rule: kind.rule } : {}
+      });
+    },
+    metrics,
+    hard
+  };
+  metrics.quality.width = width;
+  measureOverlap(ctx, diagnostics);
+  measureFlow(ctx, diagnostics);
+  measureLayout(ctx, diagnostics);
+  measureGrid(ctx);
+  measureQuality(ctx, [scene, ...(opts.themes ?? []).filter((x) => x.theme !== scene.theme)]);
+  const { vendors, rubrics } = measureConventions(ctx);
+  const dimensions = Object.fromEntries(
+    DIMENSIONS.map((d) => {
+      let penalty = 0;
+      for (const [id, cost] of spent) {
+        const kind = FINDINGS[id];
+        if (kind.dimension === d) penalty += Math.min(kind.cap, cost);
+      }
+      return [
+        d,
+        { score: r1(Math.max(0, 100 - penalty)), weight: WEIGHTS[d], metrics: metrics[d] }
+      ];
+    })
+  );
+  const score = r1(DIMENSIONS.reduce((sum, d) => sum + dimensions[d].score * WEIGHTS[d], 0));
+  const rank = { blocker: 0, major: 1, minor: 2 };
+  findings.sort(
+    (a, b) => rank[a.severity] - rank[b.severity] || DIMENSIONS.indexOf(a.dimension) - DIMENSIONS.indexOf(b.dimension)
+  );
+  const scaled = (b) => ({
+    x: r1(b.x * s),
+    y: r1(b.y * s),
+    w: r1(b.w * s),
+    h: r1(b.h * s)
+  });
+  const elements = [
+    ...scene.nodes.map((n3) => ({
+      id: n3.id,
+      kind: "node",
+      label: n3.label.lines.join(" "),
+      box: scaled(ctx.foot.get(n3.id) ?? n3.box)
+    })),
+    ...scene.groups.map((g) => ({
+      id: g.id,
+      kind: "group",
+      label: g.label.lines.join(" "),
+      box: scaled(g.box)
+    })),
+    ...scene.edges.map((e) => {
+      const xs = e.points.map((p) => p.x);
+      const ys = e.points.map((p) => p.y);
+      const x = Math.min(...xs);
+      const y = Math.min(...ys);
+      return {
+        id: e.id,
+        kind: "edge",
+        label: `${edgeName(e)}${e.label ? `: ${e.label.lines.join(" ")}` : ""}`,
+        box: scaled({ x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y })
+      };
+    })
+  ];
+  return {
+    ...opts.name ? { name: opts.name } : {},
+    width,
+    scale: r2(s),
+    theme: scene.theme,
+    themes: [
+      scene.theme,
+      ...(opts.themes ?? []).map((x) => x.theme).filter((t) => t !== scene.theme)
+    ],
+    canvas: { width: scene.width, height: scene.height },
+    display: { width: Math.round(scene.width * s), height: Math.round(scene.height * s) },
+    vendors,
+    rubrics,
+    score,
+    pass: score >= 85 && !findings.some((f) => f.severity !== "minor"),
+    hard,
+    dimensions,
+    findings,
+    elements
+  };
+}
+async function reviewModel(req) {
+  const theme = req.theme ?? req.model.theme;
+  const themes = [theme, theme === "light" ? "dark" : "light"];
+  const rendered = await renderModel({
+    model: req.model,
+    formats: ["svg"],
+    themes,
+    name: req.name,
+    fonts: req.fonts,
+    animate: "none"
+  });
+  const scene = rendered.scenes[theme];
+  if (!scene) throw new Error(`no ${theme} scene was laid out`);
+  const diagnostics = [...req.diagnostics ?? [], ...rendered.diagnostics];
+  const report = reviewScene(scene, req.model, diagnostics, {
+    width: req.width ?? DEFAULT_REVIEW_WIDTH,
+    name: req.name,
+    themes: themes.slice(1).flatMap((t) => rendered.scenes[t] ?? [])
+  });
+  const svg = rendered.artifacts.find((a) => a.format === "svg" && a.theme === theme)?.data;
+  const scale = report.display.width / scene.width;
+  const png = req.png !== false && typeof svg === "string" ? await renderPng(svg, { scale, fonts: req.fonts }) : void 0;
+  return { report, ...png ? { png } : {}, scenes: rendered.scenes, diagnostics };
+}
+function formatReview(report, opts = {}) {
+  const count = (d, sev) => report.findings.filter((f) => f.dimension === d && f.severity === sev).length;
+  const lines = [
+    `review ${report.name ?? "diagram"}: ${report.canvas.width}x${report.canvas.height} in a ${report.width}px column, seen at ${report.display.width}x${report.display.height} (scale ${report.scale}, ${report.theme})`,
+    `score ${report.score}/100  ${report.pass ? "PASS" : "FAIL"} (pass = no blocker or major and score >= 85)`,
+    "",
+    "dimension    score  weight  blocker  major  minor",
+    ...DIMENSIONS.map(
+      (d) => `${d.padEnd(12)} ${String(report.dimensions[d].score).padStart(5)}  ${String(report.dimensions[d].weight).padStart(6)}  ${String(count(d, "blocker")).padStart(7)}  ${String(count(d, "major")).padStart(5)}  ${String(count(d, "minor")).padStart(5)}`
+    ),
+    "",
+    `hard: overlaps ${report.hard.overlaps}, through nodes ${report.hard.edgesThroughNodes}, through headers ${report.hard.edgesThroughHeaders}, through labels ${report.hard.edgesThroughLabels}, off canvas ${report.hard.offCanvas}, contrast ${report.hard.contrastFailures}`
+  ];
+  if (report.rubrics.length) lines.push(`rubrics: ${report.rubrics.join(", ")}`);
+  if (report.findings.length) lines.push("");
+  for (const f of report.findings) {
+    const subjects = f.subjects.length ? ` [${f.subjects.join(", ")}]` : "";
+    lines.push(`${f.severity.padEnd(7)} ${f.id}${subjects} ${f.claim}`);
+    if (opts.fixes !== false)
+      for (const fix of f.fixes.slice(0, 2)) lines.push(`        fix: ${fix}`);
+  }
+  return lines.join("\n");
 }
 
 // src/spec.ts
@@ -10561,6 +13553,7 @@ var TOP_KEYS = [
   "layout",
   "animate",
   "background",
+  "legend",
   "nodes",
   "groups",
   "edges"
@@ -10724,6 +13717,10 @@ function parseEdgeExpression(expr) {
   }
   return { hops, label };
 }
+var hasControlChar = (s) => [...s].some((ch) => {
+  const c = ch.charCodeAt(0);
+  return c <= 31 || c === 127;
+});
 function parseSpec(source, filename = "diagram.yaml") {
   const diagnostics = [];
   const err = (code, message, extra = {}) => diagnostics.push({ code, severity: "error", message, ...extra });
@@ -10774,6 +13771,24 @@ function parseSpec(source, filename = "diagram.yaml") {
     return fallback;
   };
   const str = (v) => v === void 0 || v === null ? void 0 : typeof v === "string" ? v : String(v);
+  const hexColor = (value, key, where, subject, extra = []) => {
+    const name = where ? `${where} ${key}` : key;
+    if (value === null) {
+      warn("DG107", `${name} is empty; an unquoted # starts a YAML comment`, {
+        subject: { ...subject, [key]: null },
+        fixes: [`write ${key}: "#2563eb" (the quotes keep the # from starting a comment)`]
+      });
+      return void 0;
+    }
+    const c = str(value);
+    if (c === void 0 || extra.includes(c) || isHex(c)) return c;
+    const or = extra.map((w) => ` or "${w}"`).join("");
+    err("DG107", `${name} must be a hex color with a leading #${or}; got "${c}"`, {
+      subject: { ...subject, [key]: c },
+      fixes: [`use a quoted hex color such as "#2563eb"${or}`]
+    });
+    return c;
+  };
   unknownKeys(raw, TOP_KEYS, {}, "the top level");
   const direction = oneOf(raw.direction, DIRECTIONS2, "right", "direction");
   const theme = oneOf(raw.theme, THEMES, "light", "theme");
@@ -10807,12 +13822,34 @@ function parseSpec(source, filename = "diagram.yaml") {
   const merge = layout2.merge !== false;
   const arrowhead = oneOf(raw.arrowhead, ["open", "filled"], "open", "arrowhead");
   const animate = raw.animate === true ? "packets" : raw.animate === false ? "none" : oneOf(raw.animate, ANIMATE_MODES, "packets", "animate");
-  const background = str(raw.background);
-  if (background && background !== "transparent" && !isHex(background)) {
-    err("DG107", `background must be a hex color or "transparent"; got "${background}"`, {
-      subject: { where: "background", value: background },
-      fixes: ["use a hex color such as #ffffff, or transparent"]
+  const background = hexColor(raw.background, "background", "", { where: "background" }, [
+    "transparent"
+  ]);
+  const legend3 = [];
+  if (raw.legend !== void 0 && raw.legend !== null && !isObj(raw.legend)) {
+    err("DG107", "legend must be a mapping of line style to meaning", {
+      subject: { where: "legend" },
+      fixes: ["write legend: { dashed: Asynchronous events, dotted: Replication }"]
     });
+  } else if (isObj(raw.legend)) {
+    for (const [key, value] of Object.entries(raw.legend)) {
+      const line = key.trim().toLowerCase();
+      const label = str(value)?.trim();
+      if (!EDGE_LINES.includes(line)) {
+        const near = closest(key, EDGE_LINES);
+        const fixes = [near ? `use "${near}"` : `use one of ${EDGE_LINES.join(", ")}`];
+        if (value === null) fixes.push("a comma split an unquoted meaning; quote the whole text");
+        err("DG107", `legend line style must be one of ${EDGE_LINES.join(", ")}; got "${key}"`, {
+          subject: { where: "legend", key },
+          fixes
+        });
+      } else if (!label) {
+        err("DG107", `legend ${line} needs a meaning`, {
+          subject: { where: "legend", key },
+          fixes: [`write ${line}: Asynchronous events`]
+        });
+      } else legend3.push({ line, label });
+    }
   }
   const entries = (value, what) => {
     if (value === void 0 || value === null) return [];
@@ -10887,18 +13924,12 @@ function parseSpec(source, filename = "diagram.yaml") {
         });
       }
     }
-    const color = str(pick(g, "color", GROUP_SYNONYMS));
-    const fill = str(pick(g, "fill", GROUP_SYNONYMS));
-    for (const [k, c] of [
-      ["color", color],
-      ["fill", fill]
-    ]) {
-      if (c && c !== "none" && !isHex(c))
-        err("DG107", `group "${id}" ${k} must be a hex color; got "${c}"`, {
-          subject: { group: id, [k]: c },
-          fixes: ["use a hex color such as #2563eb"]
-        });
-    }
+    const color = hexColor(pick(g, "color", GROUP_SYNONYMS), "color", `group "${id}"`, {
+      group: id
+    });
+    const fill = hexColor(pick(g, "fill", GROUP_SYNONYMS), "fill", `group "${id}"`, { group: id }, [
+      "none"
+    ]);
     const dashed = pick(g, "dashed", GROUP_SYNONYMS);
     groups.push({
       id,
@@ -10911,10 +13942,10 @@ function parseSpec(source, filename = "diagram.yaml") {
       dashed: typeof dashed === "boolean" ? dashed : void 0
     });
     const containsRaw = pick(g, "contains", GROUP_SYNONYMS);
-    const contains = typeof containsRaw === "string" ? [containsRaw] : containsRaw;
-    if (Array.isArray(contains)) {
-      pendingContains.push([id, contains.map(String)]);
-    } else if (contains !== void 0) {
+    const contains2 = typeof containsRaw === "string" ? [containsRaw] : containsRaw;
+    if (Array.isArray(contains2)) {
+      pendingContains.push([id, contains2.map(String)]);
+    } else if (contains2 !== void 0) {
       err("DG107", `group "${id}" contains must be a list of ids`, {
         subject: { group: id },
         fixes: [`write contains: [a, b]`]
@@ -10930,7 +13961,7 @@ function parseSpec(source, filename = "diagram.yaml") {
         });
       } else if (group2) {
         group2.around = around.map(String);
-        if (Array.isArray(contains)) {
+        if (Array.isArray(contains2)) {
           err("DG104", `group "${id}" uses both around and contains`, {
             subject: { group: id },
             fixes: ["use contains (or in:) to nest, around to outline nodes that live elsewhere"]
@@ -10976,18 +14007,21 @@ function parseSpec(source, filename = "diagram.yaml") {
     if (pick(n3, "shape", NODE_SYNONYMS) !== void 0 && icon2 && lookRaw === void 0)
       look = "shape";
     const url = str(pick(n3, "url", NODE_SYNONYMS));
-    if (url && /^\s*[a-z][a-z0-9+.-]*:/i.test(url) && !/^\s*(https?|mailto):/i.test(url)) {
-      err("DG107", `node "${id}" url must be http(s), mailto or a relative path`, {
+    if (url && hasControlChar(url)) {
+      err("DG107", `node "${id}" url must not contain control characters (tab, newline ...)`, {
         subject: { node: id, url },
-        fixes: ["use an https:// link"]
+        fixes: ["use an https:// link on one line, without tabs or line breaks"]
       });
+    } else if (url) {
+      const bare = url.replace(/\s/g, "");
+      if (/^[a-z][a-z0-9+.-]*:/i.test(bare) && !/^(https?|mailto):/i.test(bare)) {
+        err("DG107", `node "${id}" url must be http(s), mailto or a relative path`, {
+          subject: { node: id, url },
+          fixes: ["use an https:// link"]
+        });
+      }
     }
-    const color = str(pick(n3, "color", NODE_SYNONYMS));
-    if (color && !isHex(color))
-      err("DG107", `node "${id}" color must be a hex color; got "${color}"`, {
-        subject: { node: id, color },
-        fixes: ["use a hex color such as #2563eb"]
-      });
+    const color = hexColor(pick(n3, "color", NODE_SYNONYMS), "color", `node "${id}"`, { node: id });
     const sizeRaw = pick(n3, "size", NODE_SYNONYMS);
     let iconSize = look === "card" ? 32 : 48;
     if (typeof sizeRaw === "number") iconSize = Math.max(16, Math.min(128, sizeRaw));
@@ -11109,12 +14143,7 @@ function parseSpec(source, filename = "diagram.yaml") {
     const reverse = op.arrow === "start";
     const lineRaw = pick(extra, "line", EDGE_SYNONYMS);
     const arrowRaw = pick(extra, "arrow", EDGE_SYNONYMS);
-    const color = str(pick(extra, "color", EDGE_SYNONYMS));
-    if (color && !isHex(color))
-      err("DG107", `${where} color must be a hex color; got "${color}"`, {
-        subject: { edge: where, color },
-        fixes: ["use a hex color such as #ed7100"]
-      });
+    const color = hexColor(pick(extra, "color", EDGE_SYNONYMS), "color", where, { edge: where });
     const stepRaw = pick(extra, "step", EDGE_SYNONYMS);
     const step = stepRaw === void 0 ? void 0 : Number(stepRaw);
     if (step !== void 0 && (!Number.isInteger(step) || step < 0 || step > 99)) {
@@ -11216,6 +14245,7 @@ function parseSpec(source, filename = "diagram.yaml") {
     arrowhead,
     animate,
     background: background === "transparent" ? "transparent" : background,
+    ...legend3.length ? { legend: legend3 } : {},
     nodes,
     groups,
     edges
@@ -11227,7 +14257,7 @@ function suggestIds(id, ids, kind) {
 }
 
 // src/cli.ts
-var VERSION = true ? "0.2.1" : "dev";
+var VERSION = true ? "0.3.0" : "dev";
 var HELP = `stackdraw ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
@@ -11235,6 +14265,7 @@ Usage:
                     [--scale 3] [--animate packets|flow|none] [--static] [--font extra.ttf]
                     [--strict] [--force] [--json]
   stackdraw validate <spec.yaml> [--strict] [--json]
+  stackdraw review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--strict] [--json]
   stackdraw icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
   stackdraw icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
   stackdraw icons list [--pack aws] [--category Compute] [--type service] [--json]
@@ -11249,12 +14280,41 @@ Usage:
 Packs: ${PACK_ORDER.join(", ")}. Spec reference: references/spec.md in the skill folder.
 Exit codes: 0 ok, 1 diagram errors (or warnings with --strict), 2 bad command line.`;
 var BOOL = /* @__PURE__ */ new Set(["json", "strict", "force", "static", "list", "help", "version"]);
+var KNOWN_FLAGS = /* @__PURE__ */ new Set([
+  ...BOOL,
+  "out",
+  "format",
+  "theme",
+  "scale",
+  "animate",
+  "font",
+  "pack",
+  "type",
+  "limit",
+  "category",
+  "width"
+]);
+function closest2(word, options) {
+  const w = word.toLowerCase();
+  let best;
+  let bestScore = Number.POSITIVE_INFINITY;
+  for (const o of options) {
+    const prefix = w.length >= 3 && (o.startsWith(w) || w.startsWith(o));
+    const d = prefix ? 0 : distance(w, o);
+    if (d < bestScore) {
+      bestScore = d;
+      best = o;
+    }
+  }
+  return bestScore <= Math.max(2, Math.floor(w.length / 3)) ? best : void 0;
+}
+var SPEC_FILE = /\.(ya?ml|json)$/i;
 function parseArgs(argv) {
   const out = { _: [], flags: {} };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i] ?? "";
     if (a === "-h") out.flags.help = true;
-    else if (a.startsWith("--") || a.startsWith("-") && a.length === 2) {
+    else if (a.startsWith("--") || a.startsWith("-") && (a.length === 2 || a[2] === "=")) {
       const eq = a.indexOf("=");
       let key = a.replace(/^--?/, "");
       let value;
@@ -11271,15 +14331,30 @@ function parseArgs(argv) {
         p: "pack"
       };
       key = short[key] ?? key;
+      if (!KNOWN_FLAGS.has(key)) {
+        const near = closest2(key, KNOWN_FLAGS);
+        usage(
+          `unknown flag ${eq > 0 ? a.slice(0, eq) : a}${near ? ` (did you mean --${near}?)` : ""}`
+        );
+      }
       if (value === void 0) {
-        if (BOOL.has(key) || key === "animate" && !ANIMATE_MODES.includes(argv[i + 1]))
+        const next = argv[i + 1];
+        if (BOOL.has(key)) value = true;
+        else if (key === "animate" && !ANIMATE_MODES.includes(next) && (next === void 0 || next.startsWith("-") || SPEC_FILE.test(next)))
           value = true;
         else {
-          value = argv[i + 1];
+          value = next;
           i += 1;
         }
       }
       if (value === void 0) usage(`--${key} needs a value`);
+      if (BOOL.has(key) && typeof value === "string") {
+        const b = value.toLowerCase();
+        if (b !== "true" && b !== "false") usage(`--${key} must be true or false (got "${value}")`);
+        value = b === "true";
+      }
+      if (key === "animate" && value !== true && !ANIMATE_MODES.includes(value))
+        usage(`--animate must be ${ANIMATE_MODES.join(", ")} (got "${value}")`);
       const prev = out.flags[key];
       out.flags[key] = key === "font" && typeof prev === "string" ? `${prev},${value}` : value;
     } else out._.push(a);
@@ -11333,6 +14408,8 @@ async function cmdRender(args, validateOnly) {
   const themeFlag = String(args.flags.theme ?? parsed.model?.theme ?? "light");
   if (!["light", "dark", "both"].includes(themeFlag)) usage(`--theme must be light, dark or both`);
   const themes = themeFlag === "both" ? ["light", "dark"] : [themeFlag];
+  const fonts2 = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
+  for (const f of fonts2) if (!existsSync5(f)) usage(`no such file: ${f} (from --font)`);
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
   let formats;
   const fmtFlag = typeof args.flags.format === "string" ? args.flags.format : void 0;
@@ -11362,10 +14439,7 @@ async function cmdRender(args, validateOnly) {
   if (parsed.model && ok) {
     const scale = args.flags.scale !== void 0 ? Number(args.flags.scale) : 3;
     if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
-    const fonts2 = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
     const animateFlag = args.flags.static === true ? "none" : args.flags.animate === true ? "packets" : args.flags.animate;
-    if (animateFlag !== void 0 && !ANIMATE_MODES.includes(animateFlag))
-      usage(`--animate must be ${ANIMATE_MODES.join(", ")}`);
     let result;
     try {
       result = await renderModel({
@@ -11459,6 +14533,13 @@ async function cmdIcons(args) {
     const packs2 = packInfo();
     const wanted = rest.length ? rest : PACK_ORDER.filter((k) => packs2[k]?.lib);
     for (const key of wanted) {
+      if (Object.hasOwn(packs2, key)) continue;
+      const near = closest2(key, Object.keys(packs2));
+      usage(
+        `unknown pack "${key}"${near ? ` (did you mean ${near}?)` : ""}; packs: ${PACK_ORDER.join(", ")}`
+      );
+    }
+    for (const key of wanted) {
       const lib = packs2[key]?.lib;
       if (!lib) {
         process.stdout.write(`${key.padEnd(7)} bundled, nothing to fetch
@@ -11477,10 +14558,13 @@ async function cmdIcons(args) {
   if (sub === "search") {
     const query = rest.join(" ");
     if (!query) usage("icons search needs words, e.g. icons search load balancer");
+    const limit = args.flags.limit;
+    if (limit !== void 0 && !/^[1-9]\d*$/.test(String(limit)))
+      usage(`--limit must be a positive integer (got "${limit}")`);
     const results = searchIcons(query, {
       pack: typeof args.flags.pack === "string" ? args.flags.pack : void 0,
       type: typeof args.flags.type === "string" ? args.flags.type : void 0,
-      limit: args.flags.limit ? Number(args.flags.limit) : 15
+      limit: limit === void 0 ? 15 : Number(limit)
     });
     if (json) return void process.stdout.write(`${JSON.stringify(results, null, 2)}
 `);
@@ -11588,6 +14672,7 @@ function cmdImport(args) {
   const [kind, file] = args._;
   if (kind !== "mermaid") usage('import supports "mermaid" (flowchart and graph diagrams)');
   if (!file) usage("import mermaid needs a file, or - for stdin");
+  if (file !== "-" && !existsSync5(resolve(file))) usage(`no such file: ${file}`);
   const text2 = file === "-" ? readFileSync5(0, "utf8") : readFileSync5(resolve(file), "utf8");
   const result = importMermaid(text2.replace(/^```mermaid\s*|```\s*$/gm, ""));
   for (const w of result.warnings) process.stderr.write(`warn  ${w}
@@ -11607,6 +14692,46 @@ function cmdImport(args) {
 next: add icons, then stackdraw validate ${basename(out)}
 `
   );
+}
+async function cmdReview(args) {
+  const [specPath] = args._;
+  if (!specPath) usage("review needs a spec file");
+  const width = args.flags.width === void 0 ? DEFAULT_REVIEW_WIDTH : Number(args.flags.width);
+  if (!(width > 0)) usage("--width must be a positive number of px");
+  const spec = readSpec(specPath);
+  const parsed = parseSpec(spec.text, spec.path);
+  if (!parsed.model) {
+    printDiagnostics(parsed.diagnostics, false);
+    process.exitCode = 1;
+    return;
+  }
+  const theme = args.flags.theme ?? parsed.model.theme;
+  if (theme !== "light" && theme !== "dark") usage("--theme must be light or dark");
+  const fonts2 = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
+  for (const f of fonts2) if (!existsSync5(f)) usage(`no such file: ${f} (from --font)`);
+  const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
+  const base = outFlag ? resolve(outFlag) : spec.path === "stdin.yaml" ? resolve("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
+  const run = await reviewModel({
+    model: parsed.model,
+    name: spec.name,
+    width,
+    theme,
+    fonts: fonts2,
+    diagnostics: parsed.diagnostics
+  });
+  writeAtomic(`${base}.review.json`, `${JSON.stringify(run.report, null, 2)}
+`);
+  if (run.png) writeAtomic(`${base}.review.png`, run.png);
+  if (args.flags.json === true) process.stdout.write(`${JSON.stringify(run.report, null, 2)}
+`);
+  else
+    process.stdout.write(
+      `${formatReview(run.report)}
+
+wrote ${base}.review.json${run.png ? ` and ${base}.review.png` : ""}
+`
+    );
+  process.exitCode = args.flags.strict === true && !run.report.pass ? 1 : 0;
 }
 async function cmdDoctor() {
   const checks = [];
@@ -11664,6 +14789,7 @@ async function cmdDoctor() {
 async function cmdDemo(args) {
   const dir = resolve(args._[0] ?? "stackdraw-demo");
   let failed = 0;
+  let libraryFixes;
   for (const t of templates()) {
     const text2 = readFileSync5(join7(examplesDir, `${t}.yaml`), "utf8");
     const parsed = parseSpec(text2, `${t}.yaml`);
@@ -11673,17 +14799,29 @@ async function cmdDemo(args) {
 `);
       continue;
     }
-    const r = await renderModel({
-      model: parsed.model,
-      formats: ["svg", "png"],
-      themes: [parsed.model.theme],
-      name: t
-    });
+    let r;
+    try {
+      r = await renderModel({
+        model: parsed.model,
+        formats: ["svg", "png"],
+        themes: [parsed.model.theme],
+        name: t
+      });
+    } catch (e) {
+      if (!(e instanceof LibraryError)) throw e;
+      failed += 1;
+      libraryFixes ??= e.fixes;
+      process.stderr.write(`${t}: error DG301 ${e.message}
+`);
+      continue;
+    }
     for (const a of r.artifacts) writeAtomic(join7(dir, `${t}.${a.format}`), a.data);
     const scene = r.scenes[parsed.model.theme];
     process.stdout.write(`${t}: ${scene?.width}x${scene?.height}
 `);
   }
+  for (const fix of libraryFixes ?? []) process.stderr.write(`      fix: ${fix}
+`);
   process.stdout.write(`wrote ${dir}
 `);
   process.exitCode = failed ? 1 : 0;
@@ -11703,6 +14841,8 @@ async function main(argv = process.argv.slice(2)) {
     case "validate":
     case "check":
       return cmdRender(args, true);
+    case "review":
+      return cmdReview(args);
     case "icons":
     case "icon":
       return cmdIcons(args);
@@ -11723,7 +14863,12 @@ async function main(argv = process.argv.slice(2)) {
 
 // src/main.ts
 main().catch((e) => {
-  process.stderr.write(`stackdraw: ${e?.stack ?? e}
+  if (e instanceof LibraryError) {
+    process.stderr.write(`error DG301 ${e.message}
+`);
+    for (const fix of e.fixes) process.stderr.write(`      fix: ${fix}
+`);
+  } else process.stderr.write(`stackdraw: ${e?.stack ?? e}
 `);
   process.exitCode = 1;
 });

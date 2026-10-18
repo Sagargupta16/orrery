@@ -55,7 +55,7 @@ jobs:
         # Windows is load-bearing: paths in receipts and output names, CRLF-free checkouts
         # (.gitattributes), and child processes in the CLI tests all differ there.
         os: [ubuntu-latest, windows-latest]
-        node: [22, 24]
+        node: [22, 24, 26]
     steps:
       - uses: actions/checkout@v7
 

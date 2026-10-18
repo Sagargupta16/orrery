@@ -1,11 +1,17 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Hub-spoke network on Azure
 subtitle: On-premises reaches two peered spoke networks through the hub's gateways and Azure Firewall, over ExpressRoute with a VPN backup
-direction: right
-# Filled triangles, as in Azure's reference diagrams. One port per edge: the peering and diagnostics
-# lines all leave the hub's border and need their own lanes.
+direction: down
+# Filled triangles, as in Azure's reference diagrams. One port per edge: the two lines from the
+# firewall to the spokes (traffic routed over the peerings) need their own lanes.
 arrowhead: filled
 layout: { merge: false, spacing: compact }
+
+legend:
+  solid: Traffic
+  dashed: VPN backup
+  dotted: Diagnostic logs
+  thick: ExpressRoute primary
 
 groups:
   onprem: { type: azure:on-prem, label: On-premises datacenter }
@@ -14,6 +20,7 @@ groups:
   snet-gw: { type: azure:subnet, label: GatewaySubnet, in: hub }
   snet-fw: { type: azure:subnet, label: AzureFirewallSubnet, in: hub }
   snet-bastion: { type: azure:subnet, label: AzureBastionSubnet, in: hub }
+  # azure:vnet-hub is the hub-and-spoke VNet style (dashed blue), used here for the spokes too.
   spoke-app: { type: azure:vnet-hub, label: vnet-spoke-app 10.1.0.0/16, in: sub }
   snet-aks: { type: azure:subnet, label: snet-aks, in: spoke-app }
   spoke-data: { type: azure:vnet-hub, label: vnet-spoke-data 10.2.0.0/16, in: sub }
@@ -32,18 +39,20 @@ nodes:
   vms: { icon: azure:vm, label: Virtual machines, note: App servers x2, in: snet-vm }
   pe: { icon: azure:private-endpoint, label: Private endpoint, in: snet-pe }
   sql: { icon: azure:sql, label: Azure SQL Database, in: sub }
-  dns: { icon: azure:dns-zones, label: Private DNS zone, note: Linked to every VNet, in: sub }
-  logs: { icon: azure:log-analytics, label: Log Analytics, note: Firewall and NSG logs, in: sub }
+  dns: { icon: azure:dns-zones, label: Private DNS zone, note: "A record, linked to every VNet", in: sub }
+  logs: { icon: azure:log-analytics, label: Log Analytics, note: Firewall and VNet flow logs, in: sub }
 
-# Network links carry traffic both ways, so they are drawn without arrowheads.
+# Arrows follow inbound traffic from on-premises through the hub to the spokes; replies take the
+# same links. Microsoft's diagram guidance asks for arrows and against bidirectional ones.
 edges:
-  - servers -- router
-  - router === er: private peering
-  - er === er-gw
-  - router --- vpn-gw: IPsec tunnel
+  - servers -> router
+  - router ==> er: private peering
+  - er ==> er-gw
+  - router --> vpn-gw: IPsec tunnel
   - er-gw, vpn-gw -> fw
-  - hub -- spoke-app: peering
-  - hub -- spoke-data: peering
+  - fw -> spoke-app: via peering
+  - fw -> spoke-data: via peering
+  - bastion -> vms: RDP and SSH
   - fw ..> logs: diagnostics
   - vms -> pe -> sql
-  - pe ..> dns: A record
+  - vms -> dns: name lookup

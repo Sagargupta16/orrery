@@ -1,6 +1,6 @@
 # Icons
 
-16,652 icons in 9 packs, all current official artwork. The four cloud packs are built from each vendor's own download by `scripts/sync-icons.mjs` (pinned by URL and SHA-256 in `scripts/icon-sources.json`; a monthly workflow re-pins newer releases) and ship inside the skill. The five sets that are published as npm libraries are not copied into the skill: they load from the library itself at render time (see [Where icons load from](#where-icons-load-from)). Every icon is drawn the same way either way: ids made unique per use, monochrome glyphs colored for the theme.
+16,682 icons in 9 packs, all current official artwork. The four cloud packs are built from each vendor's own download by `scripts/sync-icons.mjs` (pinned by URL and SHA-256 in `scripts/icon-sources.json`; a monthly workflow re-pins newer releases) and ship inside the skill. The five sets that are published as npm libraries are not copied into the skill: they load from the library itself at render time (see [Where icons load from](#where-icons-load-from)). Every icon is drawn the same way either way: ids made unique per use, monochrome glyphs colored for the theme.
 
 | Pack | Icons | Source | Version | What it covers | Ships |
 | --- | ---: | --- | --- | --- | --- |
@@ -10,8 +10,8 @@
 | `k8s` | 40 | [Kubernetes icons](https://github.com/kubernetes/community/tree/master/icons) | kubernetes/community@70a4bb2 | resource kinds, control plane, infrastructure, the Kubernetes logo | bundled |
 | `github` | 399 | [GitHub Octicons](https://primer.style/octicons) | @primer/octicons 19.40.0 | GitHub's own icon set | npm `@primer/octicons` |
 | `ibm` | 2,776 | [IBM Carbon icons](https://carbondesignsystem.com/elements/icons/library/) | Carbon 11.89.0 | IBM's UI icons, which IBM's technical diagram guide puts in diagram nodes, including 204 IBM product glyphs (`ibm:ibm-cloud-kubernetes-service`, `ibm:watsonx-ai`) | npm `@iconify-json/carbon` |
-| `logos` | 2,123 | [SVG Logos](https://github.com/gilbarbara/logos) | 1.2.15 | full-color logos of tools, languages, databases, SaaS | npm `@iconify-json/logos` |
-| `si` | 3,349 | [Simple Icons](https://simpleicons.org) | 16.34.0 | one-color brand marks in the brand's color | npm `@iconify-json/simple-icons` |
+| `logos` | 2,151 | [SVG Logos](https://github.com/gilbarbara/logos) | 1.2.16 | full-color logos of tools, languages, databases, SaaS | npm `@iconify-json/logos` |
+| `si` | 3,351 | [Simple Icons](https://simpleicons.org) | 16.35.0 | one-color brand marks in the brand's color | npm `@iconify-json/simple-icons` |
 | `tabler` | 6,286 | [Tabler Icons](https://tabler.io/icons) | 3.49.0 | neutral outline and filled glyphs | npm `@iconify-json/tabler` |
 
 Only current artwork is in the catalog:
@@ -64,7 +64,7 @@ Ids are case-insensitive and `aws/lambda` or `aws.lambda` also work. When an id 
 
 Vendor-neutral names for system design, mapped to Tabler glyphs: `user`, `users`, `admin`, `client`, `browser`, `mobile`, `desktop`, `laptop`, `tablet`, `iot`, `internet`, `dns`, `cdn`, `cloud`, `server`, `servers`, `vm`, `container`, `pod`, `function`, `serverless`, `api`, `gateway`, `load-balancer` (`lb`), `router`, `switch`, `network`, `firewall`, `vpn`, `database` (`db`), `cache`, `queue`, `topic`, `stream`, `event`, `storage`, `bucket`, `file`, `files`, `document`, `search`, `analytics`, `dashboard`, `monitoring`, `logs`, `metrics`, `alert`, `notification`, `email`, `sms`, `chat`, `ai`, `ml`, `model`, `agent`, `llm`, `vector-db`, `etl`, `pipeline`, `scheduler`, `cron`, `worker`, `job`, `webhook`, `auth`, `identity`, `key`, `secret`, `certificate`, `shield`, `security`, `payment`, `git`, `repo`, `ci`, `build`, `deploy`, `registry`, `package`, `code`, `terminal`, `config`, `settings`, `office`, `datacenter`, `warehouse`, `satellite`, `wifi`, `map`.
 
-Glyph icons (`tabler:`, `github:`, `generic:`) take the theme's text color, or `color:` on the node. Simple Icons use the brand color, switched to the text color when the brand color would not show on the background (for example a black mark on the dark theme).
+Glyph icons (`tabler:`, `github:`, `generic:`) take the theme's text color, or `color:` on the node. The exception is GitHub's own mark, `github:mark-github`: GitHub's brand rules allow only black or white, so it draws black in the light theme and white in the dark one, never the grey text color. Simple Icons use the brand color, switched to the text color when the brand color would not show on the background (for example a black mark on the dark theme). A full-color logo that is black and sets no color of its own (`logos:okta-icon`, `logos:langchain-icon`) is repainted light in the dark theme, so it does not vanish.
 
 ## Choosing icons
 

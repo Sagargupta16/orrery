@@ -54,7 +54,7 @@ Group styles live in `src/styles.ts`. Every value needs a source (the vendor's i
 
 ## Examples
 
-An example is a spec in `skills/stackdraw/examples/<name>.yaml` (it doubles as an `init` template) plus its rendered `examples/<name>.svg` and `.png`. It must validate with `--strict`, use only real icon ids, and read like a diagram you would put in official documentation.
+An example is a spec in `skills/stackdraw/examples/<name>.yaml` (it doubles as an `init` template) plus its rendered `examples/<name>.svg` and `.png`. It must validate with `--strict`, which also fails on DG217: every non-solid line style the spec uses (dashed, dotted, thick) needs an entry in `legend:`. It must use only real icon ids, and read like a diagram you would put in official documentation.
 
 ## Skill content
 

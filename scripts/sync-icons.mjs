@@ -30,7 +30,9 @@ async function download(url, expected) {
   mkdirSync(cacheDir, { recursive: true });
   const cached = join(cacheDir, `${sha256(Buffer.from(url)).slice(0, 16)}.bin`);
   let buf;
-  if (existsSync(cached)) {
+  // --latest always downloads: Google's zips keep one URL across releases, so a cached copy
+  // would re-pin an old package.
+  if (existsSync(cached) && !latest) {
     buf = readFileSync(cached);
   } else {
     const res = await fetch(url, {
@@ -103,12 +105,33 @@ const ROOT_PAINT = [
   "opacity",
 ];
 
+// Editor-private declarations (-inkscape-font-specification in the Kubernetes icons) do nothing in
+// a browser and are not CSS properties a typed React style object accepts.
+const removeVendorStyles = {
+  name: "removeVendorStyles",
+  fn: () => ({
+    element: {
+      enter: (node) => {
+        const style = node.attributes.style;
+        if (style === undefined) return;
+        const kept = style
+          .split(";")
+          .filter((d) => d.trim() && !d.trim().startsWith("-"))
+          .join(";");
+        if (kept) node.attributes.style = kept;
+        else delete node.attributes.style;
+      },
+    },
+  }),
+};
+
 let idCounter = 0;
 function normalize(svg) {
   idCounter += 1;
   const { data } = optimize(svg, {
     multipass: true,
     plugins: [
+      removeVendorStyles,
       {
         name: "preset-default",
         params: {
@@ -140,14 +163,16 @@ function normalize(svg) {
   return { v: viewBox, b: body };
 }
 
-// True when every painted color in an icon is near black, so a dark theme must recolor it.
+// True when every painted color in an icon is near black, so a dark theme must recolor it. An icon
+// with no paint at all counts: unpainted shapes fill black. Same rule as src/libraries.ts.
 function allDark(body) {
-  if (/Gradient|<image/.test(body)) return false;
-  const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="(#[0-9a-fA-F]{3,6})"/g)].map(
-    (m) => m[1],
+  if (/Gradient|<image|style="[^"]*(?:fill|stroke)\s*:/.test(body)) return false;
+  const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="([^"]+)"/g)]
+    .map((m) => m[1])
+    .filter((c) => c !== "none");
+  return colors.every(
+    (c) => c === "black" || (/^#[0-9a-fA-F]{3,6}$/.test(c) && luminance(c) < 0.06),
   );
-  if (!colors.length) return false;
-  return colors.every((c) => luminance(c) < 0.06);
 }
 
 function luminance(hex) {

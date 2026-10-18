@@ -1,9 +1,12 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Serverless web API on AWS
 subtitle: Single-page app on CloudFront, REST API on API Gateway and Lambda, Cognito sign-in
-direction: right
-# One port per edge: the dotted authorizer edge must not share the API's arrowhead.
-layout: { merge: false }
+direction: down
+
+legend:
+  solid: Request path
+  dashed: Sign-in
+  dotted: Authorizer check
 
 groups:
   cloud: { type: aws:cloud }
@@ -11,20 +14,21 @@ groups:
 
 nodes:
   users: { icon: aws:users, label: Users }
-  cdn: { icon: aws:cloudfront, label: Amazon CloudFront, in: region }
+  # CloudFront is a global service: it sits in the AWS Cloud group, outside the Region.
+  cdn: { icon: aws:cloudfront, label: Amazon CloudFront, in: cloud }
+  site: { icon: aws:simple-storage-service-bucket, label: Web app bucket, note: Static SPA assets, in: region }
   auth: { icon: aws:cognito, label: Amazon Cognito, note: User pool, in: region }
-  site: { icon: aws:s3, label: Web app bucket, note: Static SPA assets, in: region }
   api: { icon: aws:api-gateway, label: Amazon API Gateway, note: REST API, in: region }
-  fn: { icon: aws:lambda, label: Orders function, in: region }
-  table: { icon: aws:dynamodb, label: Orders table, in: region }
-  uploads: { icon: aws:s3, label: Receipts bucket, in: region }
+  fn: { icon: aws:lambda-lambda-function, label: Orders function, note: AWS Lambda, in: region }
+  table: { icon: aws:dynamodb-table, label: Orders table, note: Amazon DynamoDB, in: region }
+  uploads: { icon: aws:simple-storage-service-bucket, label: Receipts bucket, in: region }
 
 edges:
   - users -> cdn: HTTPS
   - users --> auth: sign in
   - cdn -> site: static files
   - cdn -> api: /api/*
-  # Laid out Cognito -> API Gateway so Cognito shares a column with CloudFront.
-  - api <.. auth: JWT authorizer
+  # API Gateway calls Cognito to check the token: laid out Cognito -> API Gateway, arrow at the start.
+  - { from: auth, to: api, arrow: start, line: dotted, label: Cognito authorizer }
   - api -> fn
   - fn -> table, uploads

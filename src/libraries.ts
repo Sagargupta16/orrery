@@ -194,11 +194,16 @@ export function libraryIcon(
   return { v, b: body };
 }
 
-/** True when every painted color in an icon is near black, so a dark theme must recolor it. */
+/**
+ * True when every painted color in an icon is near black, so a dark theme must recolor it. An icon
+ * with no paint at all counts: unpainted shapes fill black (logos:apple, logos:okta-icon).
+ */
 export function allDark(body: string): boolean {
-  if (/Gradient|<image/.test(body)) return false;
-  const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="(#[0-9a-fA-F]{3,6})"/g)].map(
-    (m) => m[1] ?? "",
+  if (/Gradient|<image|style="[^"]*(?:fill|stroke)\s*:/.test(body)) return false;
+  const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="([^"]+)"/g)]
+    .map((m) => m[1] ?? "")
+    .filter((c) => c !== "none");
+  return colors.every(
+    (c) => c === "black" || (/^#[0-9a-fA-F]{3,6}$/.test(c) && luminance(c) < 0.06),
   );
-  return colors.length > 0 && colors.every((c) => luminance(c) < 0.06);
 }

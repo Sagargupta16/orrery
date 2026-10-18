@@ -4,30 +4,50 @@ subtitle: One Okta tenant signs users in to AWS, Google Cloud and Azure; private
 direction: down
 layout: { merge: false }
 
+legend:
+  solid: Network link, traffic both ways
+  dashed: Federated sign-in
+
 groups:
   aws: { type: aws:cloud }
   aws-region: { type: aws:region, label: us-east-1, in: aws }
+  aws-vpc: { type: aws:vpc, label: Orders VPC 10.10.0.0/16, in: aws-region }
   gcloud: { type: gcp:cloud }
   gcp-project: { type: gcp:project, label: Project analytics, in: gcloud }
-  azure: { type: azure:subscription, label: Azure subscription }
+  gcp-vpc: { type: gcp:vpc, label: VPC network, in: gcp-project }
+  tenant: { type: azure:tenant, label: Microsoft Entra tenant }
+  azure: { type: azure:subscription, label: Azure subscription, in: tenant }
   azure-rg: { type: azure:resource-group, label: rg-partner-portal, in: azure }
+  azure-vnet: { type: azure:vnet, label: vnet-partner 10.20.0.0/16, in: azure-rg }
 
 nodes:
   idp: { icon: logos:okta-icon, label: Okta, note: Workforce identity }
-  orders: { icon: aws:eks, label: Amazon EKS, note: Orders platform, in: aws-region }
-  dx: { icon: aws:direct-connect, label: AWS Direct Connect, in: aws-region }
+  orders: { icon: aws:eks, label: Amazon EKS, note: Amazon Elastic Kubernetes Service, in: aws-vpc }
+  dxgw: { icon: aws:direct-connect-gateway, label: Direct Connect gateway, in: aws-region }
   analytics: { icon: gcp:bigquery, label: BigQuery, note: Analytics, in: gcp-project }
-  interconnect: { icon: gcp:partner-interconnect, label: Partner Interconnect, in: gcp-project }
+  cloud-router: { icon: gcp:cloud-router, label: Cloud Router, in: gcp-vpc }
   portal: { icon: azure:app-service, label: Azure App Service, note: Partner portal, in: azure-rg }
-  er: { icon: azure:expressroute, label: Azure ExpressRoute, in: azure-rg }
+  pe: { icon: azure:private-endpoint, label: Private endpoint, note: App Service, in: azure-vnet }
+  er-gw: { icon: azure:virtual-network-gateways, label: ExpressRoute gateway, in: azure-vnet }
+  # The circuits sit outside the cloud frames, as in the hybrid examples.
+  dx: { icon: aws:direct-connect, label: AWS Direct Connect }
+  interconnect: { icon: gcp:partner-interconnect, label: Partner Interconnect }
+  er: { icon: azure:expressroute, label: Azure ExpressRoute }
   router: { icon: generic:router, label: Colocation router, note: BGP to every cloud }
 
 edges:
-  # Federation lands on each cloud as a whole, so the edges end at the group borders.
+  # Federation lands on the AWS and Google Cloud frames as a whole and on the Microsoft Entra tenant
+  # that holds the Azure subscription, so the edges end at the group borders.
   - idp --> aws: SAML
   - idp --> gcloud: OIDC
-  - idp --> azure: SAML
-  - orders -- dx
-  - analytics -- interconnect
-  - portal -- er
-  - dx, interconnect, er -- router
+  - idp --> tenant: SAML
+  - orders -- dxgw
+  - dxgw -- dx
+  - analytics -- cloud-router: Private Google Access
+  - cloud-router -- interconnect
+  - portal -- pe: Private Link
+  - pe -- er-gw
+  - er-gw -- er
+  - dx -- router: private VIF
+  - interconnect -- router: VLAN attachment
+  - er -- router: private peering

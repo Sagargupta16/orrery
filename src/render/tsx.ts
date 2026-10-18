@@ -48,7 +48,8 @@ function attrValue(name: string, value: string): string {
     const obj = decoded
       .split(";")
       .map((d) => d.trim())
-      .filter(Boolean)
+      // Vendor declarations (-inkscape-font-specification) are no CSS property React types know.
+      .filter((d) => d && !d.startsWith("-"))
       .map((d) => {
         const [k = "", ...v] = d.split(":");
         const key = k.trim().replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());

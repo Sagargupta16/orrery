@@ -4,13 +4,16 @@
 
 Files are written atomically (temporary file, then rename), so a failed render never leaves a half-written diagram, and an error in the spec writes nothing.
 
+A `legend:` in the spec appears in every format: a box at the bottom right with one sample line per line style, in the edge color with that style's dash and width.
+
 ## SVG
 
 - Self-contained: icons are inlined vector paths, no external fonts, images or scripts.
-- Ids are unique within the file, and `render` gives every icon instance its own id prefix, so gradients and clip paths never collide.
+- Ids are unique within the file and prefixed with the diagram name and theme (`<name>-<theme>-`), so several diagrams, or a light and a dark copy, can be inlined in one page without clashes. Gradients and clip paths inside icons are prefixed too.
+- An icon that appears more than once is written once as a `<symbol>` in `<defs>` and reused with `<use>`, so a diagram with six Lambdas carries one copy of the artwork.
 - Accessible: `role="img"` with `<title>` (the diagram title) and `<desc>` (a generated summary of components and connections).
 - Text uses Inter when the viewer has it and falls back to Segoe UI, the system UI font, Roboto, Helvetica or Arial. Layout measures with Inter's metrics; those fallbacks are slightly narrower than Inter, so text still fits its space.
-- Node, group and edge elements carry ids (`n-<id>`, `g-<id>`, `e-<n>`), so the SVG can be styled or animated afterwards.
+- Node, group and edge elements carry ids (`n-<id>`, `g-<id>`, `e-<n>`, after the prefix above), so the SVG can be styled or animated afterwards. Edge labels and step badges sit in their own `el-<n>` groups, drawn after every edge line so a line never paints over a label.
 - Animated by default. With `animate: packets` (the default) a small dot travels every directed edge from source to target at one speed, so long edges take longer; `<->` edges carry one each way and undirected `--` lines stay still. When edges carry `step:` numbers, those run one after another in step order and the badge of each step ripples as its packet leaves, so the diagram plays the walkthrough on a loop; the other edges keep their own staggered loops. Line styles are untouched: a dashed edge stays dashed. It is SMIL (`<animateMotion>`), with no CSS and no script, and GitHub keeps it in SVGs shown as images.
 - `animate: flow` draws marching dashes along every edge instead (a small CSS keyframe block); solid edges become dashed while they move. `animate: none`, or `render --static`, writes a still SVG.
 
@@ -39,6 +42,8 @@ Plain Markdown works too: `![Architecture](docs/architecture-light.svg)`.
 - Opens in [diagrams.net](https://app.diagrams.net), the desktop app and the VS Code Draw.io extension.
 - Groups are containers (moving a VPC moves its contents), nodes are image cells with the official icon embedded as SVG data, edges keep the computed route as waypoints and the exact attachment points, labels stay editable.
 - Card nodes use draw.io's label shape (icon plus text in one cell); shape nodes map to draw.io's own shapes (cylinder, document, note, actor, hexagon, cloud...).
+- Icon labels keep the line breaks the layout chose and are not wrapped again to the 48 px icon width, so a long service name (in a left-to-right flow, say) does not stack three lines deep or run into the next icon.
+- A `legend:` becomes one group cell with a line cell and a text cell per style.
 - Works offline: nothing in the file points to the network.
 
 ## TSX
@@ -55,7 +60,10 @@ import Architecture from "./architecture-light";
 
 ## HTML
 
-A single file with no network requests: header with the title, Theme (light/dark), zoom out, zoom in, Fit, SVG download and PNG download (2x, drawn by the browser). Drag to pan, wheel or pinch to zoom. Works from `file://` and on phones.
+A single file with no network requests: header with the title, Theme (light/dark), zoom out, zoom in, Fit, SVG download and PNG download. Drag to pan, wheel or pinch to zoom. Works from `file://` and on phones, where the buttons are 44 px tap targets.
+
+- The SVG download is named for the theme on screen (`<name>-light.svg`, `<name>-dark.svg`) and follows the Theme button.
+- The PNG download is drawn by the browser from a still copy of the diagram at 3x, so it never shows a packet frozen mid-edge, as the animated view would.
 
 ## Receipt
 

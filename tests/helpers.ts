@@ -17,6 +17,7 @@ export const EXAMPLES_DIR = join(SKILL_DIR, "examples");
  */
 export const SAMPLE = `title: Orders platform
 subtitle: Sample diagram for the test suite
+legend: { dashed: Asynchronous, dotted: Private endpoint }
 groups:
   cloud: { type: aws:cloud }
   region: { type: aws:region, label: us-east-1, in: cloud }

@@ -1,9 +1,13 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Streaming analytics on Google Cloud
 subtitle: Events flow through Pub/Sub and Dataflow into BigQuery for Looker dashboards and Vertex AI models
-direction: right
-# One port per edge: the dotted training edge must not share an arrowhead with the solid one.
+direction: down
+# One port per edge: the two publish edges and Dataflow's three outputs each keep their own arrowhead.
 layout: { merge: false }
+
+legend:
+  solid: Data flow
+  dotted: Training data
 
 groups:
   sources: { type: gcp:external, label: Event sources }
@@ -23,7 +27,7 @@ nodes:
 edges:
   - devices, apps -> topic: publish
   - topic -> pipeline: subscribe
-  - pipeline -> warehouse: streaming writes
+  - pipeline -> warehouse: events and scores
   - pipeline -> archive: raw files
   - pipeline -> model: online prediction
   - warehouse -> dashboards: SQL

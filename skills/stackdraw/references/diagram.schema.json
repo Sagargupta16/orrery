@@ -21,6 +21,17 @@
       "description": "Motion in SVG, TSX and HTML (PNG and draw.io stay still). packets: dots travel the edges, numbered steps in order; flow: marching dashes; none: still. true is packets, false is none."
     },
     "background": { "type": "string", "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|transparent)$" },
+    "legend": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What each line style means; drawn as a key bottom right. Add an entry for every non-solid style the diagram uses.",
+      "properties": {
+        "solid": { "type": "string" },
+        "dashed": { "type": "string" },
+        "dotted": { "type": "string" },
+        "thick": { "type": "string" }
+      }
+    },
     "layout": {
       "type": "object",
       "additionalProperties": false,

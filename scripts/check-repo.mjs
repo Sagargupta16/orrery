@@ -146,6 +146,13 @@ for (const f of [
   const text = readFileSync(join(root, f), "utf8");
   for (const m of text.matchAll(/(\d{1,2},\d{3}) icons/g))
     if (m[1] !== total) fail(f, `says ${m[1]} icons, catalogs have ${total}`);
+  // Shields badges spell the comma as %2C.
+  for (const m of text.matchAll(/official_icons-(\d{1,2})%2C(\d{3})-/g))
+    if (`${m[1]},${m[2]}` !== total)
+      fail(f, `icons badge says ${m[1]},${m[2]}, catalogs have ${total}`);
+  for (const m of text.matchAll(/badge\/version-([\d.]+)-/g))
+    if (m[1] !== pkg.version)
+      fail(f, `version badge says ${m[1]}, package.json has ${pkg.version}`);
   for (const m of text.matchAll(/(\d{3}) (?:short names|aliases)/g))
     if (m[1] !== aliasCount) fail(f, `says ${m[1]} aliases, catalogs have ${aliasCount}`);
   for (const [pack, info] of Object.entries(index.packs)) {
@@ -154,6 +161,18 @@ for (const f of [
     if (m && m[1].replace(/,/g, "") !== String(info.count))
       fail(f, `table says ${pack} has ${m[1]}, catalog has ${info.count}`);
   }
+}
+
+// The README art quotes counts too: the whole catalog, or the sets that load from npm.
+const libTotal = Object.values(index.packs)
+  .filter((p) => p.lib)
+  .reduce((n, p) => n + p.count, 0)
+  .toLocaleString("en-US");
+for (const f of files.filter((f) => /^docs\/.*\.ya?ml$/.test(f))) {
+  const text = readFileSync(join(root, f), "utf8");
+  for (const m of text.matchAll(/(\d{1,2},\d{3}) (?:icons|more)/g))
+    if (m[1] !== total && m[1] !== libTotal)
+      fail(f, `says ${m[1]}, catalogs have ${total} (${libTotal} from npm libraries)`);
 }
 
 // 8. Every YAML snippet with nodes in the docs is a valid spec.

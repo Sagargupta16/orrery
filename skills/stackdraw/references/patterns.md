@@ -1,6 +1,6 @@
 # Patterns
 
-Reference architectures as spec fragments. Each has a complete example in `examples/` (start one with `stackdraw init <name>`). Fragments use aliases; `stackdraw icons search` confirms any id.
+Reference architectures as spec fragments. Each has a complete example in `examples/` (start one with `stackdraw init <name>`). Fragments use aliases; `stackdraw icons search` confirms any id. Where a line style carries meaning (dashed for asynchronous, dotted for ownership or replication), add `legend:` so the picture explains it: `legend: { dashed: Asynchronous events }`. The validator warns (DG217) when a style is used and not explained.
 
 ## Web application, three tiers (`aws-three-tier`)
 
@@ -35,6 +35,7 @@ Client -> edge (CloudFront) -> API Gateway -> Lambda -> data stores, with Cognit
 A bus in the middle with producers on the left and consumers on the right. Async hops are dashed (`-->`); numbered `step:` edges tell the story:
 
 ```yaml
+legend: { dashed: Asynchronous events }
 edges:
   - checkout -> bus: { label: OrderPlaced, step: 1 }
   - bus --> billing-queue: { step: 2 }
@@ -47,13 +48,14 @@ Wrap a Step Functions state machine in `type: aws:step-functions`.
 
 Sources -> ingestion -> storage zones -> processing -> query and BI. Draw zones (raw, curated, analytics) as `type: zone` groups with short labels so the left-to-right story is the data's maturity. Catalogs and governance (Glue Data Catalog, Lake Formation) sit below the zones with dotted edges (`..>`).
 
-## Retrieval augmented generation (`aws-genai-rag`)
+## Retrieval-augmented generation (`aws-genai-rag`)
 
 Two flows in one picture: ingestion (documents -> chunk and embed -> vector store) and query (user -> API -> retrieve -> model -> answer). Put them in two `zone` groups labelled "Ingestion" and "Query" so they do not interleave.
 
 ## Kubernetes workload (`k8s-workload`)
 
 ```yaml
+legend: { solid: Traffic and references, dashed: Creates }
 groups:
   cluster: { type: k8s:cluster }
   ns:      { type: k8s:namespace, label: shop, in: cluster }
@@ -65,11 +67,11 @@ nodes:
   cm:  { icon: k8s:cm, label: ConfigMap, in: ns }
 edges:
   - ing -> svc -> pod
-  - dep ..> pod: manages
-  - cm ..> pod: mounts
+  - dep --> pod: creates
+  - pod -> cm: mounts
 ```
 
-Ownership edges (Deployment manages ReplicaSet manages Pods) are dotted; traffic edges are solid.
+As in the Kubernetes deck, "creates" links (a Deployment creates its ReplicaSet, which creates Pods) are dashed; traffic and references (a Pod mounts a ConfigMap) are solid.
 
 ## CI/CD (`github-actions-cicd`)
 
@@ -122,3 +124,7 @@ Feature pipeline -> feature store -> training -> model registry -> serving (batc
 ## Observability (`observability-stack`)
 
 Applications with SDKs -> collector -> one store per signal (metrics, logs, traces) -> dashboards and alerting. Group the stores in a `zone` so the three parallel lanes line up.
+
+## Before you ship one
+
+Run the review loop on the render ([review/loop.md](review/loop.md)): it measures overlaps, edges through labels, flow direction and text size, patches the spec and measures again, so a pattern reaches a reader already checked.

@@ -1,7 +1,17 @@
 import { mixHex } from "../color.ts";
 import { renderIcon } from "../icons.ts";
 import { FONT_STACK, THEME_TOKENS, type Theme } from "../themes.ts";
-import type { Box, Point, Scene, SceneEdge, SceneGroup, SceneNode, TextBlock } from "../types.ts";
+import type {
+  Box,
+  EdgeLine,
+  Point,
+  Scene,
+  SceneEdge,
+  SceneGroup,
+  SceneLegend,
+  SceneNode,
+  TextBlock,
+} from "../types.ts";
 
 // Inter's vertical metrics (ascender 1984, descender -494 at 2048 units per em).
 const ASCENT = 0.96875;
@@ -29,10 +39,12 @@ export interface SvgOptions {
 interface Ctx {
   t: Theme;
   prefix: string;
-  icons: number;
   scene: Scene;
   /** Packet timing per edge id, when the scene animates with packets. */
   motion: Map<string, Motion>;
+  /** Symbol id per distinct icon artwork (viewBox and painted body), and the symbols in order. */
+  symbols: Map<string, string>;
+  defs: string[];
 }
 
 function text(
@@ -53,19 +65,29 @@ function text(
   return `<text font-size="${n(block.size)}"${weight} fill="${color}"${anchorAttr}${extra}>${tspans}</text>`;
 }
 
+const SYMBOL_ID = "SDWSYM";
+
+// Each distinct icon artwork is written once as a <symbol> and placed with <use>, so a diagram with
+// six Lambdas carries one copy. The symbol's viewBox fits it into the box centered, as before.
 function icon(ctx: Ctx, id: string, box: Box, color?: string, background?: string): string {
-  ctx.icons += 1;
-  const r = renderIcon(id, `${ctx.prefix}i${ctx.icons}`, {
+  const r = renderIcon(id, SYMBOL_ID, {
     theme: ctx.t.name,
     background: background ?? ctx.t.background,
     ink: ctx.t.text,
     color,
   });
-  const [vx, vy, vw, vh] = r.viewBox;
-  const scale = Math.min(box.w / vw, box.h / vh);
-  const ox = box.x + (box.w - vw * scale) / 2 - vx * scale;
-  const oy = box.y + (box.h - vh * scale) / 2 - vy * scale;
-  return `<g transform="translate(${n(ox)} ${n(oy)}) scale(${n(scale)})">${r.body}</g>`;
+  const viewBox = r.viewBox.join(" ");
+  const key = `${viewBox}|${r.body}`;
+  let ref = ctx.symbols.get(key);
+  if (!ref) {
+    ref = `${ctx.prefix}s${ctx.symbols.size + 1}`;
+    ctx.symbols.set(key, ref);
+    // overflow: artwork that bleeds past its viewBox is drawn, as it was when inlined.
+    ctx.defs.push(
+      `<symbol id="${ref}" viewBox="${viewBox}" overflow="visible">${r.body.replaceAll(`${SYMBOL_ID}-`, `${ref}-`)}</symbol>`,
+    );
+  }
+  return `<use href="#${ref}" x="${n(box.x)}" y="${n(box.y)}" width="${n(box.w)}" height="${n(box.h)}"/>`;
 }
 
 // ---------------------------------------------------------------- groups
@@ -112,7 +134,10 @@ function groupHeader(ctx: Ctx, g: SceneGroup): string {
   const surface = surfaceBehind(ctx, g);
   if (g.label.lines.length) {
     const b = g.labelBox;
-    const left = g.overlay && g.iconBox ? g.iconBox.x - 4 : b.x - 4;
+    // An overlay legend's chip spans its icon too, unless the icon sits above the label (tile-center).
+    const iconInRow =
+      g.overlay && g.iconBox && g.iconBox.y < b.y + b.h && b.y < g.iconBox.y + g.iconBox.h;
+    const left = iconInRow && g.iconBox ? g.iconBox.x - 4 : b.x - 4;
     parts.push(
       `<rect x="${n(left)}" y="${n(b.y - 1)}" width="${n(b.x + b.w + 4 - left)}" height="${n(b.h + 2)}" rx="3" fill="${surface}"/>`,
     );
@@ -206,9 +231,21 @@ function arrowHead(
   return `<path d="M${pts.map(([x, y]) => `${n(x ?? 0)} ${n(y ?? 0)}`).join(" L")} Z" fill="${color}"/>`;
 }
 
+/** Stroke width and dash attributes of a line style, shared by edges and the legend. */
+function stroke(line: EdgeLine): { width: number; dash: string } {
+  const width = line === "thick" ? 2.5 : 1.5;
+  const dash =
+    line === "dashed"
+      ? ` stroke-dasharray="6 4"`
+      : line === "dotted"
+        ? ` stroke-dasharray="1.5 3.5" stroke-linecap="round"`
+        : "";
+  return { width, dash };
+}
+
 function edge(ctx: Ctx, e: SceneEdge, routing: Scene["routing"]): string {
   const color = e.color ?? ctx.t.edge;
-  const width = e.line === "thick" ? 2.5 : 1.5;
+  const { width, dash } = stroke(e.line);
   const len = e.line === "thick" ? 11 : 9;
   const half = e.line === "thick" ? 5.5 : 4.5;
   let pts = e.points;
@@ -221,12 +258,6 @@ function edge(ctx: Ctx, e: SceneEdge, routing: Scene["routing"]): string {
     if (end) pts = trim(pts, true, cut);
     if (start) pts = trim(pts, false, cut);
   }
-  const dash =
-    e.line === "dashed"
-      ? ` stroke-dasharray="6 4"`
-      : e.line === "dotted"
-        ? ` stroke-dasharray="1.5 3.5" stroke-linecap="round"`
-        : "";
   const flow =
     ctx.scene.animate === "flow"
       ? ` class="sdw-flow${e.line === "solid" || e.line === "thick" ? " sdw-solid" : ""}"`
@@ -247,24 +278,36 @@ function edge(ctx: Ctx, e: SceneEdge, routing: Scene["routing"]): string {
     parts.push(arrowHead(last, beforeLast, len, half, color, open, width));
   if (start && firstPt && second)
     parts.push(arrowHead(firstPt, second, len, half, color, open, width));
+  return `<g id="${ctx.prefix}e-${e.id}">${parts.join("")}</g>`;
+}
+
+// Labels and step badges go in a second pass over the edges, so a later edge's line never paints
+// over an earlier edge's label.
+function edgeLabel(ctx: Ctx, e: SceneEdge): string {
+  if (e.points.length < 2) return "";
+  const parts: string[] = [];
   if (e.labelBox && e.label) {
     const b = e.labelBox;
     parts.push(
       `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="4" fill="${ctx.scene.background === "transparent" ? ctx.t.background : (ctx.scene.background ?? ctx.t.background)}" fill-opacity="0.92"/>`,
     );
-    parts.push(text(e.label, { x: b.x, y: b.y + 3, w: b.w, h: b.h - 6 }, ctx.t.edgeLabel));
+    // Centered in the chip, so it lines up with a step badge beside it.
+    const h = e.label.height;
+    parts.push(text(e.label, { x: b.x, y: b.y + (b.h - h) / 2, w: b.w, h }, ctx.t.edgeLabel));
   }
   if (e.stepBox && e.step !== undefined) {
     const s = e.stepBox;
     const cx = s.x + s.w / 2;
     const cy = s.y + s.h / 2;
+    const motion = ctx.motion.get(e.id);
     if (motion?.stepped) parts.push(ping(ctx, cx, cy, s.w / 2, motion));
     parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(s.w / 2)}" fill="${ctx.t.stepFill}"/>`);
+    // Bold digits, as in the AWS deck's numbered callouts.
     parts.push(
-      `<text x="${n(cx)}" y="${n(cy + 5)}" font-size="14" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`,
+      `<text x="${n(cx)}" y="${n(cy + 5)}" font-size="14" font-weight="700" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`,
     );
   }
-  return `<g id="${ctx.prefix}e-${e.id}">${parts.join("")}</g>`;
+  return parts.length ? `<g id="${ctx.prefix}el-${e.id}">${parts.join("")}</g>` : "";
 }
 
 // ---------------------------------------------------------------- motion
@@ -305,11 +348,13 @@ function motionPlan(scene: Scene): Map<string, Motion> {
   const travel = (e: SceneEdge) => Math.min(2.4, Math.max(0.6, length(e.points) / SPEED));
   const stepped = moving.filter((e) => e.step !== undefined);
   const steps = [...new Set(stepped.map((e) => e.step ?? 0))].sort((a, b) => a - b);
+  // A two-way edge sends its reply after the request arrives, so its step takes two travel times.
+  const slot = (e: SceneEdge) => travel(e) * (e.arrow === "both" ? 2 : 1);
   const starts = new Map<number, number>();
   let t = 0;
   for (const step of steps) {
     starts.set(step, t);
-    t += Math.max(...stepped.filter((e) => e.step === step).map(travel)) + 0.15;
+    t += Math.max(...stepped.filter((e) => e.step === step).map(slot)) + 0.15;
   }
   const story = t + REST;
   for (const e of stepped) {
@@ -345,12 +390,13 @@ function packets(ctx: Ctx, e: SceneEdge, d: string, m: Motion): string {
   const color = e.color ?? ctx.t.flow;
   const r = e.line === "thick" ? 4.2 : 3.6;
   const { cycle, start, travel } = m;
-  const end = start + travel;
-  const fadeIn = start === 0 ? [0, FADE] : [0, start, start + FADE];
-  const opacity = start === 0 ? "0;1;1;0;0" : "0;0;1;1;0;0";
-  const fade = keyTimes([...fadeIn, end - FADE, end, cycle], cycle);
-  const at = keyTimes([0, start, end, cycle], cycle);
-  const one = (reverse: boolean, shift: number) => {
+  /** One packet leaving `from` seconds into the loop, the whole loop shifted by `shift`. */
+  const one = (reverse: boolean, from: number, shift = 0) => {
+    const end = from + travel;
+    const fadeIn = from === 0 ? [0, FADE] : [0, from, from + FADE];
+    const opacity = from === 0 ? "0;1;1;0;0" : "0;0;1;1;0;0";
+    const fade = keyTimes([...fadeIn, end - FADE, end, cycle], cycle);
+    const at = keyTimes([0, from, end, cycle], cycle);
     const begin = m.begin - shift;
     const loop = `dur="${secs(cycle)}" repeatCount="indefinite"${begin ? ` begin="${secs(begin)}"` : ""}`;
     return (
@@ -359,8 +405,12 @@ function packets(ctx: Ctx, e: SceneEdge, d: string, m: Motion): string {
       `<animate attributeName="opacity" values="${opacity}" keyTimes="${fade}" ${loop}/></g>`
     );
   };
-  if (e.arrow === "both") return one(false, 0) + one(true, cycle / 2);
-  return one(e.arrow === "start", 0);
+  // A numbered two-way edge answers inside its own step; a free-running one answers half a loop on.
+  if (e.arrow === "both")
+    return m.stepped
+      ? one(false, start) + one(true, start + travel)
+      : one(false, start) + one(true, start, cycle / 2);
+  return one(e.arrow === "start", start);
 }
 
 /** A ring that ripples out of a step badge as its packet leaves. */
@@ -420,11 +470,13 @@ function shapePath(shape: SceneNode["shape"], b: Box): string {
   }
 }
 
-function badge(ctx: Ctx, label: string, anchor: Box): string {
-  const w = Math.max(18, 8 + label.length * 6.4);
-  const x = anchor.x + anchor.w - w / 2 - 2;
-  const y = anchor.y - 7;
-  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="16" rx="8" fill="${ctx.t.stepFill}"/><text x="${n(x + w / 2)}" y="${n(y + 11.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
+/** The badge pill: layout's measured box, else an estimate on the anchor's top-right corner. */
+function badge(ctx: Ctx, label: string, anchor: Box, placed?: Box): string {
+  const w = placed?.w ?? Math.max(18, 8 + label.length * 6.4);
+  const h = placed?.h ?? 16;
+  const x = placed?.x ?? anchor.x + anchor.w - w / 2 - 2;
+  const y = placed?.y ?? anchor.y - 7;
+  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(h / 2)}" fill="${ctx.t.stepFill}"/><text x="${n(x + w / 2)}" y="${n(y + h / 2 + 3.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
 }
 
 function node(ctx: Ctx, nd: SceneNode): string {
@@ -437,7 +489,7 @@ function node(ctx: Ctx, nd: SceneNode): string {
     if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, nd.color));
     parts.push(text(nd.label, nd.labelBox, nd.ink ?? ctx.t.text));
     if (nd.note && nd.noteBox) parts.push(text(nd.note, nd.noteBox, nd.inkMuted ?? ctx.t.muted));
-    if (nd.badge && nd.iconBox) parts.push(badge(ctx, nd.badge, nd.iconBox));
+    if (nd.badge && nd.iconBox) parts.push(badge(ctx, nd.badge, nd.iconBox, nd.badgeBox));
   } else if (nd.look === "card") {
     const b = nd.box;
     const stroke = nd.color ?? ctx.t.border;
@@ -452,7 +504,7 @@ function node(ctx: Ctx, nd: SceneNode): string {
     if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, undefined, ctx.t.surface));
     parts.push(text(nd.label, nd.labelBox, ctx.t.text, "start"));
     if (nd.note && nd.noteBox) parts.push(text(nd.note, nd.noteBox, ctx.t.muted, "start"));
-    if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box));
+    if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box, nd.badgeBox));
   } else {
     const stroke = nd.color ?? (ctx.t.name === "dark" ? "#6e7681" : "#8b95a1");
     const fill = nd.color
@@ -464,13 +516,33 @@ function node(ctx: Ctx, nd: SceneNode): string {
     if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, nd.color, fill));
     parts.push(text(nd.label, nd.labelBox, nd.ink ?? ctx.t.text));
     if (nd.note && nd.noteBox) parts.push(text(nd.note, nd.noteBox, nd.inkMuted ?? ctx.t.muted));
-    if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box));
+    if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box, nd.badgeBox));
   }
   const inner = parts.join("");
   const body = nd.url
     ? `<a href="${esc(nd.url)}" xlink:href="${esc(nd.url)}" target="_blank">${inner}</a>`
     : inner;
   return `<g id="${ctx.prefix}n-${nd.id}">${body}</g>`;
+}
+
+// ---------------------------------------------------------------- legend
+
+/** The key for line styles: a sample of each line in the edge color, its meaning beside it. */
+function legend(ctx: Ctx, l: SceneLegend): string {
+  const b = l.box;
+  const parts = [
+    `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="6" fill="${ctx.t.surface}" stroke="${ctx.t.border}" stroke-width="1"/>`,
+  ];
+  for (const item of l.items) {
+    const s = item.swatch;
+    const { width, dash } = stroke(item.line);
+    const y = s.y + s.h / 2;
+    parts.push(
+      `<path d="M${n(s.x)} ${n(y)} H${n(s.x + s.w)}" fill="none" stroke="${ctx.t.edge}" stroke-width="${width}"${dash}/>`,
+    );
+    parts.push(text(item.label, item.labelBox, ctx.t.text, "start"));
+  }
+  return `<g id="${ctx.prefix}legend">${parts.join("")}</g>`;
 }
 
 // ---------------------------------------------------------------- document
@@ -480,7 +552,7 @@ const FLOW_CSS = `@keyframes sdw-flow{to{stroke-dashoffset:-20}}.sdw-flow{animat
 export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
   const t = THEME_TOKENS[scene.theme];
   const prefix = opts.idPrefix ? `${opts.idPrefix.replace(/[^A-Za-z0-9_-]/g, "")}-` : "";
-  const ctx: Ctx = { t, prefix, icons: 0, scene, motion: motionPlan(scene) };
+  const ctx: Ctx = { t, prefix, scene, motion: motionPlan(scene), symbols: new Map(), defs: [] };
   const { width: W, height: H } = scene;
   const titleId = `${prefix}sdw-title`;
   const descId = `${prefix}sdw-desc`;
@@ -493,6 +565,7 @@ export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
   );
   out.push(`<desc id="${descId}">${esc(scene.description)}</desc>`);
   if (scene.animate === "flow") out.push(`<style>${FLOW_CSS}</style>`);
+  const defsAt = out.length;
   if (scene.background !== "transparent") {
     out.push(`<rect width="${W}" height="${H}" fill="${scene.background ?? t.background}"/>`);
   }
@@ -501,11 +574,17 @@ export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
     out.push(text(scene.subtitle, scene.subtitleBox, t.muted, "start"));
   for (const g of scene.groups) out.push(`<g id="${ctx.prefix}g-${g.id}">${groupFrame(g)}</g>`);
   for (const e of scene.edges) out.push(edge(ctx, e, scene.routing));
+  for (const e of scene.edges) {
+    const label = edgeLabel(ctx, e);
+    if (label) out.push(label);
+  }
   for (const g of scene.groups) {
     const header = groupHeader(ctx, g);
     if (header) out.push(`<g id="${ctx.prefix}gh-${g.id}">${header}</g>`);
   }
   for (const nd of scene.nodes) out.push(node(ctx, nd));
+  if (scene.legend?.items.length) out.push(legend(ctx, scene.legend));
+  if (ctx.defs.length) out.splice(defsAt, 0, `<defs>${ctx.defs.join("")}</defs>`);
   out.push("</svg>");
   return `${out.join("\n")}\n`;
 }

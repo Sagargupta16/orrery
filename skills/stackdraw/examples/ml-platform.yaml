@@ -1,8 +1,13 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: ML platform on AWS
-subtitle: Features land in SageMaker Feature Store, a Step Functions pipeline trains and registers models, SageMaker serves them, and drift alarms trigger retraining
-direction: right
-layout: { merge: false }
+subtitle: Amazon SageMaker AI and AWS Step Functions train and serve models; drift alarms retrain them
+direction: down
+layout: { merge: false, spacing: compact }
+
+legend:
+  solid: Pipeline flow
+  dashed: Retraining loop
+  dotted: Monitoring data
 
 groups:
   cloud: { type: aws:cloud }
@@ -10,10 +15,10 @@ groups:
   pipeline: { type: aws:step-functions, label: Training pipeline, in: region }
 
 nodes:
-  raw: { icon: aws:s3, label: Raw data, note: S3 data lake, in: region }
-  features: { icon: aws:sagemaker-ai, label: Feature pipeline, note: SageMaker Processing, in: region }
-  store: { icon: aws:sagemaker-ai, label: Feature Store, note: Offline and online, in: region }
-  train: { icon: aws:sagemaker-ai-train, label: Train, note: SageMaker training job, in: pipeline }
+  raw: { icon: aws:s3, label: Raw data lake, note: Amazon Simple Storage Service, in: region }
+  features: { icon: aws:sagemaker-ai, label: Feature pipeline, note: SageMaker AI Processing, in: region }
+  store: { icon: aws:sagemaker-ai, label: Feature Store, note: Offline store, in: region }
+  train: { icon: aws:sagemaker-ai-train, label: Train, note: SageMaker AI training job, in: pipeline }
   evaluate: { icon: aws:lambda, label: Evaluate, note: Compare to baseline, in: pipeline }
   registry: { icon: aws:sagemaker-ai-model, label: Model Registry, note: Approved versions, in: region }
   batch: { icon: aws:sagemaker-ai, label: Batch transform, note: Nightly scoring, in: region }
@@ -30,5 +35,5 @@ edges:
   - endpoint ..> monitor: captured traffic
   # The retraining loop points back at the pipeline; written in layout order with the
   # arrowheads at the start so it sits under the serving branch instead of past it.
-  - { from: pipeline, to: retrain, arrow: start, line: dashed, label: start }
+  - { from: pipeline, to: retrain, arrow: start, line: dashed, label: StartExecution }
   - { from: retrain, to: monitor, arrow: start, line: dashed }

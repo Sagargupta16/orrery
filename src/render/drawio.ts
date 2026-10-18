@@ -3,7 +3,16 @@
 import { mixHex } from "../color.ts";
 import { renderIcon } from "../icons.ts";
 import { THEME_TOKENS, type Theme } from "../themes.ts";
-import type { Box, Point, Scene, SceneEdge, SceneGroup, SceneNode } from "../types.ts";
+import type {
+  Box,
+  EdgeLine,
+  Point,
+  Scene,
+  SceneEdge,
+  SceneGroup,
+  SceneLegend,
+  SceneNode,
+} from "../types.ts";
 import { esc } from "./svg.ts";
 
 const n = (v: number) => String(Math.round(v * 100) / 100);
@@ -139,7 +148,8 @@ function node(ctx: Ctx, nd: SceneNode) {
           fillColor: "none",
           strokeColor: "none",
           html: 1,
-          whiteSpace: "wrap",
+          // Layout already broke the label into lines; draw.io's own wrap would break them again.
+          whiteSpace: "nowrap",
           fontColor: nd.ink ?? ctx.t.text,
           fontSize: 13,
           fontFamily: FONT,
@@ -155,7 +165,9 @@ function node(ctx: Ctx, nd: SceneNode) {
           labelPosition: "center",
           align: "center",
           html: 1,
-          whiteSpace: "wrap",
+          // The label sits under a 48px image; wrapping to that width stacked "Amazon API
+          // Gateway" three lines deep into the next icon.
+          whiteSpace: "nowrap",
           fontColor: nd.ink ?? ctx.t.text,
           fontSize: 13,
           fontFamily: FONT,
@@ -221,6 +233,13 @@ function anchor(p: Point, b: Box): [number, number] {
   return [clamp((p.x - b.x) / (b.w || 1)), clamp((p.y - b.y) / (b.h || 1))];
 }
 
+/** Stroke entries of a line style, shared by edges and the legend's sample lines. */
+const lineStyle = (line: EdgeLine) => ({
+  strokeWidth: line === "thick" ? 2.5 : 1.5,
+  dashed: line === "dashed" || line === "dotted" ? 1 : 0,
+  dashPattern: line === "dotted" ? "1 3" : line === "dashed" ? "6 4" : undefined,
+});
+
 function edge(ctx: Ctx, e: SceneEdge, boxes: Map<string, Box>) {
   const first = e.points[0];
   const last = e.points[e.points.length - 1];
@@ -245,9 +264,7 @@ function edge(ctx: Ctx, e: SceneEdge, boxes: Map<string, Box>) {
     startFill: 1,
     startSize: 6,
     strokeColor: e.color ?? ctx.t.edge,
-    strokeWidth: e.line === "thick" ? 2.5 : 1.5,
-    dashed: e.line === "dashed" || e.line === "dotted" ? 1 : 0,
-    dashPattern: e.line === "dotted" ? "1 3" : e.line === "dashed" ? "6 4" : undefined,
+    ...lineStyle(e.line),
     fontColor: ctx.t.edgeLabel,
     fontSize: 11,
     fontFamily: FONT,
@@ -281,6 +298,21 @@ function edge(ctx: Ctx, e: SceneEdge, boxes: Map<string, Box>) {
   }
 }
 
+/** The line-style key: a container with one sample line and one text cell per entry. */
+function legend(ctx: Ctx, l: SceneLegend) {
+  const { box } = l;
+  const local = (b: Box): Box => ({ ...b, x: b.x - box.x, y: b.y - box.y });
+  ctx.cells.push(
+    `<mxCell id="legend" value="" style="${style({ rounded: 1, absoluteArcSize: 1, arcSize: 12, html: 1, fillColor: ctx.t.surface, strokeColor: ctx.t.border, container: 1, collapsible: 0, recursiveResize: 0 })}" vertex="1" parent="1">${geometry(box)}</mxCell>`,
+  );
+  for (const [i, item] of l.items.entries()) {
+    ctx.cells.push(
+      `<mxCell id="legend:${i}:line" value="" style="${style({ line: null, html: 1, fillColor: "none", strokeColor: ctx.t.edge, ...lineStyle(item.line) })}" vertex="1" parent="legend">${geometry(local(item.swatch))}</mxCell>`,
+      `<mxCell id="legend:${i}:text" value="${esc(esc(item.label.lines.join(" ")))}" style="${style({ text: null, html: 1, align: "left", verticalAlign: "middle", whiteSpace: "nowrap", fontSize: item.label.size, fontColor: ctx.t.text, fontFamily: FONT, spacing: 0 })}" vertex="1" parent="legend">${geometry(local(item.labelBox))}</mxCell>`,
+    );
+  }
+}
+
 export function renderDrawio(scene: Scene, name = "Diagram"): string {
   const t = THEME_TOKENS[scene.theme];
   const ctx: Ctx = { t, scene, icons: 0, cells: [], groupBox: new Map() };
@@ -303,6 +335,7 @@ export function renderDrawio(scene: Scene, name = "Diagram"): string {
     node(ctx, nd);
   }
   for (const e of scene.edges) edge(ctx, e, boxes);
+  if (scene.legend?.items.length) legend(ctx, scene.legend);
   const bg = scene.background === "transparent" ? "none" : (scene.background ?? t.background);
   return [
     `<mxfile host="stackdraw" agent="stackdraw" type="device">`,

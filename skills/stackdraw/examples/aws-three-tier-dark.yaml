@@ -4,8 +4,13 @@ subtitle: Load-balanced EC2 web tier across two Availability Zones, Aurora and E
 direction: down
 # Same diagram as aws-three-tier, drawn on the dark theme.
 theme: dark
-# Own ports per edge: the NAT return paths would otherwise share the gateway's port with traffic.
+# merge: false gives each edge its own port: the two NAT paths would otherwise share one arrowhead
+# at the internet gateway.
 layout: { merge: false }
+
+legend:
+  solid: Application traffic
+  dashed: Outbound via NAT
 
 groups:
   cloud: { type: aws:cloud }
@@ -15,8 +20,8 @@ groups:
   az-b: { type: aws:az, label: Availability Zone B, in: vpc }
   public-a: { type: aws:public-subnet, label: Public subnet, in: az-a }
   public-b: { type: aws:public-subnet, label: Public subnet, in: az-b }
-  app-a: { type: aws:private-subnet, label: App subnet, in: az-a }
-  app-b: { type: aws:private-subnet, label: App subnet, in: az-b }
+  app-a: { type: aws:private-subnet, label: Web subnet, in: az-a }
+  app-b: { type: aws:private-subnet, label: Web subnet, in: az-b }
   data-a: { type: aws:private-subnet, label: Data subnet, in: az-a }
   data-b: { type: aws:private-subnet, label: Data subnet, in: az-b }
   # One Auto Scaling group spans both zones: an overlay that does not move its members.
@@ -25,18 +30,16 @@ groups:
 nodes:
   users: { icon: aws:users, label: Users }
   igw: { icon: aws:igw, label: Internet gateway, in: vpc }
-  alb: { icon: aws:alb, label: Application Load Balancer, in: vpc }
+  alb: { icon: aws:alb, label: Application Load Balancer, note: Public subnets in both AZs, in: vpc }
   nat-a: { icon: aws:nat, label: NAT gateway, in: public-a }
   nat-b: { icon: aws:nat, label: NAT gateway, in: public-b }
-  web-a: { icon: aws:ec2, label: Web server, note: EC2 instance, in: app-a }
-  web-b: { icon: aws:ec2, label: Web server, note: EC2 instance, in: app-b }
-  db-a: { icon: aws:aurora, label: Aurora, note: Primary (writer), in: data-a }
-  db-b: { icon: aws:aurora, label: Aurora, note: Replica (reader), in: data-b }
-  cache-a: { icon: aws:elasticache, label: ElastiCache, note: Primary node, in: data-a }
-  cache-b: { icon: aws:elasticache, label: ElastiCache, note: Replica node, in: data-b }
+  web-a: { icon: aws:ec2-instance, label: Web server, note: Amazon EC2 instance, in: app-a }
+  web-b: { icon: aws:ec2-instance, label: Web server, note: Amazon EC2 instance, in: app-b }
+  db-a: { icon: aws:aurora-instance, label: Amazon Aurora, note: Primary (writer), in: data-a }
+  db-b: { icon: aws:aurora-instance, label: Amazon Aurora, note: Replica (reader), in: data-b }
+  cache-a: { icon: aws:elasticache-cache-node, label: Amazon ElastiCache, note: Primary node, in: data-a }
+  cache-b: { icon: aws:elasticache-cache-node, label: Amazon ElastiCache, note: Replica node, in: data-b }
 
-# Edges stay inside each Availability Zone: an edge between the zones would stack them
-# vertically instead of side by side.
 edges:
   - users -> igw -> alb
   - alb -> web-a, web-b
@@ -47,3 +50,6 @@ edges:
   - { from: nat-b, to: web-b, arrow: start, line: dashed }
   - web-a -> db-a, cache-a
   - web-b -> db-b, cache-b
+  # Zone B writes go to the primary Aurora and ElastiCache nodes in zone A. constraint: false keeps
+  # this edge out of the layout, so the zones stay side by side.
+  - { from: web-b, to: data-a, label: writes, constraint: false }

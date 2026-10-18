@@ -10,7 +10,7 @@
 
 ## Project
 
-Public Agent Skill and Claude Code plugin (`stackdraw`) that turns a YAML spec into professional, animated architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons (plus logo and generic sets), laid out by ELK and rendered to SVG, PNG, draw.io, TSX and HTML. The CLI is bundled into the skill so it runs with no install.
+Public Agent Skill and Claude Code plugin (`stackdraw`) that turns a YAML spec into professional, animated architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons (plus logo and generic sets), laid out by ELK and rendered to SVG, PNG, draw.io, TSX and HTML. The CLI is bundled into the skill so it runs with no install. `stackdraw review` plus three reviewer agents form a measured review loop (`/stackdraw:review`).
 
 Installed with `/plugin marketplace add Sagargupta16/stackdraw` then `/plugin install stackdraw@stackdraw`, or `npx skills add Sagargupta16/stackdraw`.
 
@@ -52,6 +52,8 @@ npx -y @sagargupta1610/skillcheck lint skills
 - `src/layout.ts` -- model -> ELK graph -> Scene (every renderer consumes the Scene)
 - `src/render/*.ts` -- svg, png, drawio, tsx, html
 - `scripts/sync-icons.mjs` -- official packs -> `skills/stackdraw/assets/icons/*.json`; npm-published sets get only index rows and a `lib` pin
+- `src/review.ts` -- `stackdraw review`: six scored dimensions at a display width; overlap findings map from `checkScene` diagnostics, so geometry rules live once in `src/check.ts`
+- `agents/*.md`, `commands/review.md` -- the three read-only reviewer agents and `/stackdraw:review`; their rubrics and the loop protocol are in `skills/stackdraw/references/review/`
 - `src/libraries.ts` -- loads the npm-published sets (octicons, carbon, logos, simple-icons, tabler) at render time: node_modules, then the user cache, then jsDelivr/unpkg, sha256-checked
 
 ## Key files
@@ -64,7 +66,7 @@ npx -y @sagargupta1610/skillcheck lint skills
 ## Gotchas
 
 - ELK layout options do not cascade: every compound node (group) needs the full option set, or its children ignore layering/placement.
-- `elk.layered.considerModelOrder.strategy` crashes elkjs 0.12 with hierarchy; do not set it. `runElk` retries with simpler strategies on any throw.
+- `elk.layered.considerModelOrder.strategy` crashes elkjs 0.12 inside groups: its tie-break reads the internal `modelOrder.maximum`, which nested graphs never get, so any two tied siblings throw. Spec order comes from semi-interactive crossing minimization with `elk.position` hints instead; when that layout crosses edges, the nodes on those edges are unpinned and the layout with fewer crossings wins. `runElk` caches by graph, so themes share one ELK run. `runElk` still retries simpler strategies on any throw and records the one it used in `scene.layoutFallback` (DG218).
 - ELK ignores node and edge labels that have no `text`; always pass text even though ELK only uses the size.
 - The vendored ELK file must stay `.cjs`: the repo root `package.json` is `"type": "module"`, and Node would load a `.js` copy as ESM.
 - The ESM bundle needs the `createRequire` banner in `scripts/build.mjs` because `yaml` is CommonJS and requires node builtins.
@@ -72,6 +74,8 @@ npx -y @sagargupta1610/skillcheck lint skills
 - AWS `_Light`/`_Dark` resource files are named for the background they suit: `_Dark` is the white glyph for dark themes.
 - `python -I` ignores `PYTHONIOENCODING`; use `sys.stdout.reconfigure(encoding="utf-8")` when printing vendor text on Windows.
 - Library packs (`github`, `ibm`, `logos`, `si`, `tabler`) have no `<pack>.json`; `renderIcon` throws unless `loadIconLibraries` ran first (renderModel and `icons show` do it). Bumping one of those npm dev dependencies changes its sha256 pin, so re-run `pnpm sync-icons` with it.
+- `layout()` can run twice: when a group's header label cannot slide clear of the edges in a vertical flow, the second pass (`opts.widen`) lays those groups out wider. Keep it single-recursion.
+- SVG ids carry a `<name>-<theme>` prefix and repeated icons are `<symbol>`/`<use>` pairs; TSX swaps the prefix for `useId()`, so any new id must go through the prefix.
 - SVGs animate by default (`animate: packets`, SMIL). PNG and draw.io always get a still scene (`animate: "none"`); keep it that way, resvg would draw packets at the origin.
 
 ## Repo-specific rules

@@ -2,6 +2,62 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-10-17
+
+### Added
+
+- **Review board.** `stackdraw review <spec> --width 880` measures a diagram at the width readers see it and scores six dimensions: official conventions, layout, grid, arrows and flow, overlap, and size and quality. It writes `<base>.review.json` (scores, hard counts, findings with evidence and fixes, element boxes in display pixels) and `<base>.review.png` at that width; `--strict` exits 1 when the review fails. Three read-only Claude Code agents judge what measurement cannot: `stackdraw:conventions-reviewer` against vendor rubrics (AWS deck, Azure Well-Architected, Google's icon guide, C4 notation, every rule quoted with its source), `stackdraw:flow-reviewer` for the story the arrows tell, and `stackdraw:legibility-reviewer` for the display-width PNG. `/stackdraw:review` runs the loop: measure, critique in parallel, keep only findings that cite a measurement or a vendor rule, apply one to three spec patches, and keep a round only when the score goes up and no hard count does, for at most three rounds. Without subagents (`npx skills add`) the same three passes run inline from the rubrics in `references/review/`.
+- **`legend:`** maps line styles to their meaning (`legend: { dashed: Asynchronous events }`) and draws a key in every format. DG217 warns when a dashed, dotted or thick line is used without one, as Azure's and C4's diagram guidance ask; every example that uses one of those styles now has a legend.
+- New composition checks: DG209 (an edge runs through a group's header label), DG210 (something sticks out of the canvas), DG211 (a step or node badge covers a label or icon), DG212 (an edge runs through another edge's label), DG213 (an overlay group encloses a node it does not list) and DG218 (layout needed a fallback strategy). DG205 also flags strips more than two screens tall.
+- **`aws-hybrid-landing-zone` example**: a hybrid, multi-Region, multi-account AWS landing zone after the AWS Security Reference Architecture: Organizations OUs with SCPs, IAM Identity Center federated to a corporate IdP, an organization trail and Config into a KMS-encrypted Log Archive bucket, GuardDuty and Security Hub with a delegated administrator, Network Firewall inspection, Route 53 Resolver for hybrid DNS, and Direct Connect with VPN backup to peered Transit Gateways in two Regions.
+- CI tests Node 26.
+- Light and dark (and the review's second theme) share one ELK run per graph, so `--theme both` and `review` lay out once.
+
+### Changed
+
+- **Spec order is kept wherever it costs no crossing.** Layout orders siblings with semi-interactive crossing minimization and position hints instead of ELK's model-order option, which threw inside groups on 13 of the 27 shipped diagrams and then dropped the order. Groups always keep spec order; when the ordered layout crosses edges, only the nodes on those edges may move, and the layout with fewer crossings wins. Across the gallery: sibling pairs in spec order 88 of 119 before, 113 of 120 now; groups in order 17 of 23 before, 23 of 23 now; edge crossings 8 before, 4 now.
+- Same-column nodes of different sizes share a center line, content sits centered in groups widened by their label, nested frames keep even padding, stacked frames of one type share a width, and tiny 1 to 6 px jogs and redundant bend points are gone.
+- A group header label slides off the edges that cross it; in a vertical flow, a group whose label no edge could avoid is laid out wide enough for edges to enter right of the label, as in AWS reference diagrams. Multi-line group labels grow the header, and side-by-side frames share their top edge.
+- AWS group tiles are 40 px, the deck's size next to 48 px service icons; the Auto Scaling group tile sits centered on its top border. Light-theme callouts are black with bold white digits (AWS deck).
+- Google Cloud frame is #1a73e8 and regions are white panels with a #202124 outline, as measured from Google's six deployment archetype diagrams. stackdraw's own neutral outlines reach 3:1 against white.
+- Edges into non-square logos (Kafka, PagerDuty) end on the drawn glyph instead of up to 9 px short of it.
+- Edge labels and step badges sit on the same side of every horizontal line (ELK picked a side per edge; 13 of 27 gallery diagrams mixed them), and an overlay border moves out when an edge would run alongside it closer than 8 px.
+- Badges are sized from their measured text, stay clear of an arriving arrow, and reserve room so they never run into a neighbor or out of their group. `constraint: false` edges no longer share a trunk, and their labels sit beside the line, inside the canvas.
+- SVG ids are prefixed with the diagram name and theme, so several diagrams (or the light and dark file) can be inlined in one page. Repeated icons are written once as a `<symbol>` and reused. Edge labels are drawn after every edge line, so a later edge never paints over a label.
+- HTML viewer: the PNG button exports a still frame at 3x, the SVG download is named per theme, and the buttons are 44 px tall.
+- README gallery is one column, so the diagrams render at the full column width on GitHub.
+- `gitops-kubernetes` went through the review loop first: the 0.2 version scores 85.3 and fails (node labels at 5.8 px in the README column); the shipped one scores 98.5 and passes. It now runs top to bottom, monitoring and Deployment-created pods have their own line styles, and both clusters pull from the registry.
+- **Every example reviewed and fixed.** Four reviewers checked all 28 diagrams (the 26 examples, the hero and how-it-works) against vendor documentation and found 182 mistakes. Every one is fixed or, for 3 inherent crossings and long edges, reduced to a minor, and all 28 now pass `stackdraw review` at the 880 px README width (16 failed it before). Among them:
+  - The hero is real GitOps: Actions bumps a manifests repository and Argo CD pulls from it.
+  - The IAM role in the CI/CD example is an identity GitHub Actions assumes, not an actor.
+  - The AWS RAG and open-source RAG examples embed the question before searching.
+  - The three-tier example writes from both zones to the primary database.
+  - A REST API uses a Cognito user pool authorizer, not a JWT authorizer.
+  - Global services (CloudFront, IAM, the Direct Connect gateway) sit outside Regions.
+  - AKS workload identity exchanges a token with Entra ID.
+  - App Service reaches ExpressRoute through a VNet.
+  - Cloud Run reaches Memorystore over Direct VPC egress.
+  - The chat, URL shortener and C4 designs gained their missing reads, writes and relationships.
+  - MinIO, whose open-source repository is archived, is replaced by Ceph with a Hive Metastore catalog.
+  - Names are current: SageMaker AI, Quick Sight, the full Kubernetes kind names.
+  - The Apple logo, whose use Apple's guidelines reserve for licensees, is gone.
+  - The how-it-works diagram shows the npm icon libraries as fetched on first use.
+  Most examples now run top to bottom, so their labels show at full size in a README column.
+- **`--strict` is stricter.** It now also fails on the new warnings, so a 0.2 spec with dashed, dotted or thick lines and no `legend:` exits 1 with DG217 until it gets a legend.
+- Dependencies: vitest 5.0.5, `@iconify-json/logos` 1.2.16, `@iconify-json/simple-icons` 1.2.100 and `simple-icons` 16.35.0, re-pinned (16,682 icons).
+
+### Fixed
+
+- Black logos with no explicit color (Okta, LangChain, Resend) vanished in the dark theme; they are repainted, and the GitHub mark stays black or white as GitHub's brand guide asks.
+- Hex colors must start with "#": `color: ff9900` was accepted and wrote invalid SVG paint, and an unquoted `color: #ff9900` (a YAML comment) was dropped silently; both are now DG107 with the quoted form as the fix.
+- A node `url` with a tab or other control character (`java\tscript:`) slipped past the scheme check and became a `javascript:` link when the SVG was inlined in HTML; control characters are rejected and the scheme is checked with whitespace removed.
+- The label contrast fixer could lower contrast on mid-tone fills (4.43:1 to 3.06:1 on AWS teal); it now moves toward whichever of black or white contrasts more and never makes text worse.
+- Unknown CLI flags (`--formats`) and bad values (`--animate flw`, `--limit abc`, `icons fetch githb`) exit 2 with a did-you-mean instead of being ignored. A missing input file or `--font` file, an offline `demo`, `icons fetch` or `icons show` report the problem without a stack trace.
+- Mermaid import reads a frontmatter block with `config:` and keeps `;` inside quoted labels.
+- Generated TSX type-checks under `strict` (Inkscape style residue is dropped, and stripped from the Kubernetes catalog); draw.io icon labels keep their line breaks instead of wrapping to the icon width; a stepped `<->` edge plays both packets inside its own step; edge label text is centered on its step badge.
+- `sync-icons --latest` downloads fresh copies instead of re-pinning a cached package.
+- `check-repo` also checks the version and icon-count badges in the README and the icon counts quoted in `docs/*.yaml` (the badges still said 0.2.1 and 16,652).
+
 ## [0.2.1] - 2026-10-11
 
 ### Fixed

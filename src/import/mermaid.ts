@@ -59,6 +59,35 @@ const SHAPES: [string, string, ShapeKind][] = [
 
 const ID = "[A-Za-z0-9_][A-Za-z0-9_.-]*";
 
+// A leading "---" ... "---" block: Mermaid frontmatter (title, config:, nested YAML).
+const FRONTMATTER = /^\s*---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;
+
+/** Splits a line into statements on ";" that sit outside quotes, brackets and |edge text|. */
+function splitStatements(line: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let quoted = false;
+  // Inside |...| edge text; a "|" within brackets belongs to the node text, not an edge.
+  let piped = false;
+  let start = 0;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') quoted = !quoted;
+    else if (!quoted) {
+      if (piped) piped = c !== "|";
+      else if (c === "|" && depth === 0) piped = true;
+      else if (c === "[" || c === "(" || c === "{") depth += 1;
+      else if (c === "]" || c === ")" || c === "}") depth = Math.max(0, depth - 1);
+      else if (c === ";" && depth === 0) {
+        out.push(line.slice(start, i));
+        start = i + 1;
+      }
+    }
+  }
+  out.push(line.slice(start));
+  return out;
+}
+
 function unquote(s: string): string {
   const t = s.trim();
   if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'")))
@@ -128,9 +157,16 @@ export function importMermaid(source: string): MermaidResult {
   let direction = "right";
   let title: string | undefined;
 
-  const lines = source
+  const front = source.match(FRONTMATTER);
+  if (front) {
+    const frontTitle = (front[1] ?? "").match(/^title:[ \t]*(.+)$/m);
+    if (frontTitle) title = cleanLabel(frontTitle[1] ?? "");
+  }
+
+  const lines = (front ? source.slice(front[0].length) : source)
     .replace(/%%.*$/gm, "")
-    .split(/\r?\n|;/)
+    .split(/\r?\n/)
+    .flatMap(splitStatements)
     .map((l) => l.trim())
     .filter(Boolean);
   const first = lines.find((l) => l !== "---" && !/^title:/.test(l)) ?? "";

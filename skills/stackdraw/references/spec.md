@@ -41,7 +41,10 @@ edges:
 | `layout.layering` | `source`, `simplex` | `source` | `source` lines parallel branches up; `simplex` keeps edges shortest. Try the other one when a layout looks off. |
 | `layout.merge` | `true`, `false` | `true` | Edges that share an endpoint and have the same line, arrow and color join into one trunk with a single arrowhead; different styles keep their own ports. `false` gives every edge its own port. |
 | `animate` | `packets`, `flow`, `none` (`true` is `packets`, `false` is `none`) | `packets` | Motion in SVG, TSX and HTML; PNG and draw.io are always still. `packets`: a dot travels every directed edge, and numbered edges run one after another in step order as a loop; line styles stay as drawn. `flow`: marching dashes along every edge. `render --animate <mode>` or `--static` overrides it. |
-| `background` | hex color or `transparent` | theme | `transparent` drops the background rectangle. |
+| `background` | quoted hex color or `transparent` | theme | `transparent` drops the background rectangle. |
+| `legend` | mapping of `solid`, `dashed`, `dotted` or `thick` to a short meaning | none | A key drawn bottom right that says what each line style means, for example `legend: { dashed: Asynchronous events, dotted: Replication }`. Keys are case-insensitive and rows keep the order you write them. An unknown style (`dashd`) or an empty meaning fails with DG107, and the fix names the closest style. Add an entry for every non-solid style the diagram uses (DG217 warns otherwise). Quote a meaning that contains a comma. |
+
+Colors (node `color`, group `color` and `fill`, edge `color` and the top-level `background`) are `#` plus 3 or 6 hex digits, and they need quotes: `color: "#2563eb"`. `fill` also accepts `none` and `background` also accepts `transparent`. A value without the `#` (`color: 2563eb`) fails with DG107 "... must be a hex color with a leading #", fixed by `use a quoted hex color such as "#2563eb"`. An unquoted `#` starts a YAML comment, so `color: #2563eb` reaches stackdraw as an empty value; that fails with DG107 "<where> color is empty; an unquoted # starts a YAML comment" instead of silently dropping the color.
 
 Ids (node and group keys) use letters, digits, `_`, `-` and `.`, and must be unique across nodes and groups.
 
@@ -64,9 +67,9 @@ nodes:
 | `in` | Id of the group the node sits in. |
 | `look` | `icon` (icon with the label below), `card` (icon beside the label in a bordered box) or `shape`. |
 | `shape` | For icon-less nodes: `box`, `rounded` (default), `pill`, `circle`, `diamond`, `hexagon`, `cylinder` (database), `queue`, `document`, `note`, `person`, `cloud`, `stack`. Setting a shape on an icon node draws the shape with a small icon inside. |
-| `color` | Hex accent: the outline and tint of a shape, the side bar of a card, or the color of a monochrome glyph icon. |
+| `color` | Quoted hex accent: the outline and tint of a shape, the side bar of a card, or the color of a monochrome glyph icon. |
 | `badge` | Short tag drawn on the top right corner, for example `x3` or `HA`. |
-| `url` | Makes the node a link in SVG, HTML and draw.io. |
+| `url` | Makes the node a link in SVG, HTML and draw.io. Only `http`, `https`, `mailto` and relative links are accepted (DG107); the scheme check ignores whitespace. Any control character, U+0000 to U+001F (tab, newline ...) or U+007F, fails with DG107: browsers drop them inside a URL, so `java<TAB>script:` would still run as `javascript:`. |
 | `size` | Icon size: `sm` (32), `md` (48, default), `lg` (64), `xl` (80) or a number of px. |
 
 ## Groups
@@ -86,8 +89,8 @@ groups:
 | `in` | Parent group id. Groups nest to any depth. |
 | `contains` | List of child ids; the same as writing `in:` on each child. |
 | `around` | List of node or group ids to outline after layout, without moving them: an overlay for things that cross the tree, such as an Auto Scaling group spanning two Availability Zones. Its label sits on the top border. |
-| `color` | Hex override for the border and label. |
-| `fill` | Hex override for the background, or `none`. |
+| `color` | Quoted hex override for the border and label. |
+| `fill` | Quoted hex override for the background, or `none`. |
 | `icon` | Override the header icon with any icon id, or `false` to hide it. |
 | `dashed` | `true` or `false` to override the style's border. |
 
@@ -110,6 +113,7 @@ Write edges as short strings. The arrow sets the line:
 - Chains: `a -> b -> c`. Label one hop inline: `a -[HTTPS]-> b -> c` (dashed: `a --[async]--> b`).
 - Spaces around `--`, `---`, `...` and `===` are required; arrows with `<` or `>` work without spaces.
 - Endpoints can be groups as well as nodes: `vpc -> s3` connects to the VPC's border.
+- Dashed, dotted and thick lines carry meaning only if the reader can look it up: explain each one you use in the top-level `legend:`.
 
 Edges also accept a mapping for options that have no arrow syntax:
 
@@ -126,7 +130,7 @@ edges:
 | `line` | `solid`, `dashed`, `dotted`, `thick`. |
 | `arrow` | `end`, `start`, `both`, `none`. |
 | `step` | A number drawn in a dark circle on the edge, for numbered walkthroughs (AWS reference architecture style). |
-| `color` | Hex color for the line and arrow. |
+| `color` | Quoted hex color for the line and arrow. |
 | `constraint` | `false` keeps the edge out of the layout: it is drawn afterwards between the placed nodes. Use it for links that should not reorder anything, such as replication between two side-by-side Availability Zones. |
 
 ## Diagnostics
@@ -142,7 +146,7 @@ edges:
 | DG104 | error | `in:` or `contains` points at something that is not a group. |
 | DG105 | error | Groups contain each other. |
 | DG106 | error | An edge names an id that does not exist. |
-| DG107 | error | A value is not one of the allowed options (with the nearest one). |
+| DG107 | error | A value is not one of the allowed options (with the nearest one): also a color that is not `#` plus 3 or 6 hex digits or is empty because an unquoted `#` started a YAML comment, a `legend:` entry with an unknown line style or an empty meaning, and a node `url` with an unsafe scheme or a control character. |
 | DG108 | error | Unknown key (a typo such as `lable`, or a comma inside an unquoted `{...}` value). |
 | DG109 | error | An edge cannot be read. |
 | DG110 | warning | A label on a chain was dropped; label one hop inline instead. |
@@ -150,7 +154,15 @@ edges:
 | DG202 | warning | An edge label covers a node or another label. |
 | DG203 | warning | Two nodes' labels collide. |
 | DG204 | warning | A label wraps to more than three lines. |
-| DG205 | warning | The diagram is very wide, or a long thin strip. |
+| DG205 | warning | The diagram is over 2400 px wide, or a long thin strip: wider than 4.5 times its height, or taller than 4.5 times its width, with more than six nodes. |
 | DG206 | warning | More than 40 nodes in one diagram. |
 | DG207 | warning | An empty group. |
 | DG208 | warning | A node nothing connects to. |
+| DG209 | warning | An edge runs through a group's header label, which hides the line and makes it look broken. |
+| DG210 | warning | Something is drawn outside the canvas (a step badge, label, node, group, the title or the legend) and gets cut off. The evidence says how far and past which side. |
+| DG211 | warning | A step badge or a node badge sits on a node, a node or edge label, or another badge. |
+| DG212 | warning | An edge runs through another edge's label. |
+| DG213 | warning | An `around:` group encloses a node or group that it does not list. |
+| DG217 | warning | The diagram draws a dashed, dotted or thick line that `legend:` does not explain. |
+| DG218 | warning | Layout needed a fallback strategy, so the node order in the picture may not follow the spec. |
+| DG301 | error | An icon library that comes from npm (`github`, `ibm`, `logos`, `si`, `tabler`) could not be loaded: it is not in `node_modules` or the cache and the download failed. The fixes say how to prefetch it (`stackdraw icons fetch`, `STACKDRAW_CACHE`) or to use the bundled packs (`aws`, `azure`, `gcp`, `k8s`). |

@@ -1,22 +1,27 @@
 # yaml-language-server: $schema=../skills/stackdraw/references/diagram.schema.json
 title: How stackdraw works
 subtitle: One YAML spec in, five formats out, with official icons and automatic layout
-direction: right
+direction: down
+legend:
+  solid: Processing flow
+  dotted: Icon lookup
 groups:
   author: { type: zone, label: You or your agent }
   engine: { type: boundary, label: "stackdraw CLI (bundled, no install)" }
-  catalog: { type: zone, label: Official icon packs, in: engine }
+  catalog: { type: zone, label: Bundled icon packs, in: engine }
+  libs: { type: zone, label: "npm libraries (fetched, cached)" }
   outputs: { type: zone, label: Outputs }
 nodes:
   agent: { icon: tabler:robot, label: Agent or editor, in: author }
-  spec: { icon: logos:yaml, label: diagram.yaml, note: "nodes, groups, edges", in: author }
-  validate: { icon: tabler:list-check, label: Validate, note: codes with fixes, in: engine }
+  spec: { icon: si:yaml, label: diagram.yaml, note: "nodes, groups, edges", in: author }
+  validate: { icon: tabler:list-check, label: Validate, note: DG1xx codes with fixes, in: engine }
   aws: { icon: aws:category-compute, label: AWS, note: 810 icons, in: catalog }
   azure: { icon: azure:virtual-machine, label: Azure, note: 636 icons, in: catalog }
   gcp: { icon: gcp:cloud-run, label: Google Cloud, note: 233 icons, in: catalog }
   k8s: { icon: k8s:kubernetes, label: Kubernetes, note: 40 icons, in: catalog }
-  more: { icon: github:mark-github, label: GitHub and logos, note: "12,244 more", in: catalog }
+  more: { icon: tabler:library, label: "Octicons, Carbon, logos, Tabler", note: "14,963 icons", in: libs }
   layout: { icon: tabler:hierarchy-3, label: ELK layout, in: engine }
+  check: { icon: tabler:ruler-measure, label: Check, note: DG2xx layout checks, in: engine }
   render: { icon: tabler:brush, label: Render, in: engine }
   svg: { icon: logos:svg, label: SVG, in: outputs }
   png: { icon: tabler:photo, label: PNG, in: outputs }
@@ -25,6 +30,10 @@ nodes:
   html: { icon: logos:html-5, label: HTML viewer, in: outputs }
 edges:
   - agent -> spec: writes
-  - spec -> validate -> layout -> render
-  - aws, azure, gcp, k8s, more ..> render
+  - spec -> validate -> layout -> check -> render
+  - aws, azure, gcp, k8s ..> render
+  # Render loads these on first use; written in layout order with the arrow flipped.
+  - { from: render, to: more, arrow: start, line: dotted, label: first use }
+  # Validate looks icon ids up in the bundled index; written in layout order with the arrow flipped.
+  - { from: validate, to: catalog, arrow: start, line: dotted }
   - render -> svg, png, drawio, tsx, html

@@ -1,9 +1,13 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: AKS application platform on Azure
-subtitle: Application Gateway in front of an AKS cluster that pulls from Container Registry, reads Key Vault through workload identity and logs to Log Analytics
-direction: right
+subtitle: Application Gateway in front of AKS, with secrets read through workload identity and logs in Log Analytics
+direction: down
 arrowhead: filled
 layout: { merge: false }
+
+legend:
+  solid: Requests and access
+  dotted: Logs and metrics
 
 groups:
   sub: { type: azure:subscription, label: Platform subscription }
@@ -11,16 +15,17 @@ groups:
   vnet: { type: azure:vnet, label: vnet-aks-prod 10.30.0.0/16, in: rg }
   snet-agw: { type: azure:subnet, label: snet-appgateway, in: vnet }
   snet-aks: { type: azure:subnet, label: snet-aks-nodes, in: vnet }
-  # The cluster is a plain box with the AKS icon in its header.
-  cluster: { type: box, label: AKS cluster aks-prod, icon: azure:aks, in: snet-aks }
-  system-pool: { type: azure:node-pool, label: System node pool, in: cluster }
-  user-pool: { type: azure:node-pool, label: User node pool, in: cluster }
+  system-pool: { type: azure:node-pool, label: System node pool, in: snet-aks }
+  user-pool: { type: azure:node-pool, label: User node pool, in: snet-aks }
+  # Only the node pools (VM Scale Sets) live in the subnet; the AKS control plane is managed by Azure.
+  # The cluster is an overlay around the pools, a plain box with the AKS icon in its header.
+  cluster: { type: box, label: AKS cluster aks-prod, icon: azure:aks, around: [system-pool, user-pool] }
 
 nodes:
   users: { icon: azure:users, label: Users }
   agw: { icon: azure:appgw, label: Application Gateway, note: WAF v2 with AGIC, in: snet-agw }
-  system: { icon: azure:vm-scale-sets, label: System nodes, note: CoreDNS and add-ons, in: system-pool }
-  apps: { icon: azure:vm-scale-sets, label: User nodes, note: Application pods, in: user-pool }
+  system: { icon: azure:vm-scale-sets, label: System nodes, note: "VM Scale Sets, CoreDNS and add-ons", in: system-pool }
+  apps: { icon: azure:vm-scale-sets, label: User nodes, note: "VM Scale Sets, application pods", in: user-pool }
   acr: { icon: azure:acr, label: Container Registry, in: rg }
   identity: { icon: azure:managed-identity, label: Managed identity, note: Workload identity, in: rg }
   kv: { icon: azure:key-vault, label: Key Vault, note: App secrets, in: rg }
@@ -28,8 +33,8 @@ nodes:
 
 edges:
   - users -> agw: HTTPS
-  - agw -> apps
+  - agw -> apps: HTTP to pod IPs (AGIC)
   - apps -> acr: pull images
-  - apps -> identity: federated token
-  - identity -> kv: read secrets
+  - apps -> identity: token exchange (Entra ID)
+  - apps -> kv: read secrets
   - system, apps ..> logs

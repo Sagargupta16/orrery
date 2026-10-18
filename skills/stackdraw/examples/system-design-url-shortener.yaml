@@ -1,7 +1,12 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: URL shortener system design
 subtitle: Redirects are served from the CDN and a Redis cache in front of PostgreSQL; every click streams through Kafka into an analytics pipeline
-direction: right
+direction: down
+layout: { spacing: compact }
+
+legend:
+  solid: Request or query
+  dashed: Asynchronous event or stream
 
 groups:
   analytics: { type: zone, label: Click analytics pipeline }
@@ -21,11 +26,17 @@ nodes:
 
 edges:
   - clients -> cdn: GET /abc123
+  # Creating a link skips the CDN and goes straight to the load balancer.
+  - clients -> lb: POST /links
   - cdn -> lb: cache miss
   - lb -> api
-  # Every edge out of the API is labelled, so its targets share one column.
-  - api -> cache: lookup
-  - api -> db: on miss
+  # All three data-store edges are labelled, so Redis, PostgreSQL and the ID generator share one row; Kafka sits in the analytics group.
+  - api -> cache: lookup, fill on miss
+  - api -> db: read on miss, insert new
   - api -> ids: new link
   - api --> events: click event
-  - events -> stream -> olap -> dashboard
+  # Redirects the CDN answers never reach the API, so the CDN ships its own logs.
+  - cdn --> events: edge logs
+  - events --> stream --> olap
+  # Written in layout order with the arrow flipped: dashboards query ClickHouse.
+  - { from: olap, to: dashboard, arrow: start, label: query }

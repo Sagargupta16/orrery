@@ -1,8 +1,12 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Kubernetes web workload
-subtitle: Traffic reaches the pods through an Ingress and a Service; a Deployment owns them, an HPA scales them, a ConfigMap, Secret and PVC feed them
+subtitle: Traffic reaches the pods through an Ingress and a Service; a Deployment creates them, an autoscaler scales it, and they use a ConfigMap, a Secret and a volume claim
 direction: right
-layout: { merge: false }
+layout: { merge: false, spacing: compact }
+
+legend:
+  solid: Traffic and references
+  dashed: Creates
 
 groups:
   cluster: { type: k8s:cluster, label: Kubernetes cluster }
@@ -10,23 +14,22 @@ groups:
 
 nodes:
   users: { icon: generic:users, label: Users }
-  ing: { icon: k8s:ing, label: Ingress, note: shop.example.com, in: ns }
+  ing: { icon: k8s:ing, label: Ingress, note: shop.example.com via ingress-nginx, in: ns }
   svc: { icon: k8s:svc, label: Service, note: ClusterIP port 80, in: ns }
-  hpa: { icon: k8s:hpa, label: HPA, note: 3 to 10 replicas, in: ns }
+  hpa: { icon: k8s:horizontalpodautoscaler, label: HorizontalPodAutoscaler, note: 3 to 10 replicas, in: ns }
   deploy: { icon: k8s:deploy, label: Deployment, note: web, in: ns }
   rs: { icon: k8s:rs, label: ReplicaSet, note: web-7c9d, in: ns }
   pods: { icon: k8s:pod, label: Pods, note: web x3, in: ns }
   config: { icon: k8s:cm, label: ConfigMap, note: web-config, in: ns }
   secret: { icon: k8s:secret, label: Secret, note: db-credentials, in: ns }
-  pvc: { icon: k8s:pvc, label: PVC, note: uploads 20Gi, in: ns }
-  pv: { icon: k8s:pv, label: PersistentVolume, note: Cluster scoped, in: cluster }
+  pvc: { icon: k8s:persistentvolumeclaim, label: PersistentVolumeClaim, note: uploads 20Gi, in: ns }
+  pv: { icon: k8s:persistentvolume, label: PersistentVolume, note: Cluster scoped, in: cluster }
 
 edges:
-  # Traffic is solid; ownership and configuration are dotted.
+  # Traffic and references are solid; "creates" links are dashed, as in the Kubernetes deck.
   - users -> ing: HTTPS
   - ing -> svc -> pods
-  - hpa ..> deploy ..> rs ..> pods
-  # Laid out pods -> config so configuration sits right of the pods; the arrowhead stays on the pods.
-  - { from: pods, to: [config, secret], arrow: start, line: dotted }
-  - pods -> pvc
-  - pvc -- pv
+  - hpa -> deploy: scales
+  - deploy --> rs --> pods
+  - pods -> config, secret, pvc
+  - pvc -> pv: bound
