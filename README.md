@@ -13,7 +13,7 @@ One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML view
 **[sagargupta.online/orrery](https://sagargupta.online/orrery/)**: every example in light and dark, with its spec and downloads.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.5.1-2563eb)
+![Version](https://img.shields.io/badge/version-0.5.2-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-16%2C682-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
@@ -30,6 +30,13 @@ The diagram above is [docs/hero.yaml](docs/hero.yaml): 40 lines of YAML, laid ou
 - **Five outputs from one spec.** SVG for READMEs and docs, PNG for slides and chat (3x by default, sharp when zoomed), `.drawio` you can keep editing, a TSX component for React sites, and a standalone HTML viewer with dark mode, pan and pinch zoom.
 - **Made for agents.** A skill with a fast path and authoring rules, a JSON Schema, 392 short aliases (`aws:s3`, `azure:aks`, `k8s:deploy`), ranked icon search, and a validator whose every finding names the subject and the fix.
 - **No install.** The CLI, layout engine, PNG renderer, fonts and the official cloud packs ship in the skill folder (9 MB). Logo and glyph sets are not copied in: they load from their own npm libraries the first time a diagram uses them, verified by checksum and cached. Node.js 22 or newer is all it needs.
+
+## How it works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/how-it-works-dark.svg">
+  <img alt="A YAML spec is validated, laid out by ELK, checked and rendered with the icon packs to SVG, PNG, draw.io, TSX and HTML" src="docs/how-it-works-light.svg" width="100%">
+</picture>
 
 ## Install
 
@@ -83,56 +90,13 @@ node skills/orrery/scripts/orrery.mjs render orders.yaml -f svg,png
 
 Labels default to the official service names, so `{ icon: aws:lambda }` reads "AWS Lambda". Edges use arrows: `->` solid, `-->` dashed, `..>` dotted, `==>` thick, `<->` both ways, `a -> b, c` to fan out. The full format is in [spec.md](skills/orrery/references/spec.md).
 
-## Gallery
+## Examples
 
-Every picture below is the animated SVG rendered from a spec in [skills/orrery/examples](skills/orrery/examples), checked against the renderer by CI; `orrery init <name>` copies any of them as a starting point. All 32, with commands, in [examples/README.md](examples/README.md).
-
-[`modern-web-stack`](skills/orrery/examples/modern-web-stack.yaml): Cloudflare, Next.js on Vercel, Neon, Upstash, Stripe, Clerk, Resend, Sentry and PostHog, drawn as cards
-
-<a href="examples/modern-web-stack.svg"><img src="examples/modern-web-stack.svg" alt="Modern SaaS stack with Cloudflare, Next.js on Vercel, Neon, Upstash, Stripe, Clerk and Resend"></a>
-
-[`gitops-kubernetes`](skills/orrery/examples/gitops-kubernetes.yaml): GitHub Actions and Argo CD with the official Kubernetes icons, numbered steps from pull request to production
-
-<a href="examples/gitops-kubernetes.svg"><img src="examples/gitops-kubernetes.svg" alt="GitOps with GitHub Actions and Argo CD syncing staging and production Kubernetes clusters"></a>
-
-[`gcp-gke-platform`](skills/orrery/examples/gcp-gke-platform.yaml): Google Cloud's own frames and 2026 product icons around a GKE cluster and its delivery pipeline
-
-<a href="examples/gcp-gke-platform.svg"><img src="examples/gcp-gke-platform.svg" alt="GKE application platform on Google Cloud with Cloud Build, Artifact Registry and Cloud Deploy"></a>
-
-[`azure-hub-spoke`](skills/orrery/examples/azure-hub-spoke.yaml): an Azure hub-spoke network with ExpressRoute, a VPN backup, Azure Firewall, Bastion and private endpoints
-
-<a href="examples/azure-hub-spoke.svg"><img src="examples/azure-hub-spoke.svg" alt="Hub-spoke network on Azure with ExpressRoute, VPN, Azure Firewall and two peered spokes"></a>
-
-[`data-platform-oss`](skills/orrery/examples/data-platform-oss.yaml): an open-source lakehouse from change data capture to dashboards
-
-<a href="examples/data-platform-oss.svg"><img src="examples/data-platform-oss.svg" alt="Open-source data platform with Debezium, Kafka, Flink, Iceberg on Ceph, dbt, Trino and Superset"></a>
-
-[`rag-open-source`](skills/orrery/examples/rag-open-source.yaml): RAG with open components: an ingestion lane and a query lane meeting at Qdrant
-
-<a href="examples/rag-open-source.svg"><img src="examples/rag-open-source.svg" alt="Retrieval-augmented generation with Qdrant, LangChain, FastAPI and Ollama"></a>
-
-[`multi-cloud`](skills/orrery/examples/multi-cloud.yaml): each vendor's own group style side by side, joined at a colocation router
-
-<a href="examples/multi-cloud.svg"><img src="examples/multi-cloud.svg" alt="AWS, Google Cloud and Azure joined by private interconnects with one identity provider"></a>
-
-[`system-design-url-shortener`](skills/orrery/examples/system-design-url-shortener.yaml): vendor-neutral system design with product logos
-
-<a href="examples/system-design-url-shortener.svg"><img src="examples/system-design-url-shortener.svg" alt="URL shortener system design with cache, database and analytics stream"></a>
-
-[`aws-three-tier`](skills/orrery/examples/aws-three-tier.yaml): VPC, two Availability Zones, public, web and data subnets, an Auto Scaling group drawn across both zones
+[`aws-three-tier`](skills/orrery/examples/aws-three-tier.yaml): a VPC across two Availability Zones with public, web and data subnets and an Auto Scaling group drawn across both zones, in the AWS deck's own group styles.
 
 <a href="examples/aws-three-tier.svg"><img src="examples/aws-three-tier.svg" alt="Three-tier web application on AWS across two Availability Zones"></a>
 
-[`c4-container`](skills/orrery/examples/c4-container.yaml): a C4 container view built from shapes
-
-<a href="examples/c4-container.svg"><img src="examples/c4-container.svg" alt="C4 container diagram for an online store"></a>
-
-## How it works
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/how-it-works-dark.svg">
-  <img alt="A YAML spec is validated, laid out by ELK, checked and rendered with the icon packs to SVG, PNG, draw.io, TSX and HTML" src="docs/how-it-works-light.svg" width="100%">
-</picture>
+That is one of 32 reference diagrams across AWS, Azure, Google Cloud, IBM Cloud, Kubernetes, AI and ML, data platforms, CI/CD, C4 and system design, each rendered from a spec in [skills/orrery/examples](skills/orrery/examples) and checked against the renderer by CI. Browse them all in light and dark, with each spec and every output to download, at **[sagargupta.online/orrery/gallery](https://sagargupta.online/orrery/gallery/)**, or in [examples/README.md](examples/README.md) with the command that renders each one. `orrery init <name>` copies any of them as a starting point.
 
 ## Validation that tells you the fix
 

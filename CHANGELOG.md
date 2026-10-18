@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.5.2] - 2026-10-18
+
+### Changed
+
+- **Shorter README.** The ten-picture gallery is gone from the README: it keeps the hero diagram, moves "How it works" up next to what you get, and shows one example (`aws-three-tier`) with links to all 32 on the website gallery and in `examples/README.md`. 224 lines to 188.
+- The website (https://sagargupta.online/orrery/) is the homepage of the npm package, both plugin manifests and the GitHub repository.
+
 ## [0.5.1] - 2026-10-18
 
 ### Fixed

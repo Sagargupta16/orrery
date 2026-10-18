@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.5.1 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.5.2 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -14390,7 +14390,7 @@ function suggestIds(id, ids, kind) {
 }
 
 // src/cli.ts
-var VERSION = true ? "0.5.1" : "dev";
+var VERSION = true ? "0.5.2" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
