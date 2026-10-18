@@ -59,9 +59,16 @@ export interface Diagnostic {
   fixes?: string[];
 }
 
-/** packets: dots travel each edge (in step order when steps exist); flow: marching dashes. */
-export type AnimateMode = "packets" | "flow" | "none";
-export const ANIMATE_MODES: readonly AnimateMode[] = ["packets", "flow", "none"];
+/**
+ * packets: dots travel each edge (in step order when steps exist); flow: marching dashes;
+ * relay: on one clock each line draws itself in turn and the node it reaches lights up.
+ */
+export type AnimateMode = "packets" | "flow" | "relay" | "none";
+export const ANIMATE_MODES: readonly AnimateMode[] = ["packets", "flow", "relay", "none"];
+
+/** classic: the vendors' own diagram styles; stage: a dark-canvas showcase look over the same layout. */
+export type Skin = "classic" | "stage";
+export const SKINS: readonly Skin[] = ["classic", "stage"];
 
 export interface ModelNode {
   id: string;
@@ -123,7 +130,9 @@ export interface Model {
   merge: boolean;
   /** "open" chevrons (AWS and Google decks) or "filled" triangles (Azure). */
   arrowhead: "open" | "filled";
-  animate: AnimateMode;
+  /** Unset: the skin's default (packets for classic, relay for stage). */
+  animate?: AnimateMode;
+  skin: Skin;
   background?: string;
   nodes: ModelNode[];
   groups: ModelGroup[];
@@ -196,6 +205,12 @@ export interface SceneGroup {
   overlay?: boolean;
   /** Inner panel of a frame group (Google Cloud's blue frame). */
   inner?: { box: Box; fill: string };
+  /**
+   * Stage skin: the fill is drawn as this translucent wash over the canvas texture; `fill` keeps
+   * its opaque equivalent for header chips and contrast checks. `inner` is set when the inner
+   * panel is washed too.
+   */
+  wash?: { color: string; opacity: number; inner?: boolean };
 }
 
 export interface SceneEdge {
@@ -234,6 +249,7 @@ export interface Scene {
   routing: Routing;
   arrowhead: "open" | "filled";
   animate: AnimateMode;
+  skin: Skin;
   background?: string;
   title?: TextBlock;
   titleBox?: Box;

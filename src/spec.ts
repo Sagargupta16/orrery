@@ -22,6 +22,7 @@ import {
   type Routing,
   SHAPES,
   type ShapeKind,
+  SKINS,
   SPACINGS,
   THEMES,
   type ThemeName,
@@ -38,6 +39,7 @@ const TOP_KEYS = [
   "arrowhead",
   "layout",
   "animate",
+  "skin",
   "background",
   "legend",
   "nodes",
@@ -383,12 +385,16 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
   }
   const merge = layout.merge !== false;
   const arrowhead = oneOf(raw.arrowhead, ["open", "filled"] as const, "open", "arrowhead");
+  // Unset: the skin picks (relay for stage, packets for classic).
   const animate =
-    raw.animate === true
-      ? "packets"
-      : raw.animate === false
-        ? "none"
-        : oneOf(raw.animate, ANIMATE_MODES, "packets", "animate");
+    raw.animate === undefined
+      ? undefined
+      : raw.animate === true
+        ? "packets"
+        : raw.animate === false
+          ? "none"
+          : oneOf(raw.animate, ANIMATE_MODES, "packets", "animate");
+  const skin = oneOf(raw.skin, SKINS, "classic", "skin");
   const background = hexColor(raw.background, "background", "", { where: "background" }, [
     "transparent",
   ]);
@@ -854,7 +860,8 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     layering,
     merge,
     arrowhead,
-    animate,
+    ...(animate ? { animate } : {}),
+    skin,
     background: background === "transparent" ? "transparent" : background,
     ...(legend.length ? { legend } : {}),
     nodes,

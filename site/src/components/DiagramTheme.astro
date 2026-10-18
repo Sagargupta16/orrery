@@ -1,45 +1,70 @@
 ---
-// Switches every diagram on the page between its light and dark render. The choice is remembered.
+// Switches every diagram on the page between its skins (classic, stage) and themes (light, dark).
+// Each choice is remembered; classic and light come first.
 ---
 
-<div class="inline-flex rounded-full border border-line p-1" role="group" aria-label="Diagram theme">
-  <button type="button" data-diagram-theme="light" class="diagram-theme min-h-9 rounded-full px-3.5 font-mono text-xs"
-    >Light</button
-  >
-  <button type="button" data-diagram-theme="dark" class="diagram-theme min-h-9 rounded-full px-3.5 font-mono text-xs"
-    >Dark</button
-  >
+<div class="flex flex-wrap items-center gap-2">
+  <div class="inline-flex rounded-full border border-line p-1" role="group" aria-label="Diagram style">
+    <button type="button" data-diagram-skin="classic" class="diagram-skin min-h-9 rounded-full px-3.5 font-mono text-xs"
+      >Classic</button
+    >
+    <button type="button" data-diagram-skin="stage" class="diagram-skin min-h-9 rounded-full px-3.5 font-mono text-xs"
+      >Stage</button
+    >
+  </div>
+  <div class="inline-flex rounded-full border border-line p-1" role="group" aria-label="Diagram theme">
+    <button type="button" data-diagram-theme="light" class="diagram-theme min-h-9 rounded-full px-3.5 font-mono text-xs"
+      >Light</button
+    >
+    <button type="button" data-diagram-theme="dark" class="diagram-theme min-h-9 rounded-full px-3.5 font-mono text-xs"
+      >Dark</button
+    >
+  </div>
 </div>
 
 <style is:global>
-  .diagram-theme {
+  .diagram-theme,
+  .diagram-skin {
     color: var(--color-dim);
     transition:
       background-color 180ms var(--ease-out-quint),
       color 180ms var(--ease-out-quint);
   }
   html:not([data-diagrams="dark"]) .diagram-theme[data-diagram-theme="light"],
-  html[data-diagrams="dark"] .diagram-theme[data-diagram-theme="dark"] {
+  html[data-diagrams="dark"] .diagram-theme[data-diagram-theme="dark"],
+  html:not([data-skin="stage"]) .diagram-skin[data-diagram-skin="classic"],
+  html[data-skin="stage"] .diagram-skin[data-diagram-skin="stage"] {
     background: var(--color-ink);
     color: var(--color-canvas);
   }
-  html[data-diagrams="dark"] .thumb-light {
+  /* One of the four renders shows: skin by theme. */
+  .thumb {
     display: none;
   }
-  html[data-diagrams="dark"] .thumb-dark {
+  html:not([data-skin="stage"]):not([data-diagrams="dark"]) .thumb-classic-light,
+  html:not([data-skin="stage"])[data-diagrams="dark"] .thumb-classic-dark,
+  html[data-skin="stage"]:not([data-diagrams="dark"]) .thumb-stage-light,
+  html[data-skin="stage"][data-diagrams="dark"] .thumb-stage-dark {
     display: block;
   }
 </style>
 
 <script>
   const root = document.documentElement;
-  const saved = localStorage.getItem("orrery-diagrams");
-  if (saved === "dark") root.dataset.diagrams = "dark";
+  if (localStorage.getItem("orrery-diagrams") === "dark") root.dataset.diagrams = "dark";
+  if (localStorage.getItem("orrery-skin") === "stage") root.dataset.skin = "stage";
   for (const button of document.querySelectorAll<HTMLButtonElement>("button.diagram-theme")) {
     button.addEventListener("click", () => {
       const theme = button.dataset.diagramTheme ?? "light";
       root.dataset.diagrams = theme;
       localStorage.setItem("orrery-diagrams", theme);
+    });
+  }
+  for (const button of document.querySelectorAll<HTMLButtonElement>("button.diagram-skin")) {
+    button.addEventListener("click", () => {
+      const skin = button.dataset.diagramSkin ?? "classic";
+      root.dataset.skin = skin;
+      localStorage.setItem("orrery-skin", skin);
     });
   }
 </script>

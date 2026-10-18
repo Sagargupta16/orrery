@@ -4,10 +4,12 @@ import { join } from "node:path";
 import { contrast, ensureContrast, luminance, mixHex } from "./color.ts";
 import { iconAspect } from "./icons.ts";
 import { vendorDir } from "./paths.ts";
+import { stageColors } from "./skins.ts";
 import { resolveGroupStyle } from "./styles.ts";
 import { measure, textBlock } from "./text.ts";
 import { THEME_TOKENS } from "./themes.ts";
 import type {
+  AnimateMode,
   Box,
   LegendEntry,
   Model,
@@ -1239,14 +1241,15 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     height = Math.ceil(legend.box.y + legend.box.h + SIZES.pad);
   }
 
-  return {
+  const scene: Scene = {
     width,
     height,
     theme,
     direction: model.direction,
     routing: model.routing,
     arrowhead: model.arrowhead,
-    animate: model.animate,
+    animate: animateOf(model),
+    skin: model.skin,
     background: model.background,
     title: titleBlock,
     titleBox,
@@ -1259,7 +1262,13 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     layoutFallback: fallback,
     description: describe(model),
   };
+  // The skin only recolors: every box and point above is the same for classic and stage.
+  return model.skin === "stage" ? stageColors(scene) : scene;
 }
+
+/** The spec's animate mode, else the skin's: relay for stage, packets for classic. */
+export const animateOf = (model: Pick<Model, "animate" | "skin">): AnimateMode =>
+  model.animate ?? (model.skin === "stage" ? "relay" : "packets");
 
 /**
  * The line-style key: one row per entry in spec order (a 28x12 sample, 8px gap, the meaning),

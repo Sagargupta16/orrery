@@ -431,3 +431,77 @@ describe("HTML", () => {
     expect(html).toContain('<body data-theme="light">');
   });
 });
+
+describe("stage skin", () => {
+  let classic: Scene;
+  let stage: RenderResult;
+  beforeAll(async () => {
+    classic = await layout(model(RICH), { theme: "dark" });
+    stage = await renderModel({
+      formats: ["svg"],
+      themes: THEMES,
+      scale: 1,
+      model: model(`skin: stage\n${RICH}`),
+      name: "rich",
+    });
+  });
+
+  it("keeps every box and point of the classic layout", () => {
+    const s = scene(stage, "dark");
+    expect([s.width, s.height]).toEqual([classic.width, classic.height]);
+    expect(s.nodes.map((n) => [n.box, n.iconBox, n.labelBox])).toEqual(
+      classic.nodes.map((n) => [n.box, n.iconBox, n.labelBox]),
+    );
+    expect(s.groups.map((g) => g.box)).toEqual(classic.groups.map((g) => g.box));
+    expect(s.edges.map((e) => e.points)).toEqual(classic.edges.map((e) => e.points));
+  });
+
+  it("draws the stage canvas, washed groups and ringed step discs", () => {
+    const svg = text(stage, "svg", "dark");
+    expect(svg).toContain('<linearGradient id="rich-dark-bg"');
+    expect(svg).toContain('<pattern id="rich-dark-dots"');
+    expect(svg).toContain('<radialGradient id="rich-dark-tint"');
+    expect(svg).toContain('fill="#ffffff" fill-opacity="0.035"');
+    expect(svg).toMatch(/<circle [^>]*stroke="#60a5fa" stroke-width="1.5"\/>/);
+    expect(xmlProblems(svg)).toEqual([]);
+  });
+
+  it("animates with relay: one masked line per edge, lit nodes, one clock", () => {
+    const svg = text(stage, "svg", "light");
+    const masks = [...svg.matchAll(/<mask id="([^"]+)" maskUnits="userSpaceOnUse"/g)];
+    expect(masks).toHaveLength(scene(stage, "light").edges.length);
+    expect(new Set([...svg.matchAll(/ dur="([\d.]+)s"/g)].map((m) => m[1])).size).toBe(1);
+    expect(svg).toContain('stroke-dashoffset="1"');
+    expect(svg).not.toContain('fill-opacity="0.22"');
+    // Every id, the masks included, goes through the prefix.
+    expect(attributeValues(svg, "id").filter((id) => !id.startsWith("rich-light-"))).toEqual([]);
+    expect(references(svg).filter((r) => !r.startsWith("rich-light-"))).toEqual([]);
+  });
+
+  it("is still in PNG and when animate is none", async () => {
+    const request = {
+      model: model(`skin: stage\n${RICH}`),
+      formats: ["png" as const],
+      themes: THEMES,
+      name: "x",
+      scale: 1,
+    };
+    const [relay, still] = await Promise.all([
+      renderModel(request),
+      renderModel({ ...request, animate: "none" }),
+    ]);
+    const bytes = (r: RenderResult) =>
+      r.artifacts.map((a) => Buffer.from(a.data).toString("base64"));
+    expect(bytes(relay)).toEqual(bytes(still));
+    const svg = renderSvg({ ...scene(stage, "dark"), animate: "none" });
+    expect(svg).not.toContain("<animate");
+    expect(svg).not.toContain("<mask");
+  });
+
+  it("gives packets a trail instead of the halo in stage", () => {
+    const svg = renderSvg({ ...scene(stage, "dark"), animate: "packets" });
+    expect(svg).toContain("<animateMotion");
+    expect(svg).not.toContain('fill-opacity="0.22"');
+    expect(svg).toContain('fill-opacity="0.55"');
+  });
+});

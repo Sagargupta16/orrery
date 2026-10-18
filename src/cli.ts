@@ -32,6 +32,8 @@ import {
   type AnimateMode,
   type Diagnostic,
   SHAPES,
+  SKINS,
+  type Skin,
   type ThemeName,
 } from "./types.ts";
 
@@ -42,10 +44,12 @@ const HELP = `orrery ${VERSION}: architecture and system design diagrams with of
 
 Usage:
   orrery render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
-                    [--scale 3] [--animate packets|flow|none] [--static] [--font extra.ttf]
+                    [--scale 3] [--skin classic|stage] [--animate packets|flow|relay|none]
+                    [--static] [--font extra.ttf]
                     [--strict] [--force] [--json]
   orrery validate <spec.yaml> [--strict] [--json]
-  orrery review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--strict] [--json]
+  orrery review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--skin classic|stage]
+                    [--strict] [--json]
   orrery icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
   orrery icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
   orrery icons list [--pack aws] [--category Compute] [--type service] [--json]
@@ -73,6 +77,7 @@ const KNOWN_FLAGS = new Set([
   "theme",
   "scale",
   "animate",
+  "skin",
   "font",
   "pack",
   "type",
@@ -152,6 +157,8 @@ function parseArgs(argv: string[]): Args {
       }
       if (key === "animate" && value !== true && !ANIMATE_MODES.includes(value as AnimateMode))
         usage(`--animate must be ${ANIMATE_MODES.join(", ")} (got "${value}")`);
+      if (key === "skin" && !SKINS.includes(value as Skin))
+        usage(`--skin must be ${SKINS.join(", ")} (got "${value}")`);
       const prev = out.flags[key];
       out.flags[key] =
         key === "font" && typeof prev === "string"
@@ -267,6 +274,7 @@ async function cmdRender(args: Args, validateOnly: boolean) {
         scale,
         fonts,
         animate: animateFlag as AnimateMode | undefined,
+        skin: args.flags.skin as Skin | undefined,
       });
     } catch (e) {
       if (!(e instanceof LibraryError)) throw e;
@@ -516,8 +524,9 @@ async function cmdReview(args: Args) {
     : spec.path === "stdin.yaml"
       ? resolve("diagram")
       : spec.path.replace(/\.(ya?ml|json)$/i, "");
+  const skin = args.flags.skin as Skin | undefined;
   const run = await reviewModel({
-    model: parsed.model,
+    model: skin ? { ...parsed.model, skin } : parsed.model,
     name: spec.name,
     width,
     theme,

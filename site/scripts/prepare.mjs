@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds everything the site shows from the repository itself, so the site never drifts from the
-// renderer: every example in both themes and every format, the README art, the gallery captions
+// renderer: every example in both themes and every format (and in the stage skin as SVG), the README art, the gallery captions
 // from examples/README.md and the catalog numbers from the icon index. Output goes to
 // public/gallery, public/art and src/data/generated, all git-ignored.
 //
@@ -60,6 +60,20 @@ async function renderExample(file) {
   const dir = join(galleryOut, name);
   mkdirSync(dir, { recursive: true });
   await run(process.execPath, [cli, "render", specPath, "-o", join(dir, name), "-f", "all", "--theme", "both"]);
+  // The same diagram in the stage skin (same layout), for the gallery's Classic / Stage switch.
+  await run(process.execPath, [
+    cli,
+    "render",
+    specPath,
+    "-o",
+    join(dir, `${name}-stage`),
+    "-f",
+    "svg",
+    "--theme",
+    "both",
+    "--skin",
+    "stage",
+  ]);
   copyFileSync(specPath, join(dir, `${name}.yaml`));
 
   const nodes = Object.values(spec.nodes ?? {});

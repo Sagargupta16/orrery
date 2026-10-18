@@ -79,7 +79,8 @@ npx -y @sagargupta1610/skillcheck lint skills
 - Overlay groups (`around:`) are never in the ELK graph, so an edge with an overlay end would crash ELK ("Referenced shape does not exist"). `layout()` treats such an edge as free (routed after layout, like `constraint: false`) and gives ELK hidden `<edge>__via<n>` copies to the overlay's members so it still orders the layers; `steer()` keeps the end off the overlay's header.
 - `layout()` can run twice: when a group's header label cannot slide clear of the edges in a vertical flow, the second pass (`opts.widen`) lays those groups out wider, and when an overlay's header lands on a group header, the same pass (`opts.room`) gives the members' groups more top padding; the trim after ELK must keep that padding. Both go into one recursion. Keep it single-recursion.
 - SVG ids carry a `<name>-<theme>` prefix and repeated icons are `<symbol>`/`<use>` pairs; TSX swaps the prefix for `useId()`, so any new id must go through the prefix.
-- SVGs animate by default (`animate: packets`, SMIL). PNG and draw.io always get a still scene (`animate: "none"`); keep it that way, resvg would draw packets at the origin.
+- `skin: stage` only recolors: `layout()` computes every color as classic, then `stageColors()` (`src/skins.ts`) washes neutral group fills and re-checks label contrast, and every renderer and review take tokens from `tokensFor(scene)`. Classic output must stay byte-identical (`gallery --check`). Relay masks use `maskUnits="userSpaceOnUse"`: a straight line has a zero-height box, which hides an objectBoundingBox mask.
+- SVGs animate by default (`animate: packets` for classic, `relay` for stage, SMIL). PNG and draw.io always get a still scene (`animate: "none"`); keep it that way, resvg would draw packets at the origin.
 
 ## Repo-specific rules
 
