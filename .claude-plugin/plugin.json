@@ -1,6 +1,7 @@
 {
   "name": "orrery",
-  "version": "0.3.1",
+  "displayName": "Orrery",
+  "version": "0.4.0",
   "description": "Architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons plus 5,500 tech logos, auto-laid out and rendered to SVG, PNG, editable draw.io, React TSX and a standalone HTML viewer. One skill with a zero-install CLI, a validator with machine-readable fixes, a measured review with three reviewer agents and a /orrery:review loop, and 27 reference architectures.",
   "author": {
     "name": "Sagar Gupta",
@@ -9,5 +10,7 @@
   "homepage": "https://github.com/Sagargupta16/orrery",
   "repository": "https://github.com/Sagargupta16/orrery",
   "license": "MIT",
+  "documentationUrl": "https://github.com/Sagargupta16/orrery#readme",
+  "supportUrl": "https://github.com/Sagargupta16/orrery/issues",
   "keywords": ["diagram", "architecture", "system-design", "aws", "azure", "gcp", "kubernetes", "drawio", "svg", "png"]
 }

@@ -12,7 +12,7 @@
 
 Public Agent Skill and Claude Code plugin (`orrery`) that turns a YAML spec into professional, animated architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons (plus logo and generic sets), laid out by ELK and rendered to SVG, PNG, draw.io, TSX and HTML. The CLI is bundled into the skill so it runs with no install. `orrery review` plus three reviewer agents form a measured review loop (`/orrery:review`).
 
-Installed with `/plugin marketplace add Sagargupta16/orrery` then `/plugin install orrery@orrery`, or `npx skills add Sagargupta16/orrery`.
+Installed with `/plugin marketplace add Sagargupta16/orrery` then `/plugin install orrery@orrery`, or `npx skills add Sagargupta16/orrery`; the CLI alone is `npx @sagargupta1610/orrery`.
 
 ## Stack
 
@@ -20,7 +20,7 @@ Installed with `/plugin marketplace add Sagargupta16/orrery` then `/plugin insta
 - **Framework**: none; ELK (elkjs, vendored) for layout, resvg (wasm, vendored) for PNG, `yaml` for parsing
 - **Database**: none
 - **Package manager**: pnpm (dev only; the shipped skill needs no install)
-- **Deploy target**: GitHub repo + self-hosted plugin marketplace (`.claude-plugin/marketplace.json`, `source: "./"`)
+- **Deploy target**: GitHub repo + self-hosted plugin marketplace (`.claude-plugin/marketplace.json`, `source: "./"`) + npm `@sagargupta1610/orrery` (published from a GitHub release by `publish.yml`)
 
 ## Run
 
@@ -31,6 +31,7 @@ node skills/orrery/scripts/orrery.mjs icons search load balancer
 pnpm build          # src/ -> skills/orrery/scripts/orrery.mjs + vendor/
 pnpm gallery        # re-render examples/ from skills/orrery/examples/
 pnpm sync-icons     # rebuild icon catalogs from pinned vendor downloads and the counts the docs quote (--latest re-pins)
+node scripts/pack-npm.mjs  # stage @sagargupta1610/orrery in out/npm; a GitHub release runs publish.yml
 ```
 
 ## Test
@@ -61,7 +62,7 @@ npx -y @sagargupta1610/skillcheck lint skills
 - `scripts/icon-sources.json` -- pinned vendor URLs + SHA-256; `scripts/icon-aliases.json` -- short names; `scripts/gcp-products.json` -- Google's product -> core/category icon list (May 2026 guide)
 - `src/styles.ts` -- group styles (AWS colors read from the official group tiles)
 - `skills/orrery/references/spec.md` -- the spec contract; keep it in sync with `src/spec.ts`
-- `.claude-plugin/plugin.json` + `marketplace.json` -- versions must match `package.json` and SKILL.md
+- `.claude-plugin/plugin.json` + `marketplace.json` -- versions must match `package.json` and SKILL.md; so must the root `plugin.json` (Agent Plugins manifest for Copilot CLI and Cursor, schema allows only its listed keys) and `gemini-extension.json`
 
 ## Gotchas
 
@@ -82,5 +83,5 @@ npx -y @sagargupta1610/skillcheck lint skills
 
 - Everything here is public: no personal names in skill bodies (say "the user"), no home paths, no private project names. Author/owner fields are the exception.
 - Never hand-edit generated files: `skills/orrery/scripts/orrery.mjs`, `scripts/vendor/`, `assets/icons/*.json`, `assets/fonts/metrics.json`, `examples/*.svg|png`. Change the source and regenerate.
-- Every PR updates CHANGELOG.md under a concrete version and bumps package.json, both manifests and SKILL.md metadata when it releases.
+- Every PR updates CHANGELOG.md under a concrete version and bumps package.json, both `.claude-plugin` manifests, `plugin.json`, `gemini-extension.json` and SKILL.md metadata when it releases.
 - No en or em dashes anywhere; `scripts/check-repo.mjs` fails on them.

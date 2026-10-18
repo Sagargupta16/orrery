@@ -12,7 +12,7 @@
 One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML viewer out.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.3.1-2563eb)
+![Version](https://img.shields.io/badge/version-0.4.0-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-16%2C682-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
@@ -43,14 +43,18 @@ Any agent that reads [Agent Skills](https://agentskills.io) (Codex, Cursor, Gemi
 
 ```bash
 npx skills add Sagargupta16/orrery
+gh skill install Sagargupta16/orrery orrery              # GitHub CLI, any supported agent
+gemini extensions install https://github.com/Sagargupta16/orrery   # Gemini CLI extension
 ```
 
-Only the CLI:
+Only the CLI, from npm:
 
 ```bash
-git clone https://github.com/Sagargupta16/orrery
-node orrery/skills/orrery/scripts/orrery.mjs doctor
+npx @sagargupta1610/orrery doctor
+npx @sagargupta1610/orrery render diagram.yaml -f all --theme both
 ```
+
+Or from a clone: `node orrery/skills/orrery/scripts/orrery.mjs doctor`.
 
 ## Quick start
 
@@ -196,7 +200,7 @@ A finding counts only if it cites a measured value or a vendor rule. Each round 
 | `si` | 3,351 | [Simple Icons](https://simpleicons.org) | npm `@iconify-json/simple-icons` |
 | `tabler` | 6,286 | [Tabler Icons](https://tabler.io/icons) | npm `@iconify-json/tabler` |
 
-Bundled packs exist only as vendor downloads, so they ship with the skill and work offline. The npm sets load at render time from a local `node_modules`, the user cache or jsDelivr, checked against a pinned SHA-256; `orrery icons fetch` caches them ahead of time, and [icons.md](skills/orrery/references/icons.md#where-icons-load-from) has the details. A monthly workflow checks the vendors' pages for new releases and opens a PR with the updated packs. Icons, logos and trademarks belong to their owners and are used under the terms listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the AWS, Microsoft and Google terms allow them in architecture diagrams.
+Bundled packs exist only as vendor downloads, so they ship with the skill and work offline. The npm sets load at render time from a local `node_modules`, the user cache or jsDelivr, checked against a pinned SHA-256; `orrery icons fetch` caches them ahead of time, and [icons.md](skills/orrery/references/icons.md#where-icons-load-from) has the details. Renovate's monthly dependency PR also checks the vendors' pages for new releases and carries the updated packs. Icons, logos and trademarks belong to their owners and are used under the terms listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the AWS, Microsoft and Google terms allow them in architecture diagrams.
 
 ## Development
 
@@ -209,6 +213,7 @@ pnpm build                       # src/ -> skills/orrery/scripts/orrery.mjs
 pnpm gallery                     # re-render examples/ and docs/
 node scripts/check-repo.mjs      # dashes, links, counts, doc snippets, gallery freshness
 pnpm sync-icons                  # rebuild icon catalogs (--latest re-pins new vendor releases)
+node scripts/pack-npm.mjs        # stage the npm package in out/npm (a GitHub release publishes it)
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how the pieces fit and [SECURITY.md](SECURITY.md) for reporting issues.

@@ -93,6 +93,11 @@ for (const p of market.plugins ?? []) {
   if (p.version !== pkg.version)
     fail(".claude-plugin/marketplace.json", `version ${p.version} != package.json ${pkg.version}`);
 }
+// The Agent Plugins manifest (Copilot CLI, Cursor) and the Gemini CLI extension manifest.
+for (const f of ["plugin.json", "gemini-extension.json"]) {
+  const v = JSON.parse(readFileSync(join(root, f), "utf8")).version;
+  if (v !== pkg.version) fail(f, `version ${v} != package.json ${pkg.version}`);
+}
 const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
 const top = changelog.match(/^## \[([^\]]+)\] - (\d{4}-\d{2}-\d{2})/m);
 if (!top) fail("CHANGELOG.md", 'top entry must be "## [x.y.z] - YYYY-MM-DD"');
