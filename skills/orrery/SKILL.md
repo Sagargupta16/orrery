@@ -11,7 +11,7 @@ description: >-
   flowchart into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.5.1"
+  version: "0.5.2"
   author: Sagar Gupta
 ---
 

@@ -1,13 +1,13 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "orrery",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons plus 5,500 tech logos, auto-laid out and rendered to SVG, PNG, editable draw.io, React TSX and a standalone HTML viewer. One skill with a zero-install CLI, a validator with machine-readable fixes, a measured review and 32 reference architectures.",
   "author": {
     "name": "Sagar Gupta",
     "url": "https://github.com/Sagargupta16"
   },
-  "homepage": "https://github.com/Sagargupta16/orrery",
+  "homepage": "https://sagargupta.online/orrery/",
   "repository": "https://github.com/Sagargupta16/orrery",
   "license": "MIT",
   "keywords": [

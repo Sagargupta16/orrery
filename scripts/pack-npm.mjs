@@ -23,7 +23,7 @@ const manifest = {
   description: pkg.description,
   license: pkg.license,
   author: pkg.author,
-  homepage: "https://github.com/Sagargupta16/orrery#readme",
+  homepage: "https://sagargupta.online/orrery/",
   repository: pkg.repository,
   bugs: "https://github.com/Sagargupta16/orrery/issues",
   keywords: [
