@@ -4,8 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
-  # icons.yml dispatches this on its sync branch: a pull request opened with GITHUB_TOKEN starts
-  # no pull_request run, but dispatched check runs land on the branch head, which is the PR head.
+  # icons.yml dispatches this on a Renovate branch after it pushes the regenerated files: a push
+  # made with GITHUB_TOKEN starts no pull_request run, but dispatched check runs land on the branch
+  # head, which is the PR head.
   workflow_dispatch:
 
 permissions:

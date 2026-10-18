@@ -30,7 +30,7 @@ node skills/orrery/scripts/orrery.mjs render skills/orrery/examples/aws-serverle
 node skills/orrery/scripts/orrery.mjs icons search load balancer
 pnpm build          # src/ -> skills/orrery/scripts/orrery.mjs + vendor/
 pnpm gallery        # re-render examples/ from skills/orrery/examples/
-pnpm sync-icons     # rebuild icon catalogs from pinned vendor downloads (--latest re-pins)
+pnpm sync-icons     # rebuild icon catalogs from pinned vendor downloads and the counts the docs quote (--latest re-pins)
 ```
 
 ## Test
@@ -73,7 +73,7 @@ npx -y @sagargupta1610/skillcheck lint skills
 - YAML flow mappings split on commas: `note: Sharp, 512 MB` inside `{...}` becomes a key; DG108 says to quote it.
 - AWS `_Light`/`_Dark` resource files are named for the background they suit: `_Dark` is the white glyph for dark themes.
 - `python -I` ignores `PYTHONIOENCODING`; use `sys.stdout.reconfigure(encoding="utf-8")` when printing vendor text on Windows.
-- Library packs (`github`, `ibm`, `logos`, `si`, `tabler`) have no `<pack>.json`; `renderIcon` throws unless `loadIconLibraries` ran first (renderModel and `icons show` do it). Bumping one of those npm dev dependencies changes its sha256 pin, so re-run `pnpm sync-icons` with it.
+- Library packs (`github`, `ibm`, `logos`, `si`, `tabler`) have no `<pack>.json`; `renderIcon` throws unless `loadIconLibraries` ran first (renderModel and `icons show` do it). Bumping one of those npm dev dependencies changes its sha256 pin, so re-run `pnpm sync-icons` with it. On Renovate branches `.github/workflows/icons.yml` does that (plus `build` and `gallery`) and commits as github-actions[bot], which `renovate.json` lists in `gitIgnoredAuthors`; Renovate's hosted app cannot run build scripts itself.
 - `layout()` can run twice: when a group's header label cannot slide clear of the edges in a vertical flow, the second pass (`opts.widen`) lays those groups out wider. Keep it single-recursion.
 - SVG ids carry a `<name>-<theme>` prefix and repeated icons are `<symbol>`/`<use>` pairs; TSX swaps the prefix for `useId()`, so any new id must go through the prefix.
 - SVGs animate by default (`animate: packets`, SMIL). PNG and draw.io always get a still scene (`animate: "none"`); keep it that way, resvg would draw packets at the origin.

@@ -1,11 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "The shared preset's one monthly pull request covers the icon libraries too: .github/workflows/icons.yml re-pins their checksums and rebuilds the generated files on every Renovate branch, committing as github-actions[bot].",
   "extends": ["github>Sagargupta16/shared-workflows"],
-  "packageRules": [
-    {
-      "description": "Icon libraries move with the monthly icon sync, which re-pins their checksums (.github/workflows/icons.yml).",
-      "matchPackageNames": ["@primer/octicons", "simple-icons", "/^@iconify-json\\//"],
-      "enabled": false
-    }
-  ]
+  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"]
 }

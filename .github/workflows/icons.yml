@@ -1,35 +1,35 @@
-name: Sync icon packs
+name: Refresh icons and build output
 
-# Monthly: find the newest official AWS, Azure and Google Cloud packages, move the npm icon
-# libraries to their latest releases, re-pin and rebuild the catalogs, and open (or update) one
-# pull request with the result. Renovate leaves those libraries to this workflow (renovate.json),
-# because a version bump without a re-pin fails the checksum test.
+# Runs on every Renovate branch, so the one monthly dependency pull request (the shared preset in
+# renovate.json groups every update on the 1st) also carries what is generated from those
+# dependencies: the newest official AWS, Azure, Google Cloud and Kubernetes packs re-pinned, the
+# icon catalogs with the library pins and the counts the docs quote, the bundled CLI and vendored
+# engines, and the gallery. Renovate cannot run build scripts, so without this its pull requests
+# fail `build.mjs --check` or the checksum test and never auto-merge.
 #
-# A pull request opened with GITHUB_TOKEN starts no pull_request workflow run, so this workflow
-# dispatches ci.yml on the sync branch itself; those check runs land on the branch head, which
-# is the pull request's head. Needs the repository setting "Allow GitHub Actions to create and
-# approve pull requests".
+# A push made with GITHUB_TOKEN starts no workflow run, so this job dispatches ci.yml on the branch
+# itself; those check runs land on the new head, which is what Renovate's automerge waits for.
+# renovate.json lists github-actions[bot] in gitIgnoredAuthors, so Renovate keeps managing (and
+# rebasing) a branch this job committed to. For an off-cycle refresh, run it on any branch but main.
 on:
-  schedule:
-    - cron: "23 5 2 * *" # 05:23 UTC on the 2nd of every month
+  push:
+    branches: ["renovate/**"]
   workflow_dispatch:
 
 # Nothing by default; the job asks for exactly what it writes.
 permissions: {}
 
 concurrency:
-  group: sync-icons
-  cancel-in-progress: false
+  group: refresh-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  sync:
+  refresh:
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: write # push the sync branch
-      pull-requests: write # open or update the pull request
-      actions: write # dispatch ci.yml on the sync branch
-    env:
-      BRANCH: chore/sync-icons
+      contents: write # push the regenerated files to the branch
+      actions: write # dispatch ci.yml on the branch
     steps:
       - uses: actions/checkout@v7
 
@@ -42,51 +42,36 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Move the npm icon libraries to their latest releases
-        run: pnpm update --latest @primer/octicons simple-icons @iconify-json/carbon @iconify-json/logos @iconify-json/simple-icons @iconify-json/tabler
-
       # Exits 1 when an alias in scripts/icon-aliases.json points nowhere or hides a real icon,
-      # so a vendor rename fails this run loudly instead of opening a broken pull request.
-      - name: Fetch the newest official packs and rebuild the catalogs
+      # so a vendor rename fails this run loudly and the pull request stays red.
+      - name: Fetch the newest official packs, rebuild the catalogs and the counts in the docs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/sync-icons.mjs --latest
 
       - name: Rebuild the bundled CLI
         run: node scripts/build.mjs
 
-      # check-repo.mjs fails when the gallery does not match the renderer and its icons.
       - name: Re-render the gallery
         run: node scripts/gallery.mjs
 
-      - name: Detect changes
-        id: diff
+      - name: Commit and push
+        id: push
         run: |
           git status --short
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- README.md THIRD_PARTY_NOTICES.md docs examples scripts/icon-sources.json skills
+          git commit -m "chore: refresh icons and build output"
+          git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Open or update the pull request
-        id: pr
-        if: steps.diff.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v8
-        with:
-          branch: ${{ env.BRANCH }}
-          delete-branch: true
-          sign-commits: true
-          commit-message: "chore: sync official icon packs"
-          title: "chore: sync official icon packs"
-          body: |
-            Monthly run of `node scripts/sync-icons.mjs --latest` after moving the npm icon libraries to their latest releases: re-pins the newest official packages in `scripts/icon-sources.json` and the libraries in `assets/icons/index.json`, rebuilds `skills/orrery/assets/icons/`, the bundled CLI and the gallery in `examples/`.
-
-            Before merging:
-            - Open the gallery PNGs that changed and check the new icons read well.
-            - If `check-repo.mjs` reports icon counts quoted in the docs, update those docs on this branch.
-            - Add a CHANGELOG entry under the next version.
-
-      - name: Start the checks on the pull request
-        if: steps.pr.outputs.pull-request-operation == 'created' || steps.pr.outputs.pull-request-operation == 'updated'
+      - name: Start the checks on the new head
+        if: steps.push.outputs.pushed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run ci.yml --ref "$BRANCH"
+        run: gh workflow run ci.yml --ref "$GITHUB_REF_NAME"

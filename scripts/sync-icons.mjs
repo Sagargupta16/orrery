@@ -86,6 +86,25 @@ async function refreshPins() {
     const m = gcp.match(new RegExp(`https://services\\.google\\.com/fh/files/misc/${name}\\.zip`));
     if (m) sources.gcp.parts[part].url = m[0];
   }
+  // The Kubernetes icons and logo are pinned to commits: move to the newest that touched them.
+  const k8s = sources.k8s;
+  const icons = await newestCommit("kubernetes/community", "icons");
+  k8s.base = `https://raw.githubusercontent.com/kubernetes/community/${icons}/icons/svg`;
+  k8s.version = `kubernetes/community@${icons.slice(0, 7)}`;
+  const logo = await newestCommit("kubernetes/kubernetes", "logo/logo.svg");
+  k8s.logo = `https://raw.githubusercontent.com/kubernetes/kubernetes/${logo}/logo/logo.svg`;
+}
+
+async function newestCommit(repo, path) {
+  const token = process.env.GITHUB_TOKEN;
+  const res = await fetch(`https://api.github.com/repos/${repo}/commits?path=${path}&per_page=1`, {
+    headers: {
+      "user-agent": "orrery-sync-icons",
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) throw new Error(`GET commits of ${repo}/${path} -> HTTP ${res.status}`);
+  return (await res.json())[0].sha;
 }
 
 // ---------------------------------------------------------------- normalizing
@@ -751,6 +770,96 @@ function buildIconify(
   return pack;
 }
 
+// ---------------------------------------------------------------- docs
+
+// The docs quote pack counts and versions. A sync rewrites every quote of a value it changed, so
+// the monthly pull request leaves the docs true; check-repo.mjs verifies the totals and tables.
+const DOC_FILES = [
+  "README.md",
+  "THIRD_PARTY_NOTICES.md",
+  "skills/orrery/SKILL.md",
+  "skills/orrery/references/icons.md",
+  "docs/how-it-works.yaml",
+];
+const PROSE_LABELS = {
+  aws: "AWS",
+  azure: "Azure",
+  gcp: "Google Cloud",
+  k8s: "Kubernetes",
+  github: "GitHub Octicons",
+  ibm: "IBM Carbon",
+};
+const VERSION_TOKENS = /\d{4}-\d{2}-\d{2}|\bV\d+\b|\b[0-9a-f]{7}\b|\d+\.\d+\.\d+/g;
+const fmt = (n) => n.toLocaleString("en-US");
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** What a pack's table rows quote: its count, its count per icon type, its version numbers. */
+function quoted(index, key) {
+  const pack = index.packs[key];
+  const counts = { count: pack.count };
+  for (const [id, , , type] of index.icons)
+    if (id.startsWith(`${key}:`)) counts[type] = (counts[type] ?? 0) + 1;
+  const values = Object.fromEntries(Object.entries(counts).map(([k, n]) => [k, fmt(n)]));
+  const versions = `${pack.version} ${pack.lib?.version ?? ""}`.match(VERSION_TOKENS) ?? [];
+  versions.forEach((v, i) => {
+    values[`v${i}`] = v;
+  });
+  return values;
+}
+
+// Replaces old values with new ones in one pass. A value two keys share but that moves to two
+// different values is left alone (check-repo.mjs reports it if it matters).
+function swap(text, pairs, bounded) {
+  const to = new Map();
+  for (const [from, next] of pairs)
+    to.set(from, to.has(from) && to.get(from) !== next ? null : next);
+  const moved = [...to.keys()].filter((from) => to.get(from) !== null && to.get(from) !== from);
+  if (!moved.length) return text;
+  moved.sort((a, b) => b.length - a.length);
+  const after = bounded ? "(?![\\w-]|[.,]\\d)" : "";
+  const re = new RegExp(`(?<![\\w.,-])(?:${moved.map(escapeRe).join("|")})${after}`, "g");
+  return text.replace(re, (m) => to.get(m));
+}
+
+function updateDocs(before, after) {
+  const total = (ix) => fmt(ix.icons.length);
+  const sum = (ix, keys) => fmt(keys.reduce((n, k) => n + (ix.packs[k]?.count ?? 0), 0));
+  const libs = (ix) => Object.keys(ix.packs).filter((k) => ix.packs[k].lib);
+  const phrases = [
+    [`${total(before)} icons`, `${total(after)} icons`],
+    [`${sum(before, libs(before))} icons`, `${sum(after, libs(after))} icons`],
+    [
+      `official_icons-${total(before).replace(",", "%2C")}`,
+      `official_icons-${total(after).replace(",", "%2C")}`,
+    ],
+    [`${sum(before, ["logos", "si"])} tech logos`, `${sum(after, ["logos", "si"])} tech logos`],
+    [`${sum(before, ["tabler"])} neutral symbols`, `${sum(after, ["tabler"])} neutral symbols`],
+    ...Object.entries(PROSE_LABELS)
+      .filter(([k]) => before.packs[k] && after.packs[k])
+      .map(([k, label]) => [`${label} (${sum(before, [k])})`, `${label} (${sum(after, [k])})`]),
+  ];
+  for (const f of DOC_FILES) {
+    const file = join(root, f);
+    const old = readFileSync(file, "utf8");
+    const rows = old.split("\n").map((line) => {
+      // Pack table rows (| `aws` | ...) and pack nodes in the README art (  aws: { ... }).
+      const key = line.match(/^\| `(\w+)` \|/)?.[1] ?? line.match(/^ {2}(\w+): \{/)?.[1];
+      if (!key || !before.packs[key] || !after.packs[key]) return line;
+      const a = quoted(before, key);
+      const b = quoted(after, key);
+      const pairs = Object.keys(a)
+        .filter((k) => k in b)
+        .map((k) => [a[k], b[k]]);
+      return swap(line, pairs, true);
+    });
+    const text = swap(rows.join("\n"), phrases, false);
+    if (text !== old) {
+      writeFileSync(file, text);
+      console.log(`updated the counts and versions quoted in ${f}`);
+    }
+  }
+}
+
 // ---------------------------------------------------------------- write
 
 function writePack(pack) {
@@ -795,6 +904,8 @@ function indexRows(pack) {
 async function main() {
   if (latest) await refreshPins();
   mkdirSync(outDir, { recursive: true });
+  const indexPath = join(outDir, "index.json");
+  const before = existsSync(indexPath) ? JSON.parse(readFileSync(indexPath, "utf8")) : undefined;
   const packs = [
     await buildAws(),
     await buildAzure(),
@@ -863,7 +974,8 @@ async function main() {
       if (e.name) index.names[`${pack.key}:${slug}`] = e.name;
     }
   }
-  writeFileSync(join(outDir, "index.json"), `${JSON.stringify(index)}\n`);
+  writeFileSync(indexPath, `${JSON.stringify(index)}\n`);
+  if (before) updateDocs(before, index);
 
   const si = packs.find((p) => p.key === "si");
   writeFileSync(

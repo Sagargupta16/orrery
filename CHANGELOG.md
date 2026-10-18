@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-10-18
+
+### Changed
+
+- **One update pull request a month.** Renovate's grouped monthly pull request now carries the icon libraries and everything generated from the dependencies. `.github/workflows/icons.yml` no longer opens its own pull request on the 2nd: it runs on every Renovate branch, fetches the newest official AWS, Azure, Google Cloud and Kubernetes packs, re-pins the libraries, rebuilds the catalogs, the bundled CLI and the gallery, commits the result and starts CI, so the pull request can auto-merge when it is green. Before, a Renovate bump of elkjs, resvg, yaml or esbuild failed `build.mjs --check`, because Renovate cannot run the build. `renovate.json` lists github-actions[bot] in `gitIgnoredAuthors`, so Renovate keeps rebasing a branch the workflow committed to.
+- `sync-icons --latest` moves the Kubernetes icons and logo to the newest upstream commit that touched them; they stayed on a fixed commit before.
+- `sync-icons` rewrites every pack count and version the docs quote (README, THIRD_PARTY_NOTICES.md, SKILL.md, references/icons.md, the how-it-works art), and `build.mjs` keeps the ELK and resvg versions in THIRD_PARTY_NOTICES.md current; `build.mjs --check` fails when they drift.
+- pnpm 12.14.0 (was 11.28.1). TypeScript targets ES2024, the newest edition Node 22 runs in full.
+
+### Fixed
+
+- THIRD_PARTY_NOTICES.md named older logos (1.2.15) and Simple Icons (16.34.0, 1.2.99) versions than the ones the catalog loads (1.2.16, 16.35.0, 1.2.100).
+- The vendored engines README named `elk.bundled.js`; the file is `elk.bundled.cjs`.
+
 ## [0.3.0] - 2026-10-18
 
 ### Added
