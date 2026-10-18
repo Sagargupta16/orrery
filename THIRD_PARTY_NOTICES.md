@@ -23,6 +23,7 @@ The `aws`, `azure`, `gcp` and `k8s` packs live in `skills/orrery/assets/icons/` 
 | File | Source | License |
 | --- | --- | --- |
 | `skills/orrery/assets/fonts/Inter-Regular.ttf`, `Inter-SemiBold.ttf` | [Inter 4.1](https://github.com/rsms/inter) by Rasmus Andersson | SIL Open Font License 1.1, full text in `skills/orrery/assets/fonts/Inter-OFL.txt`. |
+| `skills/orrery/assets/fonts/GeistMono-Regular.ttf`, `GeistMono-Bold.ttf` | [Geist Mono 1.8.1](https://github.com/vercel/geist-font) by Vercel, the stage skin's face | SIL Open Font License 1.1, full text in `skills/orrery/assets/fonts/GeistMono-OFL.txt`. |
 
 ## Runtime engines
 

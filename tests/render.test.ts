@@ -456,24 +456,34 @@ describe("stage skin", () => {
     expect(s.edges.map((e) => e.points)).toEqual(classic.edges.map((e) => e.points));
   });
 
-  it("draws the stage canvas, washed groups and ringed step discs", () => {
+  it("draws the portfolio kit: grid, one wash, ink tiles, mono caps, no vendor hues", () => {
     const svg = text(stage, "svg", "dark");
-    expect(svg).toContain('<linearGradient id="rich-dark-bg"');
-    expect(svg).toContain('<pattern id="rich-dark-dots"');
-    expect(svg).toContain('<radialGradient id="rich-dark-tint"');
-    expect(svg).toContain('fill="#ffffff" fill-opacity="0.035"');
-    expect(svg).toMatch(/<circle [^>]*stroke="#60a5fa" stroke-width="1.5"\/>/);
+    expect(svg).toContain('<pattern id="rich-dark-grid"');
+    expect(svg).toContain('<radialGradient id="rich-dark-wash"');
+    expect(svg).toContain('font-family="&#39;Geist Mono&#39;');
+    expect(svg).toContain(">SPOKE &amp; HUB</tspan>");
+    // Frames and tiles are the structure color at an alpha; vendor colors never reach a stroke.
+    expect(svg).toContain('stroke="#ffffff" stroke-opacity="0.16"');
+    expect(svg).not.toMatch(/stroke="#(?:ed7100|0078d4|1490df)"/i);
+    // Vendor artwork goes monochrome through tone filters.
+    expect(svg).toMatch(/<filter id="rich-dark-f\d+"[^>]*><feColorMatrix/);
     expect(xmlProblems(svg)).toEqual([]);
   });
 
-  it("animates with relay: one masked line per edge, lit nodes, one clock", () => {
+  it("tells one story on one clock: packets with comets, lit traces, popping badges", () => {
     const svg = text(stage, "svg", "light");
-    const masks = [...svg.matchAll(/<mask id="([^"]+)" maskUnits="userSpaceOnUse"/g)];
-    expect(masks).toHaveLength(scene(stage, "light").edges.length);
     expect(new Set([...svg.matchAll(/ dur="([\d.]+)s"/g)].map((m) => m[1])).size).toBe(1);
-    expect(svg).toContain('stroke-dashoffset="1"');
-    expect(svg).not.toContain('fill-opacity="0.22"');
-    // Every id, the masks included, goes through the prefix.
+    const s = scene(stage, "light");
+    // The numbered edge carries the story; at most two others run a packet of their own.
+    const packets = [
+      ...svg.matchAll(/<circle r="[\d.]+" fill="[^"]+" opacity="0"><animateMotion/g),
+    ];
+    expect(packets.length).toBeGreaterThan(1);
+    expect(packets.length).toBeLessThanOrEqual(1 + 2);
+    expect(svg).toContain('stroke-dasharray="1 1" stroke-dashoffset="1"');
+    expect(svg).toContain('type="scale" values="0.4;0.4;1.3;1;1;1;0.4"');
+    expect(s.edges.filter((e) => e.step !== undefined)).toHaveLength(1);
+    // Every id, filters and masks included, goes through the prefix.
     expect(attributeValues(svg, "id").filter((id) => !id.startsWith("rich-light-"))).toEqual([]);
     expect(references(svg).filter((r) => !r.startsWith("rich-light-"))).toEqual([]);
   });
@@ -498,10 +508,10 @@ describe("stage skin", () => {
     expect(svg).not.toContain("<mask");
   });
 
-  it("gives packets a trail instead of the halo in stage", () => {
-    const svg = renderSvg({ ...scene(stage, "dark"), animate: "packets" });
-    expect(svg).toContain("<animateMotion");
-    expect(svg).not.toContain('fill-opacity="0.22"');
-    expect(svg).toContain('fill-opacity="0.55"');
+  it("draws the held frame when still: everything lit, nothing moving", () => {
+    const svg = renderSvg({ ...scene(stage, "dark"), animate: "none" });
+    expect(svg).not.toContain("<animateMotion");
+    expect(svg).toContain('stroke="#60a5fa" stroke-opacity="0.65"');
+    expect(svg).toMatch(/<circle r="14" fill="#60a5fa"\/>/);
   });
 });

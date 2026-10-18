@@ -66,7 +66,7 @@ export interface Diagnostic {
 export type AnimateMode = "packets" | "flow" | "relay" | "none";
 export const ANIMATE_MODES: readonly AnimateMode[] = ["packets", "flow", "relay", "none"];
 
-/** classic: the vendors' own diagram styles; stage: a dark-canvas showcase look over the same layout. */
+/** classic: the vendors' own diagram styles; stage: the portfolio scene look over the same layout. */
 export type Skin = "classic" | "stage";
 export const SKINS: readonly Skin[] = ["classic", "stage"];
 
@@ -205,12 +205,6 @@ export interface SceneGroup {
   overlay?: boolean;
   /** Inner panel of a frame group (Google Cloud's blue frame). */
   inner?: { box: Box; fill: string };
-  /**
-   * Stage skin: the fill is drawn as this translucent wash over the canvas texture; `fill` keeps
-   * its opaque equivalent for header chips and contrast checks. `inner` is set when the inner
-   * panel is washed too.
-   */
-  wash?: { color: string; opacity: number; inner?: boolean };
 }
 
 export interface SceneEdge {

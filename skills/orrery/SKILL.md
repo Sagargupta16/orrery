@@ -11,7 +11,7 @@ description: >-
   flowchart into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.6.1"
+  version: "0.7.0"
   author: Sagar Gupta
 ---
 
@@ -86,7 +86,7 @@ Follow this order. Write the spec early and let the validator steer; do not plan
 
 | Format | Use for |
 | --- | --- |
-| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Animated by default: packets travel the edges, numbered steps play in order (`animate: none` or `--static` for a still file). `skin: stage` (or `--skin stage`) draws the same layout on a showcase canvas and animates it with `relay`; keep the default `classic` for vendor architecture docs and use `stage` for a README hero, a slide or a project page. |
+| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Animated by default: packets travel the edges, numbered steps play in order (`animate: none` or `--static` for a still file). `skin: stage` (or `--skin stage`) draws the same layout as an animated scene in one tint (monochrome icons, mono caps labels, one story along the edges); keep the default `classic` for vendor architecture docs and use `stage` for a README hero, a slide or a project page. |
 | `png` | Slides, chat, tickets, anywhere SVG is not accepted. Always a still frame. Rendered with the bundled Inter font at 3x by default (`--scale`), so it stays sharp when zoomed or projected. |
 | `drawio` | Hand-editing in diagrams.net or the VS Code Draw.io extension; every node, group and edge is an editable cell with the official icon embedded. |
 | `tsx` | A React component (`export default function Name(props)`) for docs sites and apps. |

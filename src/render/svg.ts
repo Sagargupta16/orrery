@@ -1,6 +1,6 @@
 import { mixHex } from "../color.ts";
 import { renderIcon } from "../icons.ts";
-import { FONT_STACK, type StageCanvas, type Theme, tokensFor } from "../themes.ts";
+import { FONT_STACK, type Theme, tokensFor } from "../themes.ts";
 import type {
   Box,
   EdgeLine,
@@ -12,6 +12,7 @@ import type {
   SceneNode,
   TextBlock,
 } from "../types.ts";
+import { renderStage } from "./stage.ts";
 
 // Inter's vertical metrics (ascender 1984, descender -494 at 2048 units per em).
 const ASCENT = 0.96875;
@@ -26,7 +27,7 @@ export function esc(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-const n = (v: number) => {
+export const n = (v: number) => {
   const r = Math.round(v * 100) / 100;
   return Object.is(r, -0) ? "0" : String(r);
 };
@@ -67,7 +68,7 @@ function text(
   return `<text font-size="${n(block.size)}"${weight} fill="${color}"${anchorAttr}${extra}>${tspans}</text>`;
 }
 
-const SYMBOL_ID = "SDWSYM";
+export const SYMBOL_ID = "SDWSYM";
 
 // Each distinct icon artwork is written once as a <symbol> and placed with <use>, so a diagram with
 // six Lambdas carries one copy. The symbol's viewBox fits it into the box centered, as before.
@@ -97,14 +98,10 @@ function icon(ctx: Ctx, id: string, box: Box, color?: string, background?: strin
 function groupFrame(g: SceneGroup): string {
   const { box } = g;
   const dash = g.dash ? ` stroke-dasharray="${g.dash}"` : "";
-  // Stage: a neutral fill is a translucent wash, so the canvas texture shows through.
-  const paint = (fill: string, washed: boolean | undefined) =>
-    g.wash && washed ? `fill="${g.wash.color}" fill-opacity="${g.wash.opacity}"` : `fill="${fill}"`;
   const inner = g.inner
-    ? `<rect x="${n(g.inner.box.x)}" y="${n(g.inner.box.y)}" width="${n(g.inner.box.w)}" height="${n(g.inner.box.h)}" rx="${Math.max(0, g.radius - 2)}" ${paint(g.inner.fill, g.wash?.inner)}/>`
+    ? `<rect x="${n(g.inner.box.x)}" y="${n(g.inner.box.y)}" width="${n(g.inner.box.w)}" height="${n(g.inner.box.h)}" rx="${Math.max(0, g.radius - 2)}" fill="${g.inner.fill}"/>`
     : "";
-  const fill = paint(g.fill, !!g.wash && !g.inner);
-  return `<rect x="${n(box.x)}" y="${n(box.y)}" width="${n(box.w)}" height="${n(box.h)}"${g.radius ? ` rx="${g.radius}"` : ""} ${fill} stroke="${g.stroke}" stroke-width="${g.strokeWidth}"${dash}/>${inner}`;
+  return `<rect x="${n(box.x)}" y="${n(box.y)}" width="${n(box.w)}" height="${n(box.h)}"${g.radius ? ` rx="${g.radius}"` : ""} fill="${g.fill}" stroke="${g.stroke}" stroke-width="${g.strokeWidth}"${dash}/>${inner}`;
 }
 
 /** The fill a group header sits on: its own, else the nearest filled ancestor's, else the canvas. */
@@ -153,7 +150,7 @@ function groupHeader(ctx: Ctx, g: SceneGroup): string {
 
 // ---------------------------------------------------------------- edges
 
-function edgePath(points: Point[], routing: Scene["routing"]): string {
+export function edgePath(points: Point[], routing: Scene["routing"]): string {
   if (points.length < 2) return "";
   const [first] = points;
   if (!first) return "";
@@ -191,7 +188,7 @@ function edgePath(points: Point[], routing: Scene["routing"]): string {
 }
 
 /** Shortens one end of a polyline by `by` px so the stroke stops at the arrowhead's base. */
-function trim(points: Point[], atEnd: boolean, by: number): Point[] {
+export function trim(points: Point[], atEnd: boolean, by: number): Point[] {
   const pts = points.map((p) => ({ ...p }));
   const i = atEnd ? pts.length - 1 : 0;
   const j = atEnd ? pts.length - 2 : 1;
@@ -314,9 +311,7 @@ function edgeLabel(ctx: Ctx, e: SceneEdge): string {
     const cy = s.y + s.h / 2;
     const motion = ctx.motion.get(e.id) ?? relayMotion(ctx, e.id);
     if (motion?.stepped) parts.push(ping(ctx, cx, cy, s.w / 2, motion));
-    parts.push(
-      `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(s.w / 2)}" fill="${ctx.t.stepFill}"${ring(ctx)}/>`,
-    );
+    parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(s.w / 2)}" fill="${ctx.t.stepFill}"/>`);
     // Bold digits, as in the AWS deck's numbered callouts.
     parts.push(
       `<text x="${n(cx)}" y="${n(cy + 5)}" font-size="14" font-weight="700" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`,
@@ -346,7 +341,7 @@ interface Motion {
   stepped: boolean;
 }
 
-function length(points: Point[]): number {
+export function length(points: Point[]): number {
   let total = 0;
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1];
@@ -387,10 +382,10 @@ function motionPlan(scene: Scene): Map<string, Motion> {
   return plan;
 }
 
-const secs = (v: number) => `${Math.round(v * 1000) / 1000}s`;
+export const secs = (v: number) => `${Math.round(v * 1000) / 1000}s`;
 
 /** keyTimes for a list of seconds inside a loop: rounded, clamped and never decreasing. */
-function keyTimes(times: number[], cycle: number): string {
+export function keyTimes(times: number[], cycle: number): string {
   let prev = 0;
   return times
     .map((t, i) => {
@@ -412,25 +407,12 @@ function packets(ctx: Ctx, e: SceneEdge, d: string, m: Motion): string {
     const opacity = from === 0 ? "0;1;1;0;0" : "0;0;1;1;0;0";
     const fade = keyTimes([...fadeIn, end - FADE, end, cycle], cycle);
     const at = keyTimes([0, from, end, cycle], cycle);
-    const dot = (lag: number, body: string) => {
-      const begin = m.begin - shift + lag;
-      const loop = `dur="${secs(cycle)}" repeatCount="indefinite"${begin ? ` begin="${secs(begin)}"` : ""}`;
-      return (
-        `<g opacity="0">${body}` +
-        `<animateMotion path="${d}" ${loop} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${at}"/>` +
-        `<animate attributeName="opacity" values="${opacity}" keyTimes="${fade}" ${loop}/></g>`
-      );
-    };
-    // Stage: two smaller, fainter dots follow the packet as its tail; classic: a soft halo.
-    if (ctx.scene.skin === "stage")
-      return (
-        dot(0.1, `<circle r="${n(r * 0.5)}" fill="${color}" fill-opacity="0.3"/>`) +
-        dot(0.05, `<circle r="${n(r * 0.72)}" fill="${color}" fill-opacity="0.55"/>`) +
-        dot(0, `<circle r="${r}" fill="${color}"/>`)
-      );
-    return dot(
-      0,
-      `<circle r="${n(r * 2.3)}" fill="${color}" fill-opacity="0.22"/><circle r="${r}" fill="${color}"/>`,
+    const begin = m.begin - shift;
+    const loop = `dur="${secs(cycle)}" repeatCount="indefinite"${begin ? ` begin="${secs(begin)}"` : ""}`;
+    return (
+      `<g opacity="0"><circle r="${n(r * 2.3)}" fill="${color}" fill-opacity="0.22"/><circle r="${r}" fill="${color}"/>` +
+      `<animateMotion path="${d}" ${loop} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${at}"/>` +
+      `<animate attributeName="opacity" values="${opacity}" keyTimes="${fade}" ${loop}/></g>`
     );
   };
   // A numbered two-way edge answers inside its own step; a free-running one answers half a loop on.
@@ -454,11 +436,11 @@ function ping(ctx: Ctx, cx: number, cy: number, r: number, m: Motion): string {
 
 // ---------------------------------------------------------------- relay
 
-// Relay (the stage skin's default; classic can use it too): on one clock each line draws itself in
-// turn, the node it reaches lights up, everything holds, then the loop resets, as in the owner's
-// portfolio scenes. Beats follow the numbered steps when there are any (the other edges draw first,
-// as the setting), else the distance from the entry points. The still frame is the whole diagram:
-// relay only draws a lit copy on top, so a PNG or a paused SVG shows every line.
+// Relay: on one clock each line draws itself in turn, the node it reaches lights up, everything
+// holds, then the loop resets. Beats follow the numbered steps when there are any (the other edges
+// draw first, as the setting), else the distance from the entry points. The still frame is the
+// whole diagram: relay only draws a lit copy on top, so a PNG or a paused SVG shows every line.
+// The stage skin tells its own story for relay (stage.ts).
 const FIRST = 0.3;
 const BEAT = 0.55;
 const DRAW = 0.45;
@@ -485,7 +467,7 @@ interface Relay {
 
 function relayPlan(scene: Scene, t: Theme): Relay {
   const relay: Relay = {
-    color: t.stage?.ring ?? t.flow,
+    color: t.flow,
     cycle: 0,
     edges: new Map(),
     nodes: new Map(),
@@ -604,25 +586,9 @@ function plate(ctx: Ctx, nd: SceneNode, at: number): string {
   );
 }
 
-// ---------------------------------------------------------------- stage
-
-/** The stage canvas: a gradient, a dot texture and one tint wash in the top right corner. */
-function stageCanvas(ctx: Ctx, W: number, H: number, s: StageCanvas): string {
-  const p = ctx.prefix;
-  ctx.defs.push(
-    `<linearGradient id="${p}bg" x1="0" y1="0" x2="0.36" y2="1"><stop offset="0" stop-color="${s.top}"/><stop offset="0.6" stop-color="${ctx.t.background}"/></linearGradient>` +
-      `<radialGradient id="${p}tint" cx="0.88" cy="0.04" r="0.7"><stop offset="0" stop-color="${s.tint}" stop-opacity="${s.tintOpacity}"/><stop offset="1" stop-color="${s.tint}" stop-opacity="0"/></radialGradient>` +
-      `<pattern id="${p}dots" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="8" cy="8" r="0.9" fill="${s.dot}" fill-opacity="${s.dotOpacity}"/></pattern>`,
-  );
-  return `<rect width="${W}" height="${H}" fill="url(#${p}bg)"/><rect width="${W}" height="${H}" fill="url(#${p}dots)"/><rect width="${W}" height="${H}" fill="url(#${p}tint)"/>`;
-}
-
-/** Stage badges and step discs are ink with a tint ring; classic ones are plain. */
-const ring = (ctx: Ctx) => (ctx.t.stage ? ` stroke="${ctx.t.stage.ring}" stroke-width="1.5"` : "");
-
 // ---------------------------------------------------------------- nodes
 
-function shapePath(shape: SceneNode["shape"], b: Box): string {
+export function shapePath(shape: SceneNode["shape"], b: Box): string {
   const { x, y, w, h } = b;
   switch (shape) {
     case "box":
@@ -672,7 +638,7 @@ function badge(ctx: Ctx, label: string, anchor: Box, placed?: Box): string {
   const h = placed?.h ?? 16;
   const x = placed?.x ?? anchor.x + anchor.w - w / 2 - 2;
   const y = placed?.y ?? anchor.y - 7;
-  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(h / 2)}" fill="${ctx.t.stepFill}"${ring(ctx)}/><text x="${n(x + w / 2)}" y="${n(y + h / 2 + 3.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
+  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(h / 2)}" fill="${ctx.t.stepFill}"/><text x="${n(x + w / 2)}" y="${n(y + h / 2 + 3.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
 }
 
 function node(ctx: Ctx, nd: SceneNode): string {
@@ -743,9 +709,10 @@ function legend(ctx: Ctx, l: SceneLegend): string {
 
 // ---------------------------------------------------------------- document
 
-const FLOW_CSS = `@keyframes sdw-flow{to{stroke-dashoffset:-20}}.sdw-flow{animation:sdw-flow 1.1s linear infinite}.sdw-solid{stroke-dasharray:7 3}`;
+export const FLOW_CSS = `@keyframes sdw-flow{to{stroke-dashoffset:-20}}.sdw-flow{animation:sdw-flow 1.1s linear infinite}.sdw-solid{stroke-dasharray:7 3}`;
 
 export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
+  if (scene.skin === "stage") return renderStage(scene, opts);
   const t = tokensFor(scene);
   const prefix = opts.idPrefix ? `${opts.idPrefix.replace(/[^A-Za-z0-9_-]/g, "")}-` : "";
   const ctx: Ctx = {
@@ -770,8 +737,7 @@ export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
   out.push(`<desc id="${descId}">${esc(scene.description)}</desc>`);
   if (scene.animate === "flow") out.push(`<style>${FLOW_CSS}</style>`);
   const defsAt = out.length;
-  if (scene.background === undefined && t.stage) out.push(stageCanvas(ctx, W, H, t.stage));
-  else if (scene.background !== "transparent") {
+  if (scene.background !== "transparent") {
     out.push(`<rect width="${W}" height="${H}" fill="${scene.background ?? t.background}"/>`);
   }
   if (scene.title && scene.titleBox) out.push(text(scene.title, scene.titleBox, t.text, "start"));

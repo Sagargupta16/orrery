@@ -13,13 +13,13 @@ One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML view
 **[sagargupta.online/orrery](https://sagargupta.online/orrery/)**: every example in light and dark, with its spec and downloads.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.6.1-2563eb)
+![Version](https://img.shields.io/badge/version-0.7.0-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-16%2C682-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
 </div>
 
-The diagram above is [docs/hero.yaml](docs/hero.yaml): 42 lines of YAML, laid out and rendered by orrery in the `stage` skin (`skin: stage`): each line draws itself in step order and every node lights up as its line arrives, on a loop. The rest of this README is the `classic` skin, the vendors' own diagram style, which animates a packet along each edge. GitHub keeps the animation; the PNG of the same spec is a still frame.
+The diagram above is [docs/hero.yaml](docs/hero.yaml): 42 lines of YAML, laid out and rendered by orrery in the `stage` skin (`skin: stage`): the groups light, then the tiles, then a packet with a comet tail runs the numbered steps in order, lighting each line behind it, and every step badge pops as its packet leaves, on a loop. The rest of this README is the `classic` skin, the vendors' own diagram style, which animates a packet along each edge. GitHub keeps the animation; the PNG of the same spec is a still frame.
 
 ## What you get
 
@@ -27,7 +27,7 @@ The diagram above is [docs/hero.yaml](docs/hero.yaml): 42 lines of YAML, laid ou
 - **Official conventions.** AWS groups follow the AWS Architecture Icons deck (borders, dashes, corner tiles, label placement, open arrowheads, numbered callouts); Google Cloud and Azure groups are measured from their own reference diagrams. Every value cites its source in [styles.md](skills/orrery/references/styles.md).
 - **Automatic layout.** The Eclipse Layout Kernel places nested boundaries, routes edges at right angles, joins fan-in and fan-out into trunks and keeps the order you wrote unless that would cross edges. No coordinates to write.
 - **Diagrams that move.** Animated SVG by default: packets travel every edge at one speed, numbered steps play as a story, line styles stay as drawn. `animate: flow` for marching dashes, `--static` for a still file.
-- **Two skins, one layout.** `classic` follows each vendor's diagram style; `skin: stage` (or `--skin stage`) draws the same boxes and lines on a dark or light showcase canvas with a dot texture and one tint, and animates them with `relay`: each line draws itself in turn and the node it reaches lights up. Vendor colors and every position stay the same.
+- **Two skins, one layout.** `classic` follows each vendor's diagram style; `skin: stage` (or `--skin stage`) draws the same boxes and lines as an animated scene: a hairline grid with one tint, ink tiles with monochrome icons, mono caps labels, dim wires and one story that plays along them. Every position stays the same; dark and light.
 - **Five outputs from one spec.** SVG for READMEs and docs, PNG for slides and chat (3x by default, sharp when zoomed), `.drawio` you can keep editing, a TSX component for React sites, and a standalone HTML viewer with dark mode, pan and pinch zoom.
 - **Made for agents.** A skill with a fast path and authoring rules, a JSON Schema, 392 short aliases (`aws:s3`, `azure:aks`, `k8s:deploy`), ranked icon search, and a validator whose every finding names the subject and the fix.
 - **No install.** The CLI, layout engine, PNG renderer, fonts and the official cloud packs ship in the skill folder (9 MB). Logo and glyph sets are not copied in: they load from their own npm libraries the first time a diagram uses them, verified by checksum and cached. Node.js 22 or newer is all it needs.

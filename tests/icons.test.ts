@@ -6,6 +6,7 @@ import {
   allIcons,
   type IconPaint,
   iconInfo,
+  iconTone,
   loadIconLibraries,
   PACK_ORDER,
   packInfo,
@@ -225,6 +226,20 @@ describe("renderIcon", () => {
     expect(dark).not.toContain(`fill="${brand}"`);
     const tinted = renderIcon("tabler:database", "x", { ...paint("light"), color: "#d6336c" });
     expect(tinted.body).toContain('stroke="#d6336c"');
+  });
+
+  it("sorts every kind of artwork into a stage tone", () => {
+    expect(iconTone("aws:lambda", "dark")).toBe("glyph");
+    expect(iconTone("k8s:pod", "dark")).toBe("glyph");
+    expect(iconTone("aws:group-region", "light")).toBe("glyph");
+    expect(iconTone("aws:group-aws-cloud-logo", "dark")).toBe("inverse");
+    expect(iconTone("aws:simple-storage-service-bucket", "dark")).toBe("shape");
+    expect(iconTone("gcp:cloud-run", "dark")).toBe("shape");
+    expect(iconTone("azure:app-services", "dark")).toBe("two");
+    expect(iconTone("tabler:database", "dark")).toBe("mono");
+    expect(iconTone("si:github", "light")).toBe("mono");
+    const mono = renderIcon("tabler:database", "x", { ...paint("dark"), mono: "#919394" });
+    expect(mono.body).toContain('stroke="#919394"');
   });
 
   it("returns the icon's viewBox", () => {
