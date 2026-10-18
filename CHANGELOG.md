@@ -23,6 +23,12 @@ All notable changes to this project are documented here. Follows [Semantic Versi
 
 - `examples/README.md` said "Twenty-six diagrams" with 27 in the gallery.
 
+## [0.4.1] - 2026-10-18
+
+### Fixed
+
+- **An edge to or from an `around:` group no longer crashes layout.** `alb -> asg` failed in `render` and `validate` with ELK's "Referenced shape does not exist: asg", because overlay groups are outlined after layout and ELK never sees them. Such an edge is now drawn after layout like `constraint: false` and ends on the overlay's border, while layout gets hidden copies of it to the overlay's members so the diagram keeps its order. An end that would land under the overlay's header tile and label slides along the border 20 px past them. A copy of `aws-three-tier` with `alb -> asg` instead of `alb -> web-a, web-b` passes `orrery review --width 880` at 96.8 with every hard count at 0; without the slide the arrowhead sat under the header (93.2, FAIL). Diagrams without such an edge render byte for byte as before.
+
 ## [0.4.0] - 2026-10-18
 
 ### Added
