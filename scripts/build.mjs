@@ -48,10 +48,25 @@ const vendored = [
   ["node_modules/@resvg/resvg-wasm/index.mjs", "resvg/index.mjs"],
   ["node_modules/@resvg/resvg-wasm/index_bg.wasm", "resvg/index_bg.wasm"],
 ];
+const version = (name) =>
+  JSON.parse(readFileSync(join(root, "node_modules", name, "package.json"), "utf8")).version;
+const elkVersion = version("elkjs");
+const resvgVersion = version("@resvg/resvg-wasm");
+
+// THIRD_PARTY_NOTICES.md names the vendored versions too.
+const noticesFile = join(root, "THIRD_PARTY_NOTICES.md");
+const notices = readFileSync(noticesFile, "utf8");
+const freshNotices = notices
+  .replace(/(\[elkjs\]\(https:\/\/github\.com\/kieler\/elkjs\) )[\d.]+\d/, `$1${elkVersion}`)
+  .replace(
+    /(\[@resvg\/resvg-wasm\]\(https:\/\/github\.com\/thx\/resvg-js\) )[\d.]+\d/,
+    `$1${resvgVersion}`,
+  );
 
 if (check) {
   const stale = [];
   if (!existsSync(outFile) || readFileSync(outFile, "utf8") !== code) stale.push("orrery.mjs");
+  if (freshNotices !== notices) stale.push("THIRD_PARTY_NOTICES.md");
   for (const [from, to] of vendored) {
     const src = join(root, from);
     const dst = join(vendorDir, to);
@@ -84,11 +99,12 @@ if (check) {
       "",
       "| File | Package | License |",
       "| --- | --- | --- |",
-      `| \`elk.bundled.js\` | [elkjs](https://github.com/kieler/elkjs) ${JSON.parse(readFileSync(join(root, "node_modules/elkjs/package.json"), "utf8")).version} | EPL-2.0 (source: https://github.com/kieler/elkjs) |`,
-      `| \`resvg/index.mjs\`, \`resvg/index_bg.wasm\` | [@resvg/resvg-wasm](https://github.com/thx/resvg-js) ${JSON.parse(readFileSync(join(root, "node_modules/@resvg/resvg-wasm/package.json"), "utf8")).version} | MPL-2.0 (source: https://github.com/thx/resvg-js) |`,
+      `| \`elk.bundled.cjs\` | [elkjs](https://github.com/kieler/elkjs) ${elkVersion} | EPL-2.0 (source: https://github.com/kieler/elkjs) |`,
+      `| \`resvg/index.mjs\`, \`resvg/index_bg.wasm\` | [@resvg/resvg-wasm](https://github.com/thx/resvg-js) ${resvgVersion} | MPL-2.0 (source: https://github.com/thx/resvg-js) |`,
       "",
     ].join("\n"),
   );
+  if (freshNotices !== notices) writeFileSync(noticesFile, freshNotices);
   rmSync(join(vendorDir, ".gitkeep"), { force: true });
   console.log(`wrote ${outFile} (${(code.length / 1024).toFixed(0)} KB) and vendor/`);
 }

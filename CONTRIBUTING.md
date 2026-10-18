@@ -44,7 +44,7 @@ CI runs the same commands. `pnpm build` regenerates `skills/orrery/scripts/orrer
 
 ## Icons
 
-- New vendor release: `node scripts/sync-icons.mjs --latest` finds the newest official packages, re-pins their URLs and checksums in `scripts/icon-sources.json` and rebuilds the catalogs. A monthly workflow does this and opens a PR.
+- New vendor release: `node scripts/sync-icons.mjs --latest` finds the newest official packages, re-pins their URLs and checksums in `scripts/icon-sources.json` (the Kubernetes icons move to the newest commit that touched them), rebuilds the catalogs and rewrites the counts and versions the docs quote. Nobody needs to run it by hand: Renovate opens one grouped dependency PR a month, and `.github/workflows/icons.yml` runs on that branch, syncs the icons, rebuilds the CLI and the gallery, commits the result and starts CI, so the PR auto-merges when it is green.
 - A short name people type (`aws:sqs`): add it to `scripts/icon-aliases.json` and re-run `node scripts/sync-icons.mjs`; it fails if an alias points nowhere or hides a real icon.
 - A new pack: add a builder to `sync-icons.mjs`, its terms to `THIRD_PARTY_NOTICES.md`, and only include it if its license allows use in diagrams. A set that is published on npm becomes a library pack (set `pack.lib` in the builder, add the package as a dev dependency): the catalog keeps names and keywords and the renderer loads the icons from npm. Only vendor packs that exist solely as downloads are bundled.
 
