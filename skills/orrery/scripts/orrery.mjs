@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.5.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.5.1 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -8518,6 +8518,53 @@ function checkScene(scene, model, opts = {}) {
       );
     }
   }
+  const headerParts = (g) => [g.label.lines.length ? g.labelBox : void 0, g.iconBox].filter(
+    (b) => !!b && b.w > 0 && b.h > 0
+  );
+  for (const ov of scene.groups) {
+    if (!ov.overlay) continue;
+    const own = headerParts(ov);
+    const hits2 = (b) => own.find((o) => overlaps(o, b, -EPS));
+    const covered = [];
+    for (const g of scene.groups) {
+      if (g.id === ov.id) continue;
+      for (const b of headerParts(g)) {
+        const by = hits2(b);
+        if (by) {
+          covered.push({
+            what: `the header of group "${g.id}"`,
+            id: g.id,
+            kind: "group",
+            box: b,
+            by
+          });
+          break;
+        }
+      }
+    }
+    for (const n3 of scene.nodes) {
+      for (const part of nodeParts(n3)) {
+        const by = hits2(part.box);
+        if (by) {
+          covered.push({ what: `node "${n3.id}"`, id: n3.id, kind: "node", box: part.box, by });
+          break;
+        }
+      }
+    }
+    const members = model.groups.find((g) => g.id === ov.id)?.around ?? [];
+    const loose = members.filter((m) => !parentOf.get(m)).map((m) => `"${m}"`);
+    for (const x of covered) {
+      warn("DG214", `the header of overlay group "${ov.id}" covers ${x.what}`, {
+        subject: { group: ov.id, covered: x.id, kind: x.kind },
+        evidence: { header: boxOf(x.by), covered: boxOf(x.box) },
+        fixes: [
+          ...loose.length ? [`put ${loose.join(", ")} in a group (in:), so layout can make room for the header`] : [],
+          x.kind === "node" ? `move "${x.id}" in the nodes list so it sits clear of the header of "${ov.id}"` : `move the members of "${ov.id}" in the nodes list so its header sits clear of "${x.id}"`,
+          `shorten the label of "${ov.id}"`
+        ]
+      });
+    }
+  }
   const explained = new Set((model.legend ?? []).map((l) => l.line));
   const styles = /* @__PURE__ */ new Map();
   for (const e of model.edges) {
@@ -9398,7 +9445,7 @@ async function layout(model, opts = {}) {
   for (const grp of model.groups) {
     const gg = groupGeom.get(grp.id);
     if (!gg || grp.around) continue;
-    const top2 = gg.header + 18;
+    const top2 = gg.header + 18 + (opts.room?.get(grp.id) ?? 0);
     elkNodes.set(grp.id, {
       id: grp.id,
       children: [],
@@ -9571,7 +9618,7 @@ async function layout(model, opts = {}) {
     };
     const k = union(kids);
     let x0 = Math.max(old.x, k.x - 20);
-    let y0 = Math.max(old.y, k.y - gg.header - 18);
+    let y0 = Math.max(old.y, k.y - gg.header - 18 - (opts.room?.get(grp.id) ?? 0));
     let x1 = Math.min(old.x + old.w, k.x + k.w + 20);
     let y1 = Math.min(old.y + old.h, k.y + k.h + 20);
     if (x1 - x0 < minWidthOf(grp.id, gg)) [x0, x1] = [old.x, old.x + old.w];
@@ -10047,8 +10094,8 @@ async function layout(model, opts = {}) {
   }
   const blocked = [];
   for (const g of groups) {
-    const room = headerRoom.get(g.id);
-    if (room && !clearHeader(g, room, groups, nodes, edges)) blocked.push(g.id);
+    const room2 = headerRoom.get(g.id);
+    if (room2 && !clearHeader(g, room2, groups, nodes, edges)) blocked.push(g.id);
   }
   const widen = blocked.filter((id) => {
     const gg = groupGeom.get(id);
@@ -10057,8 +10104,36 @@ async function layout(model, opts = {}) {
     if (model.groups.find((g) => g.id === id)?.around) return false;
     return box.w + 0.5 < Math.max(gg.minWidth, 2 * (gg.minWidth - 10));
   });
-  if (!horizontal && !opts.widen && widen.length)
-    return layout(model, { ...opts, widen: new Set(widen) });
+  const room = /* @__PURE__ */ new Map();
+  const headOf = (g) => {
+    const parts = [g.label.lines.length ? g.labelBox : void 0, g.iconBox].filter(
+      (b) => !!b && b.w > 0 && b.h > 0
+    );
+    return parts.length ? union(parts) : void 0;
+  };
+  const hits = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  for (const ov of groups) {
+    const head = ov.overlay ? headOf(ov) : void 0;
+    if (!head) continue;
+    let need = 0;
+    for (const g of groups) {
+      const h = g.overlay ? void 0 : headOf(g);
+      if (h && hits(head, h)) need = Math.max(need, h.y + h.h + 8 - head.y);
+    }
+    if (need <= 0) continue;
+    for (const id of overlays.get(ov.id) ?? []) {
+      const parent = model.nodes.find((n3) => n3.id === id)?.parent ?? model.groups.find((g) => g.id === id)?.parent;
+      if (parent && !overlays.has(parent))
+        room.set(parent, Math.max(room.get(parent) ?? 0, Math.ceil(need)));
+    }
+  }
+  const wider = !horizontal && widen.length > 0;
+  if (!opts.widen && !opts.room && (wider || room.size))
+    return layout(model, {
+      ...opts,
+      widen: wider ? new Set(widen) : void 0,
+      room: room.size ? room : void 0
+    });
   const drawn = [
     ...groups.flatMap((g) => [g.box, g.labelBox, g.iconBox]),
     ...nodes.flatMap((n3) => [n3.box, n3.iconBox, n3.labelBox, n3.noteBox, n3.badgeBox]),
@@ -11663,6 +11738,12 @@ var FINDINGS = {
     cap: 30,
     about: "an overlay (around:) group draws around a node that is not a member"
   },
+  "overlap.overlay-header": {
+    dimension: "overlap",
+    rule: "DG214",
+    cap: 30,
+    about: "an overlay (around:) group's header covers another group's header or a node"
+  },
   "overlap.outside-group": {
     dimension: "overlap",
     cap: 30,
@@ -12077,6 +12158,13 @@ var OVERLAP_RULES = {
     cost: 10,
     hard: "overlaps",
     ids: ["group", "enclosed"]
+  },
+  DG214: {
+    id: "overlap.overlay-header",
+    severity: "major",
+    cost: 10,
+    hard: "overlaps",
+    ids: ["group", "covered"]
   }
 };
 function flatEvidence(v, key = "", out = {}) {
@@ -14302,7 +14390,7 @@ function suggestIds(id, ids, kind) {
 }
 
 // src/cli.ts
-var VERSION = true ? "0.5.0" : "dev";
+var VERSION = true ? "0.5.1" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:

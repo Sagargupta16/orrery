@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.5.1] - 2026-10-18
+
+### Fixed
+
+- **An overlay's header no longer lands on another group's header.** When the members of an `around:` group are the first row of their group, as in an Auto Scaling group across two Availability Zones whose web tier comes first, the overlay's tile and label were drawn over that group's header ("Availability Zone" was unreadable), and `validate` and `review` reported nothing because overlays are left out of the group checks. Layout now gives the members' groups just enough extra top padding in its second pass that the header clears, and the trim after ELK keeps it. Diagrams whose overlays already had room render byte for byte as before, which is all 32 shipped examples.
+- **DG214** warns when an overlay's header still covers a group header or a node, for example when its members have no group of their own, and `orrery review` scores it as a major overlap.
+
 ## [0.5.0] - 2026-10-18
 
 ### Added
