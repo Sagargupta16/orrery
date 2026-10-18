@@ -270,7 +270,7 @@ function labelColon(s: string): number {
   return -1;
 }
 
-const ICON_ID = /^(aws|azure|gcp|k8s|github|logos|si|tabler|generic|local):[a-z0-9]/i;
+const ICON_ID = /^(aws|azure|gcp|k8s|github|ibm|logos|si|tabler|ph|generic|local):[a-z0-9]/i;
 
 export interface EdgeHop {
   from: string[];
@@ -436,7 +436,8 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     kindDefaults.direction,
     "direction",
   );
-  const theme = oneOf<ThemeName>(raw.theme, THEMES, "light", "theme");
+  // Dark and stage are the defaults; `theme: light` and `skin: classic` are one line away.
+  const theme = oneOf<ThemeName>(raw.theme, THEMES, "dark", "theme");
   const defaultLook = oneOf<NodeLook>(raw.look, ["icon", "card"] as const, "icon", "look");
   const layout = isObj(raw.layout) ? raw.layout : {};
   if (raw.layout !== undefined && !isObj(raw.layout))
@@ -480,7 +481,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
         : raw.animate === false
           ? "none"
           : oneOf(raw.animate, ANIMATE_MODES, "packets", "animate");
-  const skin = oneOf(raw.skin, SKINS, "classic", "skin");
+  const skin = oneOf(raw.skin, SKINS, "stage", "skin");
   const background = hexColor(raw.background, "background", "", { where: "background" }, [
     "transparent",
   ]);
@@ -807,10 +808,14 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
           fixes: ["use size: lg, or a number such as 64"],
         });
     }
-    // Events and gateways are often unnamed in BPMN; everything else falls back to its id.
+    // Events, gateways and the UML initial and final states are often unnamed; everything else
+    // falls back to its id.
     const label =
       str(pick(n, "label", NODE_SYNONYMS)) ??
-      (bpmn && (isBpmnEvent(bpmn) || isBpmnGateway(bpmn)) ? "" : undefined) ??
+      ((bpmn && (isBpmnEvent(bpmn) || isBpmnGateway(bpmn))) ||
+      (!bpmn && (shape === "initial" || shape === "final"))
+        ? ""
+        : undefined) ??
       (icon ? iconInfo(icon)?.name : undefined) ??
       id;
     nodes.push({

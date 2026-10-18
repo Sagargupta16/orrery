@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, extname, join } from "node:path";
 import { contrast, mixHex } from "./color.ts";
 import {
   allDark,
@@ -41,7 +41,12 @@ interface PackEntry {
   k?: 1;
   /** Uses another entry's artwork (Google gives most products their category's icon). */
   r?: string;
+  /** Multi-color artwork whose currentColor parts carry the color placeholder (local icons). */
+  c?: 1;
 }
+
+/** A local icon's artwork as local-icons.ts converts it: monochrome art carries {{c}}. */
+export type LocalArt = Pick<PackEntry, "v" | "b" | "m" | "k" | "c">;
 
 interface PackFile {
   pack: string;
@@ -59,11 +64,27 @@ export interface IconInfo {
 }
 
 /** Official vendor packs rank above logo and glyph sets in search and suggestions. */
-export const PACK_ORDER = ["aws", "azure", "gcp", "k8s", "github", "ibm", "logos", "si", "tabler"];
+export const PACK_ORDER = [
+  "aws",
+  "azure",
+  "gcp",
+  "k8s",
+  "github",
+  "ibm",
+  "logos",
+  "si",
+  "tabler",
+  "ph",
+];
+
+/** The pack of the spec's own SVG files (`icons:`), registered per render by local-icons.ts. */
+export const LOCAL_PACK = "local";
 
 let index: Index | undefined;
 let infoById: Map<string, IconInfo> | undefined;
 const packs = new Map<string, PackFile>();
+const locals = new Map<string, { info: IconInfo; entry: PackEntry }>();
+const weights = new Map<string, IconInfo>();
 
 function loadIndex(): Index {
   if (!index) index = JSON.parse(readFileSync(join(iconsDir, "index.json"), "utf8")) as Index;
@@ -105,14 +126,29 @@ function clean(id: string): string {
     .replace(/^([a-z0-9]+)[/.]/, "$1:");
 }
 
+const known = (id: string) => infos().get(id) ?? locals.get(id)?.info ?? weights.get(id);
+
+/**
+ * A weight an npm set names by suffix ("ph:cube-bold"). Only the plain name is indexed, so the
+ * catalog stays small; the other weights resolve here and load from the same library file.
+ */
+function weightOf(id: string): string | undefined {
+  const [pack = "", slug = ""] = id.split(":");
+  const weight = loadIndex().packs[pack]?.lib?.variants?.find((w) => slug.endsWith(`-${w}`));
+  const base = weight && infos().get(`${pack}:${slug.slice(0, -weight.length - 1)}`);
+  if (!weight || !base) return undefined;
+  weights.set(id, { ...base, id, slug, name: `${base.name} (${weight})` });
+  return id;
+}
+
 /** Canonical icon id for an id or alias, or undefined when nothing matches exactly. */
 export function resolveIcon(id: string): string | undefined {
   let current = clean(id);
   const table = loadIndex().aliases;
   for (let hops = 0; hops < 4; hops++) {
-    if (infos().has(current)) return current;
+    if (known(current)) return current;
     const next = table[current];
-    if (!next) return undefined;
+    if (!next) return weightOf(current);
     current = next;
   }
   return undefined;
@@ -120,7 +156,32 @@ export function resolveIcon(id: string): string | undefined {
 
 export function iconInfo(id: string): IconInfo | undefined {
   const resolved = resolveIcon(id);
-  return resolved ? infos().get(resolved) : undefined;
+  return resolved ? known(resolved) : undefined;
+}
+
+/** Makes local:<name> drawable; a later call for the same name replaces the artwork. */
+export function registerLocalIcon(name: string, art: LocalArt, file = ""): void {
+  const id = `${LOCAL_PACK}:${name}`;
+  const title = name
+    .split("-")
+    .filter(Boolean)
+    .map((w) => (w[0] ?? "").toUpperCase() + w.slice(1))
+    .join(" ");
+  locals.set(id, {
+    info: {
+      id,
+      pack: LOCAL_PACK,
+      slug: name,
+      name: title,
+      category: "Local",
+      type: art.m ? "glyph" : "logo",
+      // Search finds a local icon by its file name too.
+      keywords: basename(file, extname(file))
+        .replace(/[^a-z0-9]+/gi, " ")
+        .toLowerCase(),
+    },
+    entry: { ...art },
+  });
 }
 
 function levenshtein(a: string, b: string): number {
@@ -168,6 +229,10 @@ const PACK_WEIGHT: Record<string, number> = {
   logos: 6,
   si: 3,
   tabler: 0,
+  // Tabler backs the generic: vocabulary, so it leads among the neutral glyph sets.
+  ph: -1,
+  // The spec's own drawings are what its author means when they are loaded.
+  local: 12,
 };
 const TYPE_WEIGHT: Record<string, number> = {
   service: 4,
@@ -203,7 +268,11 @@ function aliasesByTarget(): Map<string, string[]> {
 export function searchIcons(query: string, opts: SearchOptions = {}): IconInfo[] {
   const q = clean(query);
   const [maybePack, rest] = q.includes(":") ? q.split(":", 2) : [undefined, q];
-  const pack = opts.pack ?? (maybePack && PACK_ORDER.includes(maybePack) ? maybePack : undefined);
+  const pack =
+    opts.pack ??
+    (maybePack && (PACK_ORDER.includes(maybePack) || maybePack === LOCAL_PACK)
+      ? maybePack
+      : undefined);
   const text = (rest ?? q).replace(/-/g, " ");
   const qTokens = tokens(text);
   if (!qTokens.length) return [];
@@ -224,7 +293,7 @@ export function searchIcons(query: string, opts: SearchOptions = {}): IconInfo[]
   });
   const brandish = !pack && collapsedQ.length >= 3 && productNamed && !officialHit;
   const scored: [number, IconInfo][] = [];
-  for (const info of infos().values()) {
+  for (const info of [...infos().values(), ...[...locals.values()].map((l) => l.info)]) {
     if (pack && info.pack !== pack) continue;
     if (opts.type && info.type !== opts.type) continue;
     const alias = aliasesByTarget().get(info.id) ?? [];
@@ -370,6 +439,11 @@ function libraryEntry(info: IconInfo, lib: LibrarySource): PackEntry {
 }
 
 function packEntry(info: IconInfo): PackEntry {
+  if (info.pack === LOCAL_PACK) {
+    const local = locals.get(info.id);
+    if (!local) throw new Error(`icon ${info.id} is not loaded; call loadLocalIcons first`);
+    return local.entry;
+  }
   const lib = loadIndex().packs[info.pack]?.lib;
   if (lib) return libraryEntry(info, lib);
   const icons = loadPack(info.pack).icons;
@@ -439,6 +513,9 @@ export function renderIcon(id: string, instance: string, paint: IconPaint): Icon
       `$1="${light}"`,
     );
     body = `<g fill="${light}">${body}</g>`;
+  } else if (entry.c) {
+    // The currentColor parts of a multi-color local icon follow the text, as they would in a page.
+    body = body.replaceAll("{{c}}", paint.mono ?? paint.color ?? paint.ink);
   }
   const vb = entry.v.split(/[\s,]+/).map(Number);
   return { viewBox: [vb[0] ?? 0, vb[1] ?? 0, vb[2] ?? 24, vb[3] ?? 24], body };

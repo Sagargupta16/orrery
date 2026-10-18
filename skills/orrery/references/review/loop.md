@@ -12,7 +12,21 @@ How a rendered diagram gets reviewed and improved: **measure, critique, patch, r
 | Flow reviewer | `orrery:flow-reviewer`, or an inline pass | one JSON findings array | [flow.md](flow.md) |
 | Legibility reviewer | `orrery:legibility-reviewer`, or an inline pass | one JSON findings array | [legibility.md](legibility.md) |
 
-Reviewers are read-only (Read, Glob, Grep): they cannot edit, write or spawn agents. Rubrics: [conventions-aws.md](conventions-aws.md), [conventions-azure.md](conventions-azure.md), [conventions-gcp.md](conventions-gcp.md), [conventions-c4.md](conventions-c4.md), [flow.md](flow.md), [legibility.md](legibility.md).
+Reviewers are read-only (Read, Glob, Grep): they cannot edit, write or spawn agents. Rubrics: [conventions-aws.md](conventions-aws.md), [conventions-azure.md](conventions-azure.md), [conventions-gcp.md](conventions-gcp.md), [conventions-c4.md](conventions-c4.md), [conventions-bpmn.md](conventions-bpmn.md), [conventions-flowchart.md](conventions-flowchart.md), [conventions-state.md](conventions-state.md), [conventions-journey.md](conventions-journey.md), [flow.md](flow.md), [legibility.md](legibility.md).
+
+### Which conventions rubrics apply
+
+`rubrics` in the review JSON names them, and `vendors` says why. A vendor rubric applies when its icons or group types appear (`aws`, `azure`, `gcp`; Kubernetes has no rubric), C4 when a group uses a `c4:` type or the title or subtitle names C4, and one notation rubric comes from the spec's `kind:`:
+
+| `kind:` | Notation rubric |
+| --- | --- |
+| `process` | [conventions-bpmn.md](conventions-bpmn.md) (BPMN 2.0) |
+| `flowchart` | [conventions-flowchart.md](conventions-flowchart.md) (ISO 5807) |
+| `state` | [conventions-state.md](conventions-state.md) (UML state machines) |
+| `journey` | [conventions-journey.md](conventions-journey.md) (customer journey maps) |
+| `architecture`, `tree`, `mindmap` | none |
+
+A process drawn with AWS icons gets both `conventions-aws.md` and `conventions-bpmn.md`. The measurement knows the kinds too: step order (AWS-14) is measured only on an architecture, arrowheads against the direction are not reported for `state` or `mindmap`, lines without heads are not reported for `tree` or `mindmap`, for a BPMN association or for a line style the legend explains, edges into or out of a pool or lane need no label and journey rows are no boundary, pools and lanes are not checked for centered content, and a message flow's dashed line needs no legend entry.
 
 ## Why this shape
 
@@ -187,3 +201,12 @@ Each dimension starts at 100; every finding kind takes off its cost, at most its
 | `conventions.c4-relationship` | C4-07 | 15 | a C4 relationship lacks a specific label or its technology |
 | `conventions.icon-recolored` | AZ-06 | 15 | a brand mark is recolored |
 | `conventions.gcp-product-icon` | GCP-02 | 24 | a Google Cloud product is drawn with another product's icon |
+| `conventions.bpmn-start-end` | BPMN-01 | 24 | a process (or one pool's process) has no start event or no end event |
+| `conventions.bpmn-gateway` | BPMN-04 | 24 | a splitting exclusive or inclusive gateway asks no question or leaves a branch unlabelled |
+| `conventions.bpmn-join` | BPMN-06 | 20 | parallel branches meet at something other than a joining gateway, so what follows runs once per branch |
+| `conventions.bpmn-pools` | BPMN-07 | 30 | a message flow inside one pool, or a sequence flow that crosses from one pool to another |
+| `conventions.flowchart-terminals` | FC-01 | 20 | a flowchart without exactly one start terminator and at least one end terminator |
+| `conventions.flowchart-decision` | FC-03 | 24 | a decision with fewer than two exits, or an exit that does not say which answer it is |
+| `conventions.state-initial` | SM-01 | 20 | a state machine with no initial pseudostate, more than one in a region, or one with several transitions out |
+| `conventions.state-final` | SM-03 | 15 | a transition leaves a final state |
+| `conventions.journey-incomplete` | JM-04 | 10 | a journey stage with no step, or a journey with no emotion score anywhere |

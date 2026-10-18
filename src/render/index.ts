@@ -108,7 +108,8 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
         lightStill: stillOf("light", scenes.light),
         darkStill: stillOf("dark", scenes.dark),
         name: req.name,
-        initial: req.themes[0] ?? model.theme,
+        // Both themes are in the page; it opens in the spec's own, dark unless the spec says light.
+        initial: model.theme,
       }),
       width: scenes.light.width,
       height: scenes.light.height,

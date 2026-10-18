@@ -11,13 +11,13 @@ description: >-
   flowchart into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.7.1"
+  version: "0.8.0"
   author: Sagar Gupta
 ---
 
 # orrery
 
-Write a small YAML spec (nodes with official icons, nested groups, labelled edges); the bundled CLI lays it out with ELK and renders it. No install: the CLI, the layout engine, the PNG renderer, the fonts and the official AWS, Azure, Google Cloud and Kubernetes packs ship in this folder; the logo and glyph sets (16,682 icons in all) load from their npm libraries the first time a diagram uses them and are cached. Node.js 22 or newer is the only requirement.
+Write a small YAML spec (nodes with official icons, nested groups, labelled edges); the bundled CLI lays it out with ELK and renders it. No install: the CLI, the layout engine, the PNG renderer, the fonts and the official AWS, Azure, Google Cloud and Kubernetes packs ship in this folder; the logo and glyph sets (18,209 icons in all) load from their npm libraries the first time a diagram uses them and are cached. Node.js 22 or newer is the only requirement.
 
 ```bash
 node <this-skill-folder>/scripts/orrery.mjs <command>
@@ -29,7 +29,7 @@ Below, `orrery` means that command.
 
 Follow this order. Write the spec early and let the validator steer; do not plan coordinates, layout is automatic.
 
-1. **Pin the brief** in one line before drawing: what the diagram must show, for whom (README, design doc, slide), which cloud or vendor style, light/dark, which outputs. Default: SVG + PNG, light theme, `direction: right` (`down` for tiered stacks and long chains).
+1. **Pin the brief** in one line before drawing: what the diagram must show, for whom (README, design doc, slide), which cloud or vendor style, light/dark, which outputs. Default: SVG + PNG, the `stage` skin in the dark theme, `direction: right` (`down` for tiered stacks and long chains). A flow rather than an architecture gets a `kind:` (see [Kinds](references/spec.md#kinds)): `flowchart` (ISO 5807 symbols), `process` (BPMN 2.0 with `pool` and `lane` groups and `bpmn:` nodes), `state` (UML), `tree` (org charts), `mindmap`, `journey` (stages, lanes and scores).
 2. **Find every icon id**, never guess one:
 
    ```bash
@@ -38,7 +38,7 @@ Follow this order. Write the spec early and let the validator steer; do not plan
    orrery icons search load balancer --pack azure
    ```
 
-   Official vendor icons for vendor services (`aws:`, `azure:`, `gcp:`, `k8s:`, `github:`), `logos:` (color) or `si:` (one-color brand) for third-party products, `generic:` aliases or `tabler:` for neutral concepts (user, browser, server, queue, cache). Short aliases work: `aws:s3`, `aws:alb`, `azure:aks`, `gcp:bq`, `k8s:deploy`, `generic:database`.
+   Official vendor icons for vendor services (`aws:`, `azure:`, `gcp:`, `k8s:`, `github:`), `logos:` (color) or `si:` (one-color brand) for third-party products, `generic:` aliases or `tabler:` for neutral concepts (user, browser, server, queue, cache). Short aliases work: `aws:s3`, `aws:alb`, `azure:aks`, `gcp:bq`, `k8s:deploy`, `generic:database`. Business flows: the `generic:` business names (`generic:invoice`, `generic:approval`, `generic:shipping`, `generic:customer`, `generic:ticket`; 90 in all, listed in [references/icons.md](references/icons.md)), then `ph:` (Phosphor; other weights by suffix, `ph:handshake-duotone`) or `tabler:`. A step only this team has gets its own SVG: `icons: { order-desk: ./icons/order-desk.svg }`, then `icon: local:order-desk`. Draw it with `orrery icons new`, prove it with `orrery icons check` (rules IC01 to IC10) and look at the sheet it writes, or bring one in with `orrery icons adopt`.
 3. **Start from the nearest example** when one fits (`orrery init --list`, then `orrery init aws-three-tier -o docs/architecture.yaml`), otherwise write the spec from scratch. The format is in [references/spec.md](references/spec.md); a minimal one:
 
    ```yaml
@@ -69,6 +69,7 @@ Follow this order. Write the spec early and let the validator steer; do not plan
    - With subagents, launch `orrery:conventions-reviewer`, `orrery:flow-reviewer` and `orrery:legibility-reviewer` in one message. Without them, run the three passes inline, one after another, each reading only its rubric. Skip the reviewers when the measured review passes with no findings.
    - Only you edit the spec. Apply 1 to 3 non-overlapping patches per round, re-run the review, and keep the round only if the score went up and no hard count did; otherwise restore the spec.
    - Stop when it passes, after 3 rounds, or after 2 rounds without a kept patch. Never trust a reviewer's claim of an overlap or crossing that the measurement does not show.
+   - For a process, flowchart, state machine or journey, `kind:` picks the notation rubric (BPMN 2.0, ISO 5807, UML, journey maps) and `rubrics` in the review JSON lists it next to any vendor rubric. The measured review already checks start and end events, labelled gateway and decision branches, parallel joins and pool boundaries, so reviewers judge names (tasks verb plus object, events as states, lanes as roles) and symbol choice.
 7. **Report** the written paths, node/group/edge counts, the review score and pass, the patches kept, any findings that remain with their evidence, and the embed snippet if it goes into a README.
 
 ## What makes it look professional
@@ -86,7 +87,7 @@ Follow this order. Write the spec early and let the validator steer; do not plan
 
 | Format | Use for |
 | --- | --- |
-| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Animated by default: packets travel the edges, numbered steps play in order (`animate: none` or `--static` for a still file). `skin: stage` (or `--skin stage`) draws the same layout as an animated scene in one tint (monochrome icons, mono caps labels, one story along the edges); keep the default `classic` for vendor architecture docs and use `stage` for a README hero, a slide or a project page. |
+| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Animated by default: one story plays along the edges, numbered steps in order (`animate: none` or `--static` for a still file). The default `stage` skin draws it as an animated scene in one tint (monochrome icons, mono caps labels, one story along the edges), dark unless `theme: light`; use `skin: classic` (or `--skin classic`) for vendor architecture docs that must follow the vendor's own deck, colors and icons. |
 | `png` | Slides, chat, tickets, anywhere SVG is not accepted. Always a still frame. Rendered with the bundled Inter font at 3x by default (`--scale`), so it stays sharp when zoomed or projected. |
 | `drawio` | Hand-editing in diagrams.net or the VS Code Draw.io extension; every node, group and edge is an editable cell with the official icon embedded. |
 | `tsx` | A React component (`export default function Name(props)`) for docs sites and apps. |
@@ -123,6 +124,7 @@ Patterns with spec fragments (three-tier, serverless, event-driven, data lake, s
 | `icons show <id> [-o icon.png]` | One icon's metadata, optionally rendered. |
 | `icons list [--pack gcp] [--category Databases]`, `icons packs` | Browse the catalog and its sources. |
 | `icons fetch [pack...]` | Download and cache the logo and glyph libraries now, for offline renders later. |
+| `icons new <name> [--dir icons]`, `icons check <file.svg> [-o sheet]`, `icons adopt <file.svg> --name <name>` | Start a 24-grid icon, check one against rules IC01 to IC10 with a contact sheet in both skins and themes (exit 1 on a failure), or turn someone's SVG into a clean `local:` icon. |
 | `styles` | Group types and node shapes. |
 | `init [template] [-o file] [--list]` | Copy an example spec as a starting point. |
 | `import mermaid <file.mmd\|-> [-o file]` | Convert a Mermaid flowchart into a spec. |
@@ -134,10 +136,10 @@ Labels in scripts Inter lacks (CJK, Devanagari, Arabic) need a font for the PNG:
 ## References
 
 - [references/spec.md](references/spec.md): every spec field, the edge syntax and all diagnostic codes.
-- [references/icons.md](references/icons.md): the icon packs, id rules, aliases, the `generic:` vocabulary, licenses.
+- [references/icons.md](references/icons.md): the icon packs, id rules, aliases, the `generic:` vocabulary (system design and business), your own `local:` icons, the drawing rules IC01 to IC10 and their workflow, licenses.
 - [references/styles.md](references/styles.md): group styles per vendor, with the colors and where they come from.
 - [references/patterns.md](references/patterns.md): reference architectures as spec fragments.
 - [references/outputs.md](references/outputs.md): formats, embedding, the receipt.
-- [references/review/loop.md](references/review/loop.md): the review loop, the finding and patch format, scores and every measured finding id. Its rubrics, one per reviewer pass: conventions for [AWS](references/review/conventions-aws.md), [Azure](references/review/conventions-azure.md), [Google Cloud](references/review/conventions-gcp.md) and [C4](references/review/conventions-c4.md) (vendor rules with ids, quotes and sources), [flow](references/review/flow.md), [legibility](references/review/legibility.md).
+- [references/review/loop.md](references/review/loop.md): the review loop, the finding and patch format, scores and every measured finding id. Its rubrics, one per reviewer pass: conventions for [AWS](references/review/conventions-aws.md), [Azure](references/review/conventions-azure.md), [Google Cloud](references/review/conventions-gcp.md) and [C4](references/review/conventions-c4.md) (vendor rules with ids, quotes and sources), notation for [BPMN](references/review/conventions-bpmn.md), [flowcharts](references/review/conventions-flowchart.md), [state machines](references/review/conventions-state.md) and [journeys](references/review/conventions-journey.md), [flow](references/review/flow.md), [legibility](references/review/legibility.md).
 - [references/diagram.schema.json](references/diagram.schema.json): JSON Schema for editors (`# yaml-language-server: $schema=...`).
 - `examples/*.yaml`: complete specs for each pattern, used by `init` and `demo`.

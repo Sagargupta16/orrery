@@ -338,19 +338,20 @@ describe("defaults", () => {
     );
     expect(m).toMatchObject({
       direction: "right",
-      theme: "light",
+      theme: "dark",
       routing: "orthogonal",
       spacing: 1,
       layering: "source",
       merge: true,
       arrowhead: "open",
-      skin: "classic",
+      skin: "stage",
       title: undefined,
       background: undefined,
     });
-    // Unset animate follows the skin: packets for classic.
+    // Unset animate follows the skin: relay for stage, packets for classic.
     expect(m.animate).toBeUndefined();
-    expect(animateOf(m)).toBe("packets");
+    expect(animateOf(m)).toBe("relay");
+    expect(animateOf({ ...m, skin: "classic" })).toBe("packets");
     expect(
       m.nodes.map(({ id, label, look, shape, iconSize }) => ({ id, label, look, shape, iconSize })),
     ).toEqual([

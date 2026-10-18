@@ -16,7 +16,9 @@ const files = existsSync(EXAMPLES_DIR)
 
 /** What `orrery validate` reports: parse diagnostics plus the layout checks. */
 async function validate(file: string): Promise<Diagnostic[]> {
-  const parsed = parseSpec(readFileSync(join(EXAMPLES_DIR, file), "utf8"), file);
+  // The full path, as the CLI passes it: icons: paths resolve against the spec's folder.
+  const path = join(EXAMPLES_DIR, file);
+  const parsed = parseSpec(readFileSync(path, "utf8"), path);
   if (!parsed.model) return parsed.diagnostics;
   const rendered = await renderModel({
     model: parsed.model,

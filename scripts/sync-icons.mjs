@@ -743,7 +743,7 @@ function buildIconify(
   title,
   page,
   license,
-  { mono = false, category = "Logos", type = "logo", kind } = {},
+  { mono = false, category = "Logos", type = "logo", kind, variants } = {},
 ) {
   const data = iconifySet(pkg);
   const info = JSON.parse(readFileSync(join(nodeModules, pkg, "info.json"), "utf8"));
@@ -753,8 +753,20 @@ function buildIconify(
     page,
     license,
   });
-  pack.lib = librarySource(pkg, "icons.json", mono ? { mono: true } : {});
-  const names = Object.keys(data.icons).sort();
+  pack.lib = librarySource(pkg, "icons.json", {
+    ...(mono ? { mono: true } : {}),
+    ...(variants ? { variants } : {}),
+  });
+  // A weight the set names by suffix ("cube-bold") is left out of the index; the renderer resolves
+  // it from the plain name (src/icons.ts), so the catalog grows by one row per icon, not six.
+  const variant = (name) =>
+    variants?.some((w) => {
+      const base = name.slice(0, -w.length - 1);
+      return name.endsWith(`-${w}`) && (data.icons[base] || data.aliases?.[base]);
+    });
+  const names = Object.keys(data.icons)
+    .filter((name) => !variant(name))
+    .sort();
   const dated = new Map();
   for (const name of names) {
     const m = name.match(/^(.+)-(20\d\d)$/);
@@ -788,6 +800,7 @@ const PROSE_LABELS = {
   k8s: "Kubernetes",
   github: "GitHub Octicons",
   ibm: "IBM Carbon",
+  ph: "Phosphor",
 };
 const VERSION_TOKENS = /\d{4}-\d{2}-\d{2}|\bV\d+\b|\b[0-9a-f]{7}\b|\d+\.\d+\.\d+/g;
 const fmt = (n) => n.toLocaleString("en-US");
@@ -944,6 +957,13 @@ async function main() {
       "MIT",
       { mono: true, category: "Generic", type: "glyph" },
     ),
+    // Phosphor's regular weight is indexed; bold, duotone, fill, light and thin resolve by suffix.
+    buildIconify("@iconify-json/ph", "ph", "Phosphor Icons", "https://phosphoricons.com", "MIT", {
+      mono: true,
+      category: "Generic",
+      type: "glyph",
+      variants: ["bold", "duotone", "fill", "light", "thin"],
+    }),
   ];
 
   const aliasTable = existsSync(aliasesPath) ? JSON.parse(readFileSync(aliasesPath, "utf8")) : {};

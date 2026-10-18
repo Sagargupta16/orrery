@@ -1,5 +1,5 @@
 {
   "name": "orrery",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, auto-laid out and rendered to SVG, PNG, draw.io, React TSX and HTML. Ships the orrery skill with a zero-install CLI."
 }

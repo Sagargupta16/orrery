@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Order to cash
+subtitle: A customer order through sales, the warehouse and finance in BPMN 2.0, with message flows between the two participants
+kind: process
+# Pools run top to bottom here, so the collaboration reads on a phone; direction: right lays the
+# same spec out as horizontal bands.
+direction: down
+layout: { spacing: compact }
+
+groups:
+  customer: { type: pool, label: Customer }
+  supplier: { type: pool, label: Supplier }
+  sales: { type: lane, in: supplier, label: Sales }
+  warehouse: { type: lane, in: supplier, label: Warehouse }
+  finance: { type: lane, in: supplier, label: Finance }
+
+nodes:
+  need: { bpmn: start, label: Goods needed, in: customer }
+  place: { bpmn: user-task, label: Place order, in: customer }
+  pay: { bpmn: user-task, label: Pay invoice, in: customer }
+  receive: { bpmn: receive-task, label: Receive goods, in: customer }
+  done: { bpmn: end, label: Order fulfilled, in: customer }
+
+  received: { bpmn: start-message, label: Order received, in: sales }
+  valid: { bpmn: exclusive, label: Stock and credit OK?, in: sales }
+  reject: { bpmn: send-task, label: Reject order, in: sales }
+  rejected: { bpmn: end, label: Order rejected, in: sales }
+  split: { bpmn: parallel, in: sales }
+  join: { bpmn: parallel, in: sales }
+  closed: { bpmn: end, label: Order closed, in: sales }
+
+  pick: { bpmn: manual-task, label: Pick and pack, in: warehouse }
+  ship: { bpmn: send-task, label: Ship goods, in: warehouse }
+
+  invoice: { bpmn: service-task, label: Send invoice, in: finance }
+  payment: { bpmn: receive-task, label: Record payment, in: finance }
+
+edges:
+  - need -> place -> pay -> receive -> done
+  - received -> valid
+  - valid -> split: "Yes"
+  - valid -> reject: "No"
+  - reject -> rejected
+  - split -> pick -> ship -> join
+  - split -> invoice -> payment -> join
+  - join -> closed
+  - place -> received: { flow: message, label: Purchase order }
+  - invoice -> pay: { flow: message, label: Invoice }
+  - pay -> payment: { flow: message, label: Payment }
+  - ship -> receive: { flow: message, label: Goods }

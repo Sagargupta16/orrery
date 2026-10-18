@@ -19,7 +19,7 @@ nodes:
   azure: { icon: azure:virtual-machine, label: Azure, note: 636 icons, in: catalog }
   gcp: { icon: gcp:cloud-run, label: Google Cloud, note: 233 icons, in: catalog }
   k8s: { icon: k8s:kubernetes, label: Kubernetes, note: 40 icons, in: catalog }
-  more: { icon: tabler:library, label: "Octicons, Carbon, logos, Tabler", note: "14,963 icons", in: libs }
+  more: { icon: tabler:library, label: "Octicons, Carbon, logos, Tabler, Phosphor", note: "16,490 icons", in: libs }
   layout: { icon: tabler:hierarchy-3, label: ELK layout, in: engine }
   check: { icon: tabler:ruler-measure, label: Check, note: DG2xx layout checks, in: engine }
   render: { icon: tabler:brush, label: Render, in: engine }

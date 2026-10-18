@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/Sagargupta16/orrery/main/skills/orrery/references/diagram.schema.json",
   "title": "orrery diagram spec",
-  "description": "An architecture or system design diagram: nodes with official icons, nested groups and labelled edges. Validate with `orrery validate`; render with `orrery render`.",
+  "description": "An architecture, system design or business flow diagram: nodes with official icons, nested groups and labelled edges; also flowcharts, BPMN processes, state machines, trees, mind maps and customer journeys (`kind`). Validate with `orrery validate`; render with `orrery render`.",
   "type": "object",
   "additionalProperties": false,
   "required": ["nodes"],
@@ -11,8 +11,30 @@
     "version": { "type": ["string", "number"] },
     "title": { "type": "string", "description": "Drawn top left; the SVG title and the TSX component name." },
     "subtitle": { "type": "string" },
+    "kind": {
+      "enum": ["architecture", "flowchart", "process", "state", "tree", "mindmap", "journey"],
+      "default": "architecture",
+      "description": "What the diagram is. architecture: vendor boxes and lines; flowchart: ISO 5807 symbols; process: BPMN 2.0 with pools and lanes; state: a UML state machine; tree: an org chart or hierarchy; mindmap: a two-sided mind map; journey: a customer journey grid of stages and lanes. Sets the default direction and arrowhead."
+    },
+    "icons": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "\\.svg$" },
+      "propertyNames": { "pattern": "^[a-z0-9][a-z0-9-]*$" },
+      "description": "Your own SVG icons, name to file (relative to the spec), used as icon: local:<name>. `orrery icons new`, `icons check` and `icons adopt` make and verify them."
+    },
+    "stages": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Journey columns, in order (kind: journey); each node names its stage."
+    },
+    "story": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 2,
+      "description": "Node ids in the order the stage story visits them, each hop along an edge."
+    },
     "direction": { "enum": ["right", "down", "left", "up"], "default": "right" },
-    "theme": { "enum": ["light", "dark"], "default": "light" },
+    "theme": { "enum": ["light", "dark"], "default": "dark" },
     "look": { "enum": ["icon", "card"], "default": "icon", "description": "Default look for nodes with an icon." },
     "arrowhead": { "enum": ["open", "filled"], "default": "open" },
     "animate": {
@@ -21,8 +43,8 @@
     },
     "skin": {
       "enum": ["classic", "stage"],
-      "default": "classic",
-      "description": "classic: the vendors' own diagram styles. stage: the same layout as an animated scene in one tint (hairline grid, monochrome icons on ink tiles, mono caps labels), whose story runs the numbered edges in step order, else the longest path."
+      "default": "stage",
+      "description": "stage (the default): the same layout as an animated scene in one tint (hairline grid, monochrome icons on ink tiles, mono caps labels), whose story runs the numbered edges in step order, else the longest path. classic: the vendors' own diagram styles."
     },
     "background": { "type": "string", "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|transparent)$" },
     "legend": {
@@ -98,8 +120,14 @@
         "look": { "enum": ["icon", "card", "shape"] },
         "style": { "enum": ["icon", "card", "shape"] },
         "shape": {
-          "enum": ["box", "rounded", "pill", "circle", "diamond", "hexagon", "cylinder", "queue", "document", "note", "person", "cloud", "stack"]
+          "enum": ["box", "rounded", "pill", "circle", "diamond", "hexagon", "cylinder", "queue", "document", "note", "person", "cloud", "stack", "parallelogram", "subroutine", "trapezoid", "delay", "initial", "final", "terminator", "terminal", "decision", "process", "data", "io", "input", "output", "predefined", "manual", "database", "state"]
         },
+        "bpmn": {
+          "enum": ["start", "start-message", "start-timer", "start-signal", "start-conditional", "intermediate", "intermediate-message", "intermediate-timer", "intermediate-signal", "end", "end-message", "end-error", "end-signal", "end-terminate", "end-escalation", "exclusive", "parallel", "inclusive", "event-based", "complex", "task", "user-task", "service-task", "manual-task", "script-task", "send-task", "receive-task", "business-rule-task", "subprocess", "call-activity", "data-object", "data-store"],
+          "description": "BPMN 2.0 element (kind: process): an event, gateway, task, subprocess or data element, drawn in BPMN notation."
+        },
+        "stage": { "type": "string", "description": "Journey column this step sits in (one of stages)." },
+        "score": { "type": "number", "minimum": -2, "maximum": 2, "description": "Journey emotion at this step, from -2 (very negative) to 2 (very positive)." },
         "color": { "$ref": "#/$defs/hex" },
         "badge": { "type": "string" },
         "url": { "type": "string" },
@@ -144,6 +172,10 @@
         "arrow": { "enum": ["end", "start", "both", "none"] },
         "color": { "$ref": "#/$defs/hex" },
         "step": { "type": "integer", "minimum": 0, "maximum": 99 },
+        "flow": {
+          "enum": ["sequence", "message", "default", "conditional", "association"],
+          "description": "Process flow kind: message (between pools, dashed), default (a gateway's fallback branch), conditional, association (dotted, no arrowhead). Unset: sequence."
+        },
         "constraint": { "type": "boolean", "description": "false: drawn after layout, ignored by it." }
       }
     },
@@ -163,6 +195,10 @@
         "arrow": { "enum": ["end", "start", "both", "none"] },
         "color": { "$ref": "#/$defs/hex" },
         "step": { "type": "integer", "minimum": 0, "maximum": 99 },
+        "flow": {
+          "enum": ["sequence", "message", "default", "conditional", "association"],
+          "description": "Process flow kind: message (between pools, dashed), default (a gateway's fallback branch), conditional, association (dotted, no arrowhead). Unset: sequence."
+        },
         "constraint": { "type": "boolean" }
       }
     }

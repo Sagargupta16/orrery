@@ -1,6 +1,6 @@
 # Example gallery
 
-Thirty-two diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The pictures here are the `classic` skin; add `--skin stage` to any command below for the same layout in the stage skin, or switch between them on the [website gallery](https://sagargupta.online/orrery/gallery/). The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
+Forty diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The pictures here are the default `stage` skin in the dark theme; add `--skin classic` to any command below for the same layout in each vendor's own style, `--theme light` for the light theme, or switch between them on the [website gallery](https://sagargupta.online/orrery/gallery/). The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
 
 Run the commands from the repository root; `orrery` stands for `node skills/orrery/scripts/orrery.mjs`. `pnpm gallery` re-renders every picture here, and `node scripts/gallery.mjs --check` (run by CI) fails when a committed picture no longer matches its spec.
 
@@ -195,3 +195,55 @@ Run the commands from the repository root; `orrery` stands for `node skills/orre
 <a href="github-actions-cicd.svg"><img src="github-actions-cicd.svg" alt="CI/CD from GitHub Actions to AWS with OIDC, ECR, CloudFormation and ECS"></a>
 
 `orrery render skills/orrery/examples/github-actions-cicd.yaml -o examples/github-actions-cicd -f svg,png`
+
+## Business flows
+
+The same spec format drawn as flows: `kind:` picks the notation and the layout. Each renders in the stage skin too, where a process plays as a BPMN token and a tree grows out of its root.
+
+[`flowchart-order-approval`](../skills/orrery/examples/flowchart-order-approval.yaml): an ISO 5807 flowchart (`kind: flowchart`) of order approval. Order details come in through a data parallelogram and a predefined credit check decides; a failed check asks for prepayment (a manual operation) and waits up to 48 hours (a delay), an order over the limit needs a manager's sign-off, and approved orders end with a printed invoice (a document).
+
+<a href="flowchart-order-approval.svg"><img src="flowchart-order-approval.svg" alt="Order approval flowchart with terminators, an input parallelogram, a predefined credit check, yes/no decisions, manual steps, a delay and a document"></a>
+
+`orrery render skills/orrery/examples/flowchart-order-approval.yaml -o examples/flowchart-order-approval -f svg,png`
+
+[`local-icons-order-desk`](../skills/orrery/examples/local-icons-order-desk.yaml): a business flowchart from a customer's order to a delivered parcel and a paid invoice. The order desk, the credit check and the packing bench are the team's own SVG icons (`local:`), drawn to the IC01 to IC10 rules and passed by `orrery icons check`; the other steps use the business `generic:` names.
+
+<a href="local-icons-order-desk.svg"><img src="local-icons-order-desk.svg" alt="Order desk flowchart: customer order, order desk, credit check, a within-limit decision with a sales manager branch, pick and pack, then courier to delivered and invoice to paid"></a>
+
+`orrery render skills/orrery/examples/local-icons-order-desk.yaml -o examples/local-icons-order-desk -f svg,png`
+
+[`process-order-to-cash`](../skills/orrery/examples/process-order-to-cash.yaml): order to cash in BPMN 2.0 (`kind: process`): a Customer pool and a Supplier pool with Sales, Warehouse and Finance lanes, run top to bottom. A message start event, user, send, receive and service tasks, an exclusive gateway with Yes and No branches, a parallel split and join, and four message flows between the pools.
+
+<a href="process-order-to-cash.svg"><img src="process-order-to-cash.svg" alt="BPMN order-to-cash process: a customer pool and a supplier pool with sales, warehouse and finance lanes, exchanging purchase order, invoice, payment and goods messages"></a>
+
+`orrery render skills/orrery/examples/process-order-to-cash.yaml -o examples/process-order-to-cash -f svg,png`
+
+[`swimlane-incident-response`](../skills/orrery/examples/swimlane-incident-response.yaml): a cross-functional flowchart of incident response in three standalone lanes (On-call engineer, Incident lead, Communications), with terminators, decisions and a mitigation loop.
+
+<a href="swimlane-incident-response.svg"><img src="swimlane-incident-response.svg" alt="Swimlane flowchart of incident response across the on-call engineer, incident lead and communications lanes, from the alert to the postmortem"></a>
+
+`orrery render skills/orrery/examples/swimlane-incident-response.yaml -o examples/swimlane-incident-response -f svg,png`
+
+[`state-order-lifecycle`](../skills/orrery/examples/state-order-lifecycle.yaml): an order's lifecycle as a UML state machine (`kind: state`): initial and final states, Created through Delivered with Cancelled and Refunded, transitions written event [guard] / action, and a self-transition looped on the corner of Created.
+
+<a href="state-order-lifecycle.svg"><img src="state-order-lifecycle.svg" alt="State machine: an order goes from Created to Paid, Packed, Shipped and Delivered, can be Cancelled or Refunded, and loops on Created when edited"></a>
+
+`orrery render skills/orrery/examples/state-order-lifecycle.yaml -o examples/state-order-lifecycle -f svg,png`
+
+[`tree-org-chart`](../skills/orrery/examples/tree-org-chart.yaml): a product organization as an org chart (`kind: tree`): the chief product officer, three directors and their eight teams as cards with generic icons, each parent centered over its reports on a shared connector bar.
+
+<a href="tree-org-chart.svg"><img src="tree-org-chart.svg" alt="Org chart: the Chief Product Officer over Design, Engineering and Product management, each over its teams"></a>
+
+`orrery render skills/orrery/examples/tree-org-chart.yaml -o examples/tree-org-chart -f svg,png`
+
+[`mindmap-product-launch`](../skills/orrery/examples/mindmap-product-launch.yaml): a product launch as a two-sided mind map (`kind: mindmap`): five workstreams split between the halves with fifteen ideas, curved branches thick out of the root and one color per workstream.
+
+<a href="mindmap-product-launch.svg"><img src="mindmap-product-launch.svg" alt="Mind map: Product launch in the middle, with Market, Sales and Support on the right and Product and Comms on the left, each with its ideas"></a>
+
+`orrery render skills/orrery/examples/mindmap-product-launch.yaml -o examples/mindmap-product-launch -f svg,png`
+
+[`journey-saas-onboarding`](../skills/orrery/examples/journey-saas-onboarding.yaml): a customer journey map (`kind: journey`): five stages from Discover to Renew as columns, lanes for customer actions, touchpoints, pain points and opportunities as rows, the customer's path as arrows, and an emotion curve from each step's score that dips at the data import and peaks at the first shared report.
+
+<a href="journey-saas-onboarding.svg"><img src="journey-saas-onboarding.svg" alt="SaaS onboarding customer journey map: five stages, four lanes of step cards and an emotion curve across the stages"></a>
+
+`orrery render skills/orrery/examples/journey-saas-onboarding.yaml -o examples/journey-saas-onboarding -f svg,png`

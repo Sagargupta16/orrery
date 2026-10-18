@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds everything the site shows from the repository itself, so the site never drifts from the
-// renderer: every example in both themes and every format (and in the stage skin as SVG), the README art, the gallery captions
+// renderer: every example in both themes and every format (and in the classic skin as SVG), the README art, the gallery captions
 // from examples/README.md and the catalog numbers from the icon index. Output goes to
 // public/gallery, public/art and src/data/generated, all git-ignored.
 //
@@ -38,6 +38,11 @@ const CATEGORIES = [
   ["data", "Data", (n) => /data|lake|streaming-analytics/.test(n)],
   ["devops", "CI/CD and ops", (n) => /cicd|gitops|observability/.test(n)],
   ["system-design", "System design", (n) => n.startsWith("system-design-") || n === "c4-container"],
+  [
+    "flows",
+    "Business flows",
+    (n) => /^(flowchart|process|swimlane|state|tree|mindmap|journey|local-icons)-/.test(n),
+  ],
   ["multi-cloud", "Multi-cloud", (n) => n === "multi-cloud"],
   ["web", "Web apps", (n) => /web|three-tier|serverless|starter|modern/.test(n)],
 ];
@@ -60,19 +65,19 @@ async function renderExample(file) {
   const dir = join(galleryOut, name);
   mkdirSync(dir, { recursive: true });
   await run(process.execPath, [cli, "render", specPath, "-o", join(dir, name), "-f", "all", "--theme", "both"]);
-  // The same diagram in the stage skin (same layout), for the gallery's Classic / Stage switch.
+  // The same diagram in the classic skin (same layout), for the gallery's Stage / Classic switch.
   await run(process.execPath, [
     cli,
     "render",
     specPath,
     "-o",
-    join(dir, `${name}-stage`),
+    join(dir, `${name}-classic`),
     "-f",
     "svg",
     "--theme",
     "both",
     "--skin",
-    "stage",
+    "classic",
   ]);
   copyFileSync(specPath, join(dir, `${name}.yaml`));
 
@@ -93,7 +98,7 @@ async function renderExample(file) {
     subtitle: spec.subtitle ?? "",
     caption: info?.caption ?? spec.subtitle ?? "",
     alt: info?.alt ?? spec.title ?? name,
-    theme: spec.theme === "dark" ? "dark" : "light",
+    theme: spec.theme === "light" ? "light" : "dark",
     width: Math.round(Number(w) || 1200),
     height: Math.round(Number(h) || 800),
     packs,

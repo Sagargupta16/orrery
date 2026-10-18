@@ -70,6 +70,8 @@ const ORRERY = "orrery";
 // orrery's own outlines keep 3:1 against white and against the zone fill (WCAG 1.4.11).
 const OUTLINE = "#888f99";
 const C4 = "C4-PlantUML v2.14.0 boundary style";
+const BPMN =
+  "BPMN 2.0 (OMG formal/13-12-09), Pools and Lanes; bpmn-js BpmnRenderer (participant and lane: 1.5px, 30px label strip)";
 
 const DEFS: Record<string, StyleSpec> = {
   // ------------------------------------------------------------- AWS
@@ -445,19 +447,27 @@ const DEFS: Record<string, StyleSpec> = {
     description: "A filled panel with a soft outline, for tiers and lanes.",
     source: ORRERY,
   },
+  // bpmn-js draws participants and lanes as square bands in its one dark line color
+  // (hsl(225, 10%, 15%)) at 1.5px, white, with the name centered in a 30px strip.
   pool: {
     label: "",
-    stroke: "#545b64",
+    stroke: "#22242a",
+    labelColor: "ink",
+    rounded: 0,
+    strokeWidth: 1.5,
     description:
-      "A BPMN pool: one participant (an organization, a role, a system), drawn as a band with its name in a strip across the flow. Holds lanes.",
-    source: "BPMN 2.0 (OMG formal/13-12-09), Pools and Lanes",
+      "A BPMN pool: one participant (an organization, a role, a system), drawn as a band across the flow with its name in a strip. Holds lanes; with nothing in it, a black box that only exchanges messages.",
+    source: BPMN,
   },
   lane: {
     label: "",
-    stroke: "#8b95a1",
+    stroke: "#22242a",
+    labelColor: "ink",
+    rounded: 0,
+    strokeWidth: 1.5,
     description:
-      "A swimlane: who does the steps inside it, a band across the flow with its name in a strip. Inside a pool, or on its own.",
-    source: "BPMN 2.0 (OMG formal/13-12-09), Pools and Lanes",
+      "A swimlane: who does the steps inside it, a band across the flow with its name in a strip. Inside a pool, or on its own for a cross-functional flowchart.",
+    source: BPMN,
   },
   boundary: {
     label: "",

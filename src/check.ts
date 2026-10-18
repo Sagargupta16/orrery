@@ -237,10 +237,12 @@ export function checkScene(scene: Scene, model: Model, opts: CheckOptions = {}):
 
   // DG207: empty groups; DG208: nodes nothing connects to.
   for (const g of model.groups) {
+    // An empty pool that exchanges messages is a black-box participant (BPMN), not a leftover.
     const used =
       !!g.around?.length ||
       model.nodes.some((x) => x.parent === g.id) ||
-      model.groups.some((x) => x.parent === g.id);
+      model.groups.some((x) => x.parent === g.id) ||
+      (g.type === "pool" && model.edges.some((e) => e.from === g.id || e.to === g.id));
     if (!used) {
       warn("DG207", `group "${g.id}" is empty`, {
         subject: { group: g.id },
@@ -257,7 +259,8 @@ export function checkScene(scene: Scene, model: Model, opts: CheckOptions = {}):
     for (let p: string | undefined = id; p; p = parentOf.get(p)) if (touched.has(p)) return true;
     return model.groups.some((g) => g.around?.includes(id) && touched.has(g.id));
   };
-  for (const n of model.nodes) {
+  // A journey's grid places its steps, so links between them are optional.
+  for (const n of model.kind === "journey" ? [] : model.nodes) {
     if (!reached(n.id) && model.edges.length) {
       warn("DG208", `node "${n.id}" has no connections`, {
         subject: { node: n.id },
@@ -267,27 +270,31 @@ export function checkScene(scene: Scene, model: Model, opts: CheckOptions = {}):
   }
 
   // DG209: an edge runs through a group's header label (the chip hides the line, so it looks broken).
+  // A pool or lane names itself in a strip across the flow (a black box in its whole band): edges
+  // cross the band's borders by design, but never the strip.
   for (const g of scene.groups) {
-    const chip = headerChip(g);
+    const chip = g.lane ? g.lane.header : headerChip(g);
     if (!chip) continue;
+    const what = g.lane ? "the name strip of" : "the header label of group";
     for (const e of scene.edges) {
       for (let i = 0; i + 1 < e.points.length; i++) {
         const p = e.points[i];
         const q = e.points[i + 1];
         if (p && q && segmentHitsBox(p, q, chip, EPS)) {
-          warn(
-            "DG209",
-            `edge ${e.from} -> ${e.to} runs through the header label of group "${g.id}"`,
-            {
-              subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
-              evidence: { header: boxOf(chip), segment: [pointOf(p), pointOf(q)] },
-              fixes: [
-                `shorten the label of group "${g.id}" so the edge clears it`,
-                `move "${e.from}" or "${e.to}" in the nodes list so the edge enters the group elsewhere`,
-                "use layout: { spacing: loose }",
-              ],
-            },
-          );
+          warn("DG209", `edge ${e.from} -> ${e.to} runs through ${what} "${g.id}"`, {
+            subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
+            evidence: { header: boxOf(chip), segment: [pointOf(p), pointOf(q)] },
+            fixes: g.lane
+              ? [
+                  `move "${e.from}" or "${e.to}" into the band it reaches, or next to it in the spec`,
+                  "use layout: { spacing: loose }",
+                ]
+              : [
+                  `shorten the label of group "${g.id}" so the edge clears it`,
+                  `move "${e.from}" or "${e.to}" in the nodes list so the edge enters the group elsewhere`,
+                  "use layout: { spacing: loose }",
+                ],
+          });
           break;
         }
       }
@@ -572,11 +579,15 @@ export function checkScene(scene: Scene, model: Model, opts: CheckOptions = {}):
     }
   }
 
-  // DG217: a line style is drawn that the legend does not explain.
+  // DG217: a line style is drawn that the legend does not explain. BPMN's own notation explains a
+  // dashed message flow and a dotted association.
   const explained = new Set<EdgeLine>((model.legend ?? []).map((l) => l.line));
+  const notation = (e: Model["edges"][number]) =>
+    (e.flow === "message" && e.line === "dashed") ||
+    (e.flow === "association" && e.line === "dotted");
   const styles = new Map<EdgeLine, number>();
   for (const e of model.edges) {
-    if (e.line !== "solid" && !explained.has(e.line))
+    if (e.line !== "solid" && !explained.has(e.line) && !notation(e))
       styles.set(e.line, (styles.get(e.line) ?? 0) + 1);
   }
   if (styles.size) {

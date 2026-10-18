@@ -7,7 +7,7 @@ import { iconAspect } from "./icons.ts";
 import { journeyLayout } from "./journey.ts";
 import { kindHooks } from "./kinds.ts";
 import { laneHooks } from "./lanes.ts";
-import { notationGeometry, placeNotation } from "./notation.ts";
+import { notationGeometry, notationHooks, placeNotation } from "./notation.ts";
 import { vendorDir } from "./paths.ts";
 import { stageColors } from "./skins.ts";
 import { resolveGroupStyle } from "./styles.ts";
@@ -123,8 +123,9 @@ const ELK_ROUTING = {
 
 const round = (v: number) => Math.round(v * 100) / 100;
 
-/** The extension modules, in the order their hooks run. */
-const HOOKS: LayoutHooks[] = [laneHooks, kindHooks];
+/** The extension modules, in the order their hooks run: lanes and kinds place and route, then
+ * notation moves edge ends from a box onto the outline drawn in it. */
+const HOOKS: LayoutHooks[] = [laneHooks, kindHooks, notationHooks];
 
 function nodeGeometry(n: ModelNode, horizontal: boolean): NodeGeom {
   const notation = notationGeometry(n, horizontal);
@@ -497,7 +498,9 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       side === "in"
         ? e.arrow === "end" || e.arrow === "both"
         : e.arrow === "start" || e.arrow === "both";
-    const id = `${nodeId}::${side}::${e.line}::${head ? 1 : 0}::${e.color ?? ""}`;
+    // Flows of different kinds (a gateway's default and conditional branches) keep their own
+    // trunks, so their start markers do not overlap.
+    const id = `${nodeId}::${side}::${e.line}::${head ? 1 : 0}::${e.color ?? ""}${e.flow ? `::${e.flow}` : ""}`;
     el.ports ??= [];
     if (!el.ports.some((p) => p.id === id)) el.ports.push({ id, width: 0, height: 0 });
     el.layoutOptions = { ...el.layoutOptions, "elk.portConstraints": "FREE" };
@@ -1139,7 +1142,8 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     }
   }
 
-  for (const h of HOOKS) h.after?.({ model, theme, horizontal, top, nodes, groups, edges });
+  const hooked = { model, theme, horizontal, top, nodes, groups, edges, routing: model.routing };
+  for (const h of HOOKS) h.after?.(hooked);
 
   // Overlays are drawn around their members after routing, so an edge can run right along an
   // overlay's border and read as a double line: move that side out until the edge is 8px clear.
@@ -1258,18 +1262,19 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     }
   }
 
-  let width = round((result.width ?? 0) + dx);
-  let height = round((result.height ?? 0) + top + dy);
+  // Pools and lanes place every band themselves, so ELK's flat canvas is no floor for them.
+  let width = hidden.size ? 0 : round((result.width ?? 0) + dx);
+  let height = hidden.size ? 0 : round((result.height ?? 0) + top + dy);
   // Overlay groups and free-edge labels are placed after ELK sized the canvas; so is everything a
   // hook moved (lanes, trees).
-  const hooked =
+  const relocated =
     model.kind !== "architecture" || hidden.size > 0
       ? nodes.flatMap((n) => [n.box, n.labelBox, n.noteBox, n.badgeBox])
       : [];
   for (const b of [
     ...groups.map((g) => g.box),
     ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
-    ...hooked,
+    ...relocated,
   ]) {
     if (!b) continue;
     width = Math.max(width, round(b.x + b.w + SIZES.pad));
@@ -1309,7 +1314,7 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     height,
     theme,
     direction: model.direction,
-    routing: model.routing,
+    routing: hooked.routing,
     arrowhead: model.arrowhead,
     animate: animateOf(model),
     skin: model.skin,

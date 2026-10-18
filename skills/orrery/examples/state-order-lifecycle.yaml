@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Order lifecycle
+subtitle: "UML state machine: transitions read event [guard] / action"
+kind: state
+# Top to bottom: left to right, seven states with long transition labels make a strip.
+direction: down
+# One port per transition, as UML draws them; a self-transition then keeps the top of its state.
+layout: { merge: false, spacing: compact }
+
+nodes:
+  start: { shape: initial }
+  created: { shape: state, label: Created }
+  paid: { shape: state, label: Paid }
+  packed: { shape: state, label: Packed }
+  shipped: { shape: state, label: Shipped }
+  delivered: { shape: state, label: Delivered }
+  cancelled: { shape: state, label: Cancelled }
+  refunded: { shape: state, label: Refunded }
+  end: { shape: final }
+  closed: { shape: final }
+
+edges:
+  - start -> created
+  - created -> paid: "pay [card ok] / charge"
+  - created -> created: "edit / recalc total"
+  - created -> cancelled: "cancel / release stock"
+  - paid -> packed: "pick / print label"
+  - paid -> refunded: "cancel [not packed] / refund"
+  - packed -> shipped: "hand over / send tracking"
+  - shipped -> delivered: "deliver / notify buyer"
+  - delivered -> refunded: "return [within 30 days] / refund"
+  - delivered -> end
+  - cancelled -> closed
+  - refunded -> end

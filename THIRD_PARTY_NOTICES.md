@@ -4,7 +4,7 @@ orrery's own code and documentation are MIT licensed ([LICENSE](LICENSE)). The i
 
 ## Icon packs
 
-The `aws`, `azure`, `gcp` and `k8s` packs live in `skills/orrery/assets/icons/` and are rebuilt from the sources below by `scripts/sync-icons.mjs` (download URLs and SHA-256 checksums are pinned in `scripts/icon-sources.json`). Their SVGs are normalized (inlined styles, prefixed ids); shapes and colors are not changed. The `github`, `ibm`, `logos`, `si` and `tabler` sets are not redistributed by this repository: only their names and search keywords are in `assets/icons/index.json`, and the renderer loads the icons from each set's own npm package at the pinned version, at render time (ids prefixed and monochrome glyphs colored as they are drawn).
+The `aws`, `azure`, `gcp` and `k8s` packs live in `skills/orrery/assets/icons/` and are rebuilt from the sources below by `scripts/sync-icons.mjs` (download URLs and SHA-256 checksums are pinned in `scripts/icon-sources.json`). Their SVGs are normalized (inlined styles, prefixed ids); shapes and colors are not changed. The `github`, `ibm`, `logos`, `si`, `tabler` and `ph` sets are not redistributed by this repository: only their names and search keywords are in `assets/icons/index.json`, and the renderer loads the icons from each set's own npm package at the pinned version, at render time (ids prefixed and monochrome glyphs colored as they are drawn).
 
 | Pack | Source | Terms |
 | --- | --- | --- |
@@ -17,6 +17,7 @@ The `aws`, `azure`, `gcp` and `k8s` packs live in `skills/orrery/assets/icons/` 
 | `logos` | [SVG Logos](https://github.com/gilbarbara/logos) by Gil Barbara, loaded from npm `@iconify-json/logos` 1.2.16 | CC0 1.0 for the collection. Every logo remains its owner's trademark. |
 | `si` | [Simple Icons](https://github.com/simple-icons/simple-icons) 16.35.0, loaded from npm `@iconify-json/simple-icons` 1.2.100 | CC0 1.0 for the collection ([disclaimer](https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md)). Entries whose own recorded license is non-commercial, no-derivatives, share-alike, GPL, AGPL, MPL or custom are excluded. Kept entries with a recorded attribution license (CC-BY, Apache-2.0, MIT, BSD) are listed with their source in `skills/orrery/assets/icons/simple-icons-licenses.json` under `attributed`; the excluded ones under `skipped`. |
 | `tabler` | [Tabler Icons](https://github.com/tabler/tabler-icons) 3.49.0, loaded from npm `@iconify-json/tabler` 1.2.42 | MIT License, Copyright (c) 2020-2024 Pawel Kuna. |
+| `ph` | [Phosphor Icons](https://github.com/phosphor-icons/core) 2.1.1, loaded from npm `@iconify-json/ph` 1.2.2 | MIT License, Copyright (c) 2023 Phosphor Icons. |
 
 ## Fonts
 

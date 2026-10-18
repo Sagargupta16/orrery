@@ -24,9 +24,10 @@ function jobs() {
     .filter((x) => /\.ya?ml$/.test(x))
     .sort()) {
     const name = f.replace(/\.ya?ml$/, "");
-    const theme = /^theme: dark/m.test(readFileSync(join(examplesDir, f), "utf8"))
-      ? "dark"
-      : "light";
+    // Dark is the default theme; a spec that asks for light gets light.
+    const theme = /^theme: light/m.test(readFileSync(join(examplesDir, f), "utf8"))
+      ? "light"
+      : "dark";
     list.push({
       spec: join(examplesDir, f),
       base: `examples/${name}`,

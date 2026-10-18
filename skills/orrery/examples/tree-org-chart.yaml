@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Product organization
+subtitle: Three levels, from the chief product officer to the teams, as an org chart
+kind: tree
+look: card
+
+nodes:
+  cpo: { icon: generic:user, label: Chief Product Officer, note: Strategy and roadmap }
+  design: { icon: generic:browser, label: Design, note: 9 people }
+  engineering: { icon: generic:code, label: Engineering, note: 24 people }
+  pm: { icon: generic:dashboard, label: Product management, note: 7 people }
+  research: { icon: generic:search, label: User research }
+  brand: { icon: generic:web, label: Brand and UI }
+  platform: { icon: generic:server, label: Platform }
+  web: { icon: generic:browser, label: Web app }
+  mobile: { icon: generic:mobile, label: Mobile apps }
+  growth: { icon: generic:metrics, label: Growth }
+  payments: { icon: generic:payment, label: Payments }
+
+edges:
+  - cpo -> design, engineering, pm
+  - design -> research, brand
+  - engineering -> platform, web, mobile
+  - pm -> growth, payments

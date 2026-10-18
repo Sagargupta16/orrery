@@ -6,6 +6,7 @@ import type {
   Model,
   ModelNode,
   Point,
+  Routing,
   SceneEdge,
   SceneGroup,
   SceneNode,
@@ -33,6 +34,8 @@ export interface AfterLayout {
   nodes: SceneNode[];
   groups: SceneGroup[];
   edges: SceneEdge[];
+  /** The scene's routing; a hook that redraws edges as curves sets it to spline. */
+  routing: Routing;
 }
 
 export interface LayoutHooks {
