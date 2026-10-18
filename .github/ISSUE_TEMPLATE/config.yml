@@ -3,6 +3,9 @@ contact_links:
   - name: Install and usage
     url: https://github.com/Sagargupta16/orrery#install
     about: How to add the plugin or the skill, the spec format, icons and outputs. Check here before filing an Issue.
+  - name: Questions, ideas and diagrams to share
+    url: https://github.com/Sagargupta16/orrery/discussions
+    about: Ask in Q&A, suggest icons, examples or outputs in Ideas, and show what you drew in Show and tell.
   - name: Contributing guide
     url: https://github.com/Sagargupta16/orrery/blob/main/CONTRIBUTING.md
     about: How the renderer, icon sync, examples and checks fit together, and what a PR must pass.

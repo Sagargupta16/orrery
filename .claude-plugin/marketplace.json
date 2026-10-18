@@ -12,7 +12,7 @@
       "name": "orrery",
       "source": "./",
       "description": "The orrery skill: official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, ELK auto-layout, SVG/PNG/draw.io/TSX/HTML output, a validator with fixes, a review board of three reviewer agents and 32 reference architectures.",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "license": "MIT",
       "category": "design"
     }
