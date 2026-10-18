@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.6.1] - 2026-10-18
+
+### Fixed
+
+- **The release workflow can publish to npm.** `publish.yml` ran `npm publish out/npm`, which npm reads as the GitHub repository `out/npm` and tries to clone over SSH ("Repository not found"), so the npm step failed on every release since 0.4.0. It now passes the folder as `./out/npm`. The usage line in `scripts/pack-npm.mjs` had the same mistake.
+
 ## [0.6.0] - 2026-10-18
 
 ### Added

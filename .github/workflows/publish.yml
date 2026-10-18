@@ -57,5 +57,6 @@ jobs:
           if npm view "@sagargupta1610/orrery@$VERSION" version >/dev/null 2>&1; then
             echo "@sagargupta1610/orrery@$VERSION is already on npm"
           else
-            npm publish out/npm --access public
+            # ./ makes it a folder: npm reads a bare out/npm as the GitHub repository out/npm.
+            npm publish ./out/npm --access public
           fi
