@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+/* House tokens (portfolio-react): near-black canvas, white alphas for structure, one blue accent. */
+@theme {
+  --color-canvas: #0b1012;
+  --color-raised: #11181c;
+  --color-ink: #e6edf3;
+  --color-dim: rgb(230 237 243 / 0.66);
+  --color-faint: rgb(230 237 243 / 0.46);
+  --color-line: rgb(255 255 255 / 0.1);
+  --color-line-strong: rgb(255 255 255 / 0.18);
+  --color-wash: rgb(255 255 255 / 0.03);
+  --color-accent: #3b82f6;
+  --color-accent-soft: #60a5fa;
+  --color-ok: #22c55e;
+  --color-warn: #f59e0b;
+  --color-bad: #f87171;
+
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", monospace;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    line-height: 1.6;
+    overflow-x: clip;
+  }
+  ::selection {
+    background: rgb(59 130 246 / 0.35);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent-soft);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+  }
+  .display {
+    font-weight: 620;
+    letter-spacing: -0.035em;
+    line-height: 1.02;
+  }
+  .panel {
+    border: 1px solid var(--color-line);
+    background: var(--color-wash);
+    border-radius: 14px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--color-dim);
+    white-space: nowrap;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1.25rem;
+    border-radius: 999px;
+    font-weight: 560;
+    font-size: 0.95rem;
+    transition:
+      transform 180ms var(--ease-out-quint),
+      background-color 180ms var(--ease-out-quint),
+      border-color 180ms var(--ease-out-quint);
+  }
+  .btn:active {
+    transform: scale(0.97);
+  }
+  .btn-primary {
+    background: var(--color-ink);
+    color: var(--color-canvas);
+  }
+  .btn-primary:hover {
+    background: #ffffff;
+  }
+  .btn-ghost {
+    border: 1px solid var(--color-line-strong);
+    color: var(--color-ink);
+  }
+  .btn-ghost:hover {
+    border-color: rgb(255 255 255 / 0.34);
+    background: var(--color-wash);
+  }
+  .lift {
+    transition:
+      transform 220ms var(--ease-out-quint),
+      border-color 220ms var(--ease-out-quint),
+      background-color 220ms var(--ease-out-quint);
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+    border-color: rgb(96 165 250 / 0.45);
+  }
+  .lift:active {
+    transform: translateY(-1px) scale(0.99);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Sections rise in as they scroll into view, where the browser supports scroll-driven animation. */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 22%;
+  }
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The orrery itself: rings turn at their own pace, like the brass model. */
+@keyframes orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.orbit {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: orbit var(--period, 60s) linear infinite;
+}
+.orbit-reverse {
+  animation-direction: reverse;
+}
+
+/* Shiki output from <Code>: keep it on the panel colour. */
+.astro-code {
+  background: transparent !important;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  tab-size: 2;
+}

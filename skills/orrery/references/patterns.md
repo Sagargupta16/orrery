@@ -48,7 +48,7 @@ Wrap a Step Functions state machine in `type: aws:step-functions`.
 
 Sources -> ingestion -> storage zones -> processing -> query and BI. Draw zones (raw, curated, analytics) as `type: zone` groups with short labels so the left-to-right story is the data's maturity. Catalogs and governance (Glue Data Catalog, Lake Formation) sit below the zones with dotted edges (`..>`).
 
-## Retrieval-augmented generation (`aws-genai-rag`)
+## Retrieval-augmented generation (`aws-genai-rag`, `azure-openai-rag`)
 
 Two flows in one picture: ingestion (documents -> chunk and embed -> vector store) and query (user -> API -> retrieve -> model -> answer). Put them in two `zone` groups labelled "Ingestion" and "Query" so they do not interleave.
 
@@ -81,7 +81,7 @@ Developer -> pull request -> GitHub Actions -> registry -> deploy target, with t
 
 On-premises (`aws:corporate-dc`, `gcp:on-prem`, `azure:on-prem` or neutral `on-prem`) on the left, connectivity (Direct Connect, VPN, Interconnect, ExpressRoute) in the middle, a hub (Transit Gateway, Network Connectivity Center, a hub VNet) and the spoke networks on the right, each spoke inside its account or subscription group.
 
-## System design interview style (`system-design-url-shortener`, `system-design-chat`)
+## System design interview style (`system-design-url-shortener`, `system-design-chat`, `system-design-video-streaming`)
 
 Vendor-neutral icons (`generic:`) plus product logos where a product is named:
 
@@ -117,9 +117,17 @@ nodes:
   pay:     { shape: box, label: Payment provider, color: "#6b7280" }
 ```
 
-## ML platform (`ml-platform`)
+## ML platform (`ml-platform`, `gcp-vertex-mlops`)
 
 Feature pipeline -> feature store -> training -> model registry -> serving (batch and online) -> monitoring feeding back to training (a dashed edge back is fine; ELK routes feedback around the main flow).
+
+## AI agents on MCP (`ai-agent-mcp`)
+
+Use the protocol's own roles: the host (the AI application) is a `zone` group holding the agent loop and one MCP client per server, and each MCP server sits outside it next to the system it reaches. Draw the two transports as two line styles with a `legend:` (stdio for a local server, Streamable HTTP for a remote one, with its OAuth authorization server), and number the steps of one tool call from the prompt to the model choosing a tool and the server answering.
+
+## IBM Cloud (`ibm-cloud-openshift`)
+
+orrery has no IBM group styles. IBM's technical diagram guide draws groups as plain outlined boxes, so use `box` (IBM Cloud, VPC, cluster), `dashed` (zones), `internet` and `on-prem`, with a Carbon icon in each header (`icon: ibm:virtual-private-cloud`). The same guide asks for a legend on every diagram and writes multiple instances as a count in the label ("Bastion hosts (3)").
 
 ## Observability (`observability-stack`)
 

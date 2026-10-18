@@ -9,10 +9,11 @@
 # orrery
 
 **Animated architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons.**<br>
-One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML viewer out.
+One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML viewer out.<br>
+**[sagargupta.online/orrery](https://sagargupta.online/orrery/)**: every example in light and dark, with its spec and downloads.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.4.1-2563eb)
+![Version](https://img.shields.io/badge/version-0.5.0-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-16%2C682-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
@@ -84,7 +85,7 @@ Labels default to the official service names, so `{ icon: aws:lambda }` reads "A
 
 ## Gallery
 
-Every picture below is the animated SVG rendered from a spec in [skills/orrery/examples](skills/orrery/examples), checked against the renderer by CI; `orrery init <name>` copies any of them as a starting point. All 27, with commands, in [examples/README.md](examples/README.md).
+Every picture below is the animated SVG rendered from a spec in [skills/orrery/examples](skills/orrery/examples), checked against the renderer by CI; `orrery init <name>` copies any of them as a starting point. All 32, with commands, in [examples/README.md](examples/README.md).
 
 [`modern-web-stack`](skills/orrery/examples/modern-web-stack.yaml): Cloudflare, Next.js on Vercel, Neon, Upstash, Stripe, Clerk, Resend, Sentry and PostHog, drawn as cards
 

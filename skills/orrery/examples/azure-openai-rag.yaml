@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Retrieval augmented generation on Azure
+subtitle: A chat app grounds Azure OpenAI answers in an Azure AI Search index that an indexer fills from Blob Storage
+direction: down
+# Filled triangles, as in Azure's reference diagrams; one port per edge.
+arrowhead: filled
+layout: { merge: false }
+
+legend:
+  solid: Requests and data
+  dashed: Sign-in
+  dotted: Telemetry
+
+groups:
+  sub: { type: azure:subscription, label: Workload subscription }
+  rg: { type: azure:resource-group, label: rg-chat-prod, in: sub }
+  vnet: { type: azure:vnet, label: vnet-chat, in: rg }
+  snet-agw: { type: azure:subnet, label: snet-appgateway, in: vnet }
+  # Microsoft's baseline chat architecture hosts the UI on App Service, a PaaS service outside the VNet.
+  # An internal Container Apps environment is injected into its own subnet instead, so the app runs inside the VNet.
+  snet-aca: { type: azure:subnet, label: snet-apps, in: vnet }
+  snet-pe: { type: azure:subnet, label: snet-pe, in: vnet }
+  ingestion: { type: zone, label: Ingestion, in: rg }
+
+nodes:
+  users: { icon: azure:users, label: Users }
+  entra: { icon: azure:entra-managed-identities, label: Microsoft Entra ID, note: Sign-in and managed identities }
+  kv: { icon: azure:key-vaults, label: Key Vault, note: TLS certificate, in: rg }
+  agw: { icon: azure:application-gateways, label: Application Gateway, note: WAF and TLS termination, in: snet-agw }
+  app: { icon: azure:container-apps-environments, label: Container Apps, note: Chat UI and orchestrator, in: snet-aca }
+  pe-kv: { icon: azure:private-endpoint, label: Private endpoint, note: Key Vault, in: snet-pe }
+  pe-oai: { icon: azure:private-endpoint, label: Private endpoint, note: Azure OpenAI, in: snet-pe }
+  pe-search: { icon: azure:private-endpoint, label: Private endpoint, note: Azure AI Search, in: snet-pe }
+  docs: { icon: azure:storage-accounts, label: Blob Storage, note: Source documents, in: ingestion }
+  # The indexer runs inside Azure AI Search and reaches Blob Storage and the embedding
+  # deployment through shared private links, not through the workload VNet.
+  indexer: { icon: azure:cognitive-search, label: AI Search indexer, note: Chunk and embed skillset, in: ingestion }
+  insights: { icon: azure:application-insights, label: Application Insights, note: Log Analytics workspace, in: rg }
+  chat: { icon: azure:azure-openai, label: Azure OpenAI, note: Chat deployment, in: rg }
+  index: { icon: azure:cognitive-search, label: Azure AI Search, note: Vector and keyword index, in: rg }
+  embed: { icon: azure:azure-openai, label: Azure OpenAI, note: Embedding deployment, in: rg }
+
+edges:
+  # Sign-in and the vectorizer call stay out of the layout, so they run sideways instead of adding rows.
+  - { from: users, to: entra, line: dashed, constraint: false }
+  - users -> agw: HTTPS
+  - agw -> pe-kv
+  - pe-kv -> kv: TLS certificate
+  - agw -> app: HTTPS
+  - app -> pe-oai
+  - app -> pe-search
+  - pe-oai -> chat: prompt with top results
+  - pe-search -> index: hybrid query
+  # The index's vectorizer turns the query text into a vector with the same embedding model.
+  - { from: index, to: embed, label: vectorize query, constraint: false }
+  # The indexer pulls from Blob Storage on a schedule, so the arrow starts at the indexer.
+  - { from: docs, to: indexer, arrow: start, label: pull documents }
+  - indexer -> index: index chunks
+  - indexer -> embed: embed chunks
+  - app ..> insights

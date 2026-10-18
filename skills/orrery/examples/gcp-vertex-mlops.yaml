@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+# After Google's Cloud Architecture Center "Architecture for MLOps using TensorFlow Extended,
+# Agent Platform Pipelines, and Cloud Build": CI/CD with Cloud Build, triggers through Pub/Sub
+# and Cloud Run functions, a pipeline that runs its steps on Dataflow and Managed Training,
+# and Model Monitoring alerts that start the next run.
+title: MLOps on Google Cloud with Agent Platform
+subtitle: Cloud Build ships the pipeline; Gemini Enterprise Agent Platform (formerly Vertex AI) trains, registers and serves the model, and drift alerts retrain it
+direction: down
+# Product cards, as in Google Cloud's own architecture diagrams.
+look: card
+layout: { spacing: compact, layering: simplex }
+
+legend:
+  solid: Delivery, training and inference
+  dashed: Pipeline triggers
+  dotted: Artifacts and lineage
+
+groups:
+  source: { type: gcp:external, label: GitHub }
+  gcloud: { type: gcp:cloud }
+  project: { type: gcp:project, label: Project ml-prod, in: gcloud }
+  pipeline: { type: gcp:tier, label: Agent Platform Pipelines, in: project }
+  serving: { type: gcp:tier, label: Serving, in: project }
+
+# Agent Platform services (formerly Vertex AI) draw the Vertex AI core icon from Google's
+# product icon download. Cloud Run functions keeps the Serverless Computing icon that the
+# icon guide assigns to it under its former name, Cloud Functions.
+nodes:
+  scientists: { icon: generic:users, label: Data scientists }
+  repo: { icon: logos:github-icon, label: Source repository, note: Pipeline and component code, in: source }
+  build: { icon: gcp:cloud-build, label: Cloud Build, note: Test and compile, in: project }
+  registry: { icon: gcp:artifact-registry, label: Artifact Registry, note: Images and pipeline template, in: project }
+  scheduler: { icon: gcp:cloud-scheduler, label: Cloud Scheduler, in: project }
+  logging: { icon: gcp:cloud-logging, label: Cloud Logging, note: Alert log filter, in: project }
+  topic: { icon: gcp:pubsub, label: Pub/Sub, note: Trigger topic, in: project }
+  launcher: { icon: gcp:cloud-functions, label: Cloud Run functions, note: Submits PipelineJob, in: project }
+  bigquery: { icon: gcp:bigquery, label: BigQuery, note: Training data, in: project }
+  features: { icon: gcp:vertex-ai, label: Feature Store, in: project }
+  prep: { icon: gcp:dataflow, label: Validate and transform, note: Dataflow, in: pipeline }
+  train: { icon: gcp:vertex-ai, label: Managed Training, note: Train and tune, in: pipeline }
+  evaluate: { icon: gcp:dataflow, label: Evaluate and validate, note: Dataflow, in: pipeline }
+  artifacts: { icon: gcp:cloud-storage, label: Cloud Storage, note: Pipeline artifacts, in: project }
+  metadata: { icon: gcp:vertex-ai, label: Vertex ML Metadata, note: Lineage, in: project }
+  models: { icon: gcp:vertex-ai, label: Model Registry, in: serving }
+  endpoint: { icon: gcp:vertex-ai, label: Endpoint, note: Online inference, in: serving }
+  monitor: { icon: gcp:vertex-ai, label: Model Monitoring, note: Skew and drift, in: serving }
+
+edges:
+  - scientists -> repo: push
+  - repo -> build: build trigger
+  - build -> registry: push
+  - registry -> launcher: pipeline template
+  - scheduler, logging --> topic: publish
+  - topic --> launcher: subscribe
+  - launcher --> pipeline: run
+  - bigquery -> prep: query
+  - features -> prep: fetch features
+  - prep -> train -> evaluate
+  - evaluate -> models: register
+  - models -> endpoint: deploy
+  - endpoint -> monitor: request logs
+  # The retraining loop climbs back to the triggers; written in layout order with the
+  # arrowhead at the start so Cloud Logging stays a publisher beside Cloud Scheduler.
+  - { from: logging, to: monitor, arrow: start, line: dashed, label: drift alerts }
+  - pipeline ..> artifacts, metadata

@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Video streaming system design
+subtitle: Uploads go straight to object storage; workers transcode a bitrate ladder that viewers stream as HLS segments from the CDN
+direction: down
+# One port per edge: the API gateway fans out to five services, and merged trunks would hide which call goes where.
+layout: { merge: false }
+
+legend:
+  solid: API request or query
+  thick: Video bytes
+  dashed: Asynchronous event or job
+
+nodes:
+  clients: { icon: tabler:devices, label: Clients, note: Creators and viewers }
+  gateway: { icon: generic:gateway, label: API gateway, note: "Auth, rate limits" }
+  # View events and recommendations first, so the watch path keeps the left and the upload pipeline the right.
+  events: { shape: queue, icon: logos:kafka-icon, label: view-events, note: Kafka topic }
+  recs: { icon: generic:ml, label: Recommendations, note: "Retrieve, then rank" }
+  upload: { icon: generic:servers, label: Upload service, note: Signs upload URLs }
+  metadata: { icon: generic:servers, label: Metadata service, note: "Info, manifest URLs" }
+  search: { icon: logos:elasticsearch, label: Search, note: Elasticsearch index }
+  cache: { icon: logos:redis, label: Redis, note: Hot metadata }
+  db: { shape: cylinder, icon: logos:vitess, label: Metadata DB, note: MySQL sharded with Vitess }
+  raw: { icon: generic:bucket, label: Raw uploads, note: Object storage }
+  jobs: { shape: queue, icon: generic:queue, label: Transcode jobs, note: Work queue }
+  # A stack reads as a pool of identical workers; each encodes chunks of one video in parallel.
+  transcoder: { shape: stack, icon: logos:ffmpeg-icon, label: Transcoding workers, note: Parallel chunk encodes, badge: xN }
+  processed: { icon: generic:bucket, label: Processed storage, note: CDN origin }
+  cdn: { icon: generic:cdn, label: CDN edge, note: Caches segments }
+
+edges:
+  - clients -> gateway: HTTPS API
+  # Upload path: the service only signs a URL; the video bytes go straight from the client to object storage.
+  - gateway -> upload: get upload URL
+  - upload -> metadata: create video
+  - clients ==> raw: PUT pre-signed URL
+  - raw --> jobs: upload complete
+  - raw ==> transcoder: source file
+  - jobs --> transcoder: poll
+  - transcoder ==> processed: HLS/DASH renditions
+  # Drawn after layout, so the callback does not push the metadata service below the workers.
+  - { from: transcoder, to: metadata, line: dashed, label: ready, constraint: false }
+  # Watch path: the metadata service answers the watch page with a manifest URL, then the player fetches segments from the CDN.
+  - gateway -> metadata: watch page
+  - metadata -> cache: lookup
+  - metadata -> db: on miss
+  - metadata --> search: index
+  - gateway -> search: query
+  - gateway -> recs: home feed
+  - gateway --> events: produce
+  - events --> recs: watch history
+  - clients ==> cdn: HLS segments
+  - cdn ==> processed: cache miss

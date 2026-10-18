@@ -1,0 +1,45 @@
+---
+// Switches every diagram on the page between its light and dark render. The choice is remembered.
+---
+
+<div class="inline-flex rounded-full border border-line p-1" role="group" aria-label="Diagram theme">
+  <button type="button" data-diagram-theme="light" class="diagram-theme min-h-9 rounded-full px-3.5 font-mono text-xs"
+    >Light</button
+  >
+  <button type="button" data-diagram-theme="dark" class="diagram-theme min-h-9 rounded-full px-3.5 font-mono text-xs"
+    >Dark</button
+  >
+</div>
+
+<style is:global>
+  .diagram-theme {
+    color: var(--color-dim);
+    transition:
+      background-color 180ms var(--ease-out-quint),
+      color 180ms var(--ease-out-quint);
+  }
+  html:not([data-diagrams="dark"]) .diagram-theme[data-diagram-theme="light"],
+  html[data-diagrams="dark"] .diagram-theme[data-diagram-theme="dark"] {
+    background: var(--color-ink);
+    color: var(--color-canvas);
+  }
+  html[data-diagrams="dark"] .thumb-light {
+    display: none;
+  }
+  html[data-diagrams="dark"] .thumb-dark {
+    display: block;
+  }
+</style>
+
+<script>
+  const root = document.documentElement;
+  const saved = localStorage.getItem("orrery-diagrams");
+  if (saved === "dark") root.dataset.diagrams = "dark";
+  for (const button of document.querySelectorAll<HTMLButtonElement>("button.diagram-theme")) {
+    button.addEventListener("click", () => {
+      const theme = button.dataset.diagramTheme ?? "light";
+      root.dataset.diagrams = theme;
+      localStorage.setItem("orrery-diagrams", theme);
+    });
+  }
+</script>

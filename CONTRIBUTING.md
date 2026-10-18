@@ -20,6 +20,7 @@ Node.js 22 or newer and pnpm (the version in `package.json` `packageManager`).
 | `skills/orrery/` | What ships: `SKILL.md`, `references/`, `examples/` (specs), `assets/` (icons, fonts), `scripts/orrery.mjs` (the built CLI) and `scripts/vendor/` (ELK, resvg). Generated files here are committed so the skill runs without an install. |
 | `scripts/` | Development scripts: `build.mjs`, `sync-icons.mjs`, `build-fonts.mjs`, `gallery.mjs`, `check-repo.mjs`, plus `icon-sources.json` (pinned downloads) and `icon-aliases.json`. |
 | `examples/` | The gallery: SVG and PNG for every spec in `skills/orrery/examples/`. |
+| `site/` | The website (Astro, Tailwind CSS), its own pnpm project. `site/scripts/prepare.mjs` renders every example in both themes and every format with the built CLI, so the site shows exactly what the renderer draws; `.github/workflows/pages.yml` builds it on every PR and deploys `main` to GitHub Pages. Run it with `pnpm --dir site install` then `pnpm --dir site dev`. |
 | `tests/` | Vitest suite. |
 
 ## Before you open a PR

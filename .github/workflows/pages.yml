@@ -1,0 +1,58 @@
+name: Site
+
+# Builds the website in site/ (Astro) and deploys it to GitHub Pages, served at
+# https://sagargupta.online/orrery/. The build renders every example with the repo's own CLI
+# (site/scripts/prepare.mjs), so a change to an example, the renderer or the icons redeploys it.
+# Pull requests only build, so a broken site fails before it merges.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+
+      - run: pnpm --dir site install --frozen-lockfile
+
+      - run: pnpm --dir site build
+
+      - if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v6
+
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # publish the artifact
+      id-token: write # prove the deployment came from this workflow
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

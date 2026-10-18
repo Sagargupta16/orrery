@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-10-18
+
+### Added
+
+- **Website at [sagargupta.online/orrery](https://sagargupta.online/orrery/).** An Astro 7 and Tailwind CSS 4 site in `site/` with the animated hero, install commands for every channel, a spec next to the picture it renders with links to all five outputs, how it works, the icon pack table, and a gallery of every example with filters by kind and a light and dark switch. Each example has its own page with its YAML, an `orrery init` command and every output to download. `site/scripts/prepare.mjs` renders all of it with the built CLI on every build, so the site always shows what the renderer draws; `.github/workflows/pages.yml` builds it on every pull request and deploys `main` to GitHub Pages.
+- **Five new examples**, each reviewed at the 880 px README width:
+  - `ai-agent-mcp` (99.1): an AI coding agent on the Model Context Protocol, one MCP client per server, stdio to a local server and Streamable HTTP with OAuth to remote ones, after modelcontextprotocol.io.
+  - `azure-openai-rag` (96.1): Azure OpenAI grounded in Azure AI Search behind Application Gateway and private endpoints, after Microsoft's baseline chat reference architecture.
+  - `gcp-vertex-mlops` (99.5): MLOps on Gemini Enterprise Agent Platform, the new name of Vertex AI, from Cloud Build CI/CD through Pipelines, Managed Training and Model Registry to an online endpoint, with drift alerts that retrain, after Google's MLOps reference architectures.
+  - `ibm-cloud-openshift` (99.7): the first IBM Cloud example, Red Hat OpenShift across three zones in a VPC with Cloud Internet Services and Virtual Private Endpoints, after IBM's web app on OpenShift pattern.
+  - `system-design-video-streaming` (100): upload, transcoding to HLS and DASH, CDN playback and recommendations from view events.
+- `references/patterns.md` covers AI agents on MCP and IBM Cloud, and lists the new examples under RAG, ML and system design.
+
+### Changed
+
+- `.claude-plugin/plugin.json` points `documentationUrl` at the website.
+
+### Fixed
+
+- `examples/README.md` said "Twenty-six diagrams" with 27 in the gallery.
+
 ## [0.4.1] - 2026-10-18
 
 ### Fixed
