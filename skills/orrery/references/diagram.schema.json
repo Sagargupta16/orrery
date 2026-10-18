@@ -17,12 +17,12 @@
     "arrowhead": { "enum": ["open", "filled"], "default": "open" },
     "animate": {
       "oneOf": [{ "type": "boolean" }, { "enum": ["packets", "flow", "relay", "none"] }],
-      "description": "Motion in SVG, TSX and HTML (PNG and draw.io stay still). packets: dots travel the edges, numbered steps in order; flow: marching dashes; relay: on one clock each line draws itself in turn and the node it reaches lights up; none: still. true is packets, false is none. Unset: packets for the classic skin, relay for stage."
+      "description": "Motion in SVG, TSX and HTML (PNG and draw.io stay still). packets: dots travel the edges, numbered steps in order; flow: marching dashes; relay: on one clock each line draws itself in turn and the node it reaches lights up; none: still. true is packets, false is none. Unset: packets for the classic skin, relay for stage (where relay and packets play the stage story)."
     },
     "skin": {
       "enum": ["classic", "stage"],
       "default": "classic",
-      "description": "classic: the vendors' own diagram styles. stage: a showcase look over the same layout (gradient canvas with a dot texture and one tint, translucent panels, vendor colors kept), animated with relay by default."
+      "description": "classic: the vendors' own diagram styles. stage: the same layout as an animated scene in one tint (hairline grid, monochrome icons on ink tiles, mono caps labels), whose story runs the numbered edges in step order, else the longest path."
     },
     "background": { "type": "string", "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|transparent)$" },
     "legend": {

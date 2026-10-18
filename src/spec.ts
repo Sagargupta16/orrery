@@ -164,19 +164,54 @@ const OPS: [string, Op][] = [
   ["--", { line: "solid", arrow: "none" }],
 ];
 
-const OP_RE = new RegExp(
-  [
-    "-\\[([^\\]]*)\\]->",
-    "--\\[([^\\]]*)\\]-->",
-    ...OPS.map(([op]) => {
-      const esc = op.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      return /[<>]/.test(op) ? esc : `(?<=\\s)${esc}(?=\\s)`;
-    }),
-  ].join("|"),
-  "g",
-);
+/** Arrows with a label inside: -[label]-> and --[label]-->. */
+const LABELED: [string, string, EdgeLine][] = [
+  ["-[", "]->", "solid"],
+  ["--[", "]-->", "dashed"],
+];
 
-const hasOperator = (s: string) => new RegExp(OP_RE.source).test(` ${s} `);
+const space = (c: string | undefined) => c !== undefined && /\s/.test(c);
+
+/**
+ * The operator starting at `i`, if any: a labeled arrow first, then the first of OPS that fits.
+ * Operators without an arrowhead (--, ---, ===, ...) need whitespace on both sides, so a-b-c and
+ * a...b stay names. A scanner rather than one regex: CodeQL reads any regex that matches --> as
+ * an HTML comment filter.
+ */
+function operatorAt(s: string, i: number): { length: number; op: Op } | undefined {
+  for (const [open, close, line] of LABELED) {
+    if (!s.startsWith(open, i)) continue;
+    const end = s.indexOf("]", i + open.length);
+    if (end >= 0 && s.startsWith(close, end))
+      return {
+        length: end + close.length - i,
+        op: { line, arrow: "end", label: s.slice(i + open.length, end).trim() },
+      };
+  }
+  for (const [text, op] of OPS) {
+    if (!s.startsWith(text, i)) continue;
+    if (/[<>]/.test(text) || (space(s[i - 1]) && space(s[i + text.length])))
+      return { length: text.length, op };
+  }
+  return undefined;
+}
+
+/** Every operator in `s`, leftmost first, never overlapping. */
+function operators(s: string): { index: number; length: number; op: Op }[] {
+  const found: { index: number; length: number; op: Op }[] = [];
+  for (let i = 0; i < s.length; ) {
+    const hit = operatorAt(s, i);
+    if (!hit) {
+      i += 1;
+      continue;
+    }
+    found.push({ index: i, ...hit });
+    i += hit.length;
+  }
+  return found;
+}
+
+const hasOperator = (s: string) => operators(` ${s} `).length > 0;
 
 /** Index of the ":" that starts an edge label, skipping colons inside -[inline labels]->. */
 function labelColon(s: string): number {
@@ -210,15 +245,10 @@ export function parseEdgeExpression(expr: string): { hops: EdgeHop[]; label?: st
   }
   const parts: (string | Op)[] = [];
   let last = 0;
-  for (const m of body.matchAll(OP_RE)) {
+  for (const m of operators(body)) {
     parts.push(body.slice(last, m.index).trim());
-    if (m[1] !== undefined) parts.push({ line: "solid", arrow: "end", label: m[1].trim() });
-    else if (m[2] !== undefined) parts.push({ line: "dashed", arrow: "end", label: m[2].trim() });
-    else {
-      const op = OPS.find(([o]) => o === m[0])?.[1];
-      if (op) parts.push({ ...op });
-    }
-    last = (m.index ?? 0) + m[0].length;
+    parts.push({ ...m.op });
+    last = m.index + m.length;
   }
   parts.push(body.slice(last).trim());
   if (parts.length < 3) return `no arrow found in "${expr}" (use ->, -->, <->, -- ...)`;

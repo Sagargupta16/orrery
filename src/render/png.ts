@@ -34,9 +34,13 @@ async function load(): Promise<ResvgModule> {
 let fonts: Uint8Array[] | undefined;
 
 function fontBuffers(extra: string[]): Uint8Array[] {
-  fonts ??= ["Inter-Regular.ttf", "Inter-SemiBold.ttf"].map(
-    (f) => new Uint8Array(readFileSync(join(fontsDir, f))),
-  );
+  // Geist Mono is the stage skin's face.
+  fonts ??= [
+    "Inter-Regular.ttf",
+    "Inter-SemiBold.ttf",
+    "GeistMono-Regular.ttf",
+    "GeistMono-Bold.ttf",
+  ].map((f) => new Uint8Array(readFileSync(join(fontsDir, f))));
   return [...fonts, ...extra.map((f) => new Uint8Array(readFileSync(f)))];
 }
 

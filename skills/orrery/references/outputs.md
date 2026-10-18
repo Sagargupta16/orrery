@@ -17,6 +17,8 @@ A `legend:` in the spec appears in every format: a box at the bottom right with 
 - Animated by default. With `animate: packets` (the default) a small dot travels every directed edge from source to target at one speed, so long edges take longer; `<->` edges carry one each way and undirected `--` lines stay still. When edges carry `step:` numbers, those run one after another in step order and the badge of each step ripples as its packet leaves, so the diagram plays the walkthrough on a loop; the other edges keep their own staggered loops. Line styles are untouched: a dashed edge stays dashed. It is SMIL (`<animateMotion>`), with no CSS and no script, and GitHub keeps it in SVGs shown as images.
 - `animate: flow` draws marching dashes along every edge instead (a small CSS keyframe block); solid edges become dashed while they move. `animate: none`, or `render --static`, writes a still SVG.
 - `animate: relay` (the default of `skin: stage`) runs every line on one clock: each one draws itself in turn behind a dot (a mask reveals it, so a dashed line stays dashed), its arrowhead lights when it arrives, and the node it reaches lights up on a flat tint plate; everything holds until 92% of the loop and resets by 95%. Beats follow the `step:` numbers when there are any, else the distance from the nodes nothing points at, at most eight of them, so a loop lasts about three to six seconds. The base diagram is always drawn in full underneath, so a paused or still frame shows every line.
+- `skin: stage` draws its own scene for `relay` (its default) and `packets`: on one clock the groups light, then the tiles, then a packet with a comet tail runs the story (the numbered edges in step order, else the longest chain of directed edges), easing in and out of every hop and pausing at each node, while the wire it travels lights up behind it; each step badge pops as its packet leaves; at most two other edges run a small packet of their own; everything holds until 90% of the loop and is gone by 94%. A still stage frame (PNG, draw.io, `animate: none`) is the held frame: everything lit, no packets.
+- Stage text is Geist Mono when the viewer has it, else the system monospace font (SF Mono, Menlo, Consolas). Hairlines are one pixel wide at 880 px, the README column, and scale up for wider diagrams so they still read when the picture is shrunk to fit.
 
 ### In a README
 
@@ -33,7 +35,7 @@ Plain Markdown works too: `![Architecture](docs/architecture-light.svg)`.
 
 ## PNG
 
-- Rendered by resvg (WebAssembly) with the bundled Inter Regular and SemiBold, so the picture is identical on every machine.
+- Rendered by resvg (WebAssembly) with the bundled Inter Regular and SemiBold (and Geist Mono Regular and Bold for the stage skin), so the picture is identical on every machine.
 - `--scale` sets the pixel density (default 3, so a 1200 x 600 diagram becomes a 3600 x 1800 PNG that stays sharp when zoomed or projected). Use 1 or 2 for small chat previews, 4 or more for print. For pictures people will zoom into, prefer the SVG: it is vector and sharp at any zoom.
 - Animation is dropped; the PNG shows the static diagram.
 - Inter covers Latin, Greek and Cyrillic. For other scripts pass a font: `--font NotoSansJP-Regular.ttf` (repeatable).

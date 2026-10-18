@@ -319,6 +319,31 @@ export interface IconPaint {
   ink: string;
   /** Explicit color from the spec. */
   color?: string;
+  /** Stage skin: paint a single-color icon (a glyph set or a black-only logo) in this color. */
+  mono?: string;
+}
+
+/**
+ * How the stage skin turns an icon monochrome. mono: a single-color icon, painted directly;
+ * glyph: white artwork on a colored tile (AWS, Kubernetes), keep the white; inverse: dark
+ * artwork on a white tile, keep the dark; two: a colored shape with white detail, a dim
+ * silhouette under bright detail; shape: a colored shape, its silhouette.
+ */
+export type IconTone = "mono" | "glyph" | "inverse" | "two" | "shape";
+
+const WHITE_PAINT = /(?:fill|stroke|stop-color)(?:="|:\s*)(?:#fff(?:fff)?\b|white\b)/i;
+/** AWS tiles drawn dark on white. */
+const LIGHT_TILES = new Set(["aws:group-aws-cloud", "aws:group-aws-cloud-logo"]);
+
+export function iconTone(id: string, theme: ThemeName): IconTone {
+  const info = iconInfo(id);
+  if (!info) throw new Error(`unknown icon ${id}`);
+  const entry = packEntry(info);
+  if (entry.m || entry.k) return "mono";
+  if (LIGHT_TILES.has(info.id)) return "inverse";
+  if (info.pack === "k8s" || (info.pack === "aws" && info.type !== "resource")) return "glyph";
+  const body = theme === "dark" && entry.d ? entry.d : entry.b;
+  return WHITE_PAINT.test(body) ? "two" : "shape";
 }
 
 /**
@@ -384,7 +409,16 @@ export function renderIcon(id: string, instance: string, paint: IconPaint): Icon
   const entry = packEntry(info);
   let body = paint.theme === "dark" && entry.d ? entry.d : entry.b;
   body = body.replaceAll("sdwid", `${instance}-`);
-  if (entry.m) {
+  if (paint.mono && entry.m) body = body.replaceAll("{{c}}", paint.mono);
+  else if (paint.mono && entry.k) {
+    body = entry.b
+      .replaceAll("sdwid", `${instance}-`)
+      .replace(
+        /(fill|stroke|stop-color)="(?:#(?:[0-9a-fA-F]{3}){1,2}|black)"/g,
+        `$1="${paint.mono}"`,
+      );
+    body = `<g fill="${paint.mono}">${body}</g>`;
+  } else if (entry.m) {
     let color = paint.color ?? entry.col ?? paint.ink;
     // Brand colors that vanish on the background (black marks on dark) fall back to the ink.
     if (contrast(color, paint.background) < 2.2) color = paint.ink;

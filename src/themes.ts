@@ -1,4 +1,4 @@
-import { mixHex } from "./color.ts";
+import { ensureContrast, mixHex } from "./color.ts";
 import type { Skin, ThemeName } from "./types.ts";
 
 export interface Theme {
@@ -16,23 +16,40 @@ export interface Theme {
   shadow: string;
   /** Packets traveling the edges in an animated SVG. */
   flow: string;
-  /** Stage skin only: the canvas gradient, tint wash and dot texture, and the group wash. */
-  stage?: StageCanvas;
+  /** Stage skin only: the scene kit (see render/stage.ts). */
+  stage?: StageInk;
 }
 
-export interface StageCanvas {
-  /** Gradient from `top` (top left) to `background` (bottom right). */
+/**
+ * The stage skin's kit, after the owner's portfolio scenes: structure is one color at a ladder of
+ * alphas (white on dark, ink on light), one tint lights whatever is active, nothing else has hue.
+ */
+export interface StageInk {
+  /** Structure color, drawn at the alphas below. */
+  line: string;
+  /** Canvas gradient from `top` (top left) to the background. */
   top: string;
-  /** One tint wash in the top right corner, and the color lines light up in. */
+  /** Tiles, cards and chips: opaque, so the grid stops at their edges. */
+  tile: string;
+  /** The accent: lit frames and tiles, the packet and the trace it leaves. */
   tint: string;
-  tintOpacity: number;
-  dot: string;
-  dotOpacity: number;
-  /** Neutral group fills become this color at this opacity over the canvas. */
-  wash: string;
-  washOpacity: number;
-  /** Ring around step and node badges. */
-  ring: string;
+  /** Digits and glyphs on a solid tint. */
+  onTint: string;
+  /** Glyphs, opaque (`line` at about 55 percent). */
+  glyph: string;
+  /** Header of a top-level group. */
+  header: string;
+  /** Alphas of `line`: grid texture, panel fill, chip border, frames and tiles, wires, arrows. */
+  grid: number;
+  panel: number;
+  hair: number;
+  frame: number;
+  wire: number;
+  arrow: number;
+  /** Alpha of the one tint wash behind the story. */
+  wash: number;
+  /** Scale of the lit group fills (nested groups stack them). */
+  glow: number;
 }
 
 export const THEME_TOKENS: Record<ThemeName, Theme> = {
@@ -69,60 +86,84 @@ export const THEME_TOKENS: Record<ThemeName, Theme> = {
   },
 };
 
-// Stage: the owner's portfolio scene language (near-black canvas with one blue tint, white alphas
-// for structure, no glow or blur), with lines bright enough to pass 3:1 and text 4.5:1. Every
-// alpha is baked into an opaque color so PNGs, header chips and the contrast checks agree.
+// Stage: the owner's portfolio scene language. Text colors are opaque and hold 4.5:1, so PNGs,
+// header chips and the contrast checks agree; lines and fills stay translucent over the grid.
 const INK = "#0b1012";
 const PAPER = "#eef2f6";
+const BLUE = "#60a5fa";
+const DEEP = "#2563eb";
+/**
+ * `fg` at `alpha` over the canvas, held at 4.5:1 against the busiest surface text can land on:
+ * two stacked group panels under the lit tint and the wash.
+ */
+const over = (fg: string, bg: string, alpha: number) => {
+  const tint = bg === INK ? BLUE : DEEP;
+  const busiest = mixHex(tint, mixHex(bg === INK ? "#ffffff" : INK, bg, 0.06), 0.14);
+  return ensureContrast(mixHex(fg, bg, alpha), busiest);
+};
 const STAGE_TOKENS: Record<ThemeName, Theme> = {
   dark: {
     name: "dark",
     background: INK,
-    text: "#e6edf3",
-    muted: mixHex("#e6edf3", INK, 0.68),
-    edge: mixHex("#ffffff", INK, 0.42),
-    edgeLabel: mixHex("#e6edf3", INK, 0.86),
-    surface: mixHex("#ffffff", INK, 0.05),
+    text: over("#ffffff", INK, 0.6),
+    muted: over("#ffffff", INK, 0.5),
+    edge: mixHex("#ffffff", INK, 0.25),
+    edgeLabel: over("#ffffff", INK, 0.55),
+    surface: INK,
     border: mixHex("#ffffff", INK, 0.16),
     zone: mixHex("#ffffff", INK, 0.03),
-    stepFill: INK,
-    stepText: "#e6edf3",
+    stepFill: BLUE,
+    stepText: INK,
     shadow: "#000000",
-    flow: "#60a5fa",
+    flow: BLUE,
     stage: {
+      line: "#ffffff",
       top: "#0e1a24",
-      tint: "#2563eb",
-      tintOpacity: 0.14,
-      dot: "#ffffff",
-      dotOpacity: 0.06,
-      wash: "#ffffff",
-      washOpacity: 0.035,
-      ring: "#60a5fa",
+      tile: INK,
+      tint: BLUE,
+      onTint: INK,
+      glyph: mixHex("#ffffff", INK, 0.55),
+      header: over(BLUE, INK, 0.85),
+      grid: 0.045,
+      panel: 0.03,
+      hair: 0.1,
+      frame: 0.16,
+      wire: 0.25,
+      arrow: 0.4,
+      wash: 0.12,
+      glow: 1,
     },
   },
   light: {
     name: "light",
     background: PAPER,
-    text: "#1f2933",
-    muted: mixHex("#1f2933", PAPER, 0.74),
-    edge: mixHex("#0b1012", PAPER, 0.56),
-    edgeLabel: "#2b3640",
+    text: over(INK, PAPER, 0.66),
+    muted: over(INK, PAPER, 0.58),
+    edge: mixHex(INK, PAPER, 0.3),
+    edgeLabel: over(INK, PAPER, 0.62),
     surface: "#ffffff",
-    border: mixHex("#0b1012", PAPER, 0.16),
-    zone: mixHex("#ffffff", PAPER, 0.6),
-    stepFill: INK,
+    border: mixHex(INK, PAPER, 0.16),
+    zone: mixHex(INK, PAPER, 0.03),
+    stepFill: DEEP,
     stepText: "#ffffff",
     shadow: "#0f172a",
-    flow: "#2563eb",
+    flow: DEEP,
     stage: {
+      line: INK,
       top: "#ffffff",
-      tint: "#2563eb",
-      tintOpacity: 0.08,
-      dot: "#0b1012",
-      dotOpacity: 0.07,
-      wash: "#ffffff",
-      washOpacity: 0.7,
-      ring: "#2563eb",
+      tile: "#ffffff",
+      tint: DEEP,
+      onTint: "#ffffff",
+      glyph: mixHex(INK, "#ffffff", 0.6),
+      header: over(DEEP, PAPER, 0.9),
+      grid: 0.05,
+      panel: 0.025,
+      hair: 0.1,
+      frame: 0.16,
+      wire: 0.28,
+      arrow: 0.45,
+      wash: 0.08,
+      glow: 0.5,
     },
   },
 };

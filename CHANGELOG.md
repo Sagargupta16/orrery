@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-10-18
+
+### Changed
+
+- **`skin: stage` is redrawn after the owner's portfolio scenes**, by its own renderer (`src/render/stage.ts`) over the same layout, so every box and point is still where `classic` puts it. A near-black canvas (paper in light) with a 20 px hairline grid and one tint wash behind the story; structure in one color at a few alphas (panels, frames, tiles, wires, chevrons); no vendor hues. Icons are monochrome glyphs on ink tiles: SVG filters keep the white artwork of AWS and Kubernetes tiles, the dark artwork of the white AWS Cloud tiles, and the silhouette of colored logos and Google Cloud and Azure icons (with their white detail on top), and single-color sets are painted directly, Tabler's line icons at the weight of the AWS glyphs. Labels are Geist Mono caps, fitted to the space layout measured, one size per scene where they fit. Group corner tiles turn solid tint when lit. Hairlines are one pixel at 880 px and wider for wider diagrams, so they survive being shrunk into a README.
+- **The stage motion is one story** (for `relay`, its default, and `packets`): the groups light, then the tiles, then a packet with a comet tail runs the numbered edges in step order (else the longest chain of directed edges), easing through each hop and pausing at each node, while the wire behind it lights up; every step badge pops as its packet leaves and every story label lights; at most two other edges run a small packet; everything holds until 90% of the loop and is gone by 94%. A node's or edge's `color:` becomes its lit tint. PNG, draw.io and `animate: none` get the held frame: everything lit, nothing moving.
+- Stage text holds 4.5:1 on the busiest surface it can land on (stacked panels under the lit tint and the wash), and on colored shapes in their own lit color: all 32 examples and both README diagrams pass `orrery review --skin stage` with no contrast failure.
+- `classic` output is unchanged, and `animate: relay` in classic draws as before.
+
+### Added
+
+- Geist Mono 1.8.1 Regular and Bold (SIL OFL 1.1) are bundled for stage PNGs; `scripts/build-fonts.mjs` vendors them by checksum and checks that every ASCII glyph advances 0.6 em, which the stage renderer sizes text from.
+- `iconTone()` in `src/icons.ts` sorts every icon into the tone the stage filters need, and `renderIcon` takes a `mono` paint for single-color icons.
+
+### Removed
+
+- The 0.6 stage look: the dot texture, translucent washes of grey group fills, ringed step discs and the packet trail.
+
+### Fixed
+
+- CodeQL stops reporting the edge operator `-->` as an HTML comment filter (`js/bad-tag-filter`), which came back as a new alert whenever the bundled CLI's line numbers shifted. Edge expressions are now read by a small scanner instead of one regex; on the examples' edges and 20,000 generated expressions it returns exactly what the regex did.
+
 ## [0.6.1] - 2026-10-18
 
 ### Fixed

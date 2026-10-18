@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Vendors the Inter font files the PNG renderer embeds and writes the advance-width table the
-// layout uses to measure labels, so text fits the same way in the SVG, the PNG and draw.io.
+// layout uses to measure labels, so text fits the same way in the SVG, the PNG and draw.io. Also
+// vendors Geist Mono, the stage skin's face, after checking it advances every glyph 0.6 em.
 //
 //   node scripts/build-fonts.mjs
 import { createHash } from "node:crypto";
@@ -23,19 +24,29 @@ const INTER = {
   },
 };
 
-async function fetchZip() {
+const GEIST = {
+  url: "https://github.com/vercel/geist-font/releases/download/v1.8.1/geist-font-v1.8.1.zip",
+  sha256: "70f42c1452fb6df12ea183e20a65999157354f91d11dac18b4c713e383808ec2",
+  files: {
+    "geist-font/GeistMono/ttf/GeistMono-Regular.ttf": "GeistMono-Regular.ttf",
+    "geist-font/GeistMono/ttf/GeistMono-Bold.ttf": "GeistMono-Bold.ttf",
+    "geist-font/OFL.txt": "GeistMono-OFL.txt",
+  },
+};
+
+async function fetchZip(font) {
   mkdirSync(cacheDir, { recursive: true });
-  const cached = join(cacheDir, "Inter-4.1.zip");
+  const cached = join(cacheDir, font.url.split("/").pop());
   let buf;
   if (existsSync(cached)) buf = readFileSync(cached);
   else {
-    const res = await fetch(INTER.url);
-    if (!res.ok) throw new Error(`GET ${INTER.url} -> HTTP ${res.status}`);
+    const res = await fetch(font.url);
+    if (!res.ok) throw new Error(`GET ${font.url} -> HTTP ${res.status}`);
     buf = Buffer.from(await res.arrayBuffer());
     writeFileSync(cached, buf);
   }
   const sha = createHash("sha256").update(buf).digest("hex");
-  if (sha !== INTER.sha256) throw new Error(`Inter zip checksum mismatch: ${sha}`);
+  if (sha !== font.sha256) throw new Error(`${font.url} checksum mismatch: ${sha}`);
   return unzipSync(new Uint8Array(buf));
 }
 
@@ -109,7 +120,7 @@ function readFont(bytes) {
   return { unitsPerEm, ascender, descender, widths };
 }
 
-const zip = await fetchZip();
+const zip = await fetchZip(INTER);
 mkdirSync(outDir, { recursive: true });
 const metrics = { family: "Inter", version: "4.1", weights: {} };
 for (const [from, to] of Object.entries(INTER.files)) {
@@ -134,3 +145,17 @@ for (const [from, to] of Object.entries(INTER.files)) {
   console.log(`${to}: ${entries.length} code points, ${bytes.length} bytes`);
 }
 writeFileSync(join(outDir, "metrics.json"), `${JSON.stringify(metrics)}\n`);
+
+const geist = await fetchZip(GEIST);
+for (const [from, to] of Object.entries(GEIST.files)) {
+  const bytes = geist[from];
+  if (!bytes) throw new Error(`missing ${from} in the Geist release`);
+  writeFileSync(join(outDir, to), bytes);
+  if (!to.endsWith(".ttf")) continue;
+  // The stage renderer sizes mono text from one advance; every printable ASCII glyph must match it.
+  const font = readFont(bytes);
+  for (let cp = 0x21; cp < 0x7f; cp++)
+    if (font.widths[cp] / font.unitsPerEm !== 0.6)
+      throw new Error(`${to}: U+${cp.toString(16)} advances ${font.widths[cp]}/${font.unitsPerEm}`);
+  console.log(`${to}: ${Object.keys(font.widths).length} code points, ${bytes.length} bytes`);
+}
