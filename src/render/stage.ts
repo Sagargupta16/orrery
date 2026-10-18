@@ -13,6 +13,9 @@ import { mixHex } from "../color.ts";
 import { type IconTone, iconTone, renderIcon } from "../icons.ts";
 import { type StageInk, type Theme, tokensFor } from "../themes.ts";
 import type { Box, Point, Scene, SceneEdge, SceneGroup, SceneNode, TextBlock } from "../types.ts";
+import { journeyStage } from "./journey.ts";
+import { laneStage } from "./lanes.ts";
+import { flowMarks, notationMarks, notationShape } from "./notation.ts";
 import {
   edgePath,
   esc,
@@ -583,7 +586,10 @@ function edgeBase(ctx: Ctx, e: SceneEdge, w: Wire): string {
   const heads = [w.heads.end, w.heads.start]
     .map((hd) => (hd ? chevron(ctx, hd[0], hd[1], k.line, k.arrow) : ""))
     .join("");
-  return `<path d="${w.d}" fill="none" ${stroke(k.line, k.wire, w.width)} stroke-linecap="round" stroke-linejoin="round"${w.dash}${flow}/>${heads}`;
+  const marks = e.flow
+    ? flowMarks(e, mixHex(k.line, ctx.t.background, k.arrow), w.width, k.tile)
+    : "";
+  return `<path d="${w.d}" fill="none" ${stroke(k.line, k.wire, w.width)} stroke-linecap="round" stroke-linejoin="round"${w.dash}${flow}/>${heads}${marks}`;
 }
 
 /** The story's lit trace over one edge: it grows behind the packet and holds until the fade. */
@@ -759,13 +765,14 @@ function node(ctx: Ctx, nd: SceneNode): string {
     if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box, nd.badgeBox));
   } else {
     const tint = nd.color ?? k.tint;
+    const outline = (nd.bpmn ? notationShape(nd) : undefined) ?? shapePath(nd.shape, nd.box);
     parts.push(
-      `<g ${fill(k.tile)} ${stroke(k.line, k.frame, h)}>${shapePath(nd.shape, nd.box)}</g>`,
+      `<g ${fill(k.tile)} ${stroke(k.line, k.frame, h)}>${outline}${notationMarks(nd, k.glyph, 1.25 * h)}</g>`,
     );
     parts.push(
       lit(
         ctx,
-        `<g ${fill(tint, 0.15)} ${stroke(tint, 0.65, h)}>${shapePath(nd.shape, nd.box)}</g>`,
+        `<g ${fill(tint, 0.15)} ${stroke(tint, 0.65, h)}>${outline}${notationMarks(nd, tint, 1.25 * h)}</g>`,
         TILES_ON,
       ),
     );
@@ -873,7 +880,16 @@ export function renderStage(scene: Scene, opts: SvgOptions = {}): string {
     const size = sizeFor(scene.subtitle.lines, SUBTITLE, W - b.x - 24, 9);
     out.push(block(scene.subtitle, b, SUBTITLE, size, t.text, "start"));
   }
-  for (const g of scene.groups) out.push(`<g id="${prefix}g-${g.id}">${groupFrame(ctx, g)}</g>`);
+  if (scene.journey) out.push(journeyStage(scene, k, t, h));
+  // Pools and lanes are bands with a label strip; everything else is a frame and a header.
+  const lanes = new Map(
+    scene.groups.map((g) => [
+      g.id,
+      g.lane ? laneStage(g, k, t, h, (body) => lit(ctx, body, GROUPS_ON)) : undefined,
+    ]),
+  );
+  for (const g of scene.groups)
+    out.push(`<g id="${prefix}g-${g.id}">${lanes.get(g.id)?.frame ?? groupFrame(ctx, g)}</g>`);
   const wires = new Map(scene.edges.map((e) => [e.id, wireOf(ctx, e)]));
   for (const e of scene.edges) {
     const w = wires.get(e.id);
@@ -888,7 +904,7 @@ export function renderStage(scene: Scene, opts: SvgOptions = {}): string {
     if (label) out.push(label);
   }
   for (const g of scene.groups) {
-    const header = groupHeader(ctx, g);
+    const header = lanes.get(g.id)?.header ?? groupHeader(ctx, g);
     if (header) out.push(`<g id="${prefix}gh-${g.id}">${header}</g>`);
   }
   for (const nd of scene.nodes) out.push(node(ctx, nd));

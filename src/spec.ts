@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { isHex } from "./color.ts";
 import { iconInfo, resolveIcon, suggestIcons } from "./icons.ts";
@@ -6,13 +8,22 @@ import {
   ANIMATE_MODES,
   ARROWS,
   type ArrowMode,
+  BPMN_KINDS,
+  type BpmnKind,
+  DIAGRAM_KINDS,
   DIRECTIONS,
   type Diagnostic,
+  type DiagramKind,
   type Direction,
+  EDGE_FLOWS,
   EDGE_LINES,
+  type EdgeFlow,
   type EdgeLine,
+  isBpmnEvent,
+  isBpmnGateway,
   type LegendEntry,
   LOOKS,
+  type LocalIcon,
   type Model,
   type ModelEdge,
   type ModelGroup,
@@ -42,6 +53,10 @@ const TOP_KEYS = [
   "skin",
   "background",
   "legend",
+  "kind",
+  "icons",
+  "stages",
+  "story",
   "nodes",
   "groups",
   "edges",
@@ -58,6 +73,9 @@ const NODE_KEYS = [
   "badge",
   "url",
   "size",
+  "bpmn",
+  "stage",
+  "score",
 ];
 const NODE_SYNONYMS: Record<string, string> = {
   sublabel: "note",
@@ -87,7 +105,7 @@ const GROUP_SYNONYMS: Record<string, string> = {
   children: "contains",
   nodes: "contains",
 };
-const EDGE_KEYS = ["from", "to", "label", "line", "arrow", "color", "step", "constraint"];
+const EDGE_KEYS = ["from", "to", "label", "line", "arrow", "color", "step", "constraint", "flow"];
 const EDGE_SYNONYMS: Record<string, string> = {
   style: "line",
   source: "from",
@@ -95,6 +113,32 @@ const EDGE_SYNONYMS: Record<string, string> = {
   text: "label",
 };
 const LAYOUT_KEYS = ["spacing", "routing", "layering", "merge"];
+/** Flowchart and state names for shapes, after ISO 5807 and UML. */
+const SHAPE_SYNONYMS: Record<string, ShapeKind> = {
+  terminator: "pill",
+  terminal: "pill",
+  decision: "diamond",
+  process: "box",
+  data: "parallelogram",
+  io: "parallelogram",
+  input: "parallelogram",
+  output: "parallelogram",
+  predefined: "subroutine",
+  manual: "trapezoid",
+  database: "cylinder",
+  state: "rounded",
+};
+/** Each kind's flow direction and arrowhead when the spec leaves them out. */
+const KIND_DEFAULTS: Record<DiagramKind, { direction: Direction; arrowhead: "open" | "filled" }> = {
+  architecture: { direction: "right", arrowhead: "open" },
+  flowchart: { direction: "down", arrowhead: "filled" },
+  process: { direction: "right", arrowhead: "filled" },
+  state: { direction: "right", arrowhead: "open" },
+  tree: { direction: "down", arrowhead: "open" },
+  mindmap: { direction: "right", arrowhead: "open" },
+  journey: { direction: "right", arrowhead: "open" },
+};
+const ICON_NAME = /^[a-z0-9][a-z0-9-]*$/;
 const ID_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]*$/;
 
 export interface ParseResult {
@@ -226,7 +270,7 @@ function labelColon(s: string): number {
   return -1;
 }
 
-const ICON_ID = /^(aws|azure|gcp|k8s|github|logos|si|tabler|generic):[a-z0-9]/i;
+const ICON_ID = /^(aws|azure|gcp|k8s|github|logos|si|tabler|generic|local):[a-z0-9]/i;
 
 export interface EdgeHop {
   from: string[];
@@ -384,7 +428,14 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
 
   unknownKeys(raw, TOP_KEYS, {}, "the top level");
 
-  const direction = oneOf<Direction>(raw.direction, DIRECTIONS, "right", "direction");
+  const kind = oneOf<DiagramKind>(raw.kind, DIAGRAM_KINDS, "architecture", "kind");
+  const kindDefaults = KIND_DEFAULTS[kind];
+  const direction = oneOf<Direction>(
+    raw.direction,
+    DIRECTIONS,
+    kindDefaults.direction,
+    "direction",
+  );
   const theme = oneOf<ThemeName>(raw.theme, THEMES, "light", "theme");
   const defaultLook = oneOf<NodeLook>(raw.look, ["icon", "card"] as const, "icon", "look");
   const layout = isObj(raw.layout) ? raw.layout : {};
@@ -414,7 +465,12 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     });
   }
   const merge = layout.merge !== false;
-  const arrowhead = oneOf(raw.arrowhead, ["open", "filled"] as const, "open", "arrowhead");
+  const arrowhead = oneOf(
+    raw.arrowhead,
+    ["open", "filled"] as const,
+    kindDefaults.arrowhead,
+    "arrowhead",
+  );
   // Unset: the skin picks (relay for stage, packets for classic).
   const animate =
     raw.animate === undefined
@@ -457,6 +513,68 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
       } else legend.push({ line, label });
     }
   }
+
+  // SVG files the spec registers as local:<name> icons, read relative to the spec's folder.
+  const localIcons: LocalIcon[] = [];
+  if (raw.icons !== undefined && raw.icons !== null && !isObj(raw.icons)) {
+    err("DG111", "icons must be a mapping of a name to an .svg file", {
+      subject: { where: "icons" },
+      fixes: ["write icons: { brand: ./icons/brand.svg }, then use icon: local:brand"],
+    });
+  } else if (isObj(raw.icons)) {
+    const base = dirname(resolve(filename));
+    for (const [name, value] of Object.entries(raw.icons)) {
+      const file = str(value)?.trim();
+      if (!ICON_NAME.test(name)) {
+        err("DG111", `icon name "${name}" may only use lowercase letters, digits and "-"`, {
+          subject: { where: "icons", name },
+          fixes: [`rename to "${name.toLowerCase().replace(/[^a-z0-9-]+/g, "-")}"`],
+        });
+      } else if (!file || !/\.svg$/i.test(file)) {
+        err("DG111", `icon "${name}" must point to an .svg file`, {
+          subject: { where: "icons", name },
+          fixes: [`write ${name}: ./icons/${name}.svg`],
+        });
+      } else {
+        const path = isAbsolute(file) ? file : resolve(base, file);
+        if (!existsSync(path))
+          err("DG111", `icon "${name}": ${file} not found`, {
+            subject: { where: "icons", name, file },
+            fixes: [
+              "check the path; it is read relative to the spec's folder",
+              `make one with \`orrery icons new ${name}\``,
+            ],
+          });
+        else localIcons.push({ name, path });
+      }
+    }
+  }
+  /** A declared local:<name> icon id, or undefined. */
+  const localIcon = (value: string): string | undefined => {
+    const m = value.trim().match(/^local:([a-z0-9][a-z0-9-]*)$/i);
+    const name = m?.[1]?.toLowerCase();
+    return name && localIcons.some((i) => i.name === name) ? `local:${name}` : undefined;
+  };
+  const localFix = (value: string): string[] =>
+    /^local:/i.test(value.trim())
+      ? [`declare it: icons: { ${value.trim().slice(6)}: ./${value.trim().slice(6)}.svg }`]
+      : [];
+
+  // Journey columns, in order.
+  const stages: string[] = [];
+  if (raw.stages !== undefined && raw.stages !== null) {
+    if (!Array.isArray(raw.stages) || raw.stages.some((x) => typeof x !== "string" || !x.trim()))
+      err("DG112", "stages must be a list of stage names", {
+        subject: { where: "stages" },
+        fixes: ["write stages: [Discover, Sign up, Onboard, Use]"],
+      });
+    else stages.push(...raw.stages.map((x: string) => x.trim()));
+  }
+  if (kind === "journey" && !stages.length)
+    err("DG112", "a journey needs stages: the columns its steps sit in", {
+      subject: { where: "stages" },
+      fixes: ["add stages: [Discover, Sign up, Onboard, Use]"],
+    });
 
   // ------------------------------------------------------------- collections
   const entries = (value: unknown, what: string): [string, unknown][] => {
@@ -527,11 +645,11 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     let icon: string | null | undefined;
     if (iconValue === false || iconValue === null || iconValue === "none") icon = null;
     else if (typeof iconValue === "string") {
-      icon = resolveIcon(iconValue);
+      icon = localIcon(iconValue) ?? resolveIcon(iconValue);
       if (!icon) {
         err("DG101", `group "${id}" uses unknown icon "${iconValue}"`, {
           subject: { group: id, icon: iconValue },
-          fixes: suggestIcons(iconValue).map((s) => `use icon "${s}"`),
+          fixes: [...localFix(iconValue), ...suggestIcons(iconValue).map((s) => `use icon "${s}"`)],
         });
       }
     }
@@ -595,11 +713,12 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     const iconRaw = str(pick(n, "icon", NODE_SYNONYMS));
     let icon: string | undefined;
     if (iconRaw) {
-      icon = resolveIcon(iconRaw);
+      icon = localIcon(iconRaw) ?? resolveIcon(iconRaw);
       if (!icon) {
         err("DG101", `node "${id}" uses unknown icon "${iconRaw}"`, {
           subject: { node: id, icon: iconRaw },
           fixes: [
+            ...localFix(iconRaw),
             ...suggestIcons(iconRaw).map((s) => `use icon "${s}"`),
             `run \`orrery icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``,
           ],
@@ -610,12 +729,50 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     let look: NodeLook = icon || iconRaw ? defaultLook : "shape";
     if (lookRaw !== undefined) look = oneOf<NodeLook>(lookRaw, LOOKS, look, `node "${id}" look`);
     if ((look === "icon" || look === "card") && !icon && !iconRaw) look = "shape";
+    const shapeRaw = pick(n, "shape", NODE_SYNONYMS);
     const shape = oneOf<ShapeKind>(
-      pick(n, "shape", NODE_SYNONYMS),
+      typeof shapeRaw === "string"
+        ? (SHAPE_SYNONYMS[shapeRaw.toLowerCase()] ?? shapeRaw)
+        : shapeRaw,
       SHAPES,
       "rounded",
       `node "${id}" shape`,
     );
+    const bpmnRaw = pick(n, "bpmn", NODE_SYNONYMS);
+    const bpmn =
+      bpmnRaw === undefined
+        ? undefined
+        : oneOf<BpmnKind>(bpmnRaw, BPMN_KINDS, "task", `node "${id}" bpmn`);
+    // A BPMN element is drawn in notation, with any icon small inside it.
+    if (bpmn) look = "shape";
+    const stage = str(pick(n, "stage", NODE_SYNONYMS))?.trim();
+    if (stage !== undefined && !stages.includes(stage)) {
+      const near = closest(stage, stages);
+      err("DG112", `node "${id}" is in stage "${stage}", which stages does not list`, {
+        subject: { node: id, stage },
+        fixes: near
+          ? [`use stage: ${near}`]
+          : stages.length
+            ? [`use one of ${stages.join(", ")}`]
+            : [`add stages: [${stage}]`],
+      });
+    }
+    if (kind === "journey" && stage === undefined && stages.length)
+      err("DG112", `node "${id}" needs a stage: the journey column it sits in`, {
+        subject: { node: id },
+        fixes: [`add stage: ${stages[0]}`],
+      });
+    const scoreRaw = pick(n, "score", NODE_SYNONYMS);
+    let score: number | undefined;
+    if (scoreRaw !== undefined) {
+      const v = Number(scoreRaw);
+      if (typeof scoreRaw === "boolean" || !Number.isFinite(v) || v < -2 || v > 2)
+        err("DG112", `node "${id}" score must be a number from -2 (very negative) to 2`, {
+          subject: { node: id },
+          fixes: ["use score: 1 for a good step, -2 for a painful one"],
+        });
+      else score = v;
+    }
     if (pick(n, "shape", NODE_SYNONYMS) !== undefined && icon && lookRaw === undefined)
       look = "shape";
     const url = str(pick(n, "url", NODE_SYNONYMS));
@@ -650,8 +807,12 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
           fixes: ["use size: lg, or a number such as 64"],
         });
     }
+    // Events and gateways are often unnamed in BPMN; everything else falls back to its id.
     const label =
-      str(pick(n, "label", NODE_SYNONYMS)) ?? (icon ? iconInfo(icon)?.name : undefined) ?? id;
+      str(pick(n, "label", NODE_SYNONYMS)) ??
+      (bpmn && (isBpmnEvent(bpmn) || isBpmnGateway(bpmn)) ? "" : undefined) ??
+      (icon ? iconInfo(icon)?.name : undefined) ??
+      id;
     nodes.push({
       id,
       label,
@@ -664,6 +825,9 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
       badge: str(pick(n, "badge", NODE_SYNONYMS)),
       url,
       iconSize,
+      ...(bpmn ? { bpmn } : {}),
+      ...(stage !== undefined ? { stage } : {}),
+      ...(score !== undefined ? { score } : {}),
     });
   }
 
@@ -779,6 +943,14 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     const reverse = op.arrow === "start";
     const lineRaw = pick(extra, "line", EDGE_SYNONYMS);
     const arrowRaw = pick(extra, "arrow", EDGE_SYNONYMS);
+    const flowRaw = pick(extra, "flow", EDGE_SYNONYMS);
+    const flow =
+      flowRaw === undefined
+        ? undefined
+        : oneOf<EdgeFlow>(flowRaw, EDGE_FLOWS, "sequence", `${where} flow`);
+    // BPMN draws message flows dashed and associations dotted with no arrowhead.
+    const flowLine: EdgeLine | undefined =
+      flow === "message" ? "dashed" : flow === "association" ? "dotted" : undefined;
     const color = hexColor(pick(extra, "color", EDGE_SYNONYMS), "color", where, { edge: where });
     const stepRaw = pick(extra, "step", EDGE_SYNONYMS);
     const step = stepRaw === undefined ? undefined : Number(stepRaw);
@@ -796,16 +968,19 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
       line:
         lineRaw !== undefined
           ? oneOf<EdgeLine>(lineRaw, EDGE_LINES, op.line, `${where} line`)
-          : op.line,
+          : (flowLine ?? op.line),
       arrow:
         arrowRaw !== undefined
           ? oneOf<ArrowMode>(arrowRaw, ARROWS, "end", `${where} arrow`)
-          : reverse
-            ? "end"
-            : op.arrow,
+          : flow === "association"
+            ? "none"
+            : reverse
+              ? "end"
+              : op.arrow,
       color,
       step: step !== undefined && Number.isInteger(step) ? step : undefined,
       constraint: pick(extra, "constraint", EDGE_SYNONYMS) !== false,
+      ...(flow && flow !== "sequence" ? { flow } : {}),
     });
   };
   const expand = (expr: string, label: string | undefined, extra: Obj, where: string) => {
@@ -875,6 +1050,39 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
       for (const t of tos) push(f, t, op, str(pick(item, "label", EDGE_SYNONYMS)), item, where);
   }
 
+  // The path the stage story takes: node ids in order, each hop along an edge.
+  const story: string[] = [];
+  if (raw.story !== undefined && raw.story !== null) {
+    if (!Array.isArray(raw.story) || raw.story.length < 2) {
+      err(
+        "DG113",
+        "story must be a list of at least two node ids, in the order the story visits them",
+        {
+          subject: { where: "story" },
+          fixes: ["write story: [customer, order, payment, shipping]"],
+        },
+      );
+    } else {
+      for (const item of raw.story.map(String)) {
+        if (ids.get(item) !== "node")
+          err("DG113", `story visits "${item}", which is not a node`, {
+            subject: { where: "story", id: item },
+            fixes: suggestIds(item, ids, "node").map((x) => `use "${x}"`),
+          });
+        else story.push(item);
+      }
+      for (let i = 1; i < story.length; i++) {
+        const a = story[i - 1];
+        const b = story[i];
+        if (!edges.some((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a)))
+          warn("DG113", `story goes from "${a}" to "${b}", which no edge connects`, {
+            subject: { where: "story", from: a, to: b },
+            fixes: [`add an edge ${a} -> ${b}, or drop one of them from story`],
+          });
+      }
+    }
+  }
+
   if (!nodes.length) {
     err("DG100", "the diagram has no nodes", { fixes: ["add at least one entry under nodes"] });
   }
@@ -897,6 +1105,10 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     nodes,
     groups,
     edges,
+    kind,
+    ...(stages.length ? { stages } : {}),
+    ...(story.length ? { story } : {}),
+    ...(localIcons.length ? { icons: localIcons } : {}),
   };
   return { model, diagnostics };
 }

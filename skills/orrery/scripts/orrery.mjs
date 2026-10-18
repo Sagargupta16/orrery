@@ -7372,7 +7372,7 @@ var require_dist = __commonJS({
 // src/cli.ts
 import { createHash as createHash2 } from "node:crypto";
 import {
-  existsSync as existsSync5,
+  existsSync as existsSync6,
   mkdirSync as mkdirSync2,
   readdirSync,
   readFileSync as readFileSync5,
@@ -7380,7 +7380,7 @@ import {
   statSync,
   writeFileSync as writeFileSync2
 } from "node:fs";
-import { basename, dirname as dirname3, extname, join as join7, resolve } from "node:path";
+import { basename, dirname as dirname4, extname, join as join7, resolve as resolve2 } from "node:path";
 
 // src/icons.ts
 import { readFileSync as readFileSync2 } from "node:fs";
@@ -8623,6 +8623,24 @@ import { existsSync as existsSync3 } from "node:fs";
 import { createRequire } from "node:module";
 import { join as join5 } from "node:path";
 
+// src/journey.ts
+async function journeyLayout(_model, _theme) {
+  return void 0;
+}
+
+// src/kinds.ts
+var kindHooks = {};
+
+// src/lanes.ts
+var laneHooks = {};
+
+// src/notation.ts
+function notationGeometry(_n, _horizontal) {
+  return void 0;
+}
+function placeNotation(_node, _n, _g, _ctx) {
+}
+
 // src/themes.ts
 var THEME_TOKENS = {
   light: {
@@ -9362,7 +9380,10 @@ var ELK_ROUTING = {
   spline: "SPLINES"
 };
 var round = (v) => Math.round(v * 100) / 100;
+var HOOKS = [laneHooks, kindHooks];
 function nodeGeometry(n3, horizontal) {
+  const notation = notationGeometry(n3, horizontal);
+  if (notation) return notation;
   const S = n3.iconSize;
   if (n3.look === "icon") {
     const label2 = textBlock(n3.label, SIZES.nodeLabel, Math.max(SIZES.iconLabelMax, S + 40));
@@ -9477,6 +9498,10 @@ function groupGeometry(g) {
 }
 async function layout(model, opts = {}) {
   const theme = opts.theme ?? model.theme;
+  if (model.kind === "journey") {
+    const grid = await journeyLayout(model, theme);
+    if (grid) return model.skin === "stage" ? stageColors(grid) : grid;
+  }
   const t = THEME_TOKENS[theme];
   const horizontal = model.direction === "right" || model.direction === "left";
   const s = model.spacing;
@@ -9507,8 +9532,11 @@ async function layout(model, opts = {}) {
     "elk.json.edgeCoords": "ROOT",
     "elk.layered.mergeEdges": model.merge ? "true" : "false",
     "elk.layered.unnecessaryBendpoints": "true",
-    "elk.layered.thoroughness": "12"
+    "elk.layered.thoroughness": "12",
+    ...Object.assign({}, ...HOOKS.map((h) => h.elkOptions?.(model) ?? {}))
   };
+  const hidden = new Set(HOOKS.flatMap((h) => [...h.hiddenGroups?.(model) ?? []]));
+  const order = new Map(HOOKS.flatMap((h) => [...h.order?.(model) ?? []]));
   const nodeGeom = /* @__PURE__ */ new Map();
   const groupGeom = /* @__PURE__ */ new Map();
   const elkNodes = /* @__PURE__ */ new Map();
@@ -9560,13 +9588,15 @@ async function layout(model, opts = {}) {
   for (const grp of model.groups) groupGeom.set(grp.id, groupGeometry(grp));
   for (const grp of model.groups) {
     const gg = groupGeom.get(grp.id);
-    if (!gg || grp.around) continue;
-    const siblings = model.groups.filter((o) => !o.around && o.parent === grp.parent);
+    if (!gg || grp.around || hidden.has(grp.id)) continue;
+    const siblings = model.groups.filter(
+      (o) => !o.around && !hidden.has(o.id) && o.parent === grp.parent
+    );
     gg.header = Math.max(...siblings.map((o) => groupGeom.get(o.id)?.header ?? 0));
   }
   for (const grp of model.groups) {
     const gg = groupGeom.get(grp.id);
-    if (!gg || grp.around) continue;
+    if (!gg || grp.around || hidden.has(grp.id)) continue;
     const top2 = gg.header + 18 + (opts.room?.get(grp.id) ?? 0);
     elkNodes.set(grp.id, {
       id: grp.id,
@@ -9595,17 +9625,27 @@ async function layout(model, opts = {}) {
     children: [],
     edges: []
   };
+  const host = (parent) => {
+    let p = parent;
+    while (p && hidden.has(p)) p = model.groups.find((g) => g.id === p)?.parent;
+    return p ? elkNodes.get(p) : root;
+  };
   for (const item of [...model.groups, ...model.nodes]) {
     const el = elkNodes.get(item.id);
     if (!el) continue;
-    const parent = item.parent ? elkNodes.get(item.parent) : root;
+    const parent = host(item.parent);
     (parent?.children ?? root.children)?.push(el);
   }
   for (const parent of [root, ...elkNodes.values()]) {
-    parent.children?.forEach((c, i) => {
+    const kids = parent.children ?? [];
+    const rank = order.size ? new Map(
+      kids.map((c, i) => [c, i]).sort(([a, i], [b, j]) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0) || i - j).map(([c], r) => [c, r])
+    ) : void 0;
+    kids.forEach((c, i) => {
+      const at = rank?.get(c) ?? i;
       c.layoutOptions = {
         ...c.layoutOptions,
-        "elk.position": horizontal ? `(0,${i * 10})` : `(${i * 10},0)`
+        "elk.position": horizontal ? `(0,${at * 10})` : `(${at * 10},0)`
       };
     });
   }
@@ -9621,8 +9661,9 @@ async function layout(model, opts = {}) {
   const overlays = new Map(
     model.groups.filter((g) => g.around?.length).map((g) => [g.id, g.around ?? []])
   );
-  const free = (e) => !e.constraint || overlays.has(e.from) || overlays.has(e.to);
-  const members = (id) => (overlays.get(id) ?? [id]).filter((m) => !overlays.has(m));
+  const free = (e) => !e.constraint || overlays.has(e.from) || overlays.has(e.to) || hidden.has(e.from) || hidden.has(e.to);
+  const inside = (id) => [...model.nodes, ...model.groups].filter((x) => x.parent === id).flatMap((x) => hidden.has(x.id) ? inside(x.id) : [x.id]);
+  const members = (id) => (overlays.get(id) ?? (hidden.has(id) ? inside(id) : [id])).filter((m) => !overlays.has(m));
   const port = (nodeId, side, e) => {
     if (!model.merge || groupIds.has(nodeId)) return nodeId;
     const el = elkNodes.get(nodeId);
@@ -9895,7 +9936,10 @@ async function layout(model, opts = {}) {
       color: n3.color,
       badge: n3.badge,
       url: n3.url,
-      parent: n3.parent
+      parent: n3.parent,
+      ...n3.bpmn ? { bpmn: n3.bpmn } : {},
+      ...n3.stage !== void 0 ? { stage: n3.stage } : {},
+      ...n3.score !== void 0 ? { score: n3.score } : {}
     };
     let surface;
     for (let p = n3.parent; p && !surface; p = model.groups.find((g2) => g2.id === p)?.parent) {
@@ -10001,6 +10045,11 @@ async function layout(model, opts = {}) {
         };
       }
     }
+    const outside = el.labels?.find((l) => l.id === `${n3.id}__label`);
+    placeNotation(node4, n3, g, {
+      horizontal,
+      label: outside?.x !== void 0 && outside.y !== void 0 ? { x: round(outside.x), y: round(outside.y + top) } : void 0
+    });
     if (n3.badge)
       node4.badgeBox = badgePill(n3.badge, node4.iconBox && n3.look === "icon" ? node4.iconBox : box);
     nodes.push(node4);
@@ -10096,7 +10145,8 @@ async function layout(model, opts = {}) {
           line: e.line,
           arrow: e.arrow,
           color: e.color,
-          step: e.step
+          step: e.step,
+          ...e.flow ? { flow: e.flow } : {}
         });
       continue;
     }
@@ -10112,7 +10162,8 @@ async function layout(model, opts = {}) {
       line: e.line,
       arrow: e.arrow,
       color: e.color,
-      step: e.step
+      step: e.step,
+      ...e.flow ? { flow: e.flow } : {}
     };
     const lab = edgeLabels.get(e.id);
     const elkLabel = el.labels?.[0];
@@ -10188,6 +10239,7 @@ async function layout(model, opts = {}) {
       };
     }
   }
+  for (const h of HOOKS) h.after?.({ model, theme, horizontal, top, nodes, groups, edges });
   for (const [i, g] of groups.entries()) {
     const grp = g.overlay ? model.groups.find((x) => x.id === g.id) : void 0;
     if (!grp) continue;
@@ -10290,7 +10342,12 @@ async function layout(model, opts = {}) {
   }
   let width = round((result.width ?? 0) + dx);
   let height = round((result.height ?? 0) + top + dy);
-  for (const b of [...groups.map((g) => g.box), ...edges.flatMap((e) => [e.labelBox, e.stepBox])]) {
+  const hooked = model.kind !== "architecture" || hidden.size > 0 ? nodes.flatMap((n3) => [n3.box, n3.labelBox, n3.noteBox, n3.badgeBox]) : [];
+  for (const b of [
+    ...groups.map((g) => g.box),
+    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
+    ...hooked
+  ]) {
     if (!b) continue;
     width = Math.max(width, round(b.x + b.w + SIZES.pad));
     height = Math.max(height, round(b.y + b.h + SIZES.pad));
@@ -10342,7 +10399,9 @@ async function layout(model, opts = {}) {
     edges,
     legend: legend4,
     layoutFallback: fallback,
-    description: describe(model)
+    description: describe(model),
+    kind: model.kind,
+    ...model.story ? { story: model.story } : {}
   };
   return model.skin === "stage" ? stageColors(scene) : scene;
 }
@@ -10766,6 +10825,40 @@ function describe(model) {
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
+// src/local-icons.ts
+async function loadLocalIcons(_model) {
+}
+
+// src/render/journey.ts
+function journeyClassic(_scene, _t) {
+  return "";
+}
+function journeyStage(_scene, _k, _t, _h) {
+  return "";
+}
+
+// src/render/lanes.ts
+function laneClassic(_g, _t) {
+  return void 0;
+}
+function laneStage(_g, _k, _t, _h, _glow) {
+  return void 0;
+}
+
+// src/render/notation.ts
+function shapeOutline(_shape, _b) {
+  return void 0;
+}
+function notationShape(_nd) {
+  return void 0;
+}
+function notationMarks(_nd, _color, _width) {
+  return "";
+}
+function flowMarks(_e, _color, _width, _ground) {
+  return "";
+}
+
 // src/render/stage.ts
 var DISPLAY = 880;
 var MONO = "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace";
@@ -11143,7 +11236,8 @@ function edgeBase(ctx, e, w) {
   const { k } = ctx;
   const flow = ctx.scene.animate === "flow" ? ` class="sdw-flow${e.line === "solid" || e.line === "thick" ? " sdw-solid" : ""}"` : "";
   const heads = [w.heads.end, w.heads.start].map((hd) => hd ? chevron(ctx, hd[0], hd[1], k.line, k.arrow) : "").join("");
-  return `<path d="${w.d}" fill="none" ${stroke(k.line, k.wire, w.width)} stroke-linecap="round" stroke-linejoin="round"${w.dash}${flow}/>${heads}`;
+  const marks = e.flow ? flowMarks(e, mixHex(k.line, ctx.t.background, k.arrow), w.width, k.tile) : "";
+  return `<path d="${w.d}" fill="none" ${stroke(k.line, k.wire, w.width)} stroke-linecap="round" stroke-linejoin="round"${w.dash}${flow}/>${heads}${marks}`;
 }
 function edgeLit(ctx, e, w, runs) {
   const { story, h } = ctx;
@@ -11294,13 +11388,14 @@ function node(ctx, nd) {
     if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box, nd.badgeBox));
   } else {
     const tint = nd.color ?? k.tint;
+    const outline = (nd.bpmn ? notationShape(nd) : void 0) ?? shapePath(nd.shape, nd.box);
     parts.push(
-      `<g ${fill(k.tile)} ${stroke(k.line, k.frame, h)}>${shapePath(nd.shape, nd.box)}</g>`
+      `<g ${fill(k.tile)} ${stroke(k.line, k.frame, h)}>${outline}${notationMarks(nd, k.glyph, 1.25 * h)}</g>`
     );
     parts.push(
       lit(
         ctx,
-        `<g ${fill(tint, 0.15)} ${stroke(tint, 0.65, h)}>${shapePath(nd.shape, nd.box)}</g>`,
+        `<g ${fill(tint, 0.15)} ${stroke(tint, 0.65, h)}>${outline}${notationMarks(nd, tint, 1.25 * h)}</g>`,
         TILES_ON
       )
     );
@@ -11395,7 +11490,15 @@ function renderStage(scene, opts = {}) {
     const size = sizeFor(scene.subtitle.lines, SUBTITLE, W - b.x - 24, 9);
     out.push(block(scene.subtitle, b, SUBTITLE, size, t.text, "start"));
   }
-  for (const g of scene.groups) out.push(`<g id="${prefix}g-${g.id}">${groupFrame(ctx, g)}</g>`);
+  if (scene.journey) out.push(journeyStage(scene, k, t, h));
+  const lanes = new Map(
+    scene.groups.map((g) => [
+      g.id,
+      g.lane ? laneStage(g, k, t, h, (body) => lit(ctx, body, GROUPS_ON)) : void 0
+    ])
+  );
+  for (const g of scene.groups)
+    out.push(`<g id="${prefix}g-${g.id}">${lanes.get(g.id)?.frame ?? groupFrame(ctx, g)}</g>`);
   const wires = new Map(scene.edges.map((e) => [e.id, wireOf(ctx, e)]));
   for (const e of scene.edges) {
     const w = wires.get(e.id);
@@ -11410,7 +11513,7 @@ function renderStage(scene, opts = {}) {
     if (label) out.push(label);
   }
   for (const g of scene.groups) {
-    const header = groupHeader(ctx, g);
+    const header = lanes.get(g.id)?.header ?? groupHeader(ctx, g);
     if (header) out.push(`<g id="${prefix}gh-${g.id}">${header}</g>`);
   }
   for (const nd of scene.nodes) out.push(node(ctx, nd));
@@ -11620,6 +11723,7 @@ function edge(ctx, e, routing) {
     parts.push(arrowHead(last, beforeLast, len, half, color, open, width));
   if (start && firstPt && second)
     parts.push(arrowHead(firstPt, second, len, half, color, open, width));
+  if (e.flow) parts.push(flowMarks(e, color, width, ctx.t.background));
   if (beat) {
     const lit2 = ctx.relay.color;
     const heads = [
@@ -11818,6 +11922,8 @@ function plate(ctx, nd, at) {
   return `<rect x="${n(b.x - pad)}" y="${n(b.y - pad)}" width="${n(b.w + 2 * pad)}" height="${n(b.h + 2 * pad)}" rx="${icon2 ? 10 : 12}" fill="${color}" fill-opacity="0.14" stroke="${color}" stroke-opacity="0.6" stroke-width="1" opacity="0"><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${times}" ${loop2}/></rect>`;
 }
 function shapePath(shape, b) {
+  const outline = shapeOutline(shape, b);
+  if (outline) return outline;
   const { x, y, w, h } = b;
   switch (shape) {
     case "box":
@@ -11893,8 +11999,9 @@ function node2(ctx, nd) {
   } else {
     const stroke3 = nd.color ?? (ctx.t.name === "dark" ? "#6e7681" : "#8b95a1");
     const fill2 = nd.color ? mixHex(nd.color, bg, ctx.t.name === "dark" ? 0.16 : 0.1) : ctx.t.surface;
+    const outline = (nd.bpmn ? notationShape(nd) : void 0) ?? shapePath(nd.shape, nd.box);
     parts.push(
-      `<g fill="${fill2}" stroke="${stroke3}" stroke-width="1.25">${shapePath(nd.shape, nd.box)}</g>`
+      `<g fill="${fill2}" stroke="${stroke3}" stroke-width="1.25">${outline}${notationMarks(nd, stroke3, 1.25)}</g>`
     );
     if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, nd.color, fill2));
     parts.push(text(nd.label, nd.labelBox, nd.ink ?? ctx.t.text));
@@ -11954,14 +12061,17 @@ function renderSvg(scene, opts = {}) {
   if (scene.title && scene.titleBox) out.push(text(scene.title, scene.titleBox, t.text, "start"));
   if (scene.subtitle && scene.subtitleBox)
     out.push(text(scene.subtitle, scene.subtitleBox, t.muted, "start"));
-  for (const g of scene.groups) out.push(`<g id="${ctx.prefix}g-${g.id}">${groupFrame2(g)}</g>`);
+  if (scene.journey) out.push(journeyClassic(scene, t));
+  const lanes = new Map(scene.groups.map((g) => [g.id, g.lane ? laneClassic(g, t) : void 0]));
+  for (const g of scene.groups)
+    out.push(`<g id="${ctx.prefix}g-${g.id}">${lanes.get(g.id)?.frame ?? groupFrame2(g)}</g>`);
   for (const e of scene.edges) out.push(edge(ctx, e, scene.routing));
   for (const e of scene.edges) {
     const label = edgeLabel2(ctx, e);
     if (label) out.push(label);
   }
   for (const g of scene.groups) {
-    const header = groupHeader2(ctx, g);
+    const header = lanes.get(g.id)?.header ?? groupHeader2(ctx, g);
     if (header) out.push(`<g id="${ctx.prefix}gh-${g.id}">${header}</g>`);
   }
   for (const nd of scene.nodes) {
@@ -12059,7 +12169,18 @@ var SHAPE_STYLE = {
   note: { shape: "note", size: 14, backgroundOutline: 1 },
   person: { shape: "actor" },
   cloud: { ellipse: null, shape: "cloud" },
-  stack: { rounded: 1, absoluteArcSize: 1, arcSize: 12, shadow: 0 }
+  stack: { rounded: 1, absoluteArcSize: 1, arcSize: 12, shadow: 0 },
+  parallelogram: { shape: "parallelogram", perimeter: "parallelogramPerimeter", size: 0.15 },
+  subroutine: { shape: "process", size: 0.08 },
+  trapezoid: {
+    shape: "trapezoid",
+    perimeter: "trapezoidPerimeter",
+    size: 0.15,
+    direction: "south"
+  },
+  delay: { shape: "delay" },
+  initial: { ellipse: null },
+  final: { shape: "doubleEllipse" }
 };
 function node3(ctx, nd) {
   const id = `n-${nd.id}`;
@@ -12527,6 +12648,7 @@ async function renderModel(req) {
     ...new Set(req.formats.includes("html") ? [...req.themes, "light", "dark"] : req.themes)
   ];
   const scenes = {};
+  await loadLocalIcons(model);
   for (const theme of themes) scenes[theme] = await layout(model, { theme });
   if (req.formats.length) {
     const ids = Object.values(scenes).flatMap((s) => [
@@ -14561,6 +14683,8 @@ function formatReview(report, opts = {}) {
 
 // src/spec.ts
 var import_yaml2 = __toESM(require_dist(), 1);
+import { existsSync as existsSync5 } from "node:fs";
+import { dirname as dirname3, isAbsolute, resolve } from "node:path";
 
 // src/types.ts
 var DIRECTIONS2 = ["right", "down", "left", "up"];
@@ -14581,7 +14705,65 @@ var SHAPES2 = [
   "note",
   "person",
   "cloud",
-  "stack"
+  "stack",
+  "parallelogram",
+  "subroutine",
+  "trapezoid",
+  "delay",
+  "initial",
+  "final"
+];
+var DIAGRAM_KINDS = [
+  "architecture",
+  "flowchart",
+  "process",
+  "state",
+  "tree",
+  "mindmap",
+  "journey"
+];
+var BPMN_KINDS = [
+  "start",
+  "start-message",
+  "start-timer",
+  "start-signal",
+  "start-conditional",
+  "intermediate",
+  "intermediate-message",
+  "intermediate-timer",
+  "intermediate-signal",
+  "end",
+  "end-message",
+  "end-error",
+  "end-signal",
+  "end-terminate",
+  "end-escalation",
+  "exclusive",
+  "parallel",
+  "inclusive",
+  "event-based",
+  "complex",
+  "task",
+  "user-task",
+  "service-task",
+  "manual-task",
+  "script-task",
+  "send-task",
+  "receive-task",
+  "business-rule-task",
+  "subprocess",
+  "call-activity",
+  "data-object",
+  "data-store"
+];
+var isBpmnEvent = (k) => !!k && /^(start|intermediate|end)/.test(k);
+var isBpmnGateway = (k) => k === "exclusive" || k === "parallel" || k === "inclusive" || k === "event-based" || k === "complex";
+var EDGE_FLOWS = [
+  "sequence",
+  "message",
+  "default",
+  "conditional",
+  "association"
 ];
 var ROUTINGS = ["orthogonal", "polyline", "spline"];
 var SPACINGS = ["compact", "normal", "loose"];
@@ -14603,6 +14785,10 @@ var TOP_KEYS = [
   "skin",
   "background",
   "legend",
+  "kind",
+  "icons",
+  "stages",
+  "story",
   "nodes",
   "groups",
   "edges"
@@ -14618,7 +14804,10 @@ var NODE_KEYS = [
   "color",
   "badge",
   "url",
-  "size"
+  "size",
+  "bpmn",
+  "stage",
+  "score"
 ];
 var NODE_SYNONYMS = {
   sublabel: "note",
@@ -14648,7 +14837,7 @@ var GROUP_SYNONYMS = {
   children: "contains",
   nodes: "contains"
 };
-var EDGE_KEYS = ["from", "to", "label", "line", "arrow", "color", "step", "constraint"];
+var EDGE_KEYS = ["from", "to", "label", "line", "arrow", "color", "step", "constraint", "flow"];
 var EDGE_SYNONYMS = {
   style: "line",
   source: "from",
@@ -14656,6 +14845,30 @@ var EDGE_SYNONYMS = {
   text: "label"
 };
 var LAYOUT_KEYS = ["spacing", "routing", "layering", "merge"];
+var SHAPE_SYNONYMS = {
+  terminator: "pill",
+  terminal: "pill",
+  decision: "diamond",
+  process: "box",
+  data: "parallelogram",
+  io: "parallelogram",
+  input: "parallelogram",
+  output: "parallelogram",
+  predefined: "subroutine",
+  manual: "trapezoid",
+  database: "cylinder",
+  state: "rounded"
+};
+var KIND_DEFAULTS = {
+  architecture: { direction: "right", arrowhead: "open" },
+  flowchart: { direction: "down", arrowhead: "filled" },
+  process: { direction: "right", arrowhead: "filled" },
+  state: { direction: "right", arrowhead: "open" },
+  tree: { direction: "down", arrowhead: "open" },
+  mindmap: { direction: "right", arrowhead: "open" },
+  journey: { direction: "right", arrowhead: "open" }
+};
+var ICON_NAME = /^[a-z0-9][a-z0-9-]*$/;
 var ID_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]*$/;
 var isObj = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 function closest(word, options) {
@@ -14752,7 +14965,7 @@ function labelColon(s) {
   }
   return -1;
 }
-var ICON_ID = /^(aws|azure|gcp|k8s|github|logos|si|tabler|generic):[a-z0-9]/i;
+var ICON_ID = /^(aws|azure|gcp|k8s|github|logos|si|tabler|generic|local):[a-z0-9]/i;
 function parseEdgeExpression(expr) {
   let body = expr.trim();
   let label;
@@ -14858,7 +15071,14 @@ function parseSpec(source, filename = "diagram.yaml") {
     return c;
   };
   unknownKeys(raw, TOP_KEYS, {}, "the top level");
-  const direction = oneOf(raw.direction, DIRECTIONS2, "right", "direction");
+  const kind = oneOf(raw.kind, DIAGRAM_KINDS, "architecture", "kind");
+  const kindDefaults = KIND_DEFAULTS[kind];
+  const direction = oneOf(
+    raw.direction,
+    DIRECTIONS2,
+    kindDefaults.direction,
+    "direction"
+  );
   const theme = oneOf(raw.theme, THEMES, "light", "theme");
   const defaultLook = oneOf(raw.look, ["icon", "card"], "icon", "look");
   const layout2 = isObj(raw.layout) ? raw.layout : {};
@@ -14888,7 +15108,12 @@ function parseSpec(source, filename = "diagram.yaml") {
     });
   }
   const merge = layout2.merge !== false;
-  const arrowhead = oneOf(raw.arrowhead, ["open", "filled"], "open", "arrowhead");
+  const arrowhead = oneOf(
+    raw.arrowhead,
+    ["open", "filled"],
+    kindDefaults.arrowhead,
+    "arrowhead"
+  );
   const animate = raw.animate === void 0 ? void 0 : raw.animate === true ? "packets" : raw.animate === false ? "none" : oneOf(raw.animate, ANIMATE_MODES, "packets", "animate");
   const skin = oneOf(raw.skin, SKINS, "classic", "skin");
   const background = hexColor(raw.background, "background", "", { where: "background" }, [
@@ -14920,6 +15145,60 @@ function parseSpec(source, filename = "diagram.yaml") {
       } else legend4.push({ line, label });
     }
   }
+  const localIcons = [];
+  if (raw.icons !== void 0 && raw.icons !== null && !isObj(raw.icons)) {
+    err("DG111", "icons must be a mapping of a name to an .svg file", {
+      subject: { where: "icons" },
+      fixes: ["write icons: { brand: ./icons/brand.svg }, then use icon: local:brand"]
+    });
+  } else if (isObj(raw.icons)) {
+    const base = dirname3(resolve(filename));
+    for (const [name, value] of Object.entries(raw.icons)) {
+      const file = str(value)?.trim();
+      if (!ICON_NAME.test(name)) {
+        err("DG111", `icon name "${name}" may only use lowercase letters, digits and "-"`, {
+          subject: { where: "icons", name },
+          fixes: [`rename to "${name.toLowerCase().replace(/[^a-z0-9-]+/g, "-")}"`]
+        });
+      } else if (!file || !/\.svg$/i.test(file)) {
+        err("DG111", `icon "${name}" must point to an .svg file`, {
+          subject: { where: "icons", name },
+          fixes: [`write ${name}: ./icons/${name}.svg`]
+        });
+      } else {
+        const path = isAbsolute(file) ? file : resolve(base, file);
+        if (!existsSync5(path))
+          err("DG111", `icon "${name}": ${file} not found`, {
+            subject: { where: "icons", name, file },
+            fixes: [
+              "check the path; it is read relative to the spec's folder",
+              `make one with \`orrery icons new ${name}\``
+            ]
+          });
+        else localIcons.push({ name, path });
+      }
+    }
+  }
+  const localIcon = (value) => {
+    const m = value.trim().match(/^local:([a-z0-9][a-z0-9-]*)$/i);
+    const name = m?.[1]?.toLowerCase();
+    return name && localIcons.some((i) => i.name === name) ? `local:${name}` : void 0;
+  };
+  const localFix = (value) => /^local:/i.test(value.trim()) ? [`declare it: icons: { ${value.trim().slice(6)}: ./${value.trim().slice(6)}.svg }`] : [];
+  const stages = [];
+  if (raw.stages !== void 0 && raw.stages !== null) {
+    if (!Array.isArray(raw.stages) || raw.stages.some((x) => typeof x !== "string" || !x.trim()))
+      err("DG112", "stages must be a list of stage names", {
+        subject: { where: "stages" },
+        fixes: ["write stages: [Discover, Sign up, Onboard, Use]"]
+      });
+    else stages.push(...raw.stages.map((x) => x.trim()));
+  }
+  if (kind === "journey" && !stages.length)
+    err("DG112", "a journey needs stages: the columns its steps sit in", {
+      subject: { where: "stages" },
+      fixes: ["add stages: [Discover, Sign up, Onboard, Use]"]
+    });
   const entries = (value, what) => {
     if (value === void 0 || value === null) return [];
     if (Array.isArray(value)) {
@@ -14947,7 +15226,7 @@ function parseSpec(source, filename = "diagram.yaml") {
   const groups = [];
   const ids = /* @__PURE__ */ new Map();
   const pendingContains = [];
-  const claim = (id, kind) => {
+  const claim = (id, kind2) => {
     if (!ID_RE.test(id)) {
       err("DG103", `id "${id}" may only use letters, digits, "_", "-" and "."`, {
         subject: { id },
@@ -14955,13 +15234,13 @@ function parseSpec(source, filename = "diagram.yaml") {
       });
     }
     if (ids.has(id)) {
-      err("DG103", `duplicate id "${id}" (used by a ${ids.get(id)} and a ${kind})`, {
+      err("DG103", `duplicate id "${id}" (used by a ${ids.get(id)} and a ${kind2})`, {
         subject: { id },
         fixes: [`rename one of them, e.g. "${id}-2"`]
       });
       return false;
     }
-    ids.set(id, kind);
+    ids.set(id, kind2);
     return true;
   };
   for (const [id, value] of entries(raw.groups, "groups")) {
@@ -14985,11 +15264,11 @@ function parseSpec(source, filename = "diagram.yaml") {
     let icon2;
     if (iconValue === false || iconValue === null || iconValue === "none") icon2 = null;
     else if (typeof iconValue === "string") {
-      icon2 = resolveIcon(iconValue);
+      icon2 = localIcon(iconValue) ?? resolveIcon(iconValue);
       if (!icon2) {
         err("DG101", `group "${id}" uses unknown icon "${iconValue}"`, {
           subject: { group: id, icon: iconValue },
-          fixes: suggestIcons(iconValue).map((s) => `use icon "${s}"`)
+          fixes: [...localFix(iconValue), ...suggestIcons(iconValue).map((s) => `use icon "${s}"`)]
         });
       }
     }
@@ -15052,11 +15331,12 @@ function parseSpec(source, filename = "diagram.yaml") {
     const iconRaw = str(pick(n3, "icon", NODE_SYNONYMS));
     let icon2;
     if (iconRaw) {
-      icon2 = resolveIcon(iconRaw);
+      icon2 = localIcon(iconRaw) ?? resolveIcon(iconRaw);
       if (!icon2) {
         err("DG101", `node "${id}" uses unknown icon "${iconRaw}"`, {
           subject: { node: id, icon: iconRaw },
           fixes: [
+            ...localFix(iconRaw),
             ...suggestIcons(iconRaw).map((s) => `use icon "${s}"`),
             `run \`orrery icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``
           ]
@@ -15067,12 +15347,40 @@ function parseSpec(source, filename = "diagram.yaml") {
     let look = icon2 || iconRaw ? defaultLook : "shape";
     if (lookRaw !== void 0) look = oneOf(lookRaw, LOOKS, look, `node "${id}" look`);
     if ((look === "icon" || look === "card") && !icon2 && !iconRaw) look = "shape";
+    const shapeRaw = pick(n3, "shape", NODE_SYNONYMS);
     const shape = oneOf(
-      pick(n3, "shape", NODE_SYNONYMS),
+      typeof shapeRaw === "string" ? SHAPE_SYNONYMS[shapeRaw.toLowerCase()] ?? shapeRaw : shapeRaw,
       SHAPES2,
       "rounded",
       `node "${id}" shape`
     );
+    const bpmnRaw = pick(n3, "bpmn", NODE_SYNONYMS);
+    const bpmn = bpmnRaw === void 0 ? void 0 : oneOf(bpmnRaw, BPMN_KINDS, "task", `node "${id}" bpmn`);
+    if (bpmn) look = "shape";
+    const stage = str(pick(n3, "stage", NODE_SYNONYMS))?.trim();
+    if (stage !== void 0 && !stages.includes(stage)) {
+      const near = closest(stage, stages);
+      err("DG112", `node "${id}" is in stage "${stage}", which stages does not list`, {
+        subject: { node: id, stage },
+        fixes: near ? [`use stage: ${near}`] : stages.length ? [`use one of ${stages.join(", ")}`] : [`add stages: [${stage}]`]
+      });
+    }
+    if (kind === "journey" && stage === void 0 && stages.length)
+      err("DG112", `node "${id}" needs a stage: the journey column it sits in`, {
+        subject: { node: id },
+        fixes: [`add stage: ${stages[0]}`]
+      });
+    const scoreRaw = pick(n3, "score", NODE_SYNONYMS);
+    let score;
+    if (scoreRaw !== void 0) {
+      const v = Number(scoreRaw);
+      if (typeof scoreRaw === "boolean" || !Number.isFinite(v) || v < -2 || v > 2)
+        err("DG112", `node "${id}" score must be a number from -2 (very negative) to 2`, {
+          subject: { node: id },
+          fixes: ["use score: 1 for a good step, -2 for a painful one"]
+        });
+      else score = v;
+    }
     if (pick(n3, "shape", NODE_SYNONYMS) !== void 0 && icon2 && lookRaw === void 0)
       look = "shape";
     const url = str(pick(n3, "url", NODE_SYNONYMS));
@@ -15104,7 +15412,7 @@ function parseSpec(source, filename = "diagram.yaml") {
           fixes: ["use size: lg, or a number such as 64"]
         });
     }
-    const label = str(pick(n3, "label", NODE_SYNONYMS)) ?? (icon2 ? iconInfo(icon2)?.name : void 0) ?? id;
+    const label = str(pick(n3, "label", NODE_SYNONYMS)) ?? (bpmn && (isBpmnEvent(bpmn) || isBpmnGateway(bpmn)) ? "" : void 0) ?? (icon2 ? iconInfo(icon2)?.name : void 0) ?? id;
     nodes.push({
       id,
       label,
@@ -15116,7 +15424,10 @@ function parseSpec(source, filename = "diagram.yaml") {
       color,
       badge: str(pick(n3, "badge", NODE_SYNONYMS)),
       url,
-      iconSize
+      iconSize,
+      ...bpmn ? { bpmn } : {},
+      ...stage !== void 0 ? { stage } : {},
+      ...score !== void 0 ? { score } : {}
     });
   }
   for (const [groupId, children] of pendingContains) {
@@ -15150,8 +15461,8 @@ function parseSpec(source, filename = "diagram.yaml") {
   }
   for (const item of [...nodes, ...groups]) {
     if (!item.parent) continue;
-    const kind = ids.get(item.parent);
-    if (kind === "group" && groups.find((x) => x.id === item.parent)?.around) {
+    const kind2 = ids.get(item.parent);
+    if (kind2 === "group" && groups.find((x) => x.id === item.parent)?.around) {
       err(
         "DG104",
         `"${item.id}" is in "${item.parent}", an around group, which only outlines other ids`,
@@ -15163,13 +15474,13 @@ function parseSpec(source, filename = "diagram.yaml") {
       item.parent = void 0;
       continue;
     }
-    if (kind === "group") continue;
+    if (kind2 === "group") continue;
     err(
       "DG104",
-      `"${item.id}" is in "${item.parent}", which ${kind ? "is a node, not a group" : "does not exist"}`,
+      `"${item.id}" is in "${item.parent}", which ${kind2 ? "is a node, not a group" : "does not exist"}`,
       {
         subject: { id: item.id, in: item.parent },
-        fixes: kind ? [`add a group and put both inside it`] : suggestIds(item.parent, ids, "group").map((s) => `use in: ${s}`)
+        fixes: kind2 ? [`add a group and put both inside it`] : suggestIds(item.parent, ids, "group").map((s) => `use in: ${s}`)
       }
     );
     item.parent = void 0;
@@ -15212,6 +15523,9 @@ function parseSpec(source, filename = "diagram.yaml") {
     const reverse = op.arrow === "start";
     const lineRaw = pick(extra, "line", EDGE_SYNONYMS);
     const arrowRaw = pick(extra, "arrow", EDGE_SYNONYMS);
+    const flowRaw = pick(extra, "flow", EDGE_SYNONYMS);
+    const flow = flowRaw === void 0 ? void 0 : oneOf(flowRaw, EDGE_FLOWS, "sequence", `${where} flow`);
+    const flowLine = flow === "message" ? "dashed" : flow === "association" ? "dotted" : void 0;
     const color = hexColor(pick(extra, "color", EDGE_SYNONYMS), "color", where, { edge: where });
     const stepRaw = pick(extra, "step", EDGE_SYNONYMS);
     const step = stepRaw === void 0 ? void 0 : Number(stepRaw);
@@ -15226,11 +15540,12 @@ function parseSpec(source, filename = "diagram.yaml") {
       from: reverse ? to : from,
       to: reverse ? from : to,
       label: op.label ?? label,
-      line: lineRaw !== void 0 ? oneOf(lineRaw, EDGE_LINES, op.line, `${where} line`) : op.line,
-      arrow: arrowRaw !== void 0 ? oneOf(arrowRaw, ARROWS, "end", `${where} arrow`) : reverse ? "end" : op.arrow,
+      line: lineRaw !== void 0 ? oneOf(lineRaw, EDGE_LINES, op.line, `${where} line`) : flowLine ?? op.line,
+      arrow: arrowRaw !== void 0 ? oneOf(arrowRaw, ARROWS, "end", `${where} arrow`) : flow === "association" ? "none" : reverse ? "end" : op.arrow,
       color,
       step: step !== void 0 && Number.isInteger(step) ? step : void 0,
-      constraint: pick(extra, "constraint", EDGE_SYNONYMS) !== false
+      constraint: pick(extra, "constraint", EDGE_SYNONYMS) !== false,
+      ...flow && flow !== "sequence" ? { flow } : {}
     });
   };
   const expand = (expr, label, extra, where) => {
@@ -15298,6 +15613,37 @@ function parseSpec(source, filename = "diagram.yaml") {
     for (const f of froms)
       for (const t of tos) push(f, t, op, str(pick(item, "label", EDGE_SYNONYMS)), item, where);
   }
+  const story = [];
+  if (raw.story !== void 0 && raw.story !== null) {
+    if (!Array.isArray(raw.story) || raw.story.length < 2) {
+      err(
+        "DG113",
+        "story must be a list of at least two node ids, in the order the story visits them",
+        {
+          subject: { where: "story" },
+          fixes: ["write story: [customer, order, payment, shipping]"]
+        }
+      );
+    } else {
+      for (const item of raw.story.map(String)) {
+        if (ids.get(item) !== "node")
+          err("DG113", `story visits "${item}", which is not a node`, {
+            subject: { where: "story", id: item },
+            fixes: suggestIds(item, ids, "node").map((x) => `use "${x}"`)
+          });
+        else story.push(item);
+      }
+      for (let i = 1; i < story.length; i++) {
+        const a = story[i - 1];
+        const b = story[i];
+        if (!edges.some((e) => e.from === a && e.to === b || e.from === b && e.to === a))
+          warn("DG113", `story goes from "${a}" to "${b}", which no edge connects`, {
+            subject: { where: "story", from: a, to: b },
+            fixes: [`add an edge ${a} -> ${b}, or drop one of them from story`]
+          });
+      }
+    }
+  }
   if (!nodes.length) {
     err("DG100", "the diagram has no nodes", { fixes: ["add at least one entry under nodes"] });
   }
@@ -15318,7 +15664,11 @@ function parseSpec(source, filename = "diagram.yaml") {
     ...legend4.length ? { legend: legend4 } : {},
     nodes,
     groups,
-    edges
+    edges,
+    kind,
+    ...stages.length ? { stages } : {},
+    ...story.length ? { story } : {},
+    ...localIcons.length ? { icons: localIcons } : {}
   };
   return { model, diagnostics };
 }
@@ -15445,7 +15795,7 @@ ${HELP}
 }
 var sha = (data) => createHash2("sha256").update(data).digest("hex");
 function writeAtomic(path, data) {
-  mkdirSync2(dirname3(path), { recursive: true });
+  mkdirSync2(dirname4(path), { recursive: true });
   const tmp = `${path}.${process.pid}.tmp`;
   writeFileSync2(tmp, data);
   renameSync2(tmp, path);
@@ -15464,8 +15814,8 @@ function printDiagnostics(list, json) {
 }
 function readSpec(path) {
   if (path === "-") return { text: readFileSync5(0, "utf8"), name: "diagram", path: "stdin.yaml" };
-  const full = resolve(path);
-  if (!existsSync5(full)) usage(`no such spec file: ${path}`);
+  const full = resolve2(path);
+  if (!existsSync6(full)) usage(`no such spec file: ${path}`);
   return {
     text: readFileSync5(full, "utf8"),
     name: basename(full).replace(/\.(ya?ml|json)$/i, ""),
@@ -15484,7 +15834,7 @@ async function cmdRender(args, validateOnly) {
   if (!["light", "dark", "both"].includes(themeFlag)) usage(`--theme must be light, dark or both`);
   const themes = themeFlag === "both" ? ["light", "dark"] : [themeFlag];
   const fonts2 = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
-  for (const f of fonts2) if (!existsSync5(f)) usage(`no such file: ${f} (from --font)`);
+  for (const f of fonts2) if (!existsSync6(f)) usage(`no such file: ${f} (from --font)`);
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
   let formats;
   const fmtFlag = typeof args.flags.format === "string" ? args.flags.format : void 0;
@@ -15497,11 +15847,11 @@ async function cmdRender(args, validateOnly) {
   else formats = ["svg", "png"];
   let base;
   if (!outFlag)
-    base = spec.path === "stdin.yaml" ? resolve("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
-  else if (outFlag.endsWith("/") || outFlag.endsWith("\\") || existsSync5(outFlag) && statSync(outFlag).isDirectory())
-    base = join7(resolve(outFlag), spec.name);
+    base = spec.path === "stdin.yaml" ? resolve2("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
+  else if (outFlag.endsWith("/") || outFlag.endsWith("\\") || existsSync6(outFlag) && statSync(outFlag).isDirectory())
+    base = join7(resolve2(outFlag), spec.name);
   else
-    base = resolve(
+    base = resolve2(
       FORMATS.includes(outExt) ? outFlag.slice(0, -(outExt.length + 1)) : outFlag
     );
   let ok = !diagnostics.some((d) => d.severity === "error");
@@ -15688,8 +16038,8 @@ async function cmdIcons(args) {
 `;
     const out = typeof args.flags.out === "string" ? args.flags.out : void 0;
     if (out) {
-      writeAtomic(resolve(out), out.endsWith(".png") ? await renderPng(svg, { scale: 4 }) : svg);
-      process.stdout.write(`wrote ${resolve(out)}
+      writeAtomic(resolve2(out), out.endsWith(".png") ? await renderPng(svg, { scale: 4 }) : svg);
+      process.stdout.write(`wrote ${resolve2(out)}
 `);
     }
     process.stdout.write(`${JSON.stringify(info, null, 2)}
@@ -15717,7 +16067,7 @@ Node shapes (nodes: { id: { shape: ... } }): ${SHAPES2.join(", ")}
   );
 }
 function templates() {
-  if (!existsSync5(examplesDir)) return [];
+  if (!existsSync6(examplesDir)) return [];
   return readdirSync(examplesDir).filter((f) => /\.ya?ml$/.test(f)).map((f) => f.replace(/\.ya?ml$/, "")).sort();
 }
 function cmdInit(args) {
@@ -15729,9 +16079,9 @@ function cmdInit(args) {
   }
   const name = args._[0] ?? "starter";
   const file = join7(examplesDir, `${name}.yaml`);
-  if (!existsSync5(file)) usage(`no template "${name}" (templates: ${list.join(", ")})`);
-  const out = resolve(typeof args.flags.out === "string" ? args.flags.out : "diagram.yaml");
-  if (existsSync5(out) && args.flags.force !== true) {
+  if (!existsSync6(file)) usage(`no template "${name}" (templates: ${list.join(", ")})`);
+  const out = resolve2(typeof args.flags.out === "string" ? args.flags.out : "diagram.yaml");
+  if (existsSync6(out) && args.flags.force !== true) {
     process.stderr.write(`${out} exists; pass --force to overwrite
 `);
     process.exitCode = 1;
@@ -15748,14 +16098,14 @@ function cmdImport(args) {
   const [kind, file] = args._;
   if (kind !== "mermaid") usage('import supports "mermaid" (flowchart and graph diagrams)');
   if (!file) usage("import mermaid needs a file, or - for stdin");
-  if (file !== "-" && !existsSync5(resolve(file))) usage(`no such file: ${file}`);
-  const text2 = file === "-" ? readFileSync5(0, "utf8") : readFileSync5(resolve(file), "utf8");
+  if (file !== "-" && !existsSync6(resolve2(file))) usage(`no such file: ${file}`);
+  const text2 = file === "-" ? readFileSync5(0, "utf8") : readFileSync5(resolve2(file), "utf8");
   const result = importMermaid(text2.replace(/^```mermaid\s*|```\s*$/gm, ""));
   for (const w of result.warnings) process.stderr.write(`warn  ${w}
 `);
-  const out = typeof args.flags.out === "string" ? resolve(args.flags.out) : void 0;
+  const out = typeof args.flags.out === "string" ? resolve2(args.flags.out) : void 0;
   if (!out) return void process.stdout.write(result.yaml);
-  if (existsSync5(out) && args.flags.force !== true) {
+  if (existsSync6(out) && args.flags.force !== true) {
     process.stderr.write(`${out} exists; pass --force to overwrite
 `);
     process.exitCode = 1;
@@ -15784,9 +16134,9 @@ async function cmdReview(args) {
   const theme = args.flags.theme ?? parsed.model.theme;
   if (theme !== "light" && theme !== "dark") usage("--theme must be light or dark");
   const fonts2 = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
-  for (const f of fonts2) if (!existsSync5(f)) usage(`no such file: ${f} (from --font)`);
+  for (const f of fonts2) if (!existsSync6(f)) usage(`no such file: ${f} (from --font)`);
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
-  const base = outFlag ? resolve(outFlag) : spec.path === "stdin.yaml" ? resolve("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
+  const base = outFlag ? resolve2(outFlag) : spec.path === "stdin.yaml" ? resolve2("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
   const skin = args.flags.skin;
   const run = await reviewModel({
     model: skin ? { ...parsed.model, skin } : parsed.model,
@@ -15822,7 +16172,7 @@ async function cmdDoctor() {
     `${total} icons in ${Object.keys(packs2).length} packs`
   ]);
   const missing = Object.keys(packs2).filter(
-    (p) => !packs2[p]?.lib && !existsSync5(join7(skillRoot, "assets", "icons", `${p}.json`))
+    (p) => !packs2[p]?.lib && !existsSync6(join7(skillRoot, "assets", "icons", `${p}.json`))
   );
   checks.push([
     "bundled icon packs",
@@ -15864,7 +16214,7 @@ async function cmdDoctor() {
   process.exitCode = checks.every(([, p]) => p) ? 0 : 1;
 }
 async function cmdDemo(args) {
-  const dir = resolve(args._[0] ?? "orrery-demo");
+  const dir = resolve2(args._[0] ?? "orrery-demo");
   let failed = 0;
   let libraryFixes;
   for (const t of templates()) {

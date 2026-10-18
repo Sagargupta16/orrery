@@ -120,6 +120,17 @@ const SHAPE_STYLE: Record<SceneNode["shape"], Record<string, string | number | n
   person: { shape: "actor" },
   cloud: { ellipse: null, shape: "cloud" },
   stack: { rounded: 1, absoluteArcSize: 1, arcSize: 12, shadow: 0 },
+  parallelogram: { shape: "parallelogram", perimeter: "parallelogramPerimeter", size: 0.15 },
+  subroutine: { shape: "process", size: 0.08 },
+  trapezoid: {
+    shape: "trapezoid",
+    perimeter: "trapezoidPerimeter",
+    size: 0.15,
+    direction: "south",
+  },
+  delay: { shape: "delay" },
+  initial: { ellipse: null },
+  final: { shape: "doubleEllipse" },
 };
 
 function node(ctx: Ctx, nd: SceneNode) {
