@@ -2,13 +2,14 @@ import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { contrast, ensureContrast, luminance, mixHex } from "./color.ts";
-import { iconInfo } from "./icons.ts";
+import { iconAspect } from "./icons.ts";
 import { vendorDir } from "./paths.ts";
 import { resolveGroupStyle } from "./styles.ts";
 import { measure, textBlock } from "./text.ts";
 import { THEME_TOKENS } from "./themes.ts";
 import type {
   Box,
+  LegendEntry,
   Model,
   ModelEdge,
   ModelGroup,
@@ -17,6 +18,7 @@ import type {
   Scene,
   SceneEdge,
   SceneGroup,
+  SceneLegend,
   SceneNode,
   TextBlock,
   ThemeName,
@@ -42,7 +44,13 @@ interface ElkNode {
   children?: ElkNode[];
   edges?: ElkEdge[];
   labels?: ElkLabel[];
-  ports?: { id: string; width: number; height: number; x?: number; y?: number }[];
+  ports?: {
+    id: string;
+    width: number;
+    height: number;
+    x?: number;
+    y?: number;
+  }[];
   layoutOptions?: Record<string, string>;
 }
 interface ElkSection {
@@ -89,12 +97,22 @@ export const SIZES = {
   cardLabelMax: 168,
   shapeLabelMax: 156,
   edgeLabelMax: 150,
-  tile: 32,
+  // AWS group tiles are 40x40 next to 48px service icons in the deck ("DON'T: Resize group icons").
+  tile: 40,
   inlineIcon: 20,
 };
 
-const ELK_DIRECTION = { right: "RIGHT", down: "DOWN", left: "LEFT", up: "UP" } as const;
-const ELK_ROUTING = { orthogonal: "ORTHOGONAL", polyline: "POLYLINE", spline: "SPLINES" } as const;
+const ELK_DIRECTION = {
+  right: "RIGHT",
+  down: "DOWN",
+  left: "LEFT",
+  up: "UP",
+} as const;
+const ELK_ROUTING = {
+  orthogonal: "ORTHOGONAL",
+  polyline: "POLYLINE",
+  spline: "SPLINES",
+} as const;
 
 const round = (v: number) => Math.round(v * 100) / 100;
 
@@ -117,15 +135,21 @@ function nodeGeometry(n: ModelNode, horizontal: boolean): NodeGeom {
       : undefined;
     const textW = Math.max(label.width, note?.width ?? 0);
     const textH = label.height + (note ? note.height + 2 : 0);
+    // The label sits 6px under the icon in every direction (ELK's labelNode spacing when outside).
     if (horizontal)
       return {
         w: S,
         h: S,
         label,
         note,
-        outside: { w: Math.ceil(textW + 4), h: Math.ceil(textH + 2) },
+        outside: { w: Math.ceil(textW), h: Math.ceil(textH) },
       };
-    return { w: Math.ceil(Math.max(S, textW + 4)), h: Math.ceil(S + 8 + textH), label, note };
+    return {
+      w: Math.ceil(Math.max(S, textW)),
+      h: Math.ceil(S + 6 + textH),
+      label,
+      note,
+    };
   }
   if (n.look === "card") {
     const label = textBlock(n.label, SIZES.nodeLabel, SIZES.cardLabelMax, 600);
@@ -187,6 +211,16 @@ function nodeGeometry(n: ModelNode, horizontal: boolean): NodeGeom {
   return { w: Math.ceil(w), h: Math.ceil(h), label, note };
 }
 
+/**
+ * A node badge pill at the anchor's top-right corner, sized from the measured text. Its left
+ * edge stays right of the anchor's center so a long pill never covers an arrow arriving there.
+ */
+function badgePill(text: string, anchor: Box): Box {
+  const w = round(Math.max(18, measure(text, 10, 600) + 10));
+  const x = Math.max(anchor.x + anchor.w - w / 2 - 2, anchor.x + anchor.w / 2 + 6);
+  return { x: round(x), y: round(anchor.y - 7), w, h: 16 };
+}
+
 interface GroupGeom {
   label: TextBlock;
   header: number;
@@ -208,10 +242,11 @@ function groupGeometry(g: ModelGroup): GroupGeom {
     header = (icon ? SIZES.tile + 3 : 6) + label.height + 4;
     minWidth = Math.max(icon ? SIZES.tile : 0, label.width) + 32;
   } else if (iconStyle === "tile") {
-    header = icon ? SIZES.tile : label.height + 12;
+    header = icon ? Math.max(SIZES.tile, label.height + 12) : label.height + 12;
     minWidth = (icon ? SIZES.tile + 8 : 12) + label.width + 16;
   } else {
-    header = 34;
+    // Wrapped labels grow the header so their last line stays above the content.
+    header = Math.max(34, label.height + 17);
     minWidth = 12 + (icon ? SIZES.inlineIcon + 8 : 0) + label.width + 16;
   }
   return {
@@ -228,6 +263,8 @@ function groupGeometry(g: ModelGroup): GroupGeom {
 
 export interface LayoutOptions {
   theme?: ThemeName;
+  /** Groups whose corner label must end left of the top center (set by the second pass). */
+  widen?: Set<string>;
 }
 
 export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Scene> {
@@ -235,6 +272,13 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   const t = THEME_TOKENS[theme];
   const horizontal = model.direction === "right" || model.direction === "left";
   const s = model.spacing;
+  // A group whose header no edge could avoid (second pass) is wide enough for its corner label to
+  // end left of the top center, where edges enter in a vertical flow, as in AWS reference
+  // diagrams (the label ends minWidth - 16 from the left border).
+  const minWidthOf = (id: string, gg: GroupGeom) =>
+    !horizontal && opts.widen?.has(id)
+      ? Math.max(gg.minWidth, 2 * (gg.minWidth - 10))
+      : gg.minWidth;
 
   const base: Record<string, string> = {
     "elk.algorithm": "layered",
@@ -245,8 +289,9 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       model.layering === "simplex" ? "NETWORK_SIMPLEX" : "LONGEST_PATH_SOURCE",
     "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
     "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-    // Keeps siblings in spec order where it costs no crossings (AZ A left of AZ B).
-    "elk.layered.considerModelOrder.strategy": "PREFER_EDGES",
+    // Orders each layer by the elk.position hints below, so siblings keep spec order (AZ A left
+    // of AZ B). considerModelOrder would do the same but crashes elkjs 0.12 on nested graphs.
+    "elk.layered.crossingMinimization.semiInteractive": "true",
     "elk.spacing.nodeNode": String(Math.round(40 * s)),
     "elk.layered.spacing.nodeNodeBetweenLayers": String(Math.round(64 * s)),
     "elk.spacing.edgeNode": String(Math.round(18 * s)),
@@ -256,6 +301,8 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     "elk.spacing.edgeLabel": "4",
     "elk.spacing.labelNode": "6",
     "elk.edgeLabels.placement": "CENTER",
+    // One side for every label (and its step badge); ELK's default picks per edge.
+    "elk.layered.edgeLabels.sideSelection": "ALWAYS_UP",
     "elk.json.shapeCoords": "ROOT",
     "elk.json.edgeCoords": "ROOT",
     "elk.layered.mergeEdges": model.merge ? "true" : "false",
@@ -270,22 +317,66 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   for (const n of model.nodes) {
     const g = nodeGeometry(n, horizontal);
     nodeGeom.set(n.id, g);
-    const node: ElkNode = { id: n.id, width: g.w, height: g.h };
+    // Centered in its layer, so a column of different sizes shares one center line.
+    const node: ElkNode = {
+      id: n.id,
+      width: g.w,
+      height: g.h,
+      layoutOptions: { "elk.alignment": "CENTER" },
+    };
     if (g.outside) {
       node.labels = [
-        { id: `${n.id}__label`, text: n.label, width: g.outside.w, height: g.outside.h },
+        {
+          id: `${n.id}__label`,
+          text: n.label,
+          width: g.outside.w,
+          height: g.outside.h,
+        },
       ];
       node.layoutOptions = {
+        ...node.layoutOptions,
         "elk.nodeLabels.placement": "OUTSIDE V_BOTTOM H_CENTER",
         "elk.spacing.labelNode": "6",
       };
     }
+    if (n.badge) {
+      // ELK layered ignores elk.margins, so a label beside the top-right corner reserves the
+      // pill's overhang: it can then run neither into a neighbor nor out of the group.
+      const S = n.iconSize;
+      const anchor: Box =
+        n.look === "icon"
+          ? { x: horizontal ? 0 : (g.w - S) / 2, y: 0, w: S, h: S }
+          : { x: 0, y: 0, w: g.w, h: g.h };
+      const pill = badgePill(n.badge, anchor);
+      const overhang = Math.ceil(pill.x + pill.w - g.w);
+      if (overhang > 0)
+        node.labels = [
+          ...(node.labels ?? []),
+          {
+            id: `${n.id}__badge`,
+            text: n.badge,
+            width: overhang,
+            height: 16,
+            layoutOptions: {
+              "elk.nodeLabels.placement": "OUTSIDE V_TOP H_RIGHT H_PRIORITY",
+            },
+          },
+        ];
+    }
     elkNodes.set(n.id, node);
   }
+  for (const grp of model.groups) groupGeom.set(grp.id, groupGeometry(grp));
+  // Siblings share the tallest header, so frames side by side (an AWS tile header next to an
+  // inline one) start their content, and their top edge, on one line.
   for (const grp of model.groups) {
-    const gg = groupGeometry(grp);
-    groupGeom.set(grp.id, gg);
-    if (grp.around) continue;
+    const gg = groupGeom.get(grp.id);
+    if (!gg || grp.around) continue;
+    const siblings = model.groups.filter((o) => !o.around && o.parent === grp.parent);
+    gg.header = Math.max(...siblings.map((o) => groupGeom.get(o.id)?.header ?? 0));
+  }
+  for (const grp of model.groups) {
+    const gg = groupGeom.get(grp.id);
+    if (!gg || grp.around) continue;
     const top = gg.header + 18;
     elkNodes.set(grp.id, {
       id: grp.id,
@@ -297,7 +388,11 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
         // ELK applies a compound minimum in its rotated frame when the flow is vertical.
         "elk.nodeSize.minimum": horizontal
           ? `(${gg.minWidth}, ${top + 24})`
-          : `(${top + 24}, ${gg.minWidth})`,
+          : `(${top + 24}, ${minWidthOf(grp.id, gg)})`,
+        // Centered in a column; frames side by side in a row share their top edge.
+        "elk.alignment": horizontal ? "CENTER" : "TOP",
+        // A group widened by its label keeps its children centered under the header.
+        "elk.contentAlignment": horizontal ? "V_TOP H_CENTER" : "V_CENTER H_CENTER",
       },
     });
   }
@@ -322,6 +417,15 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     if (!el) continue;
     const parent = item.parent ? elkNodes.get(item.parent) : root;
     (parent?.children ?? root.children)?.push(el);
+  }
+  // Spec-order hints along the cross axis for semi-interactive crossing minimization.
+  for (const parent of [root, ...elkNodes.values()]) {
+    parent.children?.forEach((c, i) => {
+      c.layoutOptions = {
+        ...c.layoutOptions,
+        "elk.position": horizontal ? `(0,${i * 10})` : `(${i * 10},0)`,
+      };
+    });
   }
   // Empty groups still need a size.
   for (const grp of model.groups) {
@@ -371,17 +475,37 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
       edgeLabels.set(e.id, { block, w, h, stepW });
       elkEdge.labels = [
-        { id: `${e.id}__label`, text: e.label || `step ${e.step}`, width: w, height: h },
+        {
+          id: `${e.id}__label`,
+          text: e.label || `step ${e.step}`,
+          width: w,
+          height: h,
+        },
       ];
     }
     root.edges?.push(elkEdge);
   }
 
-  const result = await runElk(root);
+  let { graph: result, fallback } = await runElk(root);
+  // Spec order holds wherever it costs no crossing: when the ordered layout crosses edges, the
+  // nodes at the ends of those edges (never groups) may reorder, and fewer crossings win.
+  const strict = crossings(result);
+  if (strict.count > 0) {
+    const free = structuredClone(root);
+    const leaves = new Set(model.nodes.map((n) => n.id).filter((id) => strict.nodes.has(id)));
+    const unpin = (n: ElkNode) => {
+      if (leaves.has(n.id) && n.layoutOptions) delete n.layoutOptions["elk.position"];
+      for (const c of n.children ?? []) unpin(c);
+    };
+    unpin(free);
+    const alt = await runElk(free);
+    if (crossings(alt.graph).count < strict.count) ({ graph: result, fallback } = alt);
+  }
 
   // ------------------------------------------------------------- scene
+  // Whole pixels, so the drawing under a title keeps ELK's integer grid.
   const top = titleBlock
-    ? SIZES.pad + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6
+    ? Math.ceil(SIZES.pad + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6)
     : 0;
   const shift = (p: Point): Point => ({ x: round(p.x), y: round(p.y + top) });
   const placed = new Map<string, ElkNode>();
@@ -401,7 +525,68 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     return d;
   };
 
+  // ELK counts the bend point it puts 5px outside a nested border as content, so a group an edge
+  // enters gets 25px on that side instead of 20. Trim it back, innermost first, while nothing
+  // drawn (child, edge point, edge label) ends up outside and the header still fits.
+  const elkEdges = [...placed.values()].flatMap((n) => n.edges ?? []);
+  const edgeMarks: Box[] = elkEdges.flatMap((e) => [
+    ...(e.sections ?? []).flatMap((s) =>
+      [s.startPoint, ...(s.bendPoints ?? []), s.endPoint].map((p) => ({
+        ...p,
+        w: 0,
+        h: 0,
+      })),
+    ),
+    ...(e.labels ?? []).map((l) => ({
+      x: l.x ?? 0,
+      y: l.y ?? 0,
+      w: l.width,
+      h: l.height,
+    })),
+  ]);
+  const byDepth = model.groups
+    .filter((g) => !g.around)
+    .sort((a, b) => depth(b.parent) - depth(a.parent));
+  for (const grp of byDepth) {
+    const el = placed.get(grp.id);
+    const gg = groupGeom.get(grp.id);
+    if (!el?.children?.length || !gg) continue;
+    const kids = el.children.flatMap((c) => [
+      { x: c.x ?? 0, y: c.y ?? 0, w: c.width ?? 0, h: c.height ?? 0 },
+      ...(c.labels ?? []).map((l) => ({
+        x: l.x ?? 0,
+        y: l.y ?? 0,
+        w: l.width,
+        h: l.height,
+      })),
+    ]);
+    const old = {
+      x: el.x ?? 0,
+      y: el.y ?? 0,
+      w: el.width ?? 0,
+      h: el.height ?? 0,
+    };
+    const k = union(kids);
+    let x0 = Math.max(old.x, k.x - 20);
+    let y0 = Math.max(old.y, k.y - gg.header - 18);
+    let x1 = Math.min(old.x + old.w, k.x + k.w + 20);
+    let y1 = Math.min(old.y + old.h, k.y + k.h + 20);
+    if (x1 - x0 < minWidthOf(grp.id, gg)) [x0, x1] = [old.x, old.x + old.w];
+    if (y1 - y0 < gg.header + 42) [y0, y1] = [old.y, old.y + old.h];
+    for (const b of edgeMarks) {
+      if (!contains(old, b)) continue;
+      if (b.x < x0) x0 = old.x;
+      if (b.y < y0) y0 = old.y;
+      if (b.x + b.w > x1) x1 = old.x + old.w;
+      if (b.y + b.h > y1) y1 = old.y + old.h;
+    }
+    Object.assign(el, { x: x0, y: y0, width: x1 - x0, height: y1 - y0 });
+  }
+  stretchColumns(model, placed, elkEdges);
+
   const groups: SceneGroup[] = [];
+  // Where each header may slide to clear edges (clearHeader), and whether its icon goes along.
+  const headerRoom = new Map<string, HeaderRoom>();
   const paintGroup = (grp: ModelGroup, box: Box, overlay: boolean): SceneGroup | undefined => {
     const gg = groupGeom.get(grp.id);
     const style = resolveGroupStyle(grp.type);
@@ -427,13 +612,29 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     let iconBox: Box | undefined;
     let labelX: number;
     let labelY: number;
-    if (overlay) {
+    if (overlay && gg.iconStyle === "tile-center" && gg.icon) {
+      // The AWS deck's Auto Scaling group: the full tile centered on the top border, the label
+      // centered under it.
+      iconBox = {
+        x: box.x + (box.w - SIZES.tile) / 2,
+        y: box.y - SIZES.tile / 2,
+        w: SIZES.tile,
+        h: SIZES.tile,
+      };
+      labelX = box.x + (box.w - L.width) / 2;
+      labelY = iconBox.y + SIZES.tile + 3;
+    } else if (overlay) {
       iconBox = gg.icon ? { x: box.x + 10, y: box.y - 8, w: 16, h: 16 } : undefined;
       labelX = iconBox ? iconBox.x + iconBox.w + 5 : box.x + 12;
       labelY = box.y - L.height / 2;
     } else if (gg.iconStyle === "tile-center") {
       iconBox = gg.icon
-        ? { x: box.x + (box.w - SIZES.tile) / 2, y: box.y, w: SIZES.tile, h: SIZES.tile }
+        ? {
+            x: box.x + (box.w - SIZES.tile) / 2,
+            y: box.y,
+            w: SIZES.tile,
+            h: SIZES.tile,
+          }
         : undefined;
       labelX = box.x + (box.w - L.width) / 2;
       labelY = box.y + (gg.icon ? SIZES.tile + 3 : 6);
@@ -444,10 +645,16 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
         : iconBox
           ? box.x + SIZES.tile + 8
           : box.x + 12;
-      labelY = iconBox ? box.y + (SIZES.tile - L.height) / 2 : box.y + 6;
+      // Centered on the tile; a label taller than the tile starts at the top instead of above it.
+      labelY = iconBox ? box.y + Math.max(6, (SIZES.tile - L.height) / 2) : box.y + 6;
     } else {
       iconBox = gg.icon
-        ? { x: box.x + 12, y: box.y + 9, w: SIZES.inlineIcon, h: SIZES.inlineIcon }
+        ? {
+            x: box.x + 12,
+            y: box.y + 9,
+            w: SIZES.inlineIcon,
+            h: SIZES.inlineIcon,
+          }
         : undefined;
       labelX =
         gg.center && !iconBox
@@ -457,6 +664,14 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
             : box.x + 12;
       labelY = box.y + 10;
     }
+    // A corner tile stays in its corner; inline icons and legends travel with their label.
+    const cornerTile = !overlay && gg.iconStyle === "tile" && !!iconBox;
+    const inset = overlay ? 10 : 12;
+    headerRoom.set(grp.id, {
+      moveIcon: !!iconBox && !cornerTile,
+      lo: cornerTile ? box.x + SIZES.tile + 8 : box.x + inset,
+      hi: box.x + box.w - inset,
+    });
     const innerFill =
       !overlay && style.innerFill
         ? theme === "dark"
@@ -568,10 +783,15 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
           h: round(g.label.height),
         };
       } else {
-        node.iconBox = { x: round(box.x + (box.w - S) / 2), y: box.y, w: S, h: S };
+        node.iconBox = {
+          x: round(box.x + (box.w - S) / 2),
+          y: box.y,
+          w: S,
+          h: S,
+        };
         node.labelBox = {
           x: round(box.x + (box.w - g.label.width) / 2),
-          y: round(box.y + S + 8),
+          y: round(box.y + S + 6),
           w: round(g.label.width),
           h: round(g.label.height),
         };
@@ -587,7 +807,13 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     } else if (n.look === "card") {
       const textH = g.label.height + (g.note ? g.note.height + 2 : 0);
       const ix = box.x + 16;
-      if (n.icon) node.iconBox = { x: round(ix), y: round(box.y + (box.h - S) / 2), w: S, h: S };
+      if (n.icon)
+        node.iconBox = {
+          x: round(ix),
+          y: round(box.y + (box.h - S) / 2),
+          w: S,
+          h: S,
+        };
       const tx = n.icon ? ix + S + 12 : box.x + 16;
       const ty = box.y + (box.h - textH) / 2;
       node.labelBox = {
@@ -613,7 +839,12 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       const startX = box.x + (box.w - (textW + iconW)) / 2;
       const ty = box.y + extraTop + (innerH - textH) / 2;
       if (n.icon)
-        node.iconBox = { x: round(startX), y: round(ty + (textH - 20) / 2), w: 20, h: 20 };
+        node.iconBox = {
+          x: round(startX),
+          y: round(ty + (textH - 20) / 2),
+          w: 20,
+          h: 20,
+        };
       const tx = startX + iconW;
       node.labelBox = {
         x: round(tx + (textW - g.label.width) / 2),
@@ -630,6 +861,8 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
         };
       }
     }
+    if (n.badge)
+      node.badgeBox = badgePill(n.badge, node.iconBox && n.look === "icon" ? node.iconBox : box);
     nodes.push(node);
   }
 
@@ -642,16 +875,26 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       const nd = nodes.find((x) => x.id === id);
       if (nd)
         boxes.push(
-          ...[nd.box, nd.iconBox, nd.labelBox, nd.noteBox].filter((b): b is Box => !!b && b.w > 0),
+          ...[nd.box, nd.iconBox, nd.labelBox, nd.noteBox, nd.badgeBox].filter(
+            (b): b is Box => !!b && b.w > 0,
+          ),
         );
       const sg = groups.find((x) => x.id === id);
       if (sg) boxes.push(sg.box);
     }
     if (!boxes.length || !gg) continue;
     const pad = 12;
-    const x0 = Math.min(...boxes.map((b) => b.x)) - pad;
-    const y0 = Math.min(...boxes.map((b) => b.y)) - pad - 2;
-    const x1 = Math.max(...boxes.map((b) => b.x + b.w), x0 + gg.minWidth) + pad;
+    // A tile centered on the top border has its label under it, above the members.
+    const head =
+      gg.iconStyle === "tile-center" && gg.icon
+        ? Math.ceil(SIZES.tile / 2 + 3 + gg.label.height + 6)
+        : pad + 2;
+    let x0 = Math.min(...boxes.map((b) => b.x)) - pad;
+    let x1 = Math.max(...boxes.map((b) => b.x + b.w)) + pad;
+    // Too narrow for its legend: grow both sides evenly so it does not reach into the next layer.
+    const short = gg.minWidth + 2 * pad - (x1 - x0);
+    if (short > 0) [x0, x1] = [x0 - short / 2, x1 + short / 2];
+    const y0 = Math.min(...boxes.map((b) => b.y)) - head;
     const y1 = Math.max(...boxes.map((b) => b.y + b.h)) + pad;
     const sg = paintGroup(
       grp,
@@ -668,52 +911,65 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     const nd = nodes.find((x) => x.id === id);
     if (nd) {
       const side = nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
-      return { side, full: union([nd.box, nd.iconBox, nd.labelBox, nd.noteBox]) };
+      return {
+        side,
+        full: union([nd.box, nd.iconBox, nd.labelBox, nd.noteBox]),
+      };
     }
     const box = groups.find((x) => x.id === id)?.box;
     return box ? { side: box, full: box } : undefined;
   };
-  for (const e of model.edges) {
-    if (!e.constraint) {
+  // Free edges (constraint: false) are routed here. Straight routes cannot move, so they claim
+  // their line first; each elbow then steps aside from the lines of unrelated free edges.
+  const freeRoutes = new Map<string, Point[]>();
+  const claimed: { e: ModelEdge; p: Point; q: Point }[] = [];
+  const related = (a: ModelEdge, b: ModelEdge) =>
+    [a.from, a.to].some((id) => id === b.from || id === b.to);
+  const fits = (points: Point[], e: ModelEdge): boolean => {
+    const [s, p, q, t] = points;
+    if (!s || !p || !q || !t) return true;
+    const v = Math.abs(p.x - q.x) < 0.5;
+    const at = v ? p.x : p.y;
+    const [lo, hi] = v ? [s.x, t.x].sort((m, n) => m - n) : [s.y, t.y].sort((m, n) => m - n);
+    if (at < (lo ?? at) + 8 || at > (hi ?? at) - 8) return false;
+    const span = (a: Point, b: Point) => (v ? [a.y, b.y] : [a.x, b.x]).sort((m, n) => m - n);
+    const [a0 = 0, a1 = 0] = span(p, q);
+    return !claimed.some((c) => {
+      if (related(c.e, e) || Math.abs(c.p.x - c.q.x) < 0.5 !== v) return false;
+      if (Math.abs((v ? c.p.x : c.p.y) - at) >= 6) return false;
+      const [b0 = 0, b1 = 0] = span(c.p, c.q);
+      return Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
+    });
+  };
+  for (const straight of [true, false]) {
+    for (const e of model.edges) {
       const a = attachBox(e.from);
       const b = attachBox(e.to);
-      if (!a || !b) continue;
-      const points = freeRoute(a, b);
-      const edge: SceneEdge = {
-        id: e.id,
-        from: e.from,
-        to: e.to,
-        points,
-        line: e.line,
-        arrow: e.arrow,
-        color: e.color,
-        step: e.step,
-      };
-      if (e.label || e.step !== undefined) {
-        const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-        const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
-        const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-        const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
-        const mid = midpoint(points);
-        const box = { x: round(mid.x - w / 2), y: round(mid.y - h - 3), w, h };
-        if (e.step !== undefined)
-          edge.stepBox = {
-            x: box.x,
-            y: round(box.y + (h - SIZES.step) / 2),
-            w: SIZES.step,
-            h: SIZES.step,
-          };
-        if (e.label) {
-          edge.label = block;
-          edge.labelBox = {
-            x: round(box.x + stepW + (stepW ? 2 : 0)),
-            y: box.y,
-            w: round(w - stepW - (stepW ? 2 : 0)),
-            h,
-          };
-        }
-      }
-      edges.push(edge);
+      if (e.constraint || !a || !b) continue;
+      let points = freeRoute(a, b, 0);
+      if ((points.length === 2) !== straight) continue;
+      if (!straight)
+        points =
+          [0, 12, -12, 24, -24, 36, -36].map((d) => freeRoute(a, b, d)).find((p) => fits(p, e)) ??
+          points;
+      freeRoutes.set(e.id, points);
+      claimed.push(...points.slice(1).map((q, i) => ({ e, p: points[i] ?? q, q })));
+    }
+  }
+  for (const e of model.edges) {
+    if (!e.constraint) {
+      const points = freeRoutes.get(e.id);
+      if (points)
+        edges.push({
+          id: e.id,
+          from: e.from,
+          to: e.to,
+          points,
+          line: e.line,
+          arrow: e.arrow,
+          color: e.color,
+          step: e.step,
+        });
       continue;
     }
     const el = result.edges?.find((x) => x.id === e.id) ?? findEdge(result, e.id);
@@ -733,7 +989,12 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     const lab = edgeLabels.get(e.id);
     const elkLabel = el.labels?.[0];
     if (lab && elkLabel?.x !== undefined && elkLabel.y !== undefined) {
-      const box = { x: round(elkLabel.x), y: round(elkLabel.y + top), w: lab.w, h: lab.h };
+      const box = {
+        x: round(elkLabel.x),
+        y: round(elkLabel.y + top),
+        w: lab.w,
+        h: lab.h,
+      };
       if (e.step !== undefined) {
         edge.stepBox = {
           x: box.x,
@@ -755,11 +1016,146 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     edges.push(edge);
   }
 
-  let width = round(result.width ?? 0);
-  let height = round((result.height ?? 0) + top);
+  // Spline points are Bezier controls; the other routings keep only real bends.
+  if (model.routing !== "spline") for (const e of edges) e.points = dropStraightPoints(e.points);
+  if (model.routing === "orthogonal") {
+    // An end may slide along the icon it points at, or along the box it leaves.
+    const sides = new Map<string, Box[]>([
+      ...groups.filter((g) => !g.overlay).map((g): [string, Box[]] => [g.id, [g.box]]),
+      ...nodes.map((n): [string, Box[]] => [
+        n.id,
+        n.look === "icon" && n.iconBox ? [n.iconBox, n.box] : [n.box],
+      ]),
+    ]);
+    for (const e of edges) {
+      straightenEnd(e, "to", sides.get(e.to), edges);
+      straightenEnd(e, "from", sides.get(e.from), edges);
+      e.points = dropStraightPoints(e.points);
+    }
+  }
+
+  // Free-edge labels and steps go beside a vertical run, clear of nodes and other labels.
+  const footprints = nodes.map((n) => union([n.box, n.iconBox, n.labelBox, n.noteBox]));
+  for (const e of model.edges) {
+    const edge = edges.find((x) => x.id === e.id);
+    if (e.constraint || !edge || (!e.label && e.step === undefined)) continue;
+    const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+    const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
+    const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
+    const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
+    const box = freeLabelBox(edge.points, w, h, [
+      ...footprints,
+      ...edges.flatMap((x) => [x.labelBox, x.stepBox]),
+      ...groups.map((g) => g.labelBox),
+    ]);
+    if (e.step !== undefined)
+      edge.stepBox = {
+        x: box.x,
+        y: round(box.y + (h - SIZES.step) / 2),
+        w: SIZES.step,
+        h: SIZES.step,
+      };
+    if (e.label) {
+      edge.label = block;
+      edge.labelBox = {
+        x: round(box.x + stepW + (stepW ? 2 : 0)),
+        y: box.y,
+        w: round(w - stepW - (stepW ? 2 : 0)),
+        h,
+      };
+    }
+  }
+
+  // Overlays are drawn around their members after routing, so an edge can run right along an
+  // overlay's border and read as a double line: move that side out until the edge is 8px clear.
+  for (const [i, g] of groups.entries()) {
+    const grp = g.overlay ? model.groups.find((x) => x.id === g.id) : undefined;
+    if (!grp) continue;
+    let [x0, y0, x1, y1] = [g.box.x, g.box.y, g.box.x + g.box.w, g.box.y + g.box.h];
+    for (const e of edges)
+      for (let k = 1; k < e.points.length; k++) {
+        const p = e.points[k - 1];
+        const q = e.points[k];
+        if (!p || !q) continue;
+        const flat = Math.abs(p.y - q.y) < 0.5;
+        if (!flat && Math.abs(p.x - q.x) >= 0.5) continue;
+        const [lo, hi] = flat
+          ? [Math.min(p.x, q.x), Math.max(p.x, q.x)]
+          : [Math.min(p.y, q.y), Math.max(p.y, q.y)];
+        const [from, to] = flat ? [x0, x1] : [y0, y1];
+        if (Math.min(hi, to) - Math.max(lo, from) < 20) continue;
+        const at = flat ? p.y : p.x;
+        if (flat && Math.abs(at - y0) < 8) y0 = Math.min(y0, at - 8);
+        if (flat && Math.abs(at - y1) < 8) y1 = Math.max(y1, at + 8);
+        if (!flat && Math.abs(at - x0) < 8) x0 = Math.min(x0, at - 8);
+        if (!flat && Math.abs(at - x1) < 8) x1 = Math.max(x1, at + 8);
+      }
+    if (x0 === g.box.x && y0 === g.box.y && x1 === g.box.x + g.box.w && y1 === g.box.y + g.box.h)
+      continue;
+    const box = { x: round(x0), y: round(y0), w: round(x1 - x0), h: round(y1 - y0) };
+    const sg = paintGroup(grp, box, true);
+    if (sg) groups[i] = sg;
+  }
+
+  const blocked: string[] = [];
   for (const g of groups) {
-    width = Math.max(width, round(g.box.x + g.box.w + SIZES.pad));
-    height = Math.max(height, round(g.box.y + g.box.h + SIZES.pad));
+    const room = headerRoom.get(g.id);
+    if (room && !clearHeader(g, room, groups, nodes, edges)) blocked.push(g.id);
+  }
+  // In vertical flows a corner label that every position leaves under an edge gets a wider group.
+  // Only groups ELK lays out (not overlays) and only when the wider minimum would change them.
+  const widen = blocked.filter((id) => {
+    const gg = groupGeom.get(id);
+    const box = groups.find((g) => g.id === id)?.box;
+    if (!gg || !box || gg.center || gg.iconStyle === "tile-center") return false;
+    if (model.groups.find((g) => g.id === id)?.around) return false;
+    return box.w + 0.5 < Math.max(gg.minWidth, 2 * (gg.minWidth - 10));
+  });
+  if (!horizontal && !opts.widen && widen.length)
+    return layout(model, { ...opts, widen: new Set(widen) });
+
+  // Overlay legends (a tile on the top border) and free-edge labels are placed after ELK and can
+  // land left of or above the canvas, or on the title: move the content clear of both.
+  const drawn = [
+    ...groups.flatMap((g) => [g.box, g.labelBox, g.iconBox]),
+    ...nodes.flatMap((n) => [n.box, n.iconBox, n.labelBox, n.noteBox, n.badgeBox]),
+    ...edges.flatMap((e) => [
+      e.labelBox,
+      e.stepBox,
+      ...e.points.map((p) => ({ ...p, w: 0, h: 0 })),
+    ]),
+  ].filter((b): b is Box => !!b);
+  const dx = Math.max(0, Math.ceil(4 - Math.min(...drawn.map((b) => b.x))));
+  const dy = Math.max(
+    0,
+    Math.ceil(top + (titleBlock ? 8 : 4) - Math.min(...drawn.map((b) => b.y))),
+  );
+  if (dx || dy) {
+    const moved = new Set<Box>();
+    const move = (b: Box | undefined) => {
+      if (!b || moved.has(b)) return;
+      moved.add(b);
+      b.x = round(b.x + dx);
+      b.y = round(b.y + dy);
+    };
+    for (const g of groups) [g.box, g.labelBox, g.iconBox, g.inner?.box].forEach(move);
+    for (const n of nodes) [n.box, n.iconBox, n.labelBox, n.noteBox, n.badgeBox].forEach(move);
+    for (const e of edges) {
+      [e.labelBox, e.stepBox].forEach(move);
+      e.points = e.points.map((p) => ({
+        x: round(p.x + dx),
+        y: round(p.y + dy),
+      }));
+    }
+  }
+
+  let width = round((result.width ?? 0) + dx);
+  let height = round((result.height ?? 0) + top + dy);
+  // Overlay groups and free-edge labels are placed after ELK sized the canvas.
+  for (const b of [...groups.map((g) => g.box), ...edges.flatMap((e) => [e.labelBox, e.stepBox])]) {
+    if (!b) continue;
+    width = Math.max(width, round(b.x + b.w + SIZES.pad));
+    height = Math.max(height, round(b.y + b.h + SIZES.pad));
   }
   let titleBox: Box | undefined;
   let subtitleBox: Box | undefined;
@@ -783,6 +1179,12 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   }
   width = Math.ceil(width);
   height = Math.ceil(height);
+  let legend: SceneLegend | undefined;
+  if (model.legend?.length) {
+    legend = placeLegend(model.legend, width, height);
+    width = Math.max(width, Math.ceil(legend.box.w + SIZES.pad * 2));
+    height = Math.ceil(legend.box.y + legend.box.h + SIZES.pad);
+  }
 
   return {
     width,
@@ -800,14 +1202,239 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     nodes,
     groups,
     edges,
+    legend,
+    layoutFallback: fallback,
     description: describe(model),
   };
+}
+
+/**
+ * The line-style key: one row per entry in spec order (a 28x12 sample, 8px gap, the meaning),
+ * in a box under all content with its right edge on the right margin.
+ */
+function placeLegend(entries: LegendEntry[], width: number, height: number): SceneLegend {
+  const P = 10;
+  const rows = entries.map((e) => ({
+    line: e.line,
+    label: textBlock(e.label, SIZES.edgeLabel, 240),
+  }));
+  const w = Math.ceil(P + 28 + 8 + Math.max(...rows.map((r) => r.label.width)) + P);
+  // Rows sit 18px apart; a wrapped meaning pushes the next row down.
+  const pitch = rows.map((r) => Math.max(18, r.label.height + 3));
+  const last = rows[rows.length - 1]?.label.height ?? 0;
+  const h = Math.ceil(P + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P);
+  // Under the content, which ends a page margin above the current bottom.
+  const box = {
+    x: Math.max(SIZES.pad, width - SIZES.pad - w),
+    y: height - SIZES.pad + 12,
+    w,
+    h,
+  };
+  let y = box.y + P;
+  const items = rows.map((r, i) => {
+    const swatch = {
+      x: box.x + P,
+      y: round(y + (r.label.lead - 12) / 2),
+      w: 28,
+      h: 12,
+    };
+    const labelBox = {
+      x: box.x + P + 36,
+      y: round(y),
+      w: round(r.label.width),
+      h: round(r.label.height),
+    };
+    y += pitch[i] ?? 18;
+    return { line: r.line, swatch, label: r.label, labelBox };
+  });
+  return { box, items };
+}
+
+/**
+ * Narrows each icon node's iconBox to the drawn glyph in horizontal flows and moves the edge ends
+ * on its left or right side onto the glyph, so arrows touch a tall logo instead of stopping short
+ * of it. Needs the npm icon libraries loaded (iconAspect); label and note stay where they are.
+ * Idempotent.
+ */
+export function fitIcons(scene: Scene): void {
+  if (scene.direction !== "right" && scene.direction !== "left") return;
+  for (const n of scene.nodes) {
+    const b = n.iconBox;
+    const aspect = n.look === "icon" && n.icon ? iconAspect(n.icon) : undefined;
+    if (!b || !aspect || aspect >= 1) continue;
+    const w = round(b.h * aspect);
+    if (w >= b.w - 0.01) continue;
+    const x = round(b.x + (b.w - w) / 2);
+    for (const e of scene.edges) {
+      const ends = [e.from === n.id ? 0 : -1, e.to === n.id ? e.points.length - 1 : -1];
+      for (const i of ends) {
+        const p = e.points[i];
+        const next = e.points[i === 0 ? 1 : i - 1];
+        if (!p || !next || Math.abs(next.y - p.y) > 0.5 || p.y < b.y || p.y > b.y + b.h) continue;
+        if (Math.abs(p.x - b.x) < 0.5) e.points[i] = { x, y: p.y };
+        else if (Math.abs(p.x - (b.x + b.w)) < 0.5) e.points[i] = { x: round(x + w), y: p.y };
+      }
+    }
+    n.iconBox = { ...b, x, w };
+    if (n.badge) n.badgeBox = badgePill(n.badge, n.iconBox);
+  }
+}
+
+/**
+ * Frames of one type stacked in a column (AWS accounts in a Region) take the column's widest
+ * extent. A frame stays as it is when the strip it would gain holds a node, another frame, an
+ * edge label, an edge end on its border or any line other than one passing straight into it.
+ */
+function stretchColumns(model: Model, placed: Map<string, ElkNode>, edges: ElkEdge[]): void {
+  const parentOf = new Map([...model.groups, ...model.nodes].map((x) => [x.id, x.parent]));
+  const related = (a: string, b: string) => {
+    for (let p = parentOf.get(a); p; p = parentOf.get(p)) if (p === b) return true;
+    for (let p = parentOf.get(b); p; p = parentOf.get(p)) if (p === a) return true;
+    return a === b;
+  };
+  const boxOf = (n: ElkNode): Box => ({
+    x: n.x ?? 0,
+    y: n.y ?? 0,
+    w: n.width ?? 0,
+    h: n.height ?? 0,
+  });
+  const items = [...placed.values()]
+    .filter((n) => n.id !== "__root")
+    .flatMap((n) => [
+      { id: n.id, box: boxOf(n) },
+      ...(n.labels ?? []).map((l) => ({
+        id: n.id,
+        box: { x: l.x ?? 0, y: l.y ?? 0, w: l.width, h: l.height },
+      })),
+    ]);
+  const labels = edges.flatMap((e) =>
+    (e.labels ?? []).map((l) => ({
+      x: l.x ?? 0,
+      y: l.y ?? 0,
+      w: l.width,
+      h: l.height,
+    })),
+  );
+  const segments = edges.flatMap((e) =>
+    (e.sections ?? []).flatMap((s) => {
+      const pts = dropStraightPoints([s.startPoint, ...(s.bendPoints ?? []), s.endPoint]);
+      return pts.slice(1).map((q, i) => [pts[i] ?? q, q] as const);
+    }),
+  );
+  const columns: ModelGroup[][] = [];
+  for (const grp of model.groups) {
+    const el = placed.get(grp.id);
+    if (grp.around || !el) continue;
+    const b = boxOf(el);
+    const column = columns.find((c) =>
+      c.every((o) => {
+        const ob = boxOf(placed.get(o.id) ?? el);
+        const shared = Math.min(b.x + b.w, ob.x + ob.w) - Math.max(b.x, ob.x);
+        const stacked = b.y >= ob.y + ob.h || ob.y >= b.y + b.h;
+        return o.type === grp.type && o.parent === grp.parent && stacked && shared > b.w / 2;
+      }),
+    );
+    if (column) column.push(grp);
+    else columns.push([grp]);
+  }
+  for (const column of columns.filter((c) => c.length > 1)) {
+    const els = column.map((g) => placed.get(g.id)).filter((n): n is ElkNode => !!n);
+    const x0 = Math.min(...els.map((n) => n.x ?? 0));
+    const x1 = Math.max(...els.map((n) => (n.x ?? 0) + (n.width ?? 0)));
+    for (const el of els) {
+      const b = boxOf(el);
+      // Only even out near misses: stretching a much narrower frame leaves its content off-center.
+      if (b.w < (x1 - x0) * 0.75) continue;
+      const strips = [
+        { x: x0, y: b.y, w: b.x - x0, h: b.h, left: true },
+        { x: b.x + b.w, y: b.y, w: x1 - b.x - b.w, h: b.h, left: false },
+      ];
+      const open = strips.every((s) => {
+        if (s.w < 0.5) return true;
+        const hit = (o: Box) => overlaps(s, { x: o.x, y: o.y, w: o.w || 0.01, h: o.h || 0.01 });
+        if (items.some((it) => !related(it.id, el.id) && hit(it.box))) return false;
+        if (labels.some(hit)) return false;
+        // Only a horizontal line that crosses the whole strip and the border may stay.
+        return segments.every(([p, q]) => {
+          const [lo, hi] = [Math.min(p.x, q.x), Math.max(p.x, q.x)];
+          const across = s.left
+            ? lo <= s.x + 0.01 && hi > b.x + 0.5
+            : hi >= x1 - 0.01 && lo < s.x - 0.5;
+          return !hit(segmentBox(p, q)) || (Math.abs(p.y - q.y) < 0.5 && across);
+        });
+      });
+      if (open) Object.assign(el, { x: x0, width: x1 - x0 });
+    }
+  }
+}
+
+interface HeaderRoom {
+  /** The icon moves with the label (inline icons, legends); a corner tile stays put. */
+  moveIcon: boolean;
+  /** Left and right limits for the moving part. */
+  lo: number;
+  hi: number;
+}
+
+const segmentBox = (p: Point, q: Point): Box => ({
+  x: Math.min(p.x, q.x),
+  y: Math.min(p.y, q.y),
+  w: Math.abs(q.x - p.x),
+  h: Math.abs(q.y - p.y),
+});
+
+/**
+ * Slides a group's header label sideways off the edges that cross it: renderers paint a chip
+ * behind the label, which would cut those edges. Returns false when no free stretch fits.
+ */
+function clearHeader(
+  g: SceneGroup,
+  room: HeaderRoom,
+  groups: SceneGroup[],
+  nodes: SceneNode[],
+  edges: SceneEdge[],
+): boolean {
+  const icon = room.moveIcon ? g.iconBox : undefined;
+  const u = union([g.labelBox, icon]);
+  // The renderer's 4px chip plus 2px, so a line beside it keeps its whole stroke.
+  const chip = { x: u.x - 6, y: u.y - 1, w: u.w + 12, h: u.h + 2 };
+  const inBand = (b: Box) => b.y < chip.y + chip.h - 0.5 && b.y + b.h > chip.y + 0.5;
+  const hit = (b: Box, dx: number) =>
+    b.x < chip.x + dx + chip.w - 0.01 && b.x + b.w > chip.x + dx + 0.01;
+  const segments = edges
+    .flatMap((e) => e.points.slice(1).map((q, i) => segmentBox(e.points[i] ?? q, q)))
+    .filter(inBand);
+  const others = [
+    ...segments,
+    ...nodes.flatMap((n) => [n.box, n.iconBox, n.labelBox, n.noteBox, n.badgeBox]),
+    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
+    ...groups.filter((o) => o !== g).flatMap((o) => [o.labelBox, o.iconBox]),
+  ].filter((b): b is Box => !!b && inBand(b));
+  // An overlay's legend sits over other content, so it also steps off nodes and headers.
+  if (!(g.overlay ? others : segments).some((b) => hit(b, 0))) return true;
+  const min = room.lo - u.x;
+  const max = room.hi - (u.x + u.w);
+  // Free spots start or end against an obstacle; take the one closest to the styled place.
+  const dx = others
+    .flatMap((b) => [b.x - (chip.x + chip.w), b.x + b.w - chip.x])
+    .filter((d) => d >= min - 0.01 && d <= max + 0.01 && !others.some((b) => hit(b, d)))
+    .sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)[0];
+  if (dx === undefined) return false;
+  g.labelBox.x = round(g.labelBox.x + dx);
+  if (icon) icon.x = round(icon.x + dx);
+  return true;
 }
 
 interface Attach {
   side: Box;
   full: Box;
 }
+
+const contains = (outer: Box, b: Box): boolean =>
+  b.x >= outer.x - 0.01 &&
+  b.y >= outer.y - 0.01 &&
+  b.x + b.w <= outer.x + outer.w + 0.01 &&
+  b.y + b.h <= outer.y + outer.h + 0.01;
 
 function union(boxes: (Box | undefined)[]): Box {
   const list = boxes.filter((b): b is Box => !!b);
@@ -818,8 +1445,11 @@ function union(boxes: (Box | undefined)[]): Box {
   return { x, y, w, h };
 }
 
-/** An orthogonal connector between two placed nodes or groups, for edges the layout ignored. */
-function freeRoute(from: Attach, to: Attach): Point[] {
+/**
+ * An orthogonal connector between two placed nodes or groups, for edges the layout ignored.
+ * `shift` moves the elbow off the midpoint so unrelated connectors do not share a trunk.
+ */
+function freeRoute(from: Attach, to: Attach, shift: number): Point[] {
   const sideBySide = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
   const a = sideBySide ? from.side : from.full;
   const b = sideBySide ? to.side : to.full;
@@ -834,7 +1464,7 @@ function freeRoute(from: Attach, to: Attach): Point[] {
         { x: sx, y: ac.y },
         { x: ex, y: ac.y },
       ];
-    const mx = round((sx + ex) / 2);
+    const mx = round((sx + ex) / 2 + shift);
     return [
       { x: sx, y: ac.y },
       { x: mx, y: ac.y },
@@ -850,7 +1480,7 @@ function freeRoute(from: Attach, to: Attach): Point[] {
       { x: ac.x, y: sy },
       { x: ac.x, y: ey },
     ];
-  const my = round((sy + ey) / 2);
+  const my = round((sy + ey) / 2 + shift);
   return [
     { x: ac.x, y: sy },
     { x: ac.x, y: my },
@@ -859,11 +1489,110 @@ function freeRoute(from: Attach, to: Attach): Point[] {
   ];
 }
 
+/**
+ * Removes a jog of up to 6px next to an edge end, or the half-pixel skew ELK leaves where an edge
+ * crosses a group border, by sliding the end along its node side. Only when the end stays on
+ * that side and clear of the other edge ends there.
+ */
+function straightenEnd(
+  e: SceneEdge,
+  end: "from" | "to",
+  sides: Box[] | undefined,
+  edges: SceneEdge[],
+): void {
+  const n = e.points.length;
+  const at = (i: number) => e.points[end === "to" ? n - 1 - i : i];
+  const E = at(0);
+  const P = at(1);
+  const Q = at(2);
+  if (!E || !P || !sides) return;
+  const vertical = Math.abs(P.y - E.y) > Math.abs(P.x - E.x);
+  const k = vertical ? "x" : "y";
+  const a = vertical ? "y" : "x";
+  let target = P[k];
+  let moveP = false;
+  if (Q) {
+    const lateral = Math.abs(Q[k] - P[k]);
+    const along = Math.abs(Q[a] - P[a]);
+    const jog = along < 0.01 && lateral > 0.01 && lateral < 6 && n >= 4;
+    const skew = lateral > 0.01 && lateral <= 1 && along > lateral;
+    if (jog || skew) [target, moveP] = [Q[k], true];
+  }
+  if (Math.abs(target - E[k]) < 0.01 || Math.abs(target - E[k]) > 6) return;
+  const side = sides.find((b) => {
+    const edge = vertical ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
+    const [lo, hi] = vertical ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+    return edge.some((v) => Math.abs(v - E[a]) < 0.5) && E[k] >= lo - 0.5 && E[k] <= hi + 0.5;
+  });
+  if (!side) return;
+  const [lo, hi] = vertical ? [side.x, side.x + side.w] : [side.y, side.y + side.h];
+  if (target < lo + 2 || target > hi - 2) return;
+  const others = edges.flatMap((o) =>
+    o === e ? [] : [o.points[0], o.points[o.points.length - 1]],
+  );
+  const near = (p: Point | undefined, q: Point, d: number) =>
+    !!p && Math.abs(p.x - q.x) < d && Math.abs(p.y - q.y) < d;
+  const moved = { ...E, [k]: target };
+  if (others.some((p) => near(p, E, 0.5) || near(p, moved, 4))) return;
+  const iE = end === "to" ? n - 1 : 0;
+  e.points[iE] = moved;
+  if (moveP) e.points[end === "to" ? n - 2 : 1] = { ...P, [k]: target };
+}
+
+/** Drops repeated points and points inside a straight run (draw.io would make them bends). */
+function dropStraightPoints(points: Point[]): Point[] {
+  const out: Point[] = [];
+  for (const p of points) {
+    const last = out[out.length - 1];
+    const prev = out[out.length - 2];
+    if (last && Math.abs(last.x - p.x) < 0.01 && Math.abs(last.y - p.y) < 0.01) continue;
+    if (prev && last) {
+      const cross = (last.x - prev.x) * (p.y - prev.y) - (last.y - prev.y) * (p.x - prev.x);
+      const ahead = (last.x - prev.x) * (p.x - last.x) + (last.y - prev.y) * (p.y - last.y) >= 0;
+      if (Math.abs(cross) < 0.01 && ahead) out.pop();
+    }
+    out.push(p);
+  }
+  return out.length >= 2 ? out : points;
+}
+
 function midpoint(points: Point[]): Point {
   const i = Math.max(0, Math.floor((points.length - 1) / 2));
   const a = points[i] ?? { x: 0, y: 0 };
   const b = points[i + 1] ?? a;
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+const overlaps = (a: Box, b: Box): boolean =>
+  a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/**
+ * Where a free edge's label (and step) goes: beside its longest vertical run, right side unless
+ * only the left is clear, so it never sits on the line or on a node's own label. A route with
+ * no vertical run keeps it above its middle. Never left of or above the canvas.
+ */
+function freeLabelBox(points: Point[], w: number, h: number, avoid: (Box | undefined)[]): Box {
+  const runs = points
+    .slice(1)
+    .map((q, i) => [points[i] ?? q, q] as const)
+    .filter(([p, q]) => Math.abs(p.x - q.x) < 0.5 && Math.abs(p.y - q.y) > 0.5)
+    .sort(([a, b], [c, d]) => Math.abs(d.y - c.y) - Math.abs(b.y - a.y));
+  const inside = (b: Box): Box => ({
+    ...b,
+    x: round(Math.max(0, b.x)),
+    y: round(Math.max(0, b.y)),
+  });
+  const clear = (b: Box) => !avoid.some((o) => o && overlaps(b, o));
+  const pick = (first: Box, second: Box) => (clear(first) || !clear(second) ? first : second);
+  const run = runs[0];
+  if (!run) {
+    const mid = midpoint(points);
+    const above = inside({ x: mid.x - w / 2, y: mid.y - h - 3, w, h });
+    return pick(above, inside({ ...above, y: mid.y + 3 }));
+  }
+  const [p, q] = run;
+  const y = (p.y + q.y) / 2 - h / 2;
+  return pick(inside({ x: p.x + 6, y, w, h }), inside({ x: p.x - 6 - w, y, w, h }));
 }
 
 function findEdge(n: ElkNode, id: string): ElkEdge | undefined {
@@ -875,28 +1604,85 @@ function findEdge(n: ElkNode, id: string): ElkEdge | undefined {
   return undefined;
 }
 
-/** ELK occasionally throws on unusual graphs; retry with simpler strategies before giving up. */
-async function runElk(root: ElkNode): Promise<ElkNode> {
-  const noOrder = { "elk.layered.considerModelOrder.strategy": "NONE" };
-  const fallbacks: Record<string, string>[] = [
-    {},
-    noOrder,
-    {
-      ...noOrder,
-      "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
-      "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
-    },
-    {
-      ...noOrder,
-      "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
-      "elk.layered.nodePlacement.strategy": "SIMPLE",
-    },
+/**
+ * ELK occasionally throws on unusual graphs; retry with simpler placement strategies before
+ * giving up. `fallback` names the strategy that worked when it was not the first.
+ */
+// Every theme (and review's extra one) lays out the same graph, so ELK runs once per graph.
+const elkRuns = new Map<string, Promise<{ graph: ElkNode; fallback?: string }>>();
+
+async function runElk(root: ElkNode): Promise<{ graph: ElkNode; fallback?: string }> {
+  const key = JSON.stringify(root);
+  let run = elkRuns.get(key);
+  if (!run) {
+    run = runElkUncached(root);
+    elkRuns.set(key, run);
+    run.catch(() => elkRuns.delete(key));
+    if (elkRuns.size > 16) {
+      const oldest = elkRuns.keys().next().value;
+      if (oldest !== undefined) elkRuns.delete(oldest);
+    }
+  }
+  const { graph, fallback } = await run;
+  // Callers adjust boxes in place, so each gets its own copy.
+  return { graph: structuredClone(graph), fallback };
+}
+
+/** Edge segments of an ELK result that cross, between edges that share no node, and those nodes. */
+function crossings(graph: ElkNode): { count: number; nodes: Set<string> } {
+  const nodeOf = (ref: string | undefined) => (ref ?? "").split("::")[0];
+  const lines = (graph.edges ?? []).flatMap((e) => {
+    const s = e.sections?.[0];
+    if (!s) return [];
+    const pts = [s.startPoint, ...(s.bendPoints ?? []), s.endPoint];
+    const ends = [nodeOf(e.sources[0]), nodeOf(e.targets[0])];
+    return [{ ends, segs: pts.slice(1).map((q, i) => [pts[i] ?? q, q] as const) }];
+  });
+  const cross = (a: Point, b: Point, c: Point, d: Point) => {
+    const o = (p: Point, q: Point, r: Point) =>
+      (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+    return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+  };
+  let count = 0;
+  const nodes = new Set<string>();
+  for (let i = 0; i < lines.length; i++)
+    for (let j = i + 1; j < lines.length; j++) {
+      const a = lines[i];
+      const b = lines[j];
+      if (!a || !b || a.ends.some((x) => b.ends.includes(x))) continue;
+      for (const [p, q] of a.segs)
+        for (const [r, t] of b.segs)
+          if (cross(p, q, r, t)) {
+            count++;
+            for (const x of [...a.ends, ...b.ends]) if (x) nodes.add(x);
+          }
+    }
+  return { count, nodes };
+}
+
+async function runElkUncached(root: ElkNode): Promise<{ graph: ElkNode; fallback?: string }> {
+  const fallbacks: [string | undefined, Record<string, string>][] = [
+    [undefined, {}],
+    [
+      "brandes-koepf placement",
+      {
+        "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+        "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
+      },
+    ],
+    [
+      "network-simplex layering, simple placement",
+      {
+        "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
+        "elk.layered.nodePlacement.strategy": "SIMPLE",
+      },
+    ],
   ];
   let lastError: unknown;
-  for (const extra of fallbacks) {
+  for (const [fallback, extra] of fallbacks) {
     const graph = applyOptions(structuredClone(root), extra);
     try {
-      return await elk().layout(graph);
+      return { graph: await elk().layout(graph), fallback };
     } catch (e) {
       lastError = e;
     }
@@ -926,12 +1712,4 @@ function describe(model: Model): string {
   if (flows.length)
     parts.push(`Connections: ${flows.join("; ")}${model.edges.length > 24 ? "; and more" : ""}.`);
   return parts.join(" ").replace(/\s+/g, " ").trim();
-}
-
-export function measureLabel(text: string): number {
-  return measure(text, SIZES.nodeLabel);
-}
-
-export function iconName(id: string): string {
-  return iconInfo(id)?.name ?? id;
 }

@@ -103,9 +103,17 @@ export interface ModelEdge {
   constraint: boolean;
 }
 
+/** What one line style means in this diagram (spec `legend:`), drawn as a key. */
+export interface LegendEntry {
+  line: EdgeLine;
+  label: string;
+}
+
 export interface Model {
   title?: string;
   subtitle?: string;
+  /** Line-style meanings in spec order; drawn as a key when present. */
+  legend?: LegendEntry[];
   direction: Direction;
   theme: ThemeName;
   routing: Routing;
@@ -159,6 +167,8 @@ export interface SceneNode {
   noteBox?: Box;
   color?: string;
   badge?: string;
+  /** The badge pill, sized from the measured badge text. */
+  badgeBox?: Box;
   url?: string;
   parent?: string;
   /** Label and note colors, set when the node sits on a filled group that needs them. */
@@ -202,6 +212,20 @@ export interface SceneEdge {
   stepBox?: Box;
 }
 
+export interface SceneLegendItem {
+  line: EdgeLine;
+  /** Where the sample line is drawn (a short horizontal stroke across the middle of the box). */
+  swatch: Box;
+  label: TextBlock;
+  labelBox: Box;
+}
+
+/** The key that explains line styles, placed by layout inside the canvas. */
+export interface SceneLegend {
+  box: Box;
+  items: SceneLegendItem[];
+}
+
 export interface Scene {
   width: number;
   height: number;
@@ -218,6 +242,9 @@ export interface Scene {
   nodes: SceneNode[];
   groups: SceneGroup[];
   edges: SceneEdge[];
+  legend?: SceneLegend;
+  /** Set when ELK needed a fallback strategy, naming it; spec order may not be kept then. */
+  layoutFallback?: string;
   /** Plain-language summary used for the SVG <desc> and alt text. */
   description: string;
 }

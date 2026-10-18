@@ -1,7 +1,12 @@
-# yaml-language-server: $schema=../skills/stackdraw/references/diagram.schema.json
+# yaml-language-server: $schema=../skills/orrery/references/diagram.schema.json
 title: GitOps delivery to three clouds
-subtitle: GitHub Actions builds and signs the image, Argo CD syncs GKE, AKS and EKS, Cloudflare fronts all three and Grafana watches them
+subtitle: Actions builds and signs, Argo CD syncs three clusters, Cloudflare fronts them, Grafana watches
 direction: right
+layout: { merge: false, spacing: compact }
+
+legend:
+  solid: Delivery and traffic
+  dashed: Metrics
 
 groups:
   github: { type: box, label: GitHub, icon: github:mark-github }
@@ -15,19 +20,21 @@ nodes:
   users: { icon: generic:users, label: Users }
   actions: { icon: logos:github-actions, label: GitHub Actions, note: "Build, test, sign", in: github }
   ghcr: { icon: github:container, label: Container registry, note: ghcr.io, in: github }
-  argocd: { icon: logos:argo-icon, label: Argo CD, note: Watches the manifests repo }
-  cdn: { icon: logos:cloudflare-icon, label: Cloudflare, note: "DNS, WAF, load balancing" }
-  gke: { icon: gcp:gke, label: GKE, in: gcloud }
-  aks: { icon: azure:kubernetes-services, label: AKS, in: azure }
-  eks: { icon: aws:eks, label: Amazon EKS, in: aws }
-  grafana: { icon: logos:grafana, label: Grafana, note: Metrics and logs }
+  manifests: { icon: github:repo, label: Manifests repository, in: github }
+  argocd: { icon: logos:argo-icon, label: Argo CD, note: GitOps controller }
+  cdn: { icon: logos:cloudflare-icon, label: Cloudflare, note: WAF and load balancing }
+  gke: { icon: gcp:gke, label: GKE, note: Google Kubernetes Engine, in: gcloud }
+  aks: { icon: azure:kubernetes-services, label: AKS, note: Azure Kubernetes Service, in: azure }
+  eks: { icon: aws:eks, label: EKS, note: Amazon Elastic Kubernetes Service, in: aws }
+  grafana: { icon: logos:grafana, label: Grafana, note: Dashboards }
 
 edges:
-  - dev -> actions: { label: git push, step: 1 }
+  - dev -> actions: { label: push to main, step: 1 }
   - actions -> ghcr: { label: image, step: 2 }
-  - actions -> argocd: { label: new tag, step: 3 }
+  - actions -> manifests: { label: bump tag, step: 3 }
+  - argocd -> manifests: watch
   # Edges to the boundary, not to each cluster: one flow each, no repeated labels.
   - argocd -> prod: { label: sync, step: 4 }
   - users -> cdn: HTTPS
   - cdn -> prod: traffic
-  - prod --> grafana: metrics
+  - grafana --> prod: query

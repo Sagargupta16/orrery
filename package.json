@@ -1,13 +1,13 @@
 {
-  "name": "stackdraw",
-  "version": "0.2.1",
+  "name": "orrery",
+  "version": "0.3.0",
   "private": true,
   "description": "Architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, rendered to SVG, PNG, draw.io, TSX and HTML.",
   "license": "MIT",
   "author": "Sagar Gupta (https://github.com/Sagargupta16)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Sagargupta16/stackdraw.git"
+    "url": "git+https://github.com/Sagargupta16/orrery.git"
   },
   "type": "module",
   "engines": {
@@ -27,8 +27,8 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@iconify-json/carbon": "1.2.28",
-    "@iconify-json/logos": "1.2.15",
-    "@iconify-json/simple-icons": "1.2.99",
+    "@iconify-json/logos": "1.2.16",
+    "@iconify-json/simple-icons": "1.2.100",
     "@iconify-json/tabler": "1.2.42",
     "@primer/octicons": "19.40.0",
     "@resvg/resvg-wasm": "2.6.2",
@@ -36,10 +36,10 @@
     "elkjs": "0.12.0",
     "esbuild": "0.28.2",
     "fflate": "0.8.3",
-    "simple-icons": "16.34.0",
+    "simple-icons": "16.35.0",
     "svgo": "4.1.0",
     "typescript": "7.0.2",
-    "vitest": "5.0.3",
+    "vitest": "5.0.5",
     "yaml": "2.9.1"
   }
 }

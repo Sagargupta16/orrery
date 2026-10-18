@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: CI/CD from GitHub Actions to AWS
+subtitle: A merge to main runs a workflow that assumes an IAM role, pushes the image and deploys the stack
+direction: down
+layout: { merge: false, spacing: compact }
+
+legend:
+  solid: Pipeline step
+  dotted: Image pull
+
+groups:
+  repo: { type: box, label: GitHub repository web-app, icon: github:mark-github }
+  cloud: { type: aws:cloud }
+  # IAM is a global service, so its role sits in the cloud but outside the Region. Declared before the Region so step 3 reads first.
+  global: { type: aws:generic-dashed, label: Global service, in: cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+
+nodes:
+  dev: { icon: github:person, label: Developer }
+  pr: { icon: github:git-pull-request, label: Pull request, note: Checks and review, in: repo }
+  actions: { icon: logos:github-actions, label: GitHub Actions, note: deploy.yml on main, in: repo }
+  role: { icon: aws:iam-role, label: IAM role, note: Trusts GitHub OIDC, in: global }
+  ecr: { icon: aws:ecr, label: Amazon ECR, note: Amazon Elastic Container Registry, in: region }
+  stack: { icon: aws:cloudformation, label: AWS CloudFormation, note: App stack, in: region }
+  service: { icon: aws:elastic-container-service, label: Amazon ECS, note: Amazon Elastic Container Service on Fargate, in: region }
+
+edges:
+  - dev -> pr: { label: open, step: 1 }
+  - pr -> actions: { label: merge to main, step: 2 }
+  # The job calls sts:AssumeRoleWithWebIdentity with its OIDC token, then pushes and deploys with the temporary credentials.
+  - actions -> global: { label: assume role with OIDC, step: 3 }
+  - actions -> ecr: { label: push image, step: 4 }
+  - actions -> stack: { label: deploy, step: 5 }
+  - stack -> service: { label: update service, step: 6 }
+  # The service pulls from the registry; laid out ecr -> service, with the arrowhead on the registry.
+  - { from: ecr, to: service, arrow: start, line: dotted, label: pull image }

@@ -52,12 +52,12 @@ export class LibraryError extends Error {
 const loaded = new Map<string, IconifySet>();
 
 export function cacheDir(): string {
-  if (process.env.STACKDRAW_CACHE) return process.env.STACKDRAW_CACHE;
+  if (process.env.ORRERY_CACHE) return process.env.ORRERY_CACHE;
   const base =
     process.platform === "win32"
       ? (process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"))
       : (process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"));
-  return join(base, "stackdraw");
+  return join(base, "orrery");
 }
 
 export const cachePath = (src: LibrarySource) =>
@@ -126,7 +126,7 @@ async function download(src: LibrarySource): Promise<Buffer> {
     `icon library ${src.npm}@${src.version} could not be downloaded (${problems.join("; ")})`,
     [
       "connect to the internet once; the library is cached after the first download",
-      `prefetch where there is network: stackdraw icons fetch, then copy ${cacheDir()} (or set STACKDRAW_CACHE)`,
+      `prefetch where there is network: orrery icons fetch, then copy ${cacheDir()} (or set ORRERY_CACHE)`,
       "use icons from the bundled official packs (aws, azure, gcp, k8s) instead",
     ],
   );
@@ -194,11 +194,16 @@ export function libraryIcon(
   return { v, b: body };
 }
 
-/** True when every painted color in an icon is near black, so a dark theme must recolor it. */
+/**
+ * True when every painted color in an icon is near black, so a dark theme must recolor it. An icon
+ * with no paint at all counts: unpainted shapes fill black (logos:apple, logos:okta-icon).
+ */
 export function allDark(body: string): boolean {
-  if (/Gradient|<image/.test(body)) return false;
-  const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="(#[0-9a-fA-F]{3,6})"/g)].map(
-    (m) => m[1] ?? "",
+  if (/Gradient|<image|style="[^"]*(?:fill|stroke)\s*:/.test(body)) return false;
+  const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="([^"]+)"/g)]
+    .map((m) => m[1] ?? "")
+    .filter((c) => c !== "none");
+  return colors.every(
+    (c) => c === "black" || (/^#[0-9a-fA-F]{3,6}$/.test(c) && luminance(c) < 0.06),
   );
-  return colors.length > 0 && colors.every((c) => luminance(c) < 0.06);
 }

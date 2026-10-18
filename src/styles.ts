@@ -1,6 +1,6 @@
 // Group (container) styles, each with its source. AWS values are read from the official
 // Architecture Icons deck; Google Cloud and Azure publish no container spec, so their values are
-// measured from the vendors' own reference diagrams (skills/stackdraw/references/styles.md).
+// measured from the vendors' own reference diagrams (skills/orrery/references/styles.md).
 
 export interface GroupStyle {
   key: string;
@@ -66,7 +66,9 @@ const azure = (s: Partial2): StyleSpec => ({
 });
 
 const K8S_DECK = "kubernetes/community icon deck";
-const STACKDRAW = "stackdraw";
+const ORRERY = "orrery";
+// orrery's own outlines keep 3:1 against white and against the zone fill (WCAG 1.4.11).
+const OUTLINE = "#888f99";
 const C4 = "C4-PlantUML v2.14.0 boundary style";
 
 const DEFS: Record<string, StyleSpec> = {
@@ -197,16 +199,18 @@ const DEFS: Record<string, StyleSpec> = {
   "gcp:cloud": gcp({
     label: "Google Cloud",
     stroke: "#1f2124",
-    fill: "#4285f4",
+    fill: "#1a73e8",
     innerFill: "#ffffff",
     labelColor: "#ffffff",
     description: "The Google Cloud frame (Google blue band, white label, white inner panel).",
+    source: `${GCP_SVG}; frame #1a73e8 + #1f2124 2px in 6/6 SVGs (#4285f4 in 0/6)`,
   }),
   "gcp:region": gcp({
     label: "Region",
-    stroke: "#1f2124",
-    fill: "#e8eaed",
-    description: "A Google Cloud region (grey panel).",
+    stroke: "#202124",
+    fill: "#ffffff",
+    description: "A Google Cloud region (white panel, dark outline).",
+    source: `${GCP_SVG}; 7 regions in 4/6 SVGs, all white + solid #202124 2px (#e8eaed in 0/6)`,
   }),
   "gcp:zone": gcp({
     label: "Zone",
@@ -425,21 +429,21 @@ const DEFS: Record<string, StyleSpec> = {
   },
 
   // ------------------------------------------------------------- Generic
-  box: { label: "", stroke: "#9aa3ae", description: "A plain bordered box.", source: STACKDRAW },
+  box: { label: "", stroke: OUTLINE, description: "A plain bordered box.", source: ORRERY },
   dashed: {
     label: "",
-    stroke: "#9aa3ae",
+    stroke: OUTLINE,
     dash: "6 4",
     description: "A dashed boundary.",
-    source: STACKDRAW,
+    source: ORRERY,
   },
   zone: {
     label: "",
-    stroke: "#e3e7ec",
+    stroke: OUTLINE,
     fill: "#f4f6f8",
     rounded: 10,
-    description: "A filled panel without a strong border, for tiers and lanes.",
-    source: STACKDRAW,
+    description: "A filled panel with a soft outline, for tiers and lanes.",
+    source: ORRERY,
   },
   boundary: {
     label: "",
@@ -457,15 +461,15 @@ const DEFS: Record<string, StyleSpec> = {
     fill: "#f4f6f8",
     icon: "tabler:building",
     description: "An on-premises site, vendor-neutral.",
-    source: STACKDRAW,
+    source: ORRERY,
   },
   internet: {
     label: "Internet",
-    stroke: "#9aa3ae",
+    stroke: OUTLINE,
     dash: "2 3",
     icon: "tabler:world",
     description: "The public internet.",
-    source: STACKDRAW,
+    source: ORRERY,
   },
 };
 

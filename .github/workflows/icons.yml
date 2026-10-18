@@ -78,7 +78,7 @@ jobs:
           commit-message: "chore: sync official icon packs"
           title: "chore: sync official icon packs"
           body: |
-            Monthly run of `node scripts/sync-icons.mjs --latest` after moving the npm icon libraries to their latest releases: re-pins the newest official packages in `scripts/icon-sources.json` and the libraries in `assets/icons/index.json`, rebuilds `skills/stackdraw/assets/icons/`, the bundled CLI and the gallery in `examples/`.
+            Monthly run of `node scripts/sync-icons.mjs --latest` after moving the npm icon libraries to their latest releases: re-pins the newest official packages in `scripts/icon-sources.json` and the libraries in `assets/icons/index.json`, rebuilds `skills/orrery/assets/icons/`, the bundled CLI and the gallery in `examples/`.
 
             Before merging:
             - Open the gallery PNGs that changed and check the new icons read well.

@@ -1,6 +1,6 @@
 import { checkScene } from "../check.ts";
 import { loadIconLibraries } from "../icons.ts";
-import { layout } from "../layout.ts";
+import { fitIcons, layout } from "../layout.ts";
 import type { AnimateMode, Diagnostic, Model, Scene, ThemeName } from "../types.ts";
 import { renderDrawio } from "./drawio.ts";
 import { renderHtml } from "./html.ts";
@@ -44,8 +44,6 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
   ] as ThemeName[];
   const scenes: Partial<Record<ThemeName, Scene>> = {};
   for (const theme of themes) scenes[theme] = await layout(model, { theme });
-  const first = scenes[req.themes[0] ?? model.theme] ?? Object.values(scenes)[0];
-  const diagnostics = first ? checkScene(first, model) : [];
   if (req.formats.length) {
     const ids = Object.values(scenes).flatMap((s) => [
       ...s.nodes.map((n) => n.icon),
@@ -53,17 +51,28 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
     ]);
     await loadIconLibraries(ids.filter((id): id is string => !!id));
   }
+  // Edges end on the drawn glyph of a non-square logo, which needs its library's artwork; checks
+  // then measure the scene as it is drawn. Validate-only runs fit the bundled icons alone.
+  for (const s of Object.values(scenes)) fitIcons(s);
+  const first = scenes[req.themes[0] ?? model.theme] ?? Object.values(scenes)[0];
+  const diagnostics = first ? checkScene(first, model) : [];
+  // Ids carry the diagram and theme, so the light and dark file (or two diagrams) can share a page.
+  const idPrefix = (theme: ThemeName) =>
+    `${req.name}-${theme}`.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^(?=[^A-Za-z_])/, "sd-");
+  const svgOf = (theme: ThemeName, scene: Scene) => renderSvg(scene, { idPrefix: idPrefix(theme) });
+  /** PNGs and the HTML page's PNG export are a still frame: no packets mid-edge, no flow dashes. */
+  const stillOf = (theme: ThemeName, scene: Scene) =>
+    scene.animate !== "none" ? svgOf(theme, { ...scene, animate: "none" }) : undefined;
   const artifacts: Artifact[] = [];
   for (const theme of req.themes) {
     const scene = scenes[theme];
     if (!scene || !req.formats.length) continue;
-    const svg = renderSvg(scene);
+    const svg = svgOf(theme, scene);
     for (const format of req.formats) {
       const base = { format, theme, width: scene.width, height: scene.height };
       if (format === "svg") artifacts.push({ ...base, data: svg });
       if (format === "png") {
-        // PNGs are a still frame: no packets frozen mid-edge, no dashes from the flow mode.
-        const still = scene.animate !== "none" ? renderSvg({ ...scene, animate: "none" }) : svg;
+        const still = stillOf(theme, scene) ?? svg;
         artifacts.push({
           ...base,
           data: await renderPng(still, { scale: req.scale, fonts: req.fonts }),
@@ -85,8 +94,10 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
       format: "html",
       data: renderHtml({
         title: model.title ?? req.name,
-        light: renderSvg(scenes.light),
-        dark: renderSvg(scenes.dark),
+        light: svgOf("light", scenes.light),
+        dark: svgOf("dark", scenes.dark),
+        lightStill: stillOf("light", scenes.light),
+        darkStill: stillOf("dark", scenes.dark),
         name: req.name,
         initial: req.themes[0] ?? model.theme,
       }),

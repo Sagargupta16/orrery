@@ -354,6 +354,17 @@ function packEntry(info: IconInfo): PackEntry {
   return entry;
 }
 
+/** Width over height of an icon's artwork; undefined while its npm library is not loaded. */
+export function iconAspect(id: string): number | undefined {
+  const info = iconInfo(id);
+  if (!info) return undefined;
+  if (loadIndex().packs[info.pack]?.lib && !loadedLibrary(info.pack)) return undefined;
+  const [, , w, h] = packEntry(info)
+    .v.split(/[\s,]+/)
+    .map(Number);
+  return w && h ? w / h : undefined;
+}
+
 /** Loads the npm libraries behind these icons (bundled packs need nothing). */
 export async function loadIconLibraries(ids: Iterable<string>): Promise<void> {
   const packs = new Map<string, LibrarySource>();
@@ -365,6 +376,8 @@ export async function loadIconLibraries(ids: Iterable<string>): Promise<void> {
   await Promise.all([...packs].map(([pack, lib]) => loadLibrary(pack, lib)));
 }
 
+const BLACK_OR_WHITE = new Set(["github:mark-github"]);
+
 export function renderIcon(id: string, instance: string, paint: IconPaint): IconRender {
   const info = iconInfo(id);
   if (!info) throw new Error(`unknown icon ${id}`);
@@ -375,11 +388,23 @@ export function renderIcon(id: string, instance: string, paint: IconPaint): Icon
     let color = paint.color ?? entry.col ?? paint.ink;
     // Brand colors that vanish on the background (black marks on dark) fall back to the ink.
     if (contrast(color, paint.background) < 2.2) color = paint.ink;
+    // GitHub's mark only appears in black or white, never tinted (brand.github.com).
+    if (BLACK_OR_WHITE.has(info.id))
+      color =
+        paint.color ??
+        (contrast("#000000", paint.background) >= contrast("#ffffff", paint.background)
+          ? "#000000"
+          : "#ffffff");
     body = body.replaceAll("{{c}}", color);
   } else if (entry.k && paint.theme === "dark" && !entry.d) {
     // A black-only logo (and no official dark variant) would vanish; paint it in the ink color.
+    // The group covers shapes with no paint of their own, which fill black.
     const light = paint.color ?? mixHex(paint.ink, paint.background, 0.92);
-    body = body.replace(/(fill|stroke|stop-color)="#(?:[0-9a-fA-F]{3}){1,2}"/g, `$1="${light}"`);
+    body = body.replace(
+      /(fill|stroke|stop-color)="(?:#(?:[0-9a-fA-F]{3}){1,2}|black)"/g,
+      `$1="${light}"`,
+    );
+    body = `<g fill="${light}">${body}</g>`;
   }
   const vb = entry.v.split(/[\s,]+/).map(Number);
   return { viewBox: [vb[0] ?? 0, vb[1] ?? 0, vb[2] ?? 24, vb[3] ?? 24], body };

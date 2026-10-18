@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Container diagram for an online store
+subtitle: "C4 model, level 2: the containers inside the system, and the people and external systems around it"
+direction: down
+# One port per edge, so the web and back office calls into the API each keep their own arrowhead.
+layout: { spacing: normal, merge: false }
+
+legend:
+  solid: "Relationship [technology]"
+
+groups:
+  store: { type: c4:boundary, label: "Online store [Software System]" }
+
+# C4-PlantUML colors: person #08427b, container #438dd5, external system #999999.
+nodes:
+  customer: { shape: person, label: Customer, note: "[Person]\nBrowses and buys products", color: "#08427b" }
+  staff: { shape: person, label: Support staff, note: "[Person]\nHandles orders and refunds", color: "#08427b" }
+  web: { shape: box, label: Web application, note: "[Container: React]\nLets customers browse and check out", color: "#438dd5", in: store }
+  admin: { shape: box, label: Back office, note: "[Container: React]\nLets staff manage orders and refunds", color: "#438dd5", in: store }
+  api: { shape: box, label: API application, note: "[Container: Go]\nServes catalog, cart and checkout", color: "#438dd5", in: store }
+  db: { shape: cylinder, label: Database, note: "[Container: PostgreSQL]\nStores products and orders", color: "#438dd5", in: store }
+  payments: { shape: box, label: Payment provider, note: "[Software System]\nTakes card payments and refunds", color: "#999999" }
+  email: { shape: box, label: Email service, note: "[Software System]\nDelivers order receipts", color: "#999999" }
+
+edges:
+  - customer -> web: Browses and buys products using [HTTPS]
+  - staff -> admin: Manages orders using [HTTPS]
+  - web, admin -> api: "Makes API calls to [JSON/HTTPS]"
+  - api -> db: Reads and writes [SQL]
+  - api -> payments: Charges cards and issues refunds [HTTPS]
+  - api -> email: Sends e-mail using [SMTP]
+  # Written in layout order (the customer above the email service) with the arrow flipped, so the people stay on top.
+  - { from: customer, to: email, arrow: start, label: "Sends receipts to [SMTP]" }

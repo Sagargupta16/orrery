@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Web application on Google Cloud
+subtitle: A global load balancer in front of Cloud Run, with Cloud CDN and Cloud Armor on its backend, backed by Cloud SQL and Memorystore
+direction: down
+# Product cards, as in Google Cloud's own architecture diagrams; one port per edge.
+look: card
+layout: { merge: false }
+
+legend:
+  solid: Request traffic
+  dotted: Attached to the load balancer backend
+
+groups:
+  gcloud: { type: gcp:cloud }
+  project: { type: gcp:project, label: Project web-prod, in: gcloud }
+  region: { type: gcp:region, label: us-central1, in: project }
+  # Memorystore for Redis is only reachable from its authorized VPC network.
+  vpc: { type: gcp:vpc, label: VPC network, in: region }
+
+nodes:
+  users: { icon: generic:users, label: Users, note: Browsers and mobile apps }
+  lb: { icon: gcp:cloud-load-balancing, label: Cloud Load Balancing, note: Global external Application LB, in: project }
+  armor: { icon: gcp:cloud-armor, label: Cloud Armor, note: Policy on the LB backend, in: project }
+  cdn: { icon: gcp:cloud-cdn, label: Cloud CDN, note: Static asset cache on the LB backend, in: project }
+  run: { icon: gcp:cloud-run, label: Cloud Run, note: web service, in: region }
+  sql: { icon: gcp:cloud-sql, label: Cloud SQL, note: PostgreSQL with HA, in: region }
+  redis: { icon: gcp:memorystore, label: Memorystore, note: Redis session store, in: vpc }
+  secrets: { icon: gcp:secret-manager, label: Secret Manager, note: Regional DB credentials, in: region }
+
+edges:
+  - users -> lb: HTTPS
+  # Cloud Armor and Cloud CDN attach to the load balancer's backend: dotted lines, not hops of their own.
+  - armor, cdn ... lb
+  - lb -> run: serverless NEG
+  - run -> sql, secrets
+  - run -> redis: Direct VPC egress

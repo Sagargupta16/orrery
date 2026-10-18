@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Bundles src/ into the skill's zero-install CLI and vendors the two runtime engines next to it:
-//   skills/stackdraw/scripts/stackdraw.mjs        our code + yaml (MIT/ISC), one file
-//   skills/stackdraw/scripts/vendor/elk.bundled.cjs ELK layout (EPL-2.0), unmodified
-//   skills/stackdraw/scripts/vendor/resvg/          resvg wasm (MPL-2.0), unmodified
+//   skills/orrery/scripts/orrery.mjs        our code + yaml (MIT/ISC), one file
+//   skills/orrery/scripts/vendor/elk.bundled.cjs ELK layout (EPL-2.0), unmodified
+//   skills/orrery/scripts/vendor/resvg/          resvg wasm (MPL-2.0), unmodified
 //
 //   node scripts/build.mjs           build
 //   node scripts/build.mjs --check   fail if the committed bundle is stale (CI)
@@ -12,9 +12,9 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const scriptsDir = join(root, "skills/stackdraw/scripts");
+const scriptsDir = join(root, "skills/orrery/scripts");
 const vendorDir = join(scriptsDir, "vendor");
-const outFile = join(scriptsDir, "stackdraw.mjs");
+const outFile = join(scriptsDir, "orrery.mjs");
 const check = process.argv.includes("--check");
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 
@@ -32,7 +32,7 @@ const result = await build({
   banner: {
     js: [
       "#!/usr/bin/env node",
-      `// stackdraw ${pkg.version} (MIT). Generated from src/ by scripts/build.mjs; do not edit.`,
+      `// orrery ${pkg.version} (MIT). Generated from src/ by scripts/build.mjs; do not edit.`,
       "// Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.",
       // CommonJS dependencies inside an ESM bundle need a real require for node builtins.
       'import { createRequire as __sdwRequire } from "node:module";',
@@ -51,7 +51,7 @@ const vendored = [
 
 if (check) {
   const stale = [];
-  if (!existsSync(outFile) || readFileSync(outFile, "utf8") !== code) stale.push("stackdraw.mjs");
+  if (!existsSync(outFile) || readFileSync(outFile, "utf8") !== code) stale.push("orrery.mjs");
   for (const [from, to] of vendored) {
     const src = join(root, from);
     const dst = join(vendorDir, to);

@@ -23,7 +23,8 @@ import { cachePath, LibraryError, librarySource, loadLibrary } from "./libraries
 import { examplesDir, skillRoot } from "./paths.ts";
 import { FORMATS, type Format, renderModel } from "./render/index.ts";
 import { renderPng } from "./render/png.ts";
-import { parseSpec } from "./spec.ts";
+import { DEFAULT_REVIEW_WIDTH, formatReview, reviewModel } from "./review.ts";
+import { distance, parseSpec } from "./spec.ts";
 import { GROUP_STYLES } from "./styles.ts";
 import { THEME_TOKENS } from "./themes.ts";
 import {
@@ -37,23 +38,24 @@ import {
 declare const __VERSION__: string;
 const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "dev";
 
-const HELP = `stackdraw ${VERSION}: architecture and system design diagrams with official icons
+const HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
-  stackdraw render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
+  orrery render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
                     [--scale 3] [--animate packets|flow|none] [--static] [--font extra.ttf]
                     [--strict] [--force] [--json]
-  stackdraw validate <spec.yaml> [--strict] [--json]
-  stackdraw icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
-  stackdraw icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
-  stackdraw icons list [--pack aws] [--category Compute] [--type service] [--json]
-  stackdraw icons packs [--json]
-  stackdraw icons fetch [pack...]
-  stackdraw styles [--json]
-  stackdraw import mermaid <flowchart.mmd|-> [-o diagram.yaml]
-  stackdraw init [template] [-o diagram.yaml] [--list]
-  stackdraw doctor
-  stackdraw demo [out-dir]
+  orrery validate <spec.yaml> [--strict] [--json]
+  orrery review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--strict] [--json]
+  orrery icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
+  orrery icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
+  orrery icons list [--pack aws] [--category Compute] [--type service] [--json]
+  orrery icons packs [--json]
+  orrery icons fetch [pack...]
+  orrery styles [--json]
+  orrery import mermaid <flowchart.mmd|-> [-o diagram.yaml]
+  orrery init [template] [-o diagram.yaml] [--list]
+  orrery doctor
+  orrery demo [out-dir]
 
 Packs: ${PACK_ORDER.join(", ")}. Spec reference: references/spec.md in the skill folder.
 Exit codes: 0 ok, 1 diagram errors (or warnings with --strict), 2 bad command line.`;
@@ -64,13 +66,47 @@ interface Args {
 }
 
 const BOOL = new Set(["json", "strict", "force", "static", "list", "help", "version"]);
+const KNOWN_FLAGS = new Set([
+  ...BOOL,
+  "out",
+  "format",
+  "theme",
+  "scale",
+  "animate",
+  "font",
+  "pack",
+  "type",
+  "limit",
+  "category",
+  "width",
+]);
+
+/** The option a typo most likely meant: a prefix match (--formats, --output) or a near spelling. */
+function closest(word: string, options: Iterable<string>): string | undefined {
+  const w = word.toLowerCase();
+  let best: string | undefined;
+  let bestScore = Number.POSITIVE_INFINITY;
+  for (const o of options) {
+    const prefix = w.length >= 3 && (o.startsWith(w) || w.startsWith(o));
+    const d = prefix ? 0 : distance(w, o);
+    if (d < bestScore) {
+      bestScore = d;
+      best = o;
+    }
+  }
+  return bestScore <= Math.max(2, Math.floor(w.length / 3)) ? best : undefined;
+}
+
+// A bare --animate (v0.1 style) means packets when it is followed by nothing, another flag or a
+// spec file; anything else after it must be a mode.
+const SPEC_FILE = /\.(ya?ml|json)$/i;
 
 function parseArgs(argv: string[]): Args {
   const out: Args = { _: [], flags: {} };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i] ?? "";
     if (a === "-h") out.flags.help = true;
-    else if (a.startsWith("--") || (a.startsWith("-") && a.length === 2)) {
+    else if (a.startsWith("--") || (a.startsWith("-") && (a.length === 2 || a[2] === "="))) {
       const eq = a.indexOf("=");
       let key = a.replace(/^--?/, "");
       let value: string | boolean | undefined;
@@ -87,19 +123,35 @@ function parseArgs(argv: string[]): Args {
         p: "pack",
       };
       key = short[key] ?? key;
+      if (!KNOWN_FLAGS.has(key)) {
+        const near = closest(key, KNOWN_FLAGS);
+        usage(
+          `unknown flag ${eq > 0 ? a.slice(0, eq) : a}${near ? ` (did you mean --${near}?)` : ""}`,
+        );
+      }
       if (value === undefined) {
-        // A bare --animate (v0.1 style) means the default mode.
-        if (
-          BOOL.has(key) ||
-          (key === "animate" && !ANIMATE_MODES.includes(argv[i + 1] as AnimateMode))
+        const next = argv[i + 1];
+        if (BOOL.has(key)) value = true;
+        else if (
+          key === "animate" &&
+          !ANIMATE_MODES.includes(next as AnimateMode) &&
+          (next === undefined || next.startsWith("-") || SPEC_FILE.test(next))
         )
           value = true;
         else {
-          value = argv[i + 1];
+          value = next;
           i += 1;
         }
       }
       if (value === undefined) usage(`--${key} needs a value`);
+      // --strict=true / --json=false: every consumer tests `=== true`, so a string must not leak.
+      if (BOOL.has(key) && typeof value === "string") {
+        const b = value.toLowerCase();
+        if (b !== "true" && b !== "false") usage(`--${key} must be true or false (got "${value}")`);
+        value = b === "true";
+      }
+      if (key === "animate" && value !== true && !ANIMATE_MODES.includes(value as AnimateMode))
+        usage(`--animate must be ${ANIMATE_MODES.join(", ")} (got "${value}")`);
       const prev = out.flags[key];
       out.flags[key] =
         key === "font" && typeof prev === "string"
@@ -111,7 +163,7 @@ function parseArgs(argv: string[]): Args {
 }
 
 function usage(message: string): never {
-  process.stderr.write(`stackdraw: ${message}\n\n${HELP}\n`);
+  process.stderr.write(`orrery: ${message}\n\n${HELP}\n`);
   process.exit(2);
 }
 
@@ -159,6 +211,8 @@ async function cmdRender(args: Args, validateOnly: boolean) {
   const themeFlag = String(args.flags.theme ?? parsed.model?.theme ?? "light");
   if (!["light", "dark", "both"].includes(themeFlag)) usage(`--theme must be light, dark or both`);
   const themes: ThemeName[] = themeFlag === "both" ? ["light", "dark"] : [themeFlag as ThemeName];
+  const fonts = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
+  for (const f of fonts) if (!existsSync(f)) usage(`no such file: ${f} (from --font)`);
 
   // Output path and formats.
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : undefined;
@@ -197,15 +251,12 @@ async function cmdRender(args: Args, validateOnly: boolean) {
   if (parsed.model && ok) {
     const scale = args.flags.scale !== undefined ? Number(args.flags.scale) : 3;
     if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
-    const fonts = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
     const animateFlag =
       args.flags.static === true
         ? "none"
         : args.flags.animate === true
           ? "packets"
           : args.flags.animate;
-    if (animateFlag !== undefined && !ANIMATE_MODES.includes(animateFlag as AnimateMode))
-      usage(`--animate must be ${ANIMATE_MODES.join(", ")}`);
     let result: Awaited<ReturnType<typeof renderModel>>;
     try {
       result = await renderModel({
@@ -294,6 +345,13 @@ async function cmdIcons(args: Args) {
     const packs = packInfo();
     const wanted = rest.length ? rest : PACK_ORDER.filter((k) => packs[k]?.lib);
     for (const key of wanted) {
+      if (Object.hasOwn(packs, key)) continue;
+      const near = closest(key, Object.keys(packs));
+      usage(
+        `unknown pack "${key}"${near ? ` (did you mean ${near}?)` : ""}; packs: ${PACK_ORDER.join(", ")}`,
+      );
+    }
+    for (const key of wanted) {
       const lib = packs[key]?.lib;
       if (!lib) {
         process.stdout.write(`${key.padEnd(7)} bundled, nothing to fetch\n`);
@@ -310,10 +368,13 @@ async function cmdIcons(args: Args) {
   if (sub === "search") {
     const query = rest.join(" ");
     if (!query) usage("icons search needs words, e.g. icons search load balancer");
+    const limit = args.flags.limit;
+    if (limit !== undefined && !/^[1-9]\d*$/.test(String(limit)))
+      usage(`--limit must be a positive integer (got "${limit}")`);
     const results = searchIcons(query, {
       pack: typeof args.flags.pack === "string" ? args.flags.pack : undefined,
       type: typeof args.flags.type === "string" ? args.flags.type : undefined,
-      limit: args.flags.limit ? Number(args.flags.limit) : 15,
+      limit: limit === undefined ? 15 : Number(limit),
     });
     if (json) return void process.stdout.write(`${JSON.stringify(results, null, 2)}\n`);
     if (!results.length) process.stdout.write(`no icons match "${query}"\n`);
@@ -406,7 +467,7 @@ function cmdInit(args: Args) {
   }
   writeAtomic(out, readFileSync(file, "utf8"));
   process.stdout.write(
-    `wrote ${out} from template ${name}\nnext: stackdraw render ${basename(out)}\n`,
+    `wrote ${out} from template ${name}\nnext: orrery render ${basename(out)}\n`,
   );
 }
 
@@ -414,6 +475,7 @@ function cmdImport(args: Args) {
   const [kind, file] = args._;
   if (kind !== "mermaid") usage('import supports "mermaid" (flowchart and graph diagrams)');
   if (!file) usage("import mermaid needs a file, or - for stdin");
+  if (file !== "-" && !existsSync(resolve(file))) usage(`no such file: ${file}`);
   const text = file === "-" ? readFileSync(0, "utf8") : readFileSync(resolve(file), "utf8");
   const result = importMermaid(text.replace(/^```mermaid\s*|```\s*$/gm, ""));
   for (const w of result.warnings) process.stderr.write(`warn  ${w}\n`);
@@ -427,8 +489,50 @@ function cmdImport(args: Args) {
   writeAtomic(out, result.yaml);
   const guessed = Object.keys(result.guessed).length;
   process.stdout.write(
-    `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}\nnext: add icons, then stackdraw validate ${basename(out)}\n`,
+    `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}\nnext: add icons, then orrery validate ${basename(out)}\n`,
   );
+}
+
+/** Measures the diagram at the width readers see it and writes <out>.review.json and .review.png. */
+async function cmdReview(args: Args) {
+  const [specPath] = args._;
+  if (!specPath) usage("review needs a spec file");
+  const width = args.flags.width === undefined ? DEFAULT_REVIEW_WIDTH : Number(args.flags.width);
+  if (!(width > 0)) usage("--width must be a positive number of px");
+  const spec = readSpec(specPath);
+  const parsed = parseSpec(spec.text, spec.path);
+  if (!parsed.model) {
+    printDiagnostics(parsed.diagnostics, false);
+    process.exitCode = 1;
+    return;
+  }
+  const theme = args.flags.theme ?? parsed.model.theme;
+  if (theme !== "light" && theme !== "dark") usage("--theme must be light or dark");
+  const fonts = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
+  for (const f of fonts) if (!existsSync(f)) usage(`no such file: ${f} (from --font)`);
+  const outFlag = typeof args.flags.out === "string" ? args.flags.out : undefined;
+  const base = outFlag
+    ? resolve(outFlag)
+    : spec.path === "stdin.yaml"
+      ? resolve("diagram")
+      : spec.path.replace(/\.(ya?ml|json)$/i, "");
+  const run = await reviewModel({
+    model: parsed.model,
+    name: spec.name,
+    width,
+    theme,
+    fonts,
+    diagnostics: parsed.diagnostics,
+  });
+  writeAtomic(`${base}.review.json`, `${JSON.stringify(run.report, null, 2)}\n`);
+  if (run.png) writeAtomic(`${base}.review.png`, run.png);
+  if (args.flags.json === true) process.stdout.write(`${JSON.stringify(run.report, null, 2)}\n`);
+  else
+    process.stdout.write(
+      `${formatReview(run.report)}\n\nwrote ${base}.review.json${run.png ? ` and ${base}.review.png` : ""}\n`,
+    );
+  // The report carries the verdict; --strict turns a failing review into a failing exit code.
+  process.exitCode = args.flags.strict === true && !run.report.pass ? 1 : 0;
 }
 
 async function cmdDoctor() {
@@ -485,8 +589,9 @@ async function cmdDoctor() {
 }
 
 async function cmdDemo(args: Args) {
-  const dir = resolve(args._[0] ?? "stackdraw-demo");
+  const dir = resolve(args._[0] ?? "orrery-demo");
   let failed = 0;
+  let libraryFixes: string[] | undefined;
   for (const t of templates()) {
     const text = readFileSync(join(examplesDir, `${t}.yaml`), "utf8");
     const parsed = parseSpec(text, `${t}.yaml`);
@@ -495,16 +600,27 @@ async function cmdDemo(args: Args) {
       process.stderr.write(`${t}: ${parsed.diagnostics.map((d) => d.message).join("; ")}\n`);
       continue;
     }
-    const r = await renderModel({
-      model: parsed.model,
-      formats: ["svg", "png"],
-      themes: [parsed.model.theme],
-      name: t,
-    });
+    let r: Awaited<ReturnType<typeof renderModel>>;
+    try {
+      r = await renderModel({
+        model: parsed.model,
+        formats: ["svg", "png"],
+        themes: [parsed.model.theme],
+        name: t,
+      });
+    } catch (e) {
+      // Offline, a template that needs an npm icon library fails alone; the rest still render.
+      if (!(e instanceof LibraryError)) throw e;
+      failed += 1;
+      libraryFixes ??= e.fixes;
+      process.stderr.write(`${t}: error DG301 ${e.message}\n`);
+      continue;
+    }
     for (const a of r.artifacts) writeAtomic(join(dir, `${t}.${a.format}`), a.data);
     const scene = r.scenes[parsed.model.theme];
     process.stdout.write(`${t}: ${scene?.width}x${scene?.height}\n`);
   }
+  for (const fix of libraryFixes ?? []) process.stderr.write(`      fix: ${fix}\n`);
   process.stdout.write(`wrote ${dir}\n`);
   process.exitCode = failed ? 1 : 0;
 }
@@ -522,6 +638,8 @@ export async function main(argv = process.argv.slice(2)) {
     case "validate":
     case "check":
       return cmdRender(args, true);
+    case "review":
+      return cmdReview(args);
     case "icons":
     case "icon":
       return cmdIcons(args);

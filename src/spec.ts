@@ -1,7 +1,7 @@
 import { parse as parseYaml } from "yaml";
 import { isHex } from "./color.ts";
 import { iconInfo, resolveIcon, suggestIcons } from "./icons.ts";
-import { GROUP_STYLES, groupStyleKeys, resolveGroupStyle } from "./styles.ts";
+import { groupStyleKeys, resolveGroupStyle } from "./styles.ts";
 import {
   ANIMATE_MODES,
   ARROWS,
@@ -11,6 +11,7 @@ import {
   type Direction,
   EDGE_LINES,
   type EdgeLine,
+  type LegendEntry,
   LOOKS,
   type Model,
   type ModelEdge,
@@ -38,6 +39,7 @@ const TOP_KEYS = [
   "layout",
   "animate",
   "background",
+  "legend",
   "nodes",
   "groups",
   "edges",
@@ -114,7 +116,8 @@ function closest(word: string, options: readonly string[]): string | undefined {
   return bestScore <= Math.max(2, Math.floor(word.length / 3)) ? best : undefined;
 }
 
-function distance(a: string, b: string): number {
+/** Levenshtein edit distance, for "did you mean" suggestions. */
+export function distance(a: string, b: string): number {
   const row = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i++) {
     let prev = row[0] ?? 0;
@@ -241,6 +244,12 @@ export function parseEdgeExpression(expr: string): { hops: EdgeHop[]; label?: st
 
 // ---------------------------------------------------------------- parse
 
+const hasControlChar = (s: string) =>
+  [...s].some((ch) => {
+    const c = ch.charCodeAt(0);
+    return c <= 0x1f || c === 0x7f;
+  });
+
 export function parseSpec(source: string, filename = "diagram.yaml"): ParseResult {
   const diagnostics: Diagnostic[] = [];
   const err = (code: string, message: string, extra: Partial<Diagnostic> = {}) =>
@@ -259,7 +268,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
   }
   if (!isObj(raw)) {
     err("DG100", "the spec must be a mapping with nodes, groups and edges", {
-      fixes: ["start from `stackdraw init`"],
+      fixes: ["start from `orrery init`"],
     });
     return { diagnostics };
   }
@@ -310,6 +319,36 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
   };
   const str = (v: unknown): string | undefined =>
     v === undefined || v === null ? undefined : typeof v === "string" ? v : String(v);
+  /**
+   * Reads a color value: it needs a leading "#", and an unquoted `#fff` is a YAML comment, so
+   * the key arrives as null (warned about, then dropped). `extra` lists the words accepted besides
+   * a hex color.
+   */
+  const hexColor = (
+    value: unknown,
+    key: string,
+    where: string,
+    subject: Obj,
+    extra: readonly string[] = [],
+  ): string | undefined => {
+    const name = where ? `${where} ${key}` : key;
+    // A warning, not an error: the color is dropped and the diagram still renders in its theme.
+    if (value === null) {
+      warn("DG107", `${name} is empty; an unquoted # starts a YAML comment`, {
+        subject: { ...subject, [key]: null },
+        fixes: [`write ${key}: "#2563eb" (the quotes keep the # from starting a comment)`],
+      });
+      return undefined;
+    }
+    const c = str(value);
+    if (c === undefined || extra.includes(c) || isHex(c)) return c;
+    const or = extra.map((w) => ` or "${w}"`).join("");
+    err("DG107", `${name} must be a hex color with a leading #${or}; got "${c}"`, {
+      subject: { ...subject, [key]: c },
+      fixes: [`use a quoted hex color such as "#2563eb"${or}`],
+    });
+    return c;
+  };
 
   unknownKeys(raw, TOP_KEYS, {}, "the top level");
 
@@ -350,12 +389,37 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
       : raw.animate === false
         ? "none"
         : oneOf(raw.animate, ANIMATE_MODES, "packets", "animate");
-  const background = str(raw.background);
-  if (background && background !== "transparent" && !isHex(background)) {
-    err("DG107", `background must be a hex color or "transparent"; got "${background}"`, {
-      subject: { where: "background", value: background },
-      fixes: ["use a hex color such as #ffffff, or transparent"],
+  const background = hexColor(raw.background, "background", "", { where: "background" }, [
+    "transparent",
+  ]);
+
+  // Which line style means what, drawn as a key under the diagram.
+  const legend: LegendEntry[] = [];
+  if (raw.legend !== undefined && raw.legend !== null && !isObj(raw.legend)) {
+    err("DG107", "legend must be a mapping of line style to meaning", {
+      subject: { where: "legend" },
+      fixes: ["write legend: { dashed: Asynchronous events, dotted: Replication }"],
     });
+  } else if (isObj(raw.legend)) {
+    for (const [key, value] of Object.entries(raw.legend)) {
+      const line = key.trim().toLowerCase() as EdgeLine;
+      const label = str(value)?.trim();
+      if (!EDGE_LINES.includes(line)) {
+        const near = closest(key, EDGE_LINES);
+        const fixes = [near ? `use "${near}"` : `use one of ${EDGE_LINES.join(", ")}`];
+        // In a YAML flow mapping {...}, a comma inside an unquoted meaning starts a new key.
+        if (value === null) fixes.push("a comma split an unquoted meaning; quote the whole text");
+        err("DG107", `legend line style must be one of ${EDGE_LINES.join(", ")}; got "${key}"`, {
+          subject: { where: "legend", key },
+          fixes,
+        });
+      } else if (!label) {
+        err("DG107", `legend ${line} needs a meaning`, {
+          subject: { where: "legend", key },
+          fixes: [`write ${line}: Asynchronous events`],
+        });
+      } else legend.push({ line, label });
+    }
   }
 
   // ------------------------------------------------------------- collections
@@ -419,7 +483,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
         subject: { group: id, type },
         fixes: [
           ...(near ? [`use type "${near}"`] : []),
-          "run `stackdraw styles` for every group type",
+          "run `orrery styles` for every group type",
         ],
       });
     }
@@ -435,18 +499,12 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
         });
       }
     }
-    const color = str(pick(g, "color", GROUP_SYNONYMS));
-    const fill = str(pick(g, "fill", GROUP_SYNONYMS));
-    for (const [k, c] of [
-      ["color", color],
-      ["fill", fill],
-    ] as const) {
-      if (c && c !== "none" && !isHex(c))
-        err("DG107", `group "${id}" ${k} must be a hex color; got "${c}"`, {
-          subject: { group: id, [k]: c },
-          fixes: ["use a hex color such as #2563eb"],
-        });
-    }
+    const color = hexColor(pick(g, "color", GROUP_SYNONYMS), "color", `group "${id}"`, {
+      group: id,
+    });
+    const fill = hexColor(pick(g, "fill", GROUP_SYNONYMS), "fill", `group "${id}"`, { group: id }, [
+      "none",
+    ]);
     const dashed = pick(g, "dashed", GROUP_SYNONYMS);
     groups.push({
       id,
@@ -507,7 +565,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
           subject: { node: id, icon: iconRaw },
           fixes: [
             ...suggestIcons(iconRaw).map((s) => `use icon "${s}"`),
-            `run \`stackdraw icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``,
+            `run \`orrery icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``,
           ],
         });
       }
@@ -525,19 +583,24 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     if (pick(n, "shape", NODE_SYNONYMS) !== undefined && icon && lookRaw === undefined)
       look = "shape";
     const url = str(pick(n, "url", NODE_SYNONYMS));
-    // Links end up in SVG and HTML; only schemes that cannot run code are allowed.
-    if (url && /^\s*[a-z][a-z0-9+.-]*:/i.test(url) && !/^\s*(https?|mailto):/i.test(url)) {
-      err("DG107", `node "${id}" url must be http(s), mailto or a relative path`, {
+    // Links end up in SVG and HTML; only schemes that cannot run code are allowed. Browsers drop
+    // tabs and newlines inside a URL ("java<TAB>script:" runs), so control characters are
+    // rejected outright and the scheme is read with all whitespace removed.
+    if (url && hasControlChar(url)) {
+      err("DG107", `node "${id}" url must not contain control characters (tab, newline ...)`, {
         subject: { node: id, url },
-        fixes: ["use an https:// link"],
+        fixes: ["use an https:// link on one line, without tabs or line breaks"],
       });
+    } else if (url) {
+      const bare = url.replace(/\s/g, "");
+      if (/^[a-z][a-z0-9+.-]*:/i.test(bare) && !/^(https?|mailto):/i.test(bare)) {
+        err("DG107", `node "${id}" url must be http(s), mailto or a relative path`, {
+          subject: { node: id, url },
+          fixes: ["use an https:// link"],
+        });
+      }
     }
-    const color = str(pick(n, "color", NODE_SYNONYMS));
-    if (color && !isHex(color))
-      err("DG107", `node "${id}" color must be a hex color; got "${color}"`, {
-        subject: { node: id, color },
-        fixes: ["use a hex color such as #2563eb"],
-      });
+    const color = hexColor(pick(n, "color", NODE_SYNONYMS), "color", `node "${id}"`, { node: id });
     const sizeRaw = pick(n, "size", NODE_SYNONYMS);
     let iconSize = look === "card" ? 32 : 48;
     if (typeof sizeRaw === "number") iconSize = Math.max(16, Math.min(128, sizeRaw));
@@ -680,12 +743,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     const reverse = op.arrow === "start";
     const lineRaw = pick(extra, "line", EDGE_SYNONYMS);
     const arrowRaw = pick(extra, "arrow", EDGE_SYNONYMS);
-    const color = str(pick(extra, "color", EDGE_SYNONYMS));
-    if (color && !isHex(color))
-      err("DG107", `${where} color must be a hex color; got "${color}"`, {
-        subject: { edge: where, color },
-        fixes: ["use a hex color such as #ed7100"],
-      });
+    const color = hexColor(pick(extra, "color", EDGE_SYNONYMS), "color", where, { edge: where });
     const stepRaw = pick(extra, "step", EDGE_SYNONYMS);
     const step = stepRaw === undefined ? undefined : Number(stepRaw);
     if (step !== undefined && (!Number.isInteger(step) || step < 0 || step > 99)) {
@@ -798,6 +856,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     arrowhead,
     animate,
     background: background === "transparent" ? "transparent" : background,
+    ...(legend.length ? { legend } : {}),
     nodes,
     groups,
     edges,
@@ -814,12 +873,3 @@ function suggestIds(id: string, ids: Map<string, string>, kind?: string): string
     .slice(0, 3)
     .map(([, c]) => c);
 }
-
-export const SPEC_KEYS = {
-  top: TOP_KEYS,
-  node: NODE_KEYS,
-  group: GROUP_KEYS,
-  edge: EDGE_KEYS,
-  layout: LAYOUT_KEYS,
-};
-export { GROUP_STYLES };

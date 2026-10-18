@@ -6,20 +6,28 @@ export interface HtmlInput {
   title: string;
   light: string;
   dark: string;
+  /** Still frames for the PNG export of animated SVGs (a canvas bakes packets mid-edge). */
+  lightStill?: string;
+  darkStill?: string;
   /** Base name for downloads. */
   name: string;
   initial: "light" | "dark";
 }
 
 export function renderHtml(input: HtmlInput): string {
-  const lightB64 = Buffer.from(input.light).toString("base64");
-  const darkB64 = Buffer.from(input.dark).toString("base64");
+  const b64 = (svg: string) => Buffer.from(svg).toString("base64");
+  const lightB64 = b64(input.light);
+  const darkB64 = b64(input.dark);
+  const stills =
+    input.lightStill && input.darkStill
+      ? `{ light: "${b64(input.lightStill)}", dark: "${b64(input.darkStill)}" }`
+      : "svgs";
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="generator" content="stackdraw">
+<meta name="generator" content="orrery">
 <title>${esc(input.title)}</title>
 <style>
 :root{color-scheme:light dark;--bg:#f6f7f9;--panel:#ffffff;--ink:#1f2937;--muted:#5f6b7a;--line:#d8dde3;--accent:#2563eb}
@@ -30,7 +38,7 @@ body{background:var(--bg);color:var(--ink);font:14px/1.4 Inter,"Segoe UI",-apple
 header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
 h1{font-size:15px;font-weight:600;margin:0;flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tools{display:flex;flex-wrap:wrap;gap:6px}
-button,a.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;text-decoration:none;min-height:36px;display:inline-flex;align-items:center;gap:6px;transition:border-color .15s ease,transform .15s ease}
+button,a.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;text-decoration:none;min-height:44px;min-width:44px;justify-content:center;display:inline-flex;align-items:center;gap:6px;transition:border-color .15s ease,transform .15s ease}
 button:hover,a.btn:hover{border-color:var(--accent)}
 button:active,a.btn:active{transform:scale(.97)}
 main{position:relative;flex:1;overflow:hidden;touch-action:none;cursor:grab}
@@ -60,13 +68,14 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
 <script>
 (() => {
   const svgs = { light: "${lightB64}", dark: "${darkB64}" };
+  const stills = ${stills};
   const toUrl = (b64) => "data:image/svg+xml;base64," + b64;
   const body = document.body, stage = document.getElementById("stage"), canvas = document.getElementById("canvas"), img = document.getElementById("diagram");
   let theme = body.dataset.theme, scale = 1, x = 0, y = 0;
   const size = () => { const m = atob(svgs[theme].slice(0, 800)).match(/width="([\\d.]+)" height="([\\d.]+)"/); return m ? [Number(m[1]), Number(m[2])] : [1000, 600]; };
   const apply = () => { const [w, h] = size(); canvas.style.left = x + "px"; canvas.style.top = y + "px"; img.style.width = w * scale + "px"; img.style.height = h * scale + "px"; };
   const fit = () => { const [w, h] = size(); const r = stage.getBoundingClientRect(); scale = Math.min((r.width - 32) / w, (r.height - 32) / h, 2); x = (r.width - w * scale) / 2; y = Math.max(16, (r.height - h * scale) / 2); apply(); };
-  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; apply(); document.querySelector('[data-act=svg]').href = toUrl(svgs[theme]); };
+  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; apply(); const a = document.querySelector('[data-act=svg]'); a.href = toUrl(svgs[theme]); a.download = "${esc(input.name)}-" + theme + ".svg"; };
   const zoomAt = (f, cx, cy) => { const ns = Math.max(0.1, Math.min(8, scale * f)); x = cx - (cx - x) * (ns / scale); y = cy - (cy - y) * (ns / scale); scale = ns; apply(); };
   const pointers = new Map(); let pinch = 0;
   stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.classList.add("dragging"); });
@@ -86,9 +95,10 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
   document.querySelector("[data-act=out]").onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(0.8, r.width / 2, r.height / 2); };
   document.querySelector("[data-act=fit]").onclick = fit;
   document.querySelector("[data-act=png]").onclick = () => {
-    const [w, h] = size(); const c = document.createElement("canvas"); c.width = w * 2; c.height = h * 2;
-    const im = new Image(); im.onload = () => { const g = c.getContext("2d"); g.scale(2, 2); g.drawImage(im, 0, 0); const a = document.createElement("a"); a.download = "${esc(input.name)}-" + theme + ".png"; a.href = c.toDataURL("image/png"); a.click(); };
-    im.src = toUrl(svgs[theme]);
+    // 3x like the CLI, capped at 16.7M pixels, the largest canvas iOS Safari will export.
+    const [w, h] = size(); const k = Math.min(3, Math.sqrt(16.7e6 / (w * h))); const c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+    const im = new Image(); im.onload = () => { const g = c.getContext("2d"); g.scale(c.width / w, c.height / h); g.drawImage(im, 0, 0, w, h); const a = document.createElement("a"); a.download = "${esc(input.name)}-" + theme + ".png"; a.href = c.toDataURL("image/png"); a.click(); };
+    im.src = toUrl(stills[theme]);
   };
   addEventListener("resize", fit);
   show(); fit();

@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { unzipSync } from "fflate";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const outDir = join(root, "skills/stackdraw/assets/fonts");
+const outDir = join(root, "skills/orrery/assets/fonts");
 const cacheDir = join(root, ".cache/fonts");
 
 const INTER = {

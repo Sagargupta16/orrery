@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Install and usage
-    url: https://github.com/Sagargupta16/stackdraw#install
+    url: https://github.com/Sagargupta16/orrery#install
     about: How to add the plugin or the skill, the spec format, icons and outputs. Check here before filing an Issue.
   - name: Contributing guide
-    url: https://github.com/Sagargupta16/stackdraw/blob/main/CONTRIBUTING.md
+    url: https://github.com/Sagargupta16/orrery/blob/main/CONTRIBUTING.md
     about: How the renderer, icon sync, examples and checks fit together, and what a PR must pass.

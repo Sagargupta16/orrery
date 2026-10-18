@@ -1,4 +1,4 @@
-// Mermaid flowchart -> stackdraw spec (YAML text). Keeps the topology, labels, subgraphs, edge
+// Mermaid flowchart -> orrery spec (YAML text). Keeps the topology, labels, subgraphs, edge
 // styles and shapes; guesses an official icon only when a label names a product exactly.
 import { stringify } from "yaml";
 import { iconInfo, searchIcons } from "../icons.ts";
@@ -58,6 +58,35 @@ const SHAPES: [string, string, ShapeKind][] = [
 ];
 
 const ID = "[A-Za-z0-9_][A-Za-z0-9_.-]*";
+
+// A leading "---" ... "---" block: Mermaid frontmatter (title, config:, nested YAML).
+const FRONTMATTER = /^\s*---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;
+
+/** Splits a line into statements on ";" that sit outside quotes, brackets and |edge text|. */
+function splitStatements(line: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let quoted = false;
+  // Inside |...| edge text; a "|" within brackets belongs to the node text, not an edge.
+  let piped = false;
+  let start = 0;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') quoted = !quoted;
+    else if (!quoted) {
+      if (piped) piped = c !== "|";
+      else if (c === "|" && depth === 0) piped = true;
+      else if (c === "[" || c === "(" || c === "{") depth += 1;
+      else if (c === "]" || c === ")" || c === "}") depth = Math.max(0, depth - 1);
+      else if (c === ";" && depth === 0) {
+        out.push(line.slice(start, i));
+        start = i + 1;
+      }
+    }
+  }
+  out.push(line.slice(start));
+  return out;
+}
 
 function unquote(s: string): string {
   const t = s.trim();
@@ -128,9 +157,16 @@ export function importMermaid(source: string): MermaidResult {
   let direction = "right";
   let title: string | undefined;
 
-  const lines = source
+  const front = source.match(FRONTMATTER);
+  if (front) {
+    const frontTitle = (front[1] ?? "").match(/^title:[ \t]*(.+)$/m);
+    if (frontTitle) title = cleanLabel(frontTitle[1] ?? "");
+  }
+
+  const lines = (front ? source.slice(front[0].length) : source)
     .replace(/%%.*$/gm, "")
-    .split(/\r?\n|;/)
+    .split(/\r?\n/)
+    .flatMap(splitStatements)
     .map((l) => l.trim())
     .filter(Boolean);
   const first = lines.find((l) => l !== "---" && !/^title:/.test(l)) ?? "";
@@ -248,9 +284,9 @@ export function importMermaid(source: string): MermaidResult {
   doc.nodes = specNodes;
   doc.edges = specEdges;
   const header = [
-    "# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/stackdraw/main/skills/stackdraw/references/diagram.schema.json",
-    "# Imported from Mermaid by stackdraw. Replace shapes with official icons (stackdraw icons search <words>),",
-    "# turn zones into vendor groups (aws:vpc, gcp:project, azure:vnet...) and run stackdraw validate.",
+    "# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/orrery/main/skills/orrery/references/diagram.schema.json",
+    "# Imported from Mermaid by orrery. Replace shapes with official icons (orrery icons search <words>),",
+    "# turn zones into vendor groups (aws:vpc, gcp:project, azure:vnet...) and run orrery validate.",
   ];
   if (Object.keys(guessed).length) {
     header.push(

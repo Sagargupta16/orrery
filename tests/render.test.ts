@@ -119,11 +119,14 @@ describe("SVG", () => {
 
   it("carries an accessible title and description", () => {
     const svg = text(rich, "svg", "light");
-    expect(svg).toMatch(/<svg [^>]*role="img"[^>]*aria-labelledby="sdw-title sdw-desc"/);
-    expect(svg).toContain(
-      '<title id="sdw-title">Orders &lt;v2&gt; &amp; &quot;friends&quot; &#39;quoted&#39; {braces}</title>',
+    // Artifact ids carry the diagram name and theme (renderModel's idPrefix).
+    expect(svg).toMatch(
+      /<svg [^>]*role="img"[^>]*aria-labelledby="rich-light-sdw-title rich-light-sdw-desc"/,
     );
-    const desc = must(svg.match(/<desc id="sdw-desc">([^<]*)<\/desc>/), "desc")[1];
+    expect(svg).toContain(
+      '<title id="rich-light-sdw-title">Orders &lt;v2&gt; &amp; &quot;friends&quot; &#39;quoted&#39; {braces}</title>',
+    );
+    const desc = must(svg.match(/<desc id="rich-light-sdw-desc">([^<]*)<\/desc>/), "desc")[1];
     expect(desc).toContain("5 components in 2 groups");
     expect(desc).toContain("VM &lt;1&gt; to VM 2 (a &amp; b)");
   });

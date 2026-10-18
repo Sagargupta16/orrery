@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Three-tier web application on AWS
+subtitle: Load-balanced EC2 web tier across two Availability Zones, Aurora and ElastiCache in private subnets
+direction: down
+# Same diagram as aws-three-tier, drawn on the dark theme.
+theme: dark
+# merge: false gives each edge its own port: the two NAT paths would otherwise share one arrowhead
+# at the internet gateway.
+layout: { merge: false }
+
+legend:
+  solid: Application traffic
+  dashed: Outbound via NAT
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  vpc: { type: aws:vpc, label: VPC 10.0.0.0/16, in: region }
+  az-a: { type: aws:az, label: Availability Zone A, in: vpc }
+  az-b: { type: aws:az, label: Availability Zone B, in: vpc }
+  public-a: { type: aws:public-subnet, label: Public subnet, in: az-a }
+  public-b: { type: aws:public-subnet, label: Public subnet, in: az-b }
+  app-a: { type: aws:private-subnet, label: Web subnet, in: az-a }
+  app-b: { type: aws:private-subnet, label: Web subnet, in: az-b }
+  data-a: { type: aws:private-subnet, label: Data subnet, in: az-a }
+  data-b: { type: aws:private-subnet, label: Data subnet, in: az-b }
+  # One Auto Scaling group spans both zones: an overlay that does not move its members.
+  asg: { type: aws:auto-scaling, around: [app-a, app-b] }
+
+nodes:
+  users: { icon: aws:users, label: Users }
+  igw: { icon: aws:igw, label: Internet gateway, in: vpc }
+  alb: { icon: aws:alb, label: Application Load Balancer, note: Public subnets in both AZs, in: vpc }
+  nat-a: { icon: aws:nat, label: NAT gateway, in: public-a }
+  nat-b: { icon: aws:nat, label: NAT gateway, in: public-b }
+  web-a: { icon: aws:ec2-instance, label: Web server, note: Amazon EC2 instance, in: app-a }
+  web-b: { icon: aws:ec2-instance, label: Web server, note: Amazon EC2 instance, in: app-b }
+  db-a: { icon: aws:aurora-instance, label: Amazon Aurora, note: Primary (writer), in: data-a }
+  db-b: { icon: aws:aurora-instance, label: Amazon Aurora, note: Replica (reader), in: data-b }
+  cache-a: { icon: aws:elasticache-cache-node, label: Amazon ElastiCache, note: Primary node, in: data-a }
+  cache-b: { icon: aws:elasticache-cache-node, label: Amazon ElastiCache, note: Replica node, in: data-b }
+
+edges:
+  - users -> igw -> alb
+  - alb -> web-a, web-b
+  # Outbound traffic goes up through the NAT gateways; written in layout order (NAT first)
+  # with the arrow at the start, so the public subnets stay above the private ones.
+  - { from: igw, to: [nat-a, nat-b], arrow: start, line: dashed }
+  - { from: nat-a, to: web-a, arrow: start, line: dashed }
+  - { from: nat-b, to: web-b, arrow: start, line: dashed }
+  - web-a -> db-a, cache-a
+  - web-b -> db-b, cache-b
+  # Zone B writes go to the primary Aurora and ElastiCache nodes in zone A. constraint: false keeps
+  # this edge out of the layout, so the zones stay side by side.
+  - { from: web-b, to: data-a, label: writes, constraint: false }

@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: URL shortener system design
+subtitle: Redirects are served from the CDN and a Redis cache in front of PostgreSQL; every click streams through Kafka into an analytics pipeline
+direction: down
+layout: { spacing: compact }
+
+legend:
+  solid: Request or query
+  dashed: Asynchronous event or stream
+
+groups:
+  analytics: { type: zone, label: Click analytics pipeline }
+
+nodes:
+  clients: { icon: generic:users, label: Clients, note: Browsers and apps }
+  cdn: { icon: generic:cdn, label: CDN, note: Caches popular redirects }
+  lb: { icon: generic:load-balancer, label: Load balancer }
+  api: { icon: generic:servers, label: API servers, note: Stateless, badge: x3 }
+  cache: { icon: logos:redis, label: Redis, note: Hot short codes }
+  db: { icon: logos:postgresql, label: PostgreSQL, note: Sharded by short code }
+  ids: { icon: tabler:hash, label: ID generator, note: Base62 key ranges }
+  events: { icon: logos:kafka-icon, label: Kafka, note: clicks topic, in: analytics }
+  stream: { icon: logos:apache-flink-icon, label: Apache Flink, note: Counts per link, in: analytics }
+  olap: { icon: si:clickhouse, label: ClickHouse, note: Click analytics, in: analytics }
+  dashboard: { icon: generic:dashboard, label: Dashboards, in: analytics }
+
+edges:
+  - clients -> cdn: GET /abc123
+  # Creating a link skips the CDN and goes straight to the load balancer.
+  - clients -> lb: POST /links
+  - cdn -> lb: cache miss
+  - lb -> api
+  # All three data-store edges are labelled, so Redis, PostgreSQL and the ID generator share one row; Kafka sits in the analytics group.
+  - api -> cache: lookup, fill on miss
+  - api -> db: read on miss, insert new
+  - api -> ids: new link
+  - api --> events: click event
+  # Redirects the CDN answers never reach the API, so the CDN ships its own logs.
+  - cdn --> events: edge logs
+  - events --> stream --> olap
+  # Written in layout order with the arrow flipped: dashboards query ClickHouse.
+  - { from: olap, to: dashboard, arrow: start, label: query }

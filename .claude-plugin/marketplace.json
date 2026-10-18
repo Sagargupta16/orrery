@@ -1,5 +1,5 @@
 {
-  "name": "stackdraw",
+  "name": "orrery",
   "owner": {
     "name": "Sagar Gupta",
     "url": "https://github.com/Sagargupta16"
@@ -9,10 +9,10 @@
   },
   "plugins": [
     {
-      "name": "stackdraw",
+      "name": "orrery",
       "source": "./",
-      "description": "The stackdraw skill: official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, ELK auto-layout, SVG/PNG/draw.io/TSX/HTML output, a validator with fixes and 20 reference architectures.",
-      "version": "0.2.1",
+      "description": "The orrery skill: official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, ELK auto-layout, SVG/PNG/draw.io/TSX/HTML output, a validator with fixes, a review board of three reviewer agents and 27 reference architectures.",
+      "version": "0.3.0",
       "license": "MIT",
       "category": "design"
     }

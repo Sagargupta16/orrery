@@ -28,7 +28,8 @@ export const THEME_TOKENS: Record<ThemeName, Theme> = {
     surface: "#ffffff",
     border: "#c6ccd4",
     zone: "#f4f6f8",
-    stepFill: "#232f3e",
+    // Numbered callouts are black with white digits in the AWS deck.
+    stepFill: "#000000",
     stepText: "#ffffff",
     shadow: "#0f172a",
     flow: "#0972d3",
