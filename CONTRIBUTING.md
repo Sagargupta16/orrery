@@ -67,4 +67,4 @@ An example is a spec in `skills/orrery/examples/<name>.yaml` (it doubles as an `
 
 - No en or em dash characters anywhere (use `-` or `--`). `check-repo.mjs` fails on them.
 - Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`.
-- CHANGELOG entries go under a concrete version (`## [0.2.0] - YYYY-MM-DD`), never "Unreleased". Releases bump the version in `package.json`, both `.claude-plugin/*.json` files and `SKILL.md` metadata.
+- CHANGELOG entries go under a concrete version (`## [0.2.0] - YYYY-MM-DD`), never "Unreleased". Releases bump the version in `package.json`, both `.claude-plugin/*.json` files, the root `plugin.json` (Agent Plugins, read by Copilot CLI and Cursor), `gemini-extension.json` and `SKILL.md` metadata; `check-repo.mjs` fails when one differs. Publishing a GitHub release `v<version>` runs `.github/workflows/publish.yml`, which stages the skill folder with `scripts/pack-npm.mjs` and publishes it to npm as `@sagargupta1610/orrery`.

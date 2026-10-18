@@ -1,0 +1,61 @@
+name: Publish
+
+# A published GitHub release ships the version everywhere that installs from a release:
+# - Gemini CLI installs an extension from the latest release's archive when there is one. The
+#   archive leaves out agents/, which is in Claude Code's format and which Gemini rejects with an
+#   error per file; the skill is all Gemini needs.
+# - npm gets the CLI as @sagargupta1610/orrery, staged from the skill folder by
+#   scripts/pack-npm.mjs. A version already on npm (the first one is published by hand, before
+#   trusted publishing can be configured) is skipped.
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach the Gemini CLI archive to the release
+      id-token: write # npm trusted publishing (OIDC) + provenance
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: node scripts/build.mjs --check
+      - run: node scripts/check-repo.mjs
+      - name: Check version matches release tag
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$PKG_VERSION" != "$TAG" ]; then
+            echo "package.json version ($PKG_VERSION) != release tag ($TAG)" >&2
+            exit 1
+          fi
+
+      - name: Attach the Gemini CLI extension archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p out/gemini
+          cp -r gemini-extension.json skills README.md LICENSE THIRD_PARTY_NOTICES.md out/gemini/
+          tar -czf out/orrery.tar.gz -C out/gemini .
+          gh release upload "$GITHUB_REF_NAME" out/orrery.tar.gz --clobber
+
+      - run: node scripts/pack-npm.mjs
+      # No token: authenticated via OIDC trusted publishing configured on npmjs.com
+      - name: Publish to npm
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "@sagargupta1610/orrery@$VERSION" version >/dev/null 2>&1; then
+            echo "@sagargupta1610/orrery@$VERSION is already on npm"
+          else
+            npm publish out/npm --access public
+          fi

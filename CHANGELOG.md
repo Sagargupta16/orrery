@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-10-18
+
+### Added
+
+- **npm package `@sagargupta1610/orrery`.** `npx @sagargupta1610/orrery render diagram.yaml` runs the CLI with no clone and no skill install. `scripts/pack-npm.mjs` stages the skill folder as it ships (the CLI finds its assets by walking up from `scripts/`) with the README, license and notices; the package is 3.0 MB packed. Publishing a GitHub release runs `.github/workflows/publish.yml`, which publishes it through npm trusted publishing and skips a version npm already has.
+- **Gemini CLI extension.** `gemini-extension.json` makes the repository a Gemini CLI extension (`gemini extensions install https://github.com/Sagargupta16/orrery`) that loads the orrery skill. Each release also gets an `orrery.tar.gz` archive without `agents/`, because Gemini rejects Claude Code's agent format with one error per file.
+- **Agent Plugins manifest.** A root `plugin.json` in the open [Agent Plugins](https://agent-plugins.org) format, which GitHub Copilot CLI and Cursor read, next to `.claude-plugin/plugin.json`, which Claude Code reads. Those clients get the skill; the reviewer agents and `/orrery:review` stay Claude Code only.
+- Claude plugin directory fields in `.claude-plugin/plugin.json`: `displayName`, `documentationUrl` and `supportUrl`.
+- `check-repo.mjs` fails when `plugin.json` or `gemini-extension.json` names another version than `package.json`.
+- README install section lists `gh skill install`, the Gemini CLI and npm.
+
+### Fixed
+
+- README said a monthly workflow opens its own pull request with new icon packs; since 0.3.1 Renovate's monthly pull request carries them.
+
 ## [0.3.1] - 2026-10-18
 
 ### Changed
