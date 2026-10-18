@@ -3,7 +3,7 @@
 // bundled CLI finds its assets by walking up from scripts/, so the layout must stay the same), the
 // README, license and notices, and a package.json whose version is the repo's.
 //
-//   node scripts/pack-npm.mjs    then: npm publish out/npm --access public (CI does it on release)
+//   node scripts/pack-npm.mjs    then: npm publish ./out/npm --access public (CI does it on release)
 import { cpSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
