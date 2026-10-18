@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { checkScene } from "../src/check.ts";
 import { layout } from "../src/layout.ts";
@@ -10,6 +12,7 @@ import {
   attributeValues,
   contains,
   distanceToBorder,
+  EXAMPLES_DIR,
   model,
   must,
   overlap,
@@ -220,32 +223,52 @@ edges:
     expect(empty.h).toBeGreaterThan(0);
   });
 
-  it("draws an around group over its members without moving them", async () => {
-    const base = `groups:
-  az-a: { type: aws:az }
-  az-b: { type: aws:az }
-nodes:
-  lb: { icon: aws:alb }
-  web-a: { icon: aws:ec2, note: "t3.large", in: az-a }
-  web-b: { icon: aws:ec2, in: az-b }
-edges:
-  - lb -> web-a, web-b
-`;
-    const withAround = base.replace(
-      "nodes:",
-      "  asg: { type: aws:auto-scaling, around: [web-a, web-b] }\nnodes:",
-    );
+  it("draws an around group over its members without moving them when its header has room", async () => {
+    // In aws-three-tier the Auto Scaling group spans the web subnets, below the public subnets.
+    const withAround = readFileSync(join(EXAMPLES_DIR, "aws-three-tier.yaml"), "utf8");
+    const base = withAround.replace(/^ {2}asg: .*\n/m, "");
+    expect(base).not.toBe(withAround);
     const [plain, outlined] = [await layout(model(base)), await layout(model(withAround))];
     expect(outlined.nodes.map((n) => n.box)).toEqual(plain.nodes.map((n) => n.box));
-    const asg = must(
+    const ov = must(
       outlined.groups.find((g) => g.id === "asg"),
       "asg",
+    );
+    const members = model(withAround).groups.find((g) => g.id === "asg")?.around ?? [];
+    for (const g of outlined.groups.filter((x) => members.includes(x.id)))
+      expect(contains(ov.box, g.box)).toBe(true);
+    expect(contains({ x: 0, y: 0, w: outlined.width, h: outlined.height }, ov.box)).toBe(true);
+  });
+
+  it("moves an around group's members down so its header clears the headers above them", async () => {
+    // Left to right the zones stack, and both members are the first row of their Availability
+    // Zone, so the overlay's header would land on the first zone's header without the extra room.
+    const s = await layout(
+      model(`groups:
+  vpc: { type: aws:vpc }
+  az-a: { type: aws:az, label: AZ a, in: vpc }
+  az-b: { type: aws:az, label: AZ b, in: vpc }
+  asg: { type: aws:auto-scaling, around: [web-a, web-b] }
+nodes:
+  web-a: { icon: aws:ec2, in: az-a }
+  web-b: { icon: aws:ec2, in: az-b }
+`),
+    );
+    const head = (id: string) => {
+      const g = must(
+        s.groups.find((x) => x.id === id),
+        id,
+      );
+      return [g.labelBox, g.iconBox].filter((b): b is Box => !!b);
+    };
+    for (const own of head("asg"))
+      for (const id of ["vpc", "az-a", "az-b"])
+        for (const other of head(id)) expect(overlap(own, other)).toBe(false);
+    const asg = must(
+      s.groups.find((g) => g.id === "asg"),
+      "asg",
     ).box;
-    for (const n of outlined.nodes.filter((x) => x.id.startsWith("web-"))) {
-      for (const b of [n.box, n.iconBox, n.labelBox, n.noteBox])
-        if (b) expect(contains(asg, b)).toBe(true);
-    }
-    expect(contains({ x: 0, y: 0, w: outlined.width, h: outlined.height }, asg)).toBe(true);
+    for (const n of s.nodes) expect(contains(asg, n.box)).toBe(true);
   });
 
   it("connects edges to and from an around group at its border, clear of its header", async () => {

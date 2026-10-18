@@ -69,6 +69,38 @@ describe("composition checks", () => {
     expect(found.map((d) => d.subject)).toContainEqual({ nodes: ["a", "c"] });
   });
 
+  it("DG214 flags an overlay header that covers another group's header", async () => {
+    const source = `groups:
+  vpc: { type: aws:vpc }
+  asg: { type: aws:auto-scaling, around: [web] }
+nodes:
+  web: { icon: aws:ec2, in: vpc }
+  db: { icon: aws:rds }
+edges:
+  - web -> db
+`;
+    const m = model(source);
+    const scene = structuredClone(await layout(m));
+    // Layout keeps the header clear on its own.
+    expect(checkScene(scene, m).map((d) => d.code)).not.toContain("DG214");
+    const asg = must(
+      scene.groups.find((g) => g.id === "asg"),
+      "asg",
+    );
+    const vpc = must(
+      scene.groups.find((g) => g.id === "vpc"),
+      "vpc",
+    );
+    asg.labelBox = { ...vpc.labelBox };
+    const found = checkScene(scene, m).filter((d) => d.code === "DG214");
+    expect(found.map((d) => d.subject)).toContainEqual({
+      group: "asg",
+      covered: "vpc",
+      kind: "group",
+    });
+    expect(found[0]?.fixes?.length).toBeGreaterThan(0);
+  });
+
   it("DG204 flags a label that wraps to more than three lines", async () => {
     const long = "A label long enough to wrap onto more than three lines inside one shape node";
     expect(await codes(`nodes:\n  a: { label: "${long}" }\n  b: B\nedges:\n  - a -> b\n`)).toEqual([

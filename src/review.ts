@@ -102,6 +102,12 @@ export const FINDINGS = {
     cap: 30,
     about: "an overlay (around:) group draws around a node that is not a member",
   },
+  "overlap.overlay-header": {
+    dimension: "overlap",
+    rule: "DG214",
+    cap: 30,
+    about: "an overlay (around:) group's header covers another group's header or a node",
+  },
   "overlap.outside-group": {
     dimension: "overlap",
     cap: 30,
@@ -667,6 +673,13 @@ const OVERLAP_RULES: Record<string, OverlapRule> = {
     cost: 10,
     hard: "overlaps",
     ids: ["group", "enclosed"],
+  },
+  DG214: {
+    id: "overlap.overlay-header",
+    severity: "major",
+    cost: 10,
+    hard: "overlaps",
+    ids: ["group", "covered"],
   },
 };
 

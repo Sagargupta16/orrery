@@ -514,6 +514,64 @@ export function checkScene(scene: Scene, model: Model, opts: CheckOptions = {}):
     }
   }
 
+  // DG214: an overlay's header (its tile and label) covers another group's header or a node.
+  // Overlays cross other groups by design, so the group checks skip them; their headers still
+  // must not hide anything.
+  const headerParts = (g: Scene["groups"][number]): Box[] =>
+    [g.label.lines.length ? g.labelBox : undefined, g.iconBox].filter(
+      (b): b is Box => !!b && b.w > 0 && b.h > 0,
+    );
+  for (const ov of scene.groups) {
+    if (!ov.overlay) continue;
+    const own = headerParts(ov);
+    const hits = (b: Box) => own.find((o) => overlaps(o, b, -EPS));
+    const covered: { what: string; id: string; kind: "group" | "node"; box: Box; by: Box }[] = [];
+    for (const g of scene.groups) {
+      if (g.id === ov.id) continue;
+      for (const b of headerParts(g)) {
+        const by = hits(b);
+        if (by) {
+          covered.push({
+            what: `the header of group "${g.id}"`,
+            id: g.id,
+            kind: "group",
+            box: b,
+            by,
+          });
+          break;
+        }
+      }
+    }
+    for (const n of scene.nodes) {
+      for (const part of nodeParts(n)) {
+        const by = hits(part.box);
+        if (by) {
+          covered.push({ what: `node "${n.id}"`, id: n.id, kind: "node", box: part.box, by });
+          break;
+        }
+      }
+    }
+    // Layout already pads the groups of the overlay's members until the header clears the group
+    // headers above them, so what is left needs the spec to change.
+    const members = model.groups.find((g) => g.id === ov.id)?.around ?? [];
+    const loose = members.filter((m) => !parentOf.get(m)).map((m) => `"${m}"`);
+    for (const x of covered) {
+      warn("DG214", `the header of overlay group "${ov.id}" covers ${x.what}`, {
+        subject: { group: ov.id, covered: x.id, kind: x.kind },
+        evidence: { header: boxOf(x.by), covered: boxOf(x.box) },
+        fixes: [
+          ...(loose.length
+            ? [`put ${loose.join(", ")} in a group (in:), so layout can make room for the header`]
+            : []),
+          x.kind === "node"
+            ? `move "${x.id}" in the nodes list so it sits clear of the header of "${ov.id}"`
+            : `move the members of "${ov.id}" in the nodes list so its header sits clear of "${x.id}"`,
+          `shorten the label of "${ov.id}"`,
+        ],
+      });
+    }
+  }
+
   // DG217: a line style is drawn that the legend does not explain.
   const explained = new Set<EdgeLine>((model.legend ?? []).map((l) => l.line));
   const styles = new Map<EdgeLine, number>();

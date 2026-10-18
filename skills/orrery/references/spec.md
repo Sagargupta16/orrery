@@ -88,7 +88,7 @@ groups:
 | `label` | Header text. Defaults to the style's label ("VPC", "Region", ...). |
 | `in` | Parent group id. Groups nest to any depth. |
 | `contains` | List of child ids; the same as writing `in:` on each child. |
-| `around` | List of node or group ids to outline after layout, without moving them: an overlay for things that cross the tree, such as an Auto Scaling group spanning two Availability Zones. Its label sits on the top border. |
+| `around` | List of node or group ids to outline after layout, without moving them: an overlay for things that cross the tree, such as an Auto Scaling group spanning two Availability Zones. Its label sits on the top border. When the members are the first row of their group, so the overlay's header would land on that group's header, layout moves them down just far enough for the header to clear. |
 | `color` | Quoted hex override for the border and label. |
 | `fill` | Quoted hex override for the background, or `none`. |
 | `icon` | Override the header icon with any icon id, or `false` to hide it. |
@@ -163,6 +163,7 @@ edges:
 | DG211 | warning | A step badge or a node badge sits on a node, a node or edge label, or another badge. |
 | DG212 | warning | An edge runs through another edge's label. |
 | DG213 | warning | An `around:` group encloses a node or group that it does not list. |
+| DG214 | warning | An `around:` group's header (its tile and label) still covers another group's header or a node after layout made room for it, for example when its members have no group of their own. |
 | DG217 | warning | The diagram draws a dashed, dotted or thick line that `legend:` does not explain. |
 | DG218 | warning | Layout needed a fallback strategy, so the node order in the picture may not follow the spec. |
 | DG301 | error | An icon library that comes from npm (`github`, `ibm`, `logos`, `si`, `tabler`) could not be loaded: it is not in `node_modules` or the cache and the download failed. The fixes say how to prefetch it (`orrery icons fetch`, `ORRERY_CACHE`) or to use the bundled packs (`aws`, `azure`, `gcp`, `k8s`). |

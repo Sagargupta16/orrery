@@ -265,6 +265,8 @@ export interface LayoutOptions {
   theme?: ThemeName;
   /** Groups whose corner label must end left of the top center (set by the second pass). */
   widen?: Set<string>;
+  /** Extra top padding per group, so an overlay's header clears the headers above it (second pass). */
+  room?: Map<string, number>;
 }
 
 export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Scene> {
@@ -377,7 +379,7 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   for (const grp of model.groups) {
     const gg = groupGeom.get(grp.id);
     if (!gg || grp.around) continue;
-    const top = gg.header + 18;
+    const top = gg.header + 18 + (opts.room?.get(grp.id) ?? 0);
     elkNodes.set(grp.id, {
       id: grp.id,
       children: [],
@@ -583,7 +585,7 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     };
     const k = union(kids);
     let x0 = Math.max(old.x, k.x - 20);
-    let y0 = Math.max(old.y, k.y - gg.header - 18);
+    let y0 = Math.max(old.y, k.y - gg.header - 18 - (opts.room?.get(grp.id) ?? 0));
     let x1 = Math.min(old.x + old.w, k.x + k.w + 20);
     let y1 = Math.min(old.y + old.h, k.y + k.h + 20);
     if (x1 - x0 < minWidthOf(grp.id, gg)) [x0, x1] = [old.x, old.x + old.w];
@@ -1128,8 +1130,42 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     if (model.groups.find((g) => g.id === id)?.around) return false;
     return box.w + 0.5 < Math.max(gg.minWidth, 2 * (gg.minWidth - 10));
   });
-  if (!horizontal && !opts.widen && widen.length)
-    return layout(model, { ...opts, widen: new Set(widen) });
+  // An overlay's header sits above its members, so when they are the first row of their group it
+  // lands on that group's header (or one above it). The second pass gives each member's own group
+  // more top padding, which moves the members, and the header with them, down until it clears.
+  const room = new Map<string, number>();
+  const headOf = (g: SceneGroup): Box | undefined => {
+    const parts = [g.label.lines.length ? g.labelBox : undefined, g.iconBox].filter(
+      (b): b is Box => !!b && b.w > 0 && b.h > 0,
+    );
+    return parts.length ? union(parts) : undefined;
+  };
+  const hits = (a: Box, b: Box) =>
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  for (const ov of groups) {
+    const head = ov.overlay ? headOf(ov) : undefined;
+    if (!head) continue;
+    let need = 0;
+    for (const g of groups) {
+      const h = g.overlay ? undefined : headOf(g);
+      if (h && hits(head, h)) need = Math.max(need, h.y + h.h + 8 - head.y);
+    }
+    if (need <= 0) continue;
+    for (const id of overlays.get(ov.id) ?? []) {
+      const parent =
+        model.nodes.find((n) => n.id === id)?.parent ??
+        model.groups.find((g) => g.id === id)?.parent;
+      if (parent && !overlays.has(parent))
+        room.set(parent, Math.max(room.get(parent) ?? 0, Math.ceil(need)));
+    }
+  }
+  const wider = !horizontal && widen.length > 0;
+  if (!opts.widen && !opts.room && (wider || room.size))
+    return layout(model, {
+      ...opts,
+      widen: wider ? new Set(widen) : undefined,
+      room: room.size ? room : undefined,
+    });
 
   // Overlay legends (a tile on the top border) and free-edge labels are placed after ELK and can
   // land left of or above the canvas, or on the title: move the content clear of both.
