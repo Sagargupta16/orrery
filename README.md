@@ -3,27 +3,27 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/hero-light.svg">
-  <img alt="GitOps delivery drawn by stackdraw: GitHub Actions bumps the manifests repository, Argo CD syncs GKE, AKS and EKS behind Cloudflare, and Grafana queries them, in official icons" src="docs/hero-light.svg" width="100%">
+  <img alt="GitOps delivery drawn by orrery: GitHub Actions bumps the manifests repository, Argo CD syncs GKE, AKS and EKS behind Cloudflare, and Grafana queries them, in official icons" src="docs/hero-light.svg" width="100%">
 </picture>
 
-# stackdraw
+# orrery
 
 **Animated architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons.**<br>
 One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML viewer out.
 
-[![CI](https://github.com/Sagargupta16/stackdraw/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/stackdraw/actions/workflows/ci.yml)
+[![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
 ![Version](https://img.shields.io/badge/version-0.3.0-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-16%2C682-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
 </div>
 
-The diagram above is [docs/hero.yaml](docs/hero.yaml): 40 lines of YAML, laid out and rendered by stackdraw. It moves because every SVG is animated by default: a packet travels each edge, and the numbered steps play in order, on a loop. GitHub keeps the animation; the PNG of the same spec is a still frame.
+The diagram above is [docs/hero.yaml](docs/hero.yaml): 40 lines of YAML, laid out and rendered by orrery. It moves because every SVG is animated by default: a packet travels each edge, and the numbered steps play in order, on a loop. GitHub keeps the animation; the PNG of the same spec is a still frame.
 
 ## What you get
 
 - **Official, current icons only.** 16,682 icons: AWS (810), Azure (636), Google Cloud (233), Kubernetes (40), GitHub Octicons (399) and IBM Carbon (2,776), plus 5,502 tech logos and 6,286 neutral symbols for system design. The cloud packs are rebuilt from each vendor's own download, pinned by checksum. Google Cloud products get the icon Google's 2026 guide assigns them; deprecated sets and unofficial redraws of cloud icons are left out.
-- **Official conventions.** AWS groups follow the AWS Architecture Icons deck (borders, dashes, corner tiles, label placement, open arrowheads, numbered callouts); Google Cloud and Azure groups are measured from their own reference diagrams. Every value cites its source in [styles.md](skills/stackdraw/references/styles.md).
+- **Official conventions.** AWS groups follow the AWS Architecture Icons deck (borders, dashes, corner tiles, label placement, open arrowheads, numbered callouts); Google Cloud and Azure groups are measured from their own reference diagrams. Every value cites its source in [styles.md](skills/orrery/references/styles.md).
 - **Automatic layout.** The Eclipse Layout Kernel places nested boundaries, routes edges at right angles, joins fan-in and fan-out into trunks and keeps the order you wrote unless that would cross edges. No coordinates to write.
 - **Diagrams that move.** Animated SVG by default: packets travel every edge at one speed, numbered steps play as a story, line styles stay as drawn. `animate: flow` for marching dashes, `--static` for a still file.
 - **Five outputs from one spec.** SVG for READMEs and docs, PNG for slides and chat (3x by default, sharp when zoomed), `.drawio` you can keep editing, a TSX component for React sites, and a standalone HTML viewer with dark mode, pan and pinch zoom.
@@ -35,21 +35,21 @@ The diagram above is [docs/hero.yaml](docs/hero.yaml): 40 lines of YAML, laid ou
 Claude Code plugin:
 
 ```
-/plugin marketplace add Sagargupta16/stackdraw
-/plugin install stackdraw@stackdraw
+/plugin marketplace add Sagargupta16/orrery
+/plugin install orrery@orrery
 ```
 
 Any agent that reads [Agent Skills](https://agentskills.io) (Codex, Cursor, Gemini CLI, Kiro and others):
 
 ```bash
-npx skills add Sagargupta16/stackdraw
+npx skills add Sagargupta16/orrery
 ```
 
 Only the CLI:
 
 ```bash
-git clone https://github.com/Sagargupta16/stackdraw
-node stackdraw/skills/stackdraw/scripts/stackdraw.mjs doctor
+git clone https://github.com/Sagargupta16/orrery
+node orrery/skills/orrery/scripts/orrery.mjs doctor
 ```
 
 ## Quick start
@@ -73,52 +73,52 @@ edges:
 ```
 
 ```bash
-node skills/stackdraw/scripts/stackdraw.mjs render orders.yaml -f svg,png
+node skills/orrery/scripts/orrery.mjs render orders.yaml -f svg,png
 ```
 
-Labels default to the official service names, so `{ icon: aws:lambda }` reads "AWS Lambda". Edges use arrows: `->` solid, `-->` dashed, `..>` dotted, `==>` thick, `<->` both ways, `a -> b, c` to fan out. The full format is in [spec.md](skills/stackdraw/references/spec.md).
+Labels default to the official service names, so `{ icon: aws:lambda }` reads "AWS Lambda". Edges use arrows: `->` solid, `-->` dashed, `..>` dotted, `==>` thick, `<->` both ways, `a -> b, c` to fan out. The full format is in [spec.md](skills/orrery/references/spec.md).
 
 ## Gallery
 
-Every picture below is the animated SVG rendered from a spec in [skills/stackdraw/examples](skills/stackdraw/examples), checked against the renderer by CI; `stackdraw init <name>` copies any of them as a starting point. All 27, with commands, in [examples/README.md](examples/README.md).
+Every picture below is the animated SVG rendered from a spec in [skills/orrery/examples](skills/orrery/examples), checked against the renderer by CI; `orrery init <name>` copies any of them as a starting point. All 27, with commands, in [examples/README.md](examples/README.md).
 
-[`modern-web-stack`](skills/stackdraw/examples/modern-web-stack.yaml): Cloudflare, Next.js on Vercel, Neon, Upstash, Stripe, Clerk, Resend, Sentry and PostHog, drawn as cards
+[`modern-web-stack`](skills/orrery/examples/modern-web-stack.yaml): Cloudflare, Next.js on Vercel, Neon, Upstash, Stripe, Clerk, Resend, Sentry and PostHog, drawn as cards
 
 <a href="examples/modern-web-stack.svg"><img src="examples/modern-web-stack.svg" alt="Modern SaaS stack with Cloudflare, Next.js on Vercel, Neon, Upstash, Stripe, Clerk and Resend"></a>
 
-[`gitops-kubernetes`](skills/stackdraw/examples/gitops-kubernetes.yaml): GitHub Actions and Argo CD with the official Kubernetes icons, numbered steps from pull request to production
+[`gitops-kubernetes`](skills/orrery/examples/gitops-kubernetes.yaml): GitHub Actions and Argo CD with the official Kubernetes icons, numbered steps from pull request to production
 
 <a href="examples/gitops-kubernetes.svg"><img src="examples/gitops-kubernetes.svg" alt="GitOps with GitHub Actions and Argo CD syncing staging and production Kubernetes clusters"></a>
 
-[`gcp-gke-platform`](skills/stackdraw/examples/gcp-gke-platform.yaml): Google Cloud's own frames and 2026 product icons around a GKE cluster and its delivery pipeline
+[`gcp-gke-platform`](skills/orrery/examples/gcp-gke-platform.yaml): Google Cloud's own frames and 2026 product icons around a GKE cluster and its delivery pipeline
 
 <a href="examples/gcp-gke-platform.svg"><img src="examples/gcp-gke-platform.svg" alt="GKE application platform on Google Cloud with Cloud Build, Artifact Registry and Cloud Deploy"></a>
 
-[`azure-hub-spoke`](skills/stackdraw/examples/azure-hub-spoke.yaml): an Azure hub-spoke network with ExpressRoute, a VPN backup, Azure Firewall, Bastion and private endpoints
+[`azure-hub-spoke`](skills/orrery/examples/azure-hub-spoke.yaml): an Azure hub-spoke network with ExpressRoute, a VPN backup, Azure Firewall, Bastion and private endpoints
 
 <a href="examples/azure-hub-spoke.svg"><img src="examples/azure-hub-spoke.svg" alt="Hub-spoke network on Azure with ExpressRoute, VPN, Azure Firewall and two peered spokes"></a>
 
-[`data-platform-oss`](skills/stackdraw/examples/data-platform-oss.yaml): an open-source lakehouse from change data capture to dashboards
+[`data-platform-oss`](skills/orrery/examples/data-platform-oss.yaml): an open-source lakehouse from change data capture to dashboards
 
 <a href="examples/data-platform-oss.svg"><img src="examples/data-platform-oss.svg" alt="Open-source data platform with Debezium, Kafka, Flink, Iceberg on Ceph, dbt, Trino and Superset"></a>
 
-[`rag-open-source`](skills/stackdraw/examples/rag-open-source.yaml): RAG with open components: an ingestion lane and a query lane meeting at Qdrant
+[`rag-open-source`](skills/orrery/examples/rag-open-source.yaml): RAG with open components: an ingestion lane and a query lane meeting at Qdrant
 
 <a href="examples/rag-open-source.svg"><img src="examples/rag-open-source.svg" alt="Retrieval-augmented generation with Qdrant, LangChain, FastAPI and Ollama"></a>
 
-[`multi-cloud`](skills/stackdraw/examples/multi-cloud.yaml): each vendor's own group style side by side, joined at a colocation router
+[`multi-cloud`](skills/orrery/examples/multi-cloud.yaml): each vendor's own group style side by side, joined at a colocation router
 
 <a href="examples/multi-cloud.svg"><img src="examples/multi-cloud.svg" alt="AWS, Google Cloud and Azure joined by private interconnects with one identity provider"></a>
 
-[`system-design-url-shortener`](skills/stackdraw/examples/system-design-url-shortener.yaml): vendor-neutral system design with product logos
+[`system-design-url-shortener`](skills/orrery/examples/system-design-url-shortener.yaml): vendor-neutral system design with product logos
 
 <a href="examples/system-design-url-shortener.svg"><img src="examples/system-design-url-shortener.svg" alt="URL shortener system design with cache, database and analytics stream"></a>
 
-[`aws-three-tier`](skills/stackdraw/examples/aws-three-tier.yaml): VPC, two Availability Zones, public, web and data subnets, an Auto Scaling group drawn across both zones
+[`aws-three-tier`](skills/orrery/examples/aws-three-tier.yaml): VPC, two Availability Zones, public, web and data subnets, an Auto Scaling group drawn across both zones
 
 <a href="examples/aws-three-tier.svg"><img src="examples/aws-three-tier.svg" alt="Three-tier web application on AWS across two Availability Zones"></a>
 
-[`c4-container`](skills/stackdraw/examples/c4-container.yaml): a C4 container view built from shapes
+[`c4-container`](skills/orrery/examples/c4-container.yaml): a C4 container view built from shapes
 
 <a href="examples/c4-container.svg"><img src="examples/c4-container.svg" alt="C4 container diagram for an online store"></a>
 
@@ -132,10 +132,10 @@ Every picture below is the animated SVG rendered from a spec in [skills/stackdra
 ## Validation that tells you the fix
 
 ```text
-$ stackdraw validate orders.yaml
+$ orrery validate orders.yaml
 error DG101 node "fn" uses unknown icon "aws:lamda" {"node":"fn","icon":"aws:lamda"}
       fix: use icon "aws:lambda"
-      fix: run `stackdraw icons search lamda`
+      fix: run `orrery icons search lamda`
 error DG108 unknown key "lable" in node "db" {"where":"node \"db\"","key":"lable"}
       fix: rename "lable" to "label"
 failed: 2 error(s), 0 warning(s)
@@ -145,11 +145,11 @@ Spec errors (DG1xx) stop the render; composition warnings (DG2xx: an edge throug
 
 ## A review board that measures before it judges
 
-`stackdraw review` looks at the diagram at the width readers see it (880 px for a README column) and scores six dimensions: official conventions, layout, grid, arrows and flow, overlap, and size and quality.
+`orrery review` looks at the diagram at the width readers see it (880 px for a README column) and scores six dimensions: official conventions, layout, grid, arrows and flow, overlap, and size and quality.
 
 ```text
-$ git show v0.2.1:skills/stackdraw/examples/gitops-kubernetes.yaml > gitops-0.2.yaml
-$ stackdraw review gitops-0.2.yaml --width 880
+$ git show v0.2.1:skills/orrery/examples/gitops-kubernetes.yaml > gitops-0.2.yaml
+$ orrery review gitops-0.2.yaml --width 880
 review gitops-0.2: 1964x786 in a 880px column, seen at 880x352 (scale 0.45, light)
 score 85.3/100  FAIL (pass = no blocker or major and score >= 85)
 ...
@@ -159,13 +159,13 @@ blocker quality.label-size node labels render at 5.82px at this width (1964px ca
 
 The review loop took that diagram to 98.5 and passing: it now runs top to bottom, so its labels show at full size in the README column.
 
-In Claude Code, `/stackdraw:review <spec>` runs the full loop. Code measures everything that can be counted: overlaps, crossings, alignment, text size and contrast at display width. Three read-only agents run in parallel and judge what cannot be counted:
+In Claude Code, `/orrery:review <spec>` runs the full loop. Code measures everything that can be counted: overlaps, crossings, alignment, text size and contrast at display width. Three read-only agents run in parallel and judge what cannot be counted:
 
 - `conventions-reviewer` checks the vendor's own rules, quoted from the AWS deck, Azure Well-Architected, Google's icon guide and the C4 notation.
 - `flow-reviewer` checks the story the arrows tell.
 - `legibility-reviewer` reads the PNG at display size.
 
-A finding counts only if it cites a measured value or a vendor rule. Each round applies one to three spec patches, and a round is kept only when the score goes up and no hard count does; the loop stops after three rounds or two without progress. Vision models are weak at counting overlaps and intersections, so they never decide those. The rubrics live in [references/review](skills/stackdraw/references/review/loop.md), so the same passes run inline anywhere the skill is installed without subagents.
+A finding counts only if it cites a measured value or a vendor rule. Each round applies one to three spec patches, and a round is kept only when the score goes up and no hard count does; the loop stops after three rounds or two without progress. Vision models are weak at counting overlaps and intersections, so they never decide those. The rubrics live in [references/review](skills/orrery/references/review/loop.md), so the same passes run inline anywhere the skill is installed without subagents.
 
 ## Commands
 
@@ -196,7 +196,7 @@ A finding counts only if it cites a measured value or a vendor rule. Each round 
 | `si` | 3,351 | [Simple Icons](https://simpleicons.org) | npm `@iconify-json/simple-icons` |
 | `tabler` | 6,286 | [Tabler Icons](https://tabler.io/icons) | npm `@iconify-json/tabler` |
 
-Bundled packs exist only as vendor downloads, so they ship with the skill and work offline. The npm sets load at render time from a local `node_modules`, the user cache or jsDelivr, checked against a pinned SHA-256; `stackdraw icons fetch` caches them ahead of time, and [icons.md](skills/stackdraw/references/icons.md#where-icons-load-from) has the details. A monthly workflow checks the vendors' pages for new releases and opens a PR with the updated packs. Icons, logos and trademarks belong to their owners and are used under the terms listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the AWS, Microsoft and Google terms allow them in architecture diagrams.
+Bundled packs exist only as vendor downloads, so they ship with the skill and work offline. The npm sets load at render time from a local `node_modules`, the user cache or jsDelivr, checked against a pinned SHA-256; `orrery icons fetch` caches them ahead of time, and [icons.md](skills/orrery/references/icons.md#where-icons-load-from) has the details. A monthly workflow checks the vendors' pages for new releases and opens a PR with the updated packs. Icons, logos and trademarks belong to their owners and are used under the terms listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the AWS, Microsoft and Google terms allow them in architecture diagrams.
 
 ## Development
 
@@ -205,7 +205,7 @@ pnpm install
 pnpm lint
 pnpm typecheck
 pnpm test
-pnpm build                       # src/ -> skills/stackdraw/scripts/stackdraw.mjs
+pnpm build                       # src/ -> skills/orrery/scripts/orrery.mjs
 pnpm gallery                     # re-render examples/ and docs/
 node scripts/check-repo.mjs      # dashes, links, counts, doc snippets, gallery freshness
 pnpm sync-icons                  # rebuild icon catalogs (--latest re-pins new vendor releases)

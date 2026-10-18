@@ -1,4 +1,4 @@
-// Mermaid flowchart -> stackdraw spec (YAML text). Keeps the topology, labels, subgraphs, edge
+// Mermaid flowchart -> orrery spec (YAML text). Keeps the topology, labels, subgraphs, edge
 // styles and shapes; guesses an official icon only when a label names a product exactly.
 import { stringify } from "yaml";
 import { iconInfo, searchIcons } from "../icons.ts";
@@ -284,9 +284,9 @@ export function importMermaid(source: string): MermaidResult {
   doc.nodes = specNodes;
   doc.edges = specEdges;
   const header = [
-    "# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/stackdraw/main/skills/stackdraw/references/diagram.schema.json",
-    "# Imported from Mermaid by stackdraw. Replace shapes with official icons (stackdraw icons search <words>),",
-    "# turn zones into vendor groups (aws:vpc, gcp:project, azure:vnet...) and run stackdraw validate.",
+    "# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/orrery/main/skills/orrery/references/diagram.schema.json",
+    "# Imported from Mermaid by orrery. Replace shapes with official icons (orrery icons search <words>),",
+    "# turn zones into vendor groups (aws:vpc, gcp:project, azure:vnet...) and run orrery validate.",
   ];
   if (Object.keys(guessed).length) {
     header.push(

@@ -16,12 +16,12 @@ labels: bug
 ## Reproduction
 
 1. Spec (paste the YAML, trimmed to the smallest one that shows it):
-2. Command: `node skills/stackdraw/scripts/stackdraw.mjs render <spec> -f svg,png`
-3. Output of `stackdraw validate <spec> --json`:
+2. Command: `node skills/orrery/scripts/orrery.mjs render <spec> -f svg,png`
+3. Output of `orrery validate <spec> --json`:
 
 ## Environment
 
-- `stackdraw --version`:
+- `orrery --version`:
 - `node --version`:
 - OS:
 - Where it renders wrong (GitHub README, browser and version, draw.io, PowerPoint...):

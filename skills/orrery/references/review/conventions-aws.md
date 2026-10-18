@@ -2,7 +2,7 @@
 
 Source for every rule: the AWS Architecture Icons deck, release 24-2026.07.31 (light background edition), from <https://aws.amazon.com/architecture/icons/>. Slide numbers refer to that deck. Quotes are verbatim.
 
-**[measured]** rules are checked by `stackdraw review`; the finding id is given. Do not re-report them; cite the measured finding when it matters for a patch. **[judged]** rules are yours: report a violation only with the rule id, its quote, and the spec ids it concerns. **[renderer]** rules are applied by stackdraw itself and cannot be fixed from the spec; do not report them.
+**[measured]** rules are checked by `orrery review`; the finding id is given. Do not re-report them; cite the measured finding when it matters for a patch. **[judged]** rules are yours: report a violation only with the rule id, its quote, and the spec ids it concerns. **[renderer]** rules are applied by orrery itself and cannot be fixed from the spec; do not report them.
 
 ## Structure
 
@@ -20,7 +20,7 @@ Boundaries nest the way the deployment does: `aws:cloud` > `aws:account` > `aws:
 
 > "Create groups with nonapproved AWS icon(s)." (slide 14, under DON'T)
 
-A group's `icon:` override must be an AWS group or service icon (`stackdraw icons search <name> --pack aws`), never a logo or glyph from another set. Use the generic group when no preset fits:
+A group's `icon:` override must be an AWS group or service icon (`orrery icons search <name> --pack aws`), never a logo or glyph from another set. Use the generic group when no preset fits:
 
 > "Use a generic group type if the presets do not suit your needs." (slide 14, under DO)
 

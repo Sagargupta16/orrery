@@ -11,7 +11,7 @@ import { dirname, extname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const cli = join(root, "skills/stackdraw/scripts/stackdraw.mjs");
+const cli = join(root, "skills/orrery/scripts/orrery.mjs");
 const problems = [];
 const fail = (file, msg) => problems.push(`${file}: ${msg}`);
 
@@ -54,7 +54,7 @@ const files = tracked().filter((f) => existsSync(join(root, f)));
 for (const f of files) {
   if (
     !TEXT.has(extname(f)) ||
-    f.startsWith("skills/stackdraw/scripts/vendor/") ||
+    f.startsWith("skills/orrery/scripts/vendor/") ||
     f === "pnpm-lock.yaml"
   )
     continue;
@@ -63,7 +63,7 @@ for (const f of files) {
   const dash = text.search(/[\u2013\u2014]/);
   if (dash >= 0)
     fail(f, `en/em dash at offset ${dash}: "${text.slice(Math.max(0, dash - 20), dash + 20)}"`);
-  if (f.startsWith("skills/stackdraw/assets/")) continue;
+  if (f.startsWith("skills/orrery/assets/")) continue;
   // 2. No machine-specific paths.
   const home = text.match(/[A-Za-z]:\\Users\\|\/Users\/[a-z]|\/home\/[a-z]|C:\/Users\//);
   if (home) fail(f, `absolute home path "${home[0]}"`);
@@ -77,7 +77,7 @@ for (const f of files) {
 // 4. Manifests, versions, changelog.
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 for (const f of files.filter(
-  (f) => f.endsWith(".json") && !f.startsWith("skills/stackdraw/assets/icons/"),
+  (f) => f.endsWith(".json") && !f.startsWith("skills/orrery/assets/icons/"),
 )) {
   try {
     JSON.parse(readFileSync(join(root, f), "utf8"));
@@ -100,21 +100,20 @@ else if (top[1] !== pkg.version)
   fail("CHANGELOG.md", `top entry ${top[1]} != package.json ${pkg.version}`);
 if (/unreleased/i.test(changelog))
   fail("CHANGELOG.md", 'no "Unreleased" sections; use a concrete version');
-const skill = readFileSync(join(root, "skills/stackdraw/SKILL.md"), "utf8");
+const skill = readFileSync(join(root, "skills/orrery/SKILL.md"), "utf8");
 const skillVersion = skill.match(/^\s+version: "([^"]+)"/m)?.[1];
 if (skillVersion !== pkg.version)
-  fail("skills/stackdraw/SKILL.md", `metadata.version ${skillVersion} != ${pkg.version}`);
+  fail("skills/orrery/SKILL.md", `metadata.version ${skillVersion} != ${pkg.version}`);
 
 // 5. Skill frontmatter.
 const fm = skill.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? "";
-if (!/^name: stackdraw$/m.test(fm))
-  fail("skills/stackdraw/SKILL.md", "name must equal the folder name");
+if (!/^name: orrery$/m.test(fm)) fail("skills/orrery/SKILL.md", "name must equal the folder name");
 if (!/^description: >-$/m.test(fm))
-  fail("skills/stackdraw/SKILL.md", "description must be a >- folded block");
+  fail("skills/orrery/SKILL.md", "description must be a >- folded block");
 const desc = fm.split(/^description: >-$/m)[1]?.split(/^\S/m)[0] ?? "";
-if (/:\s/.test(desc)) fail("skills/stackdraw/SKILL.md", 'description must not contain ": "');
+if (/:\s/.test(desc)) fail("skills/orrery/SKILL.md", 'description must not contain ": "');
 if (skill.split("\n").length > 500)
-  fail("skills/stackdraw/SKILL.md", "over 500 lines; move detail to references/");
+  fail("skills/orrery/SKILL.md", "over 500 lines; move detail to references/");
 
 // 6. Relative links in Markdown resolve.
 for (const f of files.filter((f) => f.endsWith(".md"))) {
@@ -133,16 +132,10 @@ for (const f of files.filter((f) => f.endsWith(".md"))) {
 }
 
 // 7. Counts quoted in the docs match the catalogs.
-const index = JSON.parse(
-  readFileSync(join(root, "skills/stackdraw/assets/icons/index.json"), "utf8"),
-);
+const index = JSON.parse(readFileSync(join(root, "skills/orrery/assets/icons/index.json"), "utf8"));
 const total = index.icons.length.toLocaleString("en-US");
 const aliasCount = String(Object.keys(index.aliases).length);
-for (const f of [
-  "README.md",
-  "skills/stackdraw/SKILL.md",
-  "skills/stackdraw/references/icons.md",
-]) {
+for (const f of ["README.md", "skills/orrery/SKILL.md", "skills/orrery/references/icons.md"]) {
   const text = readFileSync(join(root, f), "utf8");
   for (const m of text.matchAll(/(\d{1,2},\d{3}) icons/g))
     if (m[1] !== total) fail(f, `says ${m[1]} icons, catalogs have ${total}`);
@@ -208,7 +201,7 @@ const gallery = spawnSync(process.execPath, [join(root, "scripts/gallery.mjs"), 
 if (gallery.status !== 0) {
   for (const line of (gallery.stderr || gallery.stdout).trim().split("\n")) fail("gallery", line);
 }
-const examples = readdirSync(join(root, "skills/stackdraw/examples")).filter((f) =>
+const examples = readdirSync(join(root, "skills/orrery/examples")).filter((f) =>
   /\.ya?ml$/.test(f),
 );
 rmSync(tmp, { recursive: true, force: true });

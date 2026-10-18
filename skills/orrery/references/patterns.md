@@ -1,6 +1,6 @@
 # Patterns
 
-Reference architectures as spec fragments. Each has a complete example in `examples/` (start one with `stackdraw init <name>`). Fragments use aliases; `stackdraw icons search` confirms any id. Where a line style carries meaning (dashed for asynchronous, dotted for ownership or replication), add `legend:` so the picture explains it: `legend: { dashed: Asynchronous events }`. The validator warns (DG217) when a style is used and not explained.
+Reference architectures as spec fragments. Each has a complete example in `examples/` (start one with `orrery init <name>`). Fragments use aliases; `orrery icons search` confirms any id. Where a line style carries meaning (dashed for asynchronous, dotted for ownership or replication), add `legend:` so the picture explains it: `legend: { dashed: Asynchronous events }`. The validator warns (DG217) when a style is used and not explained.
 
 ## Web application, three tiers (`aws-three-tier`)
 

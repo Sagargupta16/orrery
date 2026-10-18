@@ -27,7 +27,7 @@ export function renderHtml(input: HtmlInput): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="generator" content="stackdraw">
+<meta name="generator" content="orrery">
 <title>${esc(input.title)}</title>
 <style>
 :root{color-scheme:light dark;--bg:#f6f7f9;--panel:#ffffff;--ink:#1f2937;--muted:#5f6b7a;--line:#d8dde3;--accent:#2563eb}

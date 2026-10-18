@@ -1,6 +1,6 @@
 # Group styles
 
-`groups: { id: { type: <key> } }` picks one of these. `stackdraw styles` prints the live list. Every value below was read from, or measured on, the vendor's own material; "inferred" marks the few judgement calls. Values are px at 96 dpi.
+`groups: { id: { type: <key> } }` picks one of these. `orrery styles` prints the live list. Every value below was read from, or measured on, the vendor's own material; "inferred" marks the few judgement calls. Values are px at 96 dpi.
 
 ## AWS
 
@@ -27,7 +27,7 @@ From the deck's guidance pages:
 
 - "Some groups cross multiple groups, such as Auto Scaling, while others are meant to nest inside another, such as a VPC and subnets." Use `around:` for the crossing ones.
 - "When you have groups within groups, inner groups should have at least .05" buffer on all sides."
-- "Use straight lines and right angles to connect objects wherever possible." Preset arrows "use the 'Open Arrow' in Size 4" (the default `arrowhead: open`). The deck's arrows are black, 1.25 pt (1.67 px); see [Edges](#edges) for what stackdraw draws.
+- "Use straight lines and right angles to connect objects wherever possible." Preset arrows "use the 'Open Arrow' in Size 4" (the default `arrowhead: open`). The deck's arrows are black, 1.25 pt (1.67 px); see [Edges](#edges) for what orrery draws.
 - "AWS service names must fit on no more than two lines. AWS or Amazon should always be accompanied by the service name. Lines should never break mid-word."
 - Numbered callouts "are black with bold white type" (white with black type on dark backgrounds): the `step:` edges. The deck (slide 18) also says "DON'T: Change color or font size within the callout", so the digits keep one size and the callout's own colors.
 - Callout size: badges in the 2025 and 2026 AWS Guidance PDFs are #232F3E circles about 0.72 of the icon size, set beside the middle of the line rather than on it; Azure Architecture Center diagrams use #107C10 green circles of about the same size, and Google colors each badge like its flow. Across the samples measured, badges ran 0.54 to 0.75 of the icon, so `step:` badges are 28 px circles with 14 px bold digits (0.58 of a 48 px icon). In the light theme they are black with white digits, as in the deck; the dark theme uses a near-white circle with dark digits.
@@ -52,9 +52,9 @@ Google's [icon library](https://cloud.google.com/icons) and its product icons PD
 | `gcp:optional` | dashed 4 4 | security foundations |
 | `gcp:users` | white box with a users glyph | inferred |
 
-Product cards in those diagrams are white, about 192 x 70 with a 35 px icon: `look: card`. Google's arrows are #202124, 2 px, with an open chevron head (measured in `regional.svg`); see [Edges](#edges) for what stackdraw draws.
+Product cards in those diagrams are white, about 192 x 70 with a 35 px icon: `look: card`. Google's arrows are #202124, 2 px, with an open chevron head (measured in `regional.svg`); see [Edges](#edges) for what orrery draws.
 
-On icons, the PDF says: "In early 2025, we overhauled all of our Google Cloud product icons, greatly simplifying our system from over 250 unique icons to ~40" and, of the console icons, "these icons should not be used as of 2026". So stackdraw leaves the console icons out and follows Google's own product list instead: core products draw their unique icon and every other product draws its category's icon, under the product's name (`gcp:pubsub` draws the Data Analytics icon and reads "Pub/Sub"). The mapping is `scripts/gcp-products.json`, transcribed from the guide's product pages.
+On icons, the PDF says: "In early 2025, we overhauled all of our Google Cloud product icons, greatly simplifying our system from over 250 unique icons to ~40" and, of the console icons, "these icons should not be used as of 2026". So orrery leaves the console icons out and follows Google's own product list instead: core products draw their unique icon and every other product draws its category's icon, under the product's name (`gcp:pubsub` draws the Data Analytics icon and reads "Pub/Sub"). The mapping is `scripts/gcp-products.json`, transcribed from the guide's product pages.
 
 ## Azure
 
@@ -73,13 +73,13 @@ Microsoft's [icon page](https://learn.microsoft.com/en-us/azure/architecture/ico
 | `azure:subscription`, `azure:tenant`, `azure:resource-group` | blue or grey outlines | inferred: not drawn in Azure's reference diagrams |
 | `azure:on-prem` | #F2F2F2 panel with a building glyph | inferred |
 
-Azure diagrams use black 1 px connectors with filled heads and green numbered callouts; the baseline App Service SVG draws its connectors `stroke:#000000; stroke-width:1`. stackdraw draws filled heads when the spec sets `arrowhead: filled`; see [Edges](#edges).
+Azure diagrams use black 1 px connectors with filled heads and green numbered callouts; the baseline App Service SVG draws its connectors `stroke:#000000; stroke-width:1`. orrery draws filled heads when the spec sets `arrowhead: filled`; see [Edges](#edges).
 
 From Microsoft's guidelines: "In diagrams, we recommend including the product name somewhere close to the icon", "Don't crop, flip, or rotate icons", "Don't distort or change icon shape in any way".
 
 ## Kubernetes
 
-The Kubernetes blue #326CE5 comes from the [community icon set](https://github.com/kubernetes/community/tree/master/icons). The repository has no layout rules; its source deck draws clusters, nodes and pod groups as solid blue rounded boxes and namespaces as dashed black rounded boxes, and stackdraw follows that: `k8s:cluster`, `k8s:node`, `k8s:control-plane` (solid blue) and `k8s:namespace` (dashed). In the same deck, reference links are solid and "creates" links are dashed.
+The Kubernetes blue #326CE5 comes from the [community icon set](https://github.com/kubernetes/community/tree/master/icons). The repository has no layout rules; its source deck draws clusters, nodes and pod groups as solid blue rounded boxes and namespaces as dashed black rounded boxes, and orrery follows that: `k8s:cluster`, `k8s:node`, `k8s:control-plane` (solid blue) and `k8s:namespace` (dashed). In the same deck, reference links are solid and "creates" links are dashed.
 
 ## C4 model
 
@@ -87,7 +87,7 @@ The Kubernetes blue #326CE5 comes from the [community icon set](https://github.c
 
 ## Neutral styles
 
-stackdraw's own, with no vendor behind them. `box`, `dashed`, `zone` and `internet` share one grey outline (#888F99), 3.26:1 against white and 3.01:1 against the `zone` fill, so the frame of a group stays visible on a projector or a washed-out print (the WCAG 1.4.11 minimum for graphical objects is 3:1). The vendor styles above keep the borders the vendors publish, even where those are lighter.
+orrery's own, with no vendor behind them. `box`, `dashed`, `zone` and `internet` share one grey outline (#888F99), 3.26:1 against white and 3.01:1 against the `zone` fill, so the frame of a group stays visible on a projector or a washed-out print (the WCAG 1.4.11 minimum for graphical objects is 3:1). The vendor styles above keep the borders the vendors publish, even where those are lighter.
 
 | Type | Look |
 | --- | --- |
@@ -110,7 +110,7 @@ The vendors differ. These are the connector values measured in their own files.
 | AWS Architecture Icons deck | black | 1.25 pt (1.67 px) | preset Open Arrow |
 | Azure (baseline App Service SVG) | #000000 | 1 px | filled |
 
-stackdraw draws every edge the same way, whatever the group styles in the picture:
+orrery draws every edge the same way, whatever the group styles in the picture:
 
 - Color: the theme's edge color (#545b64 in the light theme, #8b949e in the dark one); an edge takes `color:` to override it.
 - Width: 1.5 px, and 2.5 px for `thick` (`==>`), with a larger head.

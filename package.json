@@ -1,5 +1,5 @@
 {
-  "name": "stackdraw",
+  "name": "orrery",
   "version": "0.3.0",
   "private": true,
   "description": "Architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, rendered to SVG, PNG, draw.io, TSX and HTML.",
@@ -7,7 +7,7 @@
   "author": "Sagar Gupta (https://github.com/Sagargupta16)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Sagargupta16/stackdraw.git"
+    "url": "git+https://github.com/Sagargupta16/orrery.git"
   },
   "type": "module",
   "engines": {

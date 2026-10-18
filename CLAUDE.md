@@ -10,9 +10,9 @@
 
 ## Project
 
-Public Agent Skill and Claude Code plugin (`stackdraw`) that turns a YAML spec into professional, animated architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons (plus logo and generic sets), laid out by ELK and rendered to SVG, PNG, draw.io, TSX and HTML. The CLI is bundled into the skill so it runs with no install. `stackdraw review` plus three reviewer agents form a measured review loop (`/stackdraw:review`).
+Public Agent Skill and Claude Code plugin (`orrery`) that turns a YAML spec into professional, animated architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons (plus logo and generic sets), laid out by ELK and rendered to SVG, PNG, draw.io, TSX and HTML. The CLI is bundled into the skill so it runs with no install. `orrery review` plus three reviewer agents form a measured review loop (`/orrery:review`).
 
-Installed with `/plugin marketplace add Sagargupta16/stackdraw` then `/plugin install stackdraw@stackdraw`, or `npx skills add Sagargupta16/stackdraw`.
+Installed with `/plugin marketplace add Sagargupta16/orrery` then `/plugin install orrery@orrery`, or `npx skills add Sagargupta16/orrery`.
 
 ## Stack
 
@@ -26,10 +26,10 @@ Installed with `/plugin marketplace add Sagargupta16/stackdraw` then `/plugin in
 
 ```
 pnpm install
-node skills/stackdraw/scripts/stackdraw.mjs render skills/stackdraw/examples/aws-serverless-api.yaml -o out/demo -f all --theme both
-node skills/stackdraw/scripts/stackdraw.mjs icons search load balancer
-pnpm build          # src/ -> skills/stackdraw/scripts/stackdraw.mjs + vendor/
-pnpm gallery        # re-render examples/ from skills/stackdraw/examples/
+node skills/orrery/scripts/orrery.mjs render skills/orrery/examples/aws-serverless-api.yaml -o out/demo -f all --theme both
+node skills/orrery/scripts/orrery.mjs icons search load balancer
+pnpm build          # src/ -> skills/orrery/scripts/orrery.mjs + vendor/
+pnpm gallery        # re-render examples/ from skills/orrery/examples/
 pnpm sync-icons     # rebuild icon catalogs from pinned vendor downloads (--latest re-pins)
 ```
 
@@ -46,21 +46,21 @@ npx -y @sagargupta1610/skillcheck lint skills
 
 ## Entry points
 
-- `skills/stackdraw/SKILL.md` -- the skill (fast path, authoring rules, outputs)
+- `skills/orrery/SKILL.md` -- the skill (fast path, authoring rules, outputs)
 - `src/cli.ts` -- commands: render, validate, icons, styles, init, doctor, demo
 - `src/spec.ts` -- spec parser and DG1xx diagnostics
 - `src/layout.ts` -- model -> ELK graph -> Scene (every renderer consumes the Scene)
 - `src/render/*.ts` -- svg, png, drawio, tsx, html
-- `scripts/sync-icons.mjs` -- official packs -> `skills/stackdraw/assets/icons/*.json`; npm-published sets get only index rows and a `lib` pin
-- `src/review.ts` -- `stackdraw review`: six scored dimensions at a display width; overlap findings map from `checkScene` diagnostics, so geometry rules live once in `src/check.ts`
-- `agents/*.md`, `commands/review.md` -- the three read-only reviewer agents and `/stackdraw:review`; their rubrics and the loop protocol are in `skills/stackdraw/references/review/`
+- `scripts/sync-icons.mjs` -- official packs -> `skills/orrery/assets/icons/*.json`; npm-published sets get only index rows and a `lib` pin
+- `src/review.ts` -- `orrery review`: six scored dimensions at a display width; overlap findings map from `checkScene` diagnostics, so geometry rules live once in `src/check.ts`
+- `agents/*.md`, `commands/review.md` -- the three read-only reviewer agents and `/orrery:review`; their rubrics and the loop protocol are in `skills/orrery/references/review/`
 - `src/libraries.ts` -- loads the npm-published sets (octicons, carbon, logos, simple-icons, tabler) at render time: node_modules, then the user cache, then jsDelivr/unpkg, sha256-checked
 
 ## Key files
 
 - `scripts/icon-sources.json` -- pinned vendor URLs + SHA-256; `scripts/icon-aliases.json` -- short names; `scripts/gcp-products.json` -- Google's product -> core/category icon list (May 2026 guide)
 - `src/styles.ts` -- group styles (AWS colors read from the official group tiles)
-- `skills/stackdraw/references/spec.md` -- the spec contract; keep it in sync with `src/spec.ts`
+- `skills/orrery/references/spec.md` -- the spec contract; keep it in sync with `src/spec.ts`
 - `.claude-plugin/plugin.json` + `marketplace.json` -- versions must match `package.json` and SKILL.md
 
 ## Gotchas
@@ -81,6 +81,6 @@ npx -y @sagargupta1610/skillcheck lint skills
 ## Repo-specific rules
 
 - Everything here is public: no personal names in skill bodies (say "the user"), no home paths, no private project names. Author/owner fields are the exception.
-- Never hand-edit generated files: `skills/stackdraw/scripts/stackdraw.mjs`, `scripts/vendor/`, `assets/icons/*.json`, `assets/fonts/metrics.json`, `examples/*.svg|png`. Change the source and regenerate.
+- Never hand-edit generated files: `skills/orrery/scripts/orrery.mjs`, `scripts/vendor/`, `assets/icons/*.json`, `assets/fonts/metrics.json`, `examples/*.svg|png`. Change the source and regenerate.
 - Every PR updates CHANGELOG.md under a concrete version and bumps package.json, both manifests and SKILL.md metadata when it releases.
 - No en or em dashes anywhere; `scripts/check-repo.mjs` fails on them.

@@ -9,6 +9,6 @@ Thumbs.db
 .env.*
 !.env.example
 .cache/
-# stackdraw review output (JSON report and display-width PNG)
+# orrery review output (JSON report and display-width PNG)
 *.review.json
 *.review.png

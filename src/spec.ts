@@ -268,7 +268,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
   }
   if (!isObj(raw)) {
     err("DG100", "the spec must be a mapping with nodes, groups and edges", {
-      fixes: ["start from `stackdraw init`"],
+      fixes: ["start from `orrery init`"],
     });
     return { diagnostics };
   }
@@ -483,7 +483,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
         subject: { group: id, type },
         fixes: [
           ...(near ? [`use type "${near}"`] : []),
-          "run `stackdraw styles` for every group type",
+          "run `orrery styles` for every group type",
         ],
       });
     }
@@ -565,7 +565,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
           subject: { node: id, icon: iconRaw },
           fixes: [
             ...suggestIcons(iconRaw).map((s) => `use icon "${s}"`),
-            `run \`stackdraw icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``,
+            `run \`orrery icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``,
           ],
         });
       }

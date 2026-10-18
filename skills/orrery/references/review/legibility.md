@@ -2,13 +2,13 @@
 
 For the legibility reviewer: can a reader take in the diagram at the width it is shown? The review PNG is the diagram at that width, one pixel per CSS pixel, so judge the PNG as it is, without zooming in. The review JSON gives `width`, `scale` (every length shrinks by it), `display` (the PNG size) and `elements` (each spec id with its box in PNG pixels).
 
-Rule ids are LEG-nn. **[measured]** rules are checked by `stackdraw review`; cite their numbers, do not re-measure. **[judged]** rules are yours; cite an `elements` box for the region you mean.
+Rule ids are LEG-nn. **[measured]** rules are checked by `orrery review`; cite their numbers, do not re-measure. **[judged]** rules are yours; cite an `elements` box for the region you mean.
 
 Never report overlaps, crossings, cut-off content or contrast from the image: vision models get line intersections right 56.84% of the time ([VLMs are blind](https://arxiv.org/html/2407.06581)) and agree with people at 0.428 on visualization quality ([VisJudge-Bench](https://arxiv.org/abs/2510.22373)). Those come from the measurement only.
 
 ## Size at the display width
 
-The thresholds are stackdraw's own, set so a diagram that fits the column keeps its 13px labels at full size; no vendor publishes a minimum.
+The thresholds are orrery's own, set so a diagram that fits the column keeps its 13px labels at full size; no vendor publishes a minimum.
 
 ### LEG-01 Node labels [measured: `quality.label-size`]
 

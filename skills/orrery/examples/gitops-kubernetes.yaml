@@ -2,7 +2,7 @@
 title: GitOps delivery with Argo CD
 subtitle: Actions pushes the image and bumps its tag; Argo CD syncs staging, then production manually
 direction: down
-# Top to bottom so the 880px README column shows it at full size (stackdraw review). One port per edge:
+# Top to bottom so the 880px README column shows it at full size (orrery review). One port per edge:
 # the sync, pull and scrape arrows end on cluster borders and must not share a point.
 layout: { layering: simplex, spacing: compact, merge: false }
 

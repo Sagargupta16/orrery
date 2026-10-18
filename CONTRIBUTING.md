@@ -1,12 +1,12 @@
-# Contributing to stackdraw
+# Contributing to orrery
 
-Thanks for helping. stackdraw is one skill with a bundled CLI: a spec parser and validator, an ELK layout, renderers for SVG, PNG, draw.io, TSX and HTML, and icon catalogs rebuilt from the vendors' own downloads. Contributions that make diagrams read better, cover more real architectures or catch more mistakes are the most welcome.
+Thanks for helping. orrery is one skill with a bundled CLI: a spec parser and validator, an ELK layout, renderers for SVG, PNG, draw.io, TSX and HTML, and icon catalogs rebuilt from the vendors' own downloads. Contributions that make diagrams read better, cover more real architectures or catch more mistakes are the most welcome.
 
 ## Setup
 
 ```bash
-git clone https://github.com/Sagargupta16/stackdraw
-cd stackdraw
+git clone https://github.com/Sagargupta16/orrery
+cd orrery
 pnpm install
 ```
 
@@ -17,9 +17,9 @@ Node.js 22 or newer and pnpm (the version in `package.json` `packageManager`).
 | Path | What |
 | --- | --- |
 | `src/` | TypeScript source: `spec.ts` (parse + validate), `icons.ts` (catalog, aliases, search), `libraries.ts` (logo and glyph sets loaded from npm at render time), `layout.ts` (ELK), `check.ts` (composition warnings), `render/` (one file per format), `cli.ts`. |
-| `skills/stackdraw/` | What ships: `SKILL.md`, `references/`, `examples/` (specs), `assets/` (icons, fonts), `scripts/stackdraw.mjs` (the built CLI) and `scripts/vendor/` (ELK, resvg). Generated files here are committed so the skill runs without an install. |
+| `skills/orrery/` | What ships: `SKILL.md`, `references/`, `examples/` (specs), `assets/` (icons, fonts), `scripts/orrery.mjs` (the built CLI) and `scripts/vendor/` (ELK, resvg). Generated files here are committed so the skill runs without an install. |
 | `scripts/` | Development scripts: `build.mjs`, `sync-icons.mjs`, `build-fonts.mjs`, `gallery.mjs`, `check-repo.mjs`, plus `icon-sources.json` (pinned downloads) and `icon-aliases.json`. |
-| `examples/` | The gallery: SVG and PNG for every spec in `skills/stackdraw/examples/`. |
+| `examples/` | The gallery: SVG and PNG for every spec in `skills/orrery/examples/`. |
 | `tests/` | Vitest suite. |
 
 ## Before you open a PR
@@ -33,7 +33,7 @@ pnpm gallery
 node scripts/check-repo.mjs
 ```
 
-CI runs the same commands. `pnpm build` regenerates `skills/stackdraw/scripts/stackdraw.mjs`; commit it (CI fails when it is stale). `pnpm gallery` re-renders the examples; look at the PNGs it changed before committing, and commit them (`check-repo.mjs` fails when the gallery does not match the renderer).
+CI runs the same commands. `pnpm build` regenerates `skills/orrery/scripts/orrery.mjs`; commit it (CI fails when it is stale). `pnpm gallery` re-renders the examples; look at the PNGs it changed before committing, and commit them (`check-repo.mjs` fails when the gallery does not match the renderer).
 
 ## Changing the renderer or layout
 
@@ -50,11 +50,11 @@ CI runs the same commands. `pnpm build` regenerates `skills/stackdraw/scripts/st
 
 ## Group styles
 
-Group styles live in `src/styles.ts`. Every value needs a source (the vendor's icon package, deck or published diagrams); record it in `skills/stackdraw/references/styles.md`.
+Group styles live in `src/styles.ts`. Every value needs a source (the vendor's icon package, deck or published diagrams); record it in `skills/orrery/references/styles.md`.
 
 ## Examples
 
-An example is a spec in `skills/stackdraw/examples/<name>.yaml` (it doubles as an `init` template) plus its rendered `examples/<name>.svg` and `.png`. It must validate with `--strict`, which also fails on DG217: every non-solid line style the spec uses (dashed, dotted, thick) needs an entry in `legend:`. It must use only real icon ids, and read like a diagram you would put in official documentation.
+An example is a spec in `skills/orrery/examples/<name>.yaml` (it doubles as an `init` template) plus its rendered `examples/<name>.svg` and `.png`. It must validate with `--strict`, which also fails on DG217: every non-solid line style the spec uses (dashed, dotted, thick) needs an entry in `legend:`. It must use only real icon ids, and read like a diagram you would put in official documentation.
 
 ## Skill content
 

@@ -4,7 +4,7 @@
 //   node scripts/sync-icons.mjs            rebuild from the pinned sources (checksums must match)
 //   node scripts/sync-icons.mjs --latest   find the newest official packages, re-pin, rebuild
 //
-// Output: skills/stackdraw/assets/icons/<pack>.json (bodies) and index.json (names, search, aliases).
+// Output: skills/orrery/assets/icons/<pack>.json (bodies) and index.json (names, search, aliases).
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -15,7 +15,7 @@ import { optimize } from "svgo";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const sourcesPath = join(root, "scripts/icon-sources.json");
 const aliasesPath = join(root, "scripts/icon-aliases.json");
-const outDir = join(root, "skills/stackdraw/assets/icons");
+const outDir = join(root, "skills/orrery/assets/icons");
 const cacheDir = join(root, ".cache/icons");
 const nodeModules = join(root, "node_modules");
 const latest = process.argv.includes("--latest");
@@ -36,7 +36,7 @@ async function download(url, expected) {
     buf = readFileSync(cached);
   } else {
     const res = await fetch(url, {
-      headers: { "user-agent": "stackdraw-sync-icons" },
+      headers: { "user-agent": "orrery-sync-icons" },
     });
     if (!res.ok) throw new Error(`GET ${url} -> HTTP ${res.status}`);
     buf = Buffer.from(await res.arrayBuffer());
@@ -53,7 +53,7 @@ async function download(url, expected) {
 
 async function pageText(url) {
   const res = await fetch(url, {
-    headers: { "user-agent": "Mozilla/5.0 stackdraw-sync-icons" },
+    headers: { "user-agent": "Mozilla/5.0 orrery-sync-icons" },
   });
   if (!res.ok) throw new Error(`GET ${url} -> HTTP ${res.status}`);
   return res.text();

@@ -45,7 +45,7 @@ jobs:
         run: npx -y @sagargupta1610/skillcheck@0.2.5 lint skills
 
       - name: Doctor
-        run: node skills/stackdraw/scripts/stackdraw.mjs doctor
+        run: node skills/orrery/scripts/orrery.mjs doctor
 
   tests:
     runs-on: ${{ matrix.os }}

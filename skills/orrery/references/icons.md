@@ -25,10 +25,10 @@ Only current artwork is in the catalog:
 The bundled packs need nothing. A library pack loads the first time a diagram uses one of its icons, from the first of these that has the pinned version:
 
 1. a `node_modules` folder above the skill (a development checkout),
-2. the user cache (`%LOCALAPPDATA%\stackdraw` on Windows, `~/.cache/stackdraw` elsewhere, or `STACKDRAW_CACHE`),
+2. the user cache (`%LOCALAPPDATA%\orrery` on Windows, `~/.cache/orrery` elsewhere, or `ORRERY_CACHE`),
 3. jsDelivr (`https://cdn.jsdelivr.net/npm/<package>@<version>/<file>`), then unpkg; the file is cached after the first download.
 
-Every file is checked against the SHA-256 pinned in `assets/icons/index.json`, so a render is the same everywhere. Searching and validating never download anything. Without network and without a cached copy, a render that needs a library icon fails with DG301; run `stackdraw icons fetch` once where there is network (and copy the cache folder, or point `STACKDRAW_CACHE` at it), or use an icon from a bundled pack. `stackdraw doctor` shows how many libraries are available offline.
+Every file is checked against the SHA-256 pinned in `assets/icons/index.json`, so a render is the same everywhere. Searching and validating never download anything. Without network and without a cached copy, a render that needs a library icon fails with DG301; run `orrery icons fetch` once where there is network (and copy the cache folder, or point `ORRERY_CACHE` at it), or use an icon from a bundled pack. `orrery doctor` shows how many libraries are available offline.
 
 ## Ids
 
@@ -58,7 +58,7 @@ Ids are case-insensitive and `aws/lambda` or `aws.lambda` also work. When an id 
 | `k8s:deploy`, `k8s:svc`, `k8s:ing`, `k8s:cm`, `k8s:pvc`, `k8s:hpa`, `k8s:sts` | kubectl short names |
 | `github:actions`, `github:copilot-logo`, `github:octocat`, `github:pr` | GitHub product marks and Octicons |
 
-`stackdraw icons search` matches aliases too, so searching "s3" finds `aws:simple-storage-service`.
+`orrery icons search` matches aliases too, so searching "s3" finds `aws:simple-storage-service`.
 
 ## The `generic:` vocabulary
 

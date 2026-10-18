@@ -38,24 +38,24 @@ import {
 declare const __VERSION__: string;
 const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "dev";
 
-const HELP = `stackdraw ${VERSION}: architecture and system design diagrams with official icons
+const HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
-  stackdraw render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
+  orrery render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
                     [--scale 3] [--animate packets|flow|none] [--static] [--font extra.ttf]
                     [--strict] [--force] [--json]
-  stackdraw validate <spec.yaml> [--strict] [--json]
-  stackdraw review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--strict] [--json]
-  stackdraw icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
-  stackdraw icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
-  stackdraw icons list [--pack aws] [--category Compute] [--type service] [--json]
-  stackdraw icons packs [--json]
-  stackdraw icons fetch [pack...]
-  stackdraw styles [--json]
-  stackdraw import mermaid <flowchart.mmd|-> [-o diagram.yaml]
-  stackdraw init [template] [-o diagram.yaml] [--list]
-  stackdraw doctor
-  stackdraw demo [out-dir]
+  orrery validate <spec.yaml> [--strict] [--json]
+  orrery review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--strict] [--json]
+  orrery icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
+  orrery icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
+  orrery icons list [--pack aws] [--category Compute] [--type service] [--json]
+  orrery icons packs [--json]
+  orrery icons fetch [pack...]
+  orrery styles [--json]
+  orrery import mermaid <flowchart.mmd|-> [-o diagram.yaml]
+  orrery init [template] [-o diagram.yaml] [--list]
+  orrery doctor
+  orrery demo [out-dir]
 
 Packs: ${PACK_ORDER.join(", ")}. Spec reference: references/spec.md in the skill folder.
 Exit codes: 0 ok, 1 diagram errors (or warnings with --strict), 2 bad command line.`;
@@ -163,7 +163,7 @@ function parseArgs(argv: string[]): Args {
 }
 
 function usage(message: string): never {
-  process.stderr.write(`stackdraw: ${message}\n\n${HELP}\n`);
+  process.stderr.write(`orrery: ${message}\n\n${HELP}\n`);
   process.exit(2);
 }
 
@@ -467,7 +467,7 @@ function cmdInit(args: Args) {
   }
   writeAtomic(out, readFileSync(file, "utf8"));
   process.stdout.write(
-    `wrote ${out} from template ${name}\nnext: stackdraw render ${basename(out)}\n`,
+    `wrote ${out} from template ${name}\nnext: orrery render ${basename(out)}\n`,
   );
 }
 
@@ -489,7 +489,7 @@ function cmdImport(args: Args) {
   writeAtomic(out, result.yaml);
   const guessed = Object.keys(result.guessed).length;
   process.stdout.write(
-    `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}\nnext: add icons, then stackdraw validate ${basename(out)}\n`,
+    `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}\nnext: add icons, then orrery validate ${basename(out)}\n`,
   );
 }
 
@@ -589,7 +589,7 @@ async function cmdDoctor() {
 }
 
 async function cmdDemo(args: Args) {
-  const dir = resolve(args._[0] ?? "stackdraw-demo");
+  const dir = resolve(args._[0] ?? "orrery-demo");
   let failed = 0;
   let libraryFixes: string[] | undefined;
   for (const t of templates()) {

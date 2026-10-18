@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../skills/stackdraw/references/diagram.schema.json
+# yaml-language-server: $schema=../skills/orrery/references/diagram.schema.json
 title: GitOps delivery to three clouds
 subtitle: Actions builds and signs, Argo CD syncs three clusters, Cloudflare fronts them, Grafana watches
 direction: right

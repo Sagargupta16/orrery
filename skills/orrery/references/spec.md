@@ -1,9 +1,9 @@
 # Diagram spec reference
 
-A diagram is one YAML (or JSON) file with three collections: `nodes`, `groups` and `edges`. Everything else is optional. `stackdraw validate` checks a spec and prints every problem with a code and a fix; `stackdraw render` refuses to write files while errors remain.
+A diagram is one YAML (or JSON) file with three collections: `nodes`, `groups` and `edges`. Everything else is optional. `orrery validate` checks a spec and prints every problem with a code and a fix; `orrery render` refuses to write files while errors remain.
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/stackdraw/main/skills/stackdraw/references/diagram.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/orrery/main/skills/orrery/references/diagram.schema.json
 title: Serverless image pipeline
 subtitle: Upload, resize and serve images on AWS
 direction: right
@@ -44,7 +44,7 @@ edges:
 | `background` | quoted hex color or `transparent` | theme | `transparent` drops the background rectangle. |
 | `legend` | mapping of `solid`, `dashed`, `dotted` or `thick` to a short meaning | none | A key drawn bottom right that says what each line style means, for example `legend: { dashed: Asynchronous events, dotted: Replication }`. Keys are case-insensitive and rows keep the order you write them. An unknown style (`dashd`) or an empty meaning fails with DG107, and the fix names the closest style. Add an entry for every non-solid style the diagram uses (DG217 warns otherwise). Quote a meaning that contains a comma. |
 
-Colors (node `color`, group `color` and `fill`, edge `color` and the top-level `background`) are `#` plus 3 or 6 hex digits, and they need quotes: `color: "#2563eb"`. `fill` also accepts `none` and `background` also accepts `transparent`. A value without the `#` (`color: 2563eb`) fails with DG107 "... must be a hex color with a leading #", fixed by `use a quoted hex color such as "#2563eb"`. An unquoted `#` starts a YAML comment, so `color: #2563eb` reaches stackdraw as an empty value; that fails with DG107 "<where> color is empty; an unquoted # starts a YAML comment" instead of silently dropping the color.
+Colors (node `color`, group `color` and `fill`, edge `color` and the top-level `background`) are `#` plus 3 or 6 hex digits, and they need quotes: `color: "#2563eb"`. `fill` also accepts `none` and `background` also accepts `transparent`. A value without the `#` (`color: 2563eb`) fails with DG107 "... must be a hex color with a leading #", fixed by `use a quoted hex color such as "#2563eb"`. An unquoted `#` starts a YAML comment, so `color: #2563eb` reaches orrery as an empty value; that fails with DG107 "<where> color is empty; an unquoted # starts a YAML comment" instead of silently dropping the color.
 
 Ids (node and group keys) use letters, digits, `_`, `-` and `.`, and must be unique across nodes and groups.
 
@@ -61,7 +61,7 @@ nodes:
 
 | Key | Meaning |
 | --- | --- |
-| `icon` | Icon id such as `aws:lambda` or an alias such as `aws:s3`. Find ids with `stackdraw icons search <words>`. |
+| `icon` | Icon id such as `aws:lambda` or an alias such as `aws:s3`. Find ids with `orrery icons search <words>`. |
 | `label` | Text under (or inside) the node. Defaults to the icon's official name, so `{ icon: aws:sqs }` reads "Amazon Simple Queue Service". |
 | `note` | Second, smaller, muted line: instance type, version, count, purpose. Quote it if it contains a comma. |
 | `in` | Id of the group the node sits in. |
@@ -84,7 +84,7 @@ groups:
 
 | Key | Meaning |
 | --- | --- |
-| `type` | A group style; run `stackdraw styles` for the list and see [styles.md](styles.md) for how each looks and where it comes from. AWS: `aws:cloud`, `aws:cloud-alt`, `aws:account`, `aws:region`, `aws:az`, `aws:vpc`, `aws:public-subnet`, `aws:private-subnet`, `aws:security-group`, `aws:auto-scaling`, `aws:corporate-dc`, `aws:server-contents`, `aws:ec2-contents`, `aws:spot-fleet`, `aws:iot-greengrass`, `aws:step-functions`, `aws:elastic-beanstalk`, `aws:generic`, `aws:generic-dashed`. Google Cloud: `gcp:cloud`, `gcp:project`, `gcp:region`, `gcp:zone`, `gcp:vpc`, `gcp:subnet`, `gcp:tier`, `gcp:gke-cluster`, `gcp:on-prem`, `gcp:external`, `gcp:optional`, `gcp:users`. Azure: `azure:tenant`, `azure:subscription`, `azure:resource-group`, `azure:region`, `azure:az`, `azure:vnet`, `azure:vnet-hub`, `azure:subnet`, `azure:service-group`, `azure:optional`, `azure:node-pool`, `azure:on-prem`. Kubernetes: `k8s:cluster`, `k8s:namespace`, `k8s:node`, `k8s:control-plane`. C4: `c4:boundary`. Neutral: `box`, `dashed`, `zone`, `boundary`, `on-prem`, `internet`. |
+| `type` | A group style; run `orrery styles` for the list and see [styles.md](styles.md) for how each looks and where it comes from. AWS: `aws:cloud`, `aws:cloud-alt`, `aws:account`, `aws:region`, `aws:az`, `aws:vpc`, `aws:public-subnet`, `aws:private-subnet`, `aws:security-group`, `aws:auto-scaling`, `aws:corporate-dc`, `aws:server-contents`, `aws:ec2-contents`, `aws:spot-fleet`, `aws:iot-greengrass`, `aws:step-functions`, `aws:elastic-beanstalk`, `aws:generic`, `aws:generic-dashed`. Google Cloud: `gcp:cloud`, `gcp:project`, `gcp:region`, `gcp:zone`, `gcp:vpc`, `gcp:subnet`, `gcp:tier`, `gcp:gke-cluster`, `gcp:on-prem`, `gcp:external`, `gcp:optional`, `gcp:users`. Azure: `azure:tenant`, `azure:subscription`, `azure:resource-group`, `azure:region`, `azure:az`, `azure:vnet`, `azure:vnet-hub`, `azure:subnet`, `azure:service-group`, `azure:optional`, `azure:node-pool`, `azure:on-prem`. Kubernetes: `k8s:cluster`, `k8s:namespace`, `k8s:node`, `k8s:control-plane`. C4: `c4:boundary`. Neutral: `box`, `dashed`, `zone`, `boundary`, `on-prem`, `internet`. |
 | `label` | Header text. Defaults to the style's label ("VPC", "Region", ...). |
 | `in` | Parent group id. Groups nest to any depth. |
 | `contains` | List of child ids; the same as writing `in:` on each child. |
@@ -165,4 +165,4 @@ edges:
 | DG213 | warning | An `around:` group encloses a node or group that it does not list. |
 | DG217 | warning | The diagram draws a dashed, dotted or thick line that `legend:` does not explain. |
 | DG218 | warning | Layout needed a fallback strategy, so the node order in the picture may not follow the spec. |
-| DG301 | error | An icon library that comes from npm (`github`, `ibm`, `logos`, `si`, `tabler`) could not be loaded: it is not in `node_modules` or the cache and the download failed. The fixes say how to prefetch it (`stackdraw icons fetch`, `STACKDRAW_CACHE`) or to use the bundled packs (`aws`, `azure`, `gcp`, `k8s`). |
+| DG301 | error | An icon library that comes from npm (`github`, `ibm`, `logos`, `si`, `tabler`) could not be loaded: it is not in `node_modules` or the cache and the download failed. The fixes say how to prefetch it (`orrery icons fetch`, `ORRERY_CACHE`) or to use the bundled packs (`aws`, `azure`, `gcp`, `k8s`). |

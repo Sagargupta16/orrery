@@ -6,6 +6,6 @@ main().catch((e: unknown) => {
   if (e instanceof LibraryError) {
     process.stderr.write(`error DG301 ${e.message}\n`);
     for (const fix of e.fixes) process.stderr.write(`      fix: ${fix}\n`);
-  } else process.stderr.write(`stackdraw: ${(e as Error)?.stack ?? e}\n`);
+  } else process.stderr.write(`orrery: ${(e as Error)?.stack ?? e}\n`);
   process.exitCode = 1;
 });

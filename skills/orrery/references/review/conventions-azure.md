@@ -5,7 +5,7 @@ Sources, quoted verbatim:
 - Azure Well-Architected Framework, *Create architecture design diagrams*: <https://learn.microsoft.com/en-us/azure/well-architected/architect-role/design-diagrams> (WAF below).
 - Azure Architecture Center, *Azure icons*, General guidelines: <https://learn.microsoft.com/en-us/azure/architecture/icons/> (Icons below).
 
-**[measured]** rules are checked by `stackdraw review` (finding id given); do not re-report them. **[judged]** rules are yours: report a violation with the rule id, its quote and the spec ids. **[renderer]** rules are applied by stackdraw and cannot be fixed from the spec; do not report them.
+**[measured]** rules are checked by `orrery review` (finding id given); do not re-report them. **[judged]** rules are yours: report a violation with the rule id, its quote and the spec ids. **[renderer]** rules are applied by orrery and cannot be fixed from the spec; do not report them.
 
 ## Lines and arrows
 
@@ -43,7 +43,7 @@ Judge the direction: an arrow drawn from the dependency to the caller (the datab
 
 > "When representing specific technologies, always use the latest official icons and naming conventions. Don't stretch or recolor brand shapes arbitrarily." (WAF)
 
-Judge names: a label with a retired or informal product name (for example "Azure AD" for Microsoft Entra ID, "Azure Cognitive Search" for Azure AI Search) when the catalog name differs (`stackdraw icons search <words> --pack azure` shows the current name).
+Judge names: a label with a retired or informal product name (for example "Azure AD" for Microsoft Entra ID, "Azure Cognitive Search" for Azure AI Search) when the catalog name differs (`orrery icons search <words> --pack azure` shows the current name).
 
 ### AZ-07 Product name next to the icon [judged]
 
@@ -87,7 +87,7 @@ A PaaS service (App Service, Azure SQL Database, Key Vault, Storage) reached ove
 
 > "Include elements such as title, description, last updated date, author, version, and external references." (WAF, Include metadata)
 
-stackdraw draws `title` and `subtitle`; judge whether they state purpose and scope.
+orrery draws `title` and `subtitle`; judge whether they state purpose and scope.
 
 ### AZ-15 Contrast, and not color alone [measured: `quality.contrast`]
 

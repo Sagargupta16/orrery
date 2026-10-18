@@ -1,6 +1,6 @@
 // Group (container) styles, each with its source. AWS values are read from the official
 // Architecture Icons deck; Google Cloud and Azure publish no container spec, so their values are
-// measured from the vendors' own reference diagrams (skills/stackdraw/references/styles.md).
+// measured from the vendors' own reference diagrams (skills/orrery/references/styles.md).
 
 export interface GroupStyle {
   key: string;
@@ -66,8 +66,8 @@ const azure = (s: Partial2): StyleSpec => ({
 });
 
 const K8S_DECK = "kubernetes/community icon deck";
-const STACKDRAW = "stackdraw";
-// stackdraw's own outlines keep 3:1 against white and against the zone fill (WCAG 1.4.11).
+const ORRERY = "orrery";
+// orrery's own outlines keep 3:1 against white and against the zone fill (WCAG 1.4.11).
 const OUTLINE = "#888f99";
 const C4 = "C4-PlantUML v2.14.0 boundary style";
 
@@ -429,13 +429,13 @@ const DEFS: Record<string, StyleSpec> = {
   },
 
   // ------------------------------------------------------------- Generic
-  box: { label: "", stroke: OUTLINE, description: "A plain bordered box.", source: STACKDRAW },
+  box: { label: "", stroke: OUTLINE, description: "A plain bordered box.", source: ORRERY },
   dashed: {
     label: "",
     stroke: OUTLINE,
     dash: "6 4",
     description: "A dashed boundary.",
-    source: STACKDRAW,
+    source: ORRERY,
   },
   zone: {
     label: "",
@@ -443,7 +443,7 @@ const DEFS: Record<string, StyleSpec> = {
     fill: "#f4f6f8",
     rounded: 10,
     description: "A filled panel with a soft outline, for tiers and lanes.",
-    source: STACKDRAW,
+    source: ORRERY,
   },
   boundary: {
     label: "",
@@ -461,7 +461,7 @@ const DEFS: Record<string, StyleSpec> = {
     fill: "#f4f6f8",
     icon: "tabler:building",
     description: "An on-premises site, vendor-neutral.",
-    source: STACKDRAW,
+    source: ORRERY,
   },
   internet: {
     label: "Internet",
@@ -469,7 +469,7 @@ const DEFS: Record<string, StyleSpec> = {
     dash: "2 3",
     icon: "tabler:world",
     description: "The public internet.",
-    source: STACKDRAW,
+    source: ORRERY,
   },
 };
 

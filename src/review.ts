@@ -1,7 +1,7 @@
 // The measured half of the review board: scores one laid-out scene on six dimensions at the width
 // readers will see it, so model reviewers only judge what code cannot measure. Every finding carries
 // the numbers behind it, and the hard counts are the ratchet a patch must never raise.
-// Protocol and rubrics: skills/stackdraw/references/review/.
+// Protocol and rubrics: skills/orrery/references/review/.
 import { contrast, isHex, mixHex } from "./color.ts";
 import { aliases, iconAspect, iconInfo, resolveIcon } from "./icons.ts";
 import { renderModel } from "./render/index.ts";

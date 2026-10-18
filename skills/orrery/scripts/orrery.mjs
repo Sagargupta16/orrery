@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// stackdraw 0.3.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.3.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -7446,9 +7446,9 @@ var LibraryError = class extends Error {
 };
 var loaded = /* @__PURE__ */ new Map();
 function cacheDir() {
-  if (process.env.STACKDRAW_CACHE) return process.env.STACKDRAW_CACHE;
+  if (process.env.ORRERY_CACHE) return process.env.ORRERY_CACHE;
   const base = process.platform === "win32" ? process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local") : process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
-  return join(base, "stackdraw");
+  return join(base, "orrery");
 }
 var cachePath = (src) => join(cacheDir(), `${src.npm.replace("/", "+")}@${src.version}`, src.file);
 var libraryUrls = (src) => [
@@ -7510,7 +7510,7 @@ async function download(src) {
     `icon library ${src.npm}@${src.version} could not be downloaded (${problems.join("; ")})`,
     [
       "connect to the internet once; the library is cached after the first download",
-      `prefetch where there is network: stackdraw icons fetch, then copy ${cacheDir()} (or set STACKDRAW_CACHE)`,
+      `prefetch where there is network: orrery icons fetch, then copy ${cacheDir()} (or set ORRERY_CACHE)`,
       "use icons from the bundled official packs (aws, azure, gcp, k8s) instead"
     ]
   );
@@ -7575,12 +7575,12 @@ import { fileURLToPath as fileURLToPath2 } from "node:url";
 function findSkillRoot() {
   let dir = dirname2(fileURLToPath2(import.meta.url));
   for (let i = 0; i < 6; i++) {
-    for (const candidate of [dir, join2(dir, "skills", "stackdraw")]) {
+    for (const candidate of [dir, join2(dir, "skills", "orrery")]) {
       if (existsSync2(join2(candidate, "assets", "icons", "index.json"))) return candidate;
     }
     dir = dirname2(dir);
   }
-  throw new Error("stackdraw: cannot find the skill assets (assets/icons/index.json)");
+  throw new Error("orrery: cannot find the skill assets (assets/icons/index.json)");
 }
 var skillRoot = findSkillRoot();
 var iconsDir = join2(skillRoot, "assets", "icons");
@@ -8065,9 +8065,9 @@ function importMermaid(source) {
   doc.nodes = specNodes;
   doc.edges = specEdges;
   const header = [
-    "# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/stackdraw/main/skills/stackdraw/references/diagram.schema.json",
-    "# Imported from Mermaid by stackdraw. Replace shapes with official icons (stackdraw icons search <words>),",
-    "# turn zones into vendor groups (aws:vpc, gcp:project, azure:vnet...) and run stackdraw validate."
+    "# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/orrery/main/skills/orrery/references/diagram.schema.json",
+    "# Imported from Mermaid by orrery. Replace shapes with official icons (orrery icons search <words>),",
+    "# turn zones into vendor groups (aws:vpc, gcp:project, azure:vnet...) and run orrery validate."
   ];
   if (Object.keys(guessed).length) {
     header.push(
@@ -8587,7 +8587,7 @@ var azure = (s) => ({
   ...s
 });
 var K8S_DECK = "kubernetes/community icon deck";
-var STACKDRAW = "stackdraw";
+var ORRERY = "orrery";
 var OUTLINE = "#888f99";
 var C4 = "C4-PlantUML v2.14.0 boundary style";
 var DEFS = {
@@ -8942,13 +8942,13 @@ var DEFS = {
     source: C4
   },
   // ------------------------------------------------------------- Generic
-  box: { label: "", stroke: OUTLINE, description: "A plain bordered box.", source: STACKDRAW },
+  box: { label: "", stroke: OUTLINE, description: "A plain bordered box.", source: ORRERY },
   dashed: {
     label: "",
     stroke: OUTLINE,
     dash: "6 4",
     description: "A dashed boundary.",
-    source: STACKDRAW
+    source: ORRERY
   },
   zone: {
     label: "",
@@ -8956,7 +8956,7 @@ var DEFS = {
     fill: "#f4f6f8",
     rounded: 10,
     description: "A filled panel with a soft outline, for tiers and lanes.",
-    source: STACKDRAW
+    source: ORRERY
   },
   boundary: {
     label: "",
@@ -8974,7 +8974,7 @@ var DEFS = {
     fill: "#f4f6f8",
     icon: "tabler:building",
     description: "An on-premises site, vendor-neutral.",
-    source: STACKDRAW
+    source: ORRERY
   },
   internet: {
     label: "Internet",
@@ -8982,7 +8982,7 @@ var DEFS = {
     dash: "2 3",
     icon: "tabler:world",
     description: "The public internet.",
-    source: STACKDRAW
+    source: ORRERY
   }
 };
 var GROUP_STYLES = Object.fromEntries(
@@ -11229,8 +11229,8 @@ function renderDrawio(scene, name = "Diagram") {
   if (scene.legend?.items.length) legend2(ctx, scene.legend);
   const bg = scene.background === "transparent" ? "none" : scene.background ?? t.background;
   return [
-    `<mxfile host="stackdraw" agent="stackdraw" type="device">`,
-    `<diagram id="stackdraw" name="${esc(name)}">`,
+    `<mxfile host="orrery" agent="orrery" type="device">`,
+    `<diagram id="orrery" name="${esc(name)}">`,
     `<mxGraphModel dx="${scene.width}" dy="${scene.height}" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="${scene.width}" pageHeight="${scene.height}" background="${bg}" math="0" shadow="0">`,
     `<root><mxCell id="0"/><mxCell id="1" parent="0"/>`,
     ...ctx.cells,
@@ -11250,7 +11250,7 @@ function renderHtml(input) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="generator" content="stackdraw">
+<meta name="generator" content="orrery">
 <title>${esc(input.title)}</title>
 <style>
 :root{color-scheme:light dark;--bg:#f6f7f9;--panel:#ffffff;--ink:#1f2937;--muted:#5f6b7a;--line:#d8dde3;--accent:#2563eb}
@@ -11472,7 +11472,7 @@ function renderTsx(scene, name) {
     out.push(`${indent()}${inStyle ? templateLiteral(textNode) : jsxText(textNode)}`);
   }
   return [
-    "// Generated by stackdraw. Edit the diagram spec and re-render instead of editing this file.",
+    "// Generated by orrery. Edit the diagram spec and re-render instead of editing this file.",
     `import { type SVGProps, useId } from "react";`,
     "",
     `export default function ${name}(props: SVGProps<SVGSVGElement>) {`,
@@ -13736,7 +13736,7 @@ function parseSpec(source, filename = "diagram.yaml") {
   }
   if (!isObj(raw)) {
     err("DG100", "the spec must be a mapping with nodes, groups and edges", {
-      fixes: ["start from `stackdraw init`"]
+      fixes: ["start from `orrery init`"]
     });
     return { diagnostics };
   }
@@ -13908,7 +13908,7 @@ function parseSpec(source, filename = "diagram.yaml") {
         subject: { group: id, type },
         fixes: [
           ...near ? [`use type "${near}"`] : [],
-          "run `stackdraw styles` for every group type"
+          "run `orrery styles` for every group type"
         ]
       });
     }
@@ -13989,7 +13989,7 @@ function parseSpec(source, filename = "diagram.yaml") {
           subject: { node: id, icon: iconRaw },
           fixes: [
             ...suggestIcons(iconRaw).map((s) => `use icon "${s}"`),
-            `run \`stackdraw icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``
+            `run \`orrery icons search ${iconRaw.split(":").pop()?.replace(/-/g, " ")}\``
           ]
         });
       }
@@ -14258,24 +14258,24 @@ function suggestIds(id, ids, kind) {
 
 // src/cli.ts
 var VERSION = true ? "0.3.0" : "dev";
-var HELP = `stackdraw ${VERSION}: architecture and system design diagrams with official icons
+var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
-  stackdraw render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
+  orrery render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
                     [--scale 3] [--animate packets|flow|none] [--static] [--font extra.ttf]
                     [--strict] [--force] [--json]
-  stackdraw validate <spec.yaml> [--strict] [--json]
-  stackdraw review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--strict] [--json]
-  stackdraw icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
-  stackdraw icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
-  stackdraw icons list [--pack aws] [--category Compute] [--type service] [--json]
-  stackdraw icons packs [--json]
-  stackdraw icons fetch [pack...]
-  stackdraw styles [--json]
-  stackdraw import mermaid <flowchart.mmd|-> [-o diagram.yaml]
-  stackdraw init [template] [-o diagram.yaml] [--list]
-  stackdraw doctor
-  stackdraw demo [out-dir]
+  orrery validate <spec.yaml> [--strict] [--json]
+  orrery review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--strict] [--json]
+  orrery icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
+  orrery icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
+  orrery icons list [--pack aws] [--category Compute] [--type service] [--json]
+  orrery icons packs [--json]
+  orrery icons fetch [pack...]
+  orrery styles [--json]
+  orrery import mermaid <flowchart.mmd|-> [-o diagram.yaml]
+  orrery init [template] [-o diagram.yaml] [--list]
+  orrery doctor
+  orrery demo [out-dir]
 
 Packs: ${PACK_ORDER.join(", ")}. Spec reference: references/spec.md in the skill folder.
 Exit codes: 0 ok, 1 diagram errors (or warnings with --strict), 2 bad command line.`;
@@ -14362,7 +14362,7 @@ function parseArgs(argv) {
   return out;
 }
 function usage(message) {
-  process.stderr.write(`stackdraw: ${message}
+  process.stderr.write(`orrery: ${message}
 
 ${HELP}
 `);
@@ -14664,7 +14664,7 @@ function cmdInit(args) {
   writeAtomic(out, readFileSync5(file, "utf8"));
   process.stdout.write(
     `wrote ${out} from template ${name}
-next: stackdraw render ${basename(out)}
+next: orrery render ${basename(out)}
 `
   );
 }
@@ -14689,7 +14689,7 @@ function cmdImport(args) {
   const guessed = Object.keys(result.guessed).length;
   process.stdout.write(
     `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}
-next: add icons, then stackdraw validate ${basename(out)}
+next: add icons, then orrery validate ${basename(out)}
 `
   );
 }
@@ -14787,7 +14787,7 @@ async function cmdDoctor() {
   process.exitCode = checks.every(([, p]) => p) ? 0 : 1;
 }
 async function cmdDemo(args) {
-  const dir = resolve(args._[0] ?? "stackdraw-demo");
+  const dir = resolve(args._[0] ?? "orrery-demo");
   let failed = 0;
   let libraryFixes;
   for (const t of templates()) {
@@ -14868,7 +14868,7 @@ main().catch((e) => {
 `);
     for (const fix of e.fixes) process.stderr.write(`      fix: ${fix}
 `);
-  } else process.stderr.write(`stackdraw: ${e?.stack ?? e}
+  } else process.stderr.write(`orrery: ${e?.stack ?? e}
 `);
   process.exitCode = 1;
 });

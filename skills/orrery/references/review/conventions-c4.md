@@ -5,9 +5,9 @@ Applies when a group uses a `c4:` type or the title or subtitle names C4. Source
 - C4 model, *Notation*: <https://c4model.com/diagrams/notation> (Notation below).
 - C4 model, *Review checklist*: <https://c4model.com/diagrams/checklist> (Checklist below).
 
-**[measured]** rules are checked by `stackdraw review` (finding id given); do not re-report them. **[judged]** rules are yours: report a violation with the rule id, its quote and the spec ids.
+**[measured]** rules are checked by `orrery review` (finding id given); do not re-report them. **[judged]** rules are yours: report a violation with the rule id, its quote and the spec ids.
 
-How stackdraw carries C4 notation: the element type and technology go in brackets in `note` (`note: "[Container: Go] Catalog, cart and checkout"`, `[Person]`, `[Software System]`), the relationship technology in brackets in the edge label (`Reads and writes orders [SQL]`), and line styles in `legend:`.
+How orrery carries C4 notation: the element type and technology go in brackets in `note` (`note: "[Container: Go] Catalog, cart and checkout"`, `[Person]`, `[Software System]`), the relationship technology in brackets in the edge label (`Reads and writes orders [SQL]`), and line styles in `legend:`.
 
 ## Diagram
 

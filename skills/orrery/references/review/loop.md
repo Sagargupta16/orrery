@@ -7,10 +7,10 @@ How a rendered diagram gets reviewed and improved: **measure, critique, patch, r
 | Role | Who | Writes | Reads |
 | --- | --- | --- | --- |
 | Orchestrator | the main session | the spec, and nothing else | everything below |
-| Measurer | `stackdraw review` (`src/review.ts`) | `<base>.review.json`, `<base>.review.png` | the spec |
-| Conventions reviewer | `stackdraw:conventions-reviewer`, or an inline pass | one JSON findings array | the rubric files named in `rubrics` of the review JSON |
-| Flow reviewer | `stackdraw:flow-reviewer`, or an inline pass | one JSON findings array | [flow.md](flow.md) |
-| Legibility reviewer | `stackdraw:legibility-reviewer`, or an inline pass | one JSON findings array | [legibility.md](legibility.md) |
+| Measurer | `orrery review` (`src/review.ts`) | `<base>.review.json`, `<base>.review.png` | the spec |
+| Conventions reviewer | `orrery:conventions-reviewer`, or an inline pass | one JSON findings array | the rubric files named in `rubrics` of the review JSON |
+| Flow reviewer | `orrery:flow-reviewer`, or an inline pass | one JSON findings array | [flow.md](flow.md) |
+| Legibility reviewer | `orrery:legibility-reviewer`, or an inline pass | one JSON findings array | [legibility.md](legibility.md) |
 
 Reviewers are read-only (Read, Glob, Grep): they cannot edit, write or spawn agents. Rubrics: [conventions-aws.md](conventions-aws.md), [conventions-azure.md](conventions-azure.md), [conventions-gcp.md](conventions-gcp.md), [conventions-c4.md](conventions-c4.md), [flow.md](flow.md), [legibility.md](legibility.md).
 
@@ -34,7 +34,7 @@ One line: what the diagram must show, for whom, and where it is shown. The place
 ### 1. Measure
 
 ```bash
-stackdraw review docs/architecture.yaml --width 880 --json -o docs/architecture
+orrery review docs/architecture.yaml --width 880 --json -o docs/architecture
 ```
 
 It lays out the spec in both themes, writes `docs/architecture.review.json` and `docs/architecture.review.png` (a still PNG at the display width, one pixel per CSS pixel: what the reader sees) and prints the report (`--json`) or a table. `--theme dark` reviews the dark scene's geometry; contrast is checked in both themes either way. Read from the JSON: `score`, `pass`, `hard`, `dimensions.*.score` and `metrics`, `findings`, `elements` (every node, group and edge with its box in PNG pixels), `rubrics`.

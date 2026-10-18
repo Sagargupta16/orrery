@@ -13,8 +13,8 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const cli = join(root, "skills/stackdraw/scripts/stackdraw.mjs");
-const examplesDir = join(root, "skills/stackdraw/examples");
+const cli = join(root, "skills/orrery/scripts/orrery.mjs");
+const examplesDir = join(root, "skills/orrery/examples");
 const check = process.argv.includes("--check");
 
 /** [spec, output base relative to the root, extra CLI args, files the render writes] */
