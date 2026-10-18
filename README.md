@@ -12,7 +12,7 @@
 One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML viewer out.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.4.0-2563eb)
+![Version](https://img.shields.io/badge/version-0.4.1-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-16%2C682-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 

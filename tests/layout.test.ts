@@ -248,6 +248,53 @@ edges:
     expect(contains({ x: 0, y: 0, w: outlined.width, h: outlined.height }, asg)).toBe(true);
   });
 
+  it("connects edges to and from an around group at its border, clear of its header", async () => {
+    const s = await layout(
+      model(`direction: down
+groups:
+  az-a: { type: aws:az }
+  az-b: { type: aws:az }
+  asg: { type: aws:auto-scaling, around: [web-a, web-b] }
+nodes:
+  lb: { icon: aws:alb }
+  web-a: { icon: aws:ec2, in: az-a }
+  web-b: { icon: aws:ec2, in: az-b }
+  db: { icon: aws:rds }
+edges:
+  - lb -> asg
+  - asg -> db
+`),
+    );
+    const asg = must(
+      s.groups.find((g) => g.id === "asg"),
+      "asg",
+    );
+    const b = asg.box;
+    const near = (v: number, w: number) => Math.abs(v - w) < 1;
+    const onBorder = (p: Point) =>
+      ((near(p.x, b.x) || near(p.x, b.x + b.w)) && p.y >= b.y - 1 && p.y <= b.y + b.h + 1) ||
+      ((near(p.y, b.y) || near(p.y, b.y + b.h)) && p.x >= b.x - 1 && p.x <= b.x + b.w + 1);
+    const header = [asg.iconBox, asg.labelBox].filter((x): x is Box => !!x);
+    const underHeader = (p: Point) =>
+      header.some((h) => p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h);
+    const into = must(
+      s.edges.find((e) => e.from === "lb" && e.to === "asg"),
+      "lb -> asg",
+    );
+    const out = must(
+      s.edges.find((e) => e.from === "asg" && e.to === "db"),
+      "asg -> db",
+    );
+    for (const p of [must(into.points.at(-1), "end"), must(out.points[0], "start")]) {
+      expect(onBorder(p)).toBe(true);
+      expect(underHeader(p)).toBe(false);
+    }
+    // ELK never sees the overlay, but hidden edges to its members keep the layer order.
+    const node = (id: string) => must(s.nodes.find((n) => n.id === id)?.box, id);
+    expect(node("lb").y + node("lb").h).toBeLessThan(node("web-a").y);
+    expect(node("db").y).toBeGreaterThan(node("web-a").y + node("web-a").h);
+  });
+
   it("describes the diagram in plain words for <desc> and alt text", async () => {
     const s = await layout(sample);
     expect(s.description).toMatch(/^Orders platform\. 7 components in 5 groups\. Connections: /);

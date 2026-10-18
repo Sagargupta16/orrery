@@ -112,7 +112,7 @@ Write edges as short strings. The arrow sets the line:
 - Fan out and in: `a -> b, c, d` and `a, b -> c`.
 - Chains: `a -> b -> c`. Label one hop inline: `a -[HTTPS]-> b -> c` (dashed: `a --[async]--> b`).
 - Spaces around `--`, `---`, `...` and `===` are required; arrows with `<` or `>` work without spaces.
-- Endpoints can be groups as well as nodes: `vpc -> s3` connects to the VPC's border.
+- Endpoints can be groups as well as nodes: `vpc -> s3` connects to the VPC's border. An `around:` group works too (`alb -> asg`): it is outlined only after layout, so the edge is drawn afterwards like `constraint: false`, ends on the overlay's border beside its header, and layout still orders the diagram as if the edge went to the overlay's members.
 - Dashed, dotted and thick lines carry meaning only if the reader can look it up: explain each one you use in the top-level `legend:`.
 
 Edges also accept a mapping for options that have no arrow syntax:

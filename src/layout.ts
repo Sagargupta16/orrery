@@ -438,6 +438,14 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   }
 
   const groupIds = new Set(model.groups.map((g) => g.id));
+  // Overlays (around:) are outlined after layout, so ELK never sees them: an edge with an overlay
+  // end is routed afterwards like constraint: false, to the overlay's border. While laying out,
+  // ELK gets hidden copies of it to the overlay's members, so it still orders the layers.
+  const overlays = new Map(
+    model.groups.filter((g) => g.around?.length).map((g) => [g.id, g.around ?? []]),
+  );
+  const free = (e: ModelEdge) => !e.constraint || overlays.has(e.from) || overlays.has(e.to);
+  const members = (id: string) => (overlays.get(id) ?? [id]).filter((m) => !overlays.has(m));
   const port = (nodeId: string, side: "in" | "out", e: ModelEdge): string => {
     if (!model.merge || groupIds.has(nodeId)) return nodeId;
     const el = elkNodes.get(nodeId);
@@ -455,11 +463,18 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   // A labelled edge gets its own layer for the label; give its unlabelled siblings an
   // empty label of the same kind so a fan-out stays in one column.
   const labelledFrom = new Set(
-    model.edges.filter((e) => e.constraint && (e.label || e.step !== undefined)).map((e) => e.from),
+    model.edges.filter((e) => !free(e) && (e.label || e.step !== undefined)).map((e) => e.from),
   );
   const edgeLabels = new Map<string, { block: TextBlock; w: number; h: number; stepW: number }>();
   for (const e of model.edges) {
-    if (!e.constraint) continue;
+    if (free(e)) {
+      if (!e.constraint) continue;
+      let i = 0;
+      for (const s of members(e.from))
+        for (const t of members(e.to))
+          if (s !== t) root.edges?.push({ id: `${e.id}__via${i++}`, sources: [s], targets: [t] });
+      continue;
+    }
     const elkEdge: ElkEdge = {
       id: e.id,
       sources: [port(e.from, "out", e)],
@@ -916,8 +931,10 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
         full: union([nd.box, nd.iconBox, nd.labelBox, nd.noteBox]),
       };
     }
-    const box = groups.find((x) => x.id === id)?.box;
-    return box ? { side: box, full: box } : undefined;
+    const g = groups.find((x) => x.id === id);
+    if (!g) return undefined;
+    const head = g.overlay ? [g.iconBox, g.labelBox].filter((b): b is Box => !!b && b.w > 0) : [];
+    return { side: g.box, full: g.box, avoid: head.length ? union(head) : undefined };
   };
   // Free edges (constraint: false) are routed here. Straight routes cannot move, so they claim
   // their line first; each elbow then steps aside from the lines of unrelated free edges.
@@ -945,19 +962,19 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     for (const e of model.edges) {
       const a = attachBox(e.from);
       const b = attachBox(e.to);
-      if (e.constraint || !a || !b) continue;
-      let points = freeRoute(a, b, 0);
+      if (!free(e) || !a || !b) continue;
+      const route = (d: number) =>
+        steer(steer(freeRoute(a, b, d), "to", b.avoid, b.full), "from", a.avoid, a.full);
+      let points = route(0);
       if ((points.length === 2) !== straight) continue;
       if (!straight)
-        points =
-          [0, 12, -12, 24, -24, 36, -36].map((d) => freeRoute(a, b, d)).find((p) => fits(p, e)) ??
-          points;
+        points = [0, 12, -12, 24, -24, 36, -36].map(route).find((p) => fits(p, e)) ?? points;
       freeRoutes.set(e.id, points);
       claimed.push(...points.slice(1).map((q, i) => ({ e, p: points[i] ?? q, q })));
     }
   }
   for (const e of model.edges) {
-    if (!e.constraint) {
+    if (free(e)) {
       const points = freeRoutes.get(e.id);
       if (points)
         edges.push({
@@ -1038,7 +1055,7 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   const footprints = nodes.map((n) => union([n.box, n.iconBox, n.labelBox, n.noteBox]));
   for (const e of model.edges) {
     const edge = edges.find((x) => x.id === e.id);
-    if (e.constraint || !edge || (!e.label && e.step === undefined)) continue;
+    if (!free(e) || !edge || (!e.label && e.step === undefined)) continue;
     const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
     const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
     const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
@@ -1428,6 +1445,8 @@ function clearHeader(
 interface Attach {
   side: Box;
   full: Box;
+  /** An overlay's header (tile and label) on its border: a line ends beside it, not under it. */
+  avoid?: Box;
 }
 
 const contains = (outer: Box, b: Box): boolean =>
@@ -1443,6 +1462,49 @@ function union(boxes: (Box | undefined)[]): Box {
   const w = Math.max(...list.map((b) => b.x + b.w)) - x;
   const h = Math.max(...list.map((b) => b.y + b.h)) - y;
   return { x, y, w, h };
+}
+
+/**
+ * Slides a free edge's end that would sit under an overlay's header along the border to just
+ * past the header, on the side of the edge's other end. A straight line becomes an elbow.
+ */
+function steer(points: Point[], end: "from" | "to", avoid: Box | undefined, border: Box): Point[] {
+  if (!avoid) return points;
+  // End first: pts[0] is the end that may sit under the header.
+  const pts = (end === "to" ? [...points].reverse() : [...points]).map((q) => ({ ...q }));
+  const [e, p] = pts;
+  const far = pts.at(-1);
+  if (!e || !p || !far || pts.length < 2) return points;
+  const gap = 12;
+  const under =
+    e.x >= avoid.x - gap &&
+    e.x <= avoid.x + avoid.w + gap &&
+    e.y >= avoid.y - gap &&
+    e.y <= avoid.y + avoid.h + gap;
+  if (!under) return points;
+  const vertical = Math.abs(p.x - e.x) < 0.5;
+  const k = vertical ? "x" : "y";
+  const j = vertical ? "y" : "x";
+  // Clear of the header by more than an arrowhead, so the head does not read as touching the text.
+  const clear = 20;
+  const lo = (vertical ? avoid.x : avoid.y) - clear;
+  const hi = (vertical ? avoid.x + avoid.w : avoid.y + avoid.h) + clear;
+  const min = (vertical ? border.x : border.y) + gap;
+  const max = (vertical ? border.x + border.w : border.y + border.h) - gap;
+  const to = (far[k] <= (lo + hi) / 2 ? [lo, hi] : [hi, lo])
+    .map(round)
+    .find((v) => v >= min && v <= max);
+  if (to === undefined) return points;
+  let out: Point[] = pts;
+  if (pts.length === 2) {
+    const mid = round((e[j] + far[j]) / 2);
+    const at = (a: number, b: number): Point => (vertical ? { x: a, y: b } : { x: b, y: a });
+    out = [at(to, e[j]), at(to, mid), at(far[k], mid), far];
+  } else {
+    e[k] = to;
+    p[k] = to;
+  }
+  return end === "to" ? out.reverse() : out;
 }
 
 /**
