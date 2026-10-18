@@ -100,6 +100,17 @@ orrery's own, with no vendor behind them. `box`, `dashed`, `zone` and `internet`
 
 Any group takes `color:` (border and label), `fill:` (background or `none`), `icon:` (any icon id, or `false`) and `dashed:`.
 
+## Processes and swimlanes
+
+Pools and lanes follow [BPMN 2.0.2](https://www.omg.org/spec/BPMN/2.0.2/) (OMG formal/13-12-09, Pool and Participant, Lanes) and draw the way the bpmn.io modeler does ([`BpmnRenderer.js`](https://github.com/bpmn-io/bpmn-js/blob/develop/lib/draw/BpmnRenderer.js), [`BpmnRenderUtil.js`](https://github.com/bpmn-io/bpmn-js/blob/develop/lib/draw/BpmnRenderUtil.js)): square bands with a 1.5 px border in its one line color hsl(225, 10%, 15%) (#22242A), no fill, and the name centered in a 30 px strip across the flow. bpmn.io sets names in 12 px Arial; orrery keeps its 13 px semibold group label.
+
+| Type | Border | Strip | Notes |
+| --- | --- | --- | --- |
+| `pool` | #22242A, 1.5 px, square | 30 px on the left of a horizontal flow (name read bottom to top), on top of a vertical one | One participant. Holds lanes, or nodes directly. With nothing in it, a black box: no strip, the name centered in the band, edges (message flows) end on its border. Pools stack 60 px apart. |
+| `lane` | #22242A, 1.5 px, square | 30 px beside its pool's strip, a divider line between strip and content | Inside a pool, inside another lane, or on its own for a cross-functional flowchart; neighboring lanes share a border. |
+
+A wrapped name widens the strip; a band grows until its name fits. The dark theme turns the line light (#C9D1D9), as it does for every near-black group border. In the stage skin a band is a hairline at the frame alpha with its name in mono caps, and its frame and strip edge light in the tint.
+
 ## Edges
 
 The vendors differ. These are the connector values measured in their own files.

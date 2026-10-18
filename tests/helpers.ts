@@ -13,10 +13,12 @@ export const EXAMPLES_DIR = join(SKILL_DIR, "examples");
 /**
  * A small but complete diagram: three levels of nesting, official icons, a card, a colored shape,
  * a note, a badge, edge labels, a numbered step, a dashed and a dotted line, and a group endpoint.
- * It lays out with no composition warnings in every direction.
+ * It lays out with no composition warnings in every direction. It pins the classic skin, whose
+ * output the render tests check piece by piece; stage, the default, has its own tests.
  */
 export const SAMPLE = `title: Orders platform
 subtitle: Sample diagram for the test suite
+skin: classic
 legend: { dashed: Asynchronous, dotted: Private endpoint }
 groups:
   cloud: { type: aws:cloud }

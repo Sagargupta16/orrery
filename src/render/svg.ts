@@ -12,6 +12,9 @@ import type {
   SceneNode,
   TextBlock,
 } from "../types.ts";
+import { journeyClassic } from "./journey.ts";
+import { laneClassic } from "./lanes.ts";
+import { flowMarks, notationMarks, notationShape, shapeOutline } from "./notation.ts";
 import { renderStage } from "./stage.ts";
 
 // Inter's vertical metrics (ascender 1984, descender -494 at 2048 units per em).
@@ -280,6 +283,7 @@ function edge(ctx: Ctx, e: SceneEdge, routing: Scene["routing"]): string {
     parts.push(arrowHead(last, beforeLast, len, half, color, open, width));
   if (start && firstPt && second)
     parts.push(arrowHead(firstPt, second, len, half, color, open, width));
+  if (e.flow) parts.push(flowMarks(e, color, width, ctx.t.background));
   if (beat) {
     const lit = ctx.relay.color;
     const heads = [
@@ -589,6 +593,8 @@ function plate(ctx: Ctx, nd: SceneNode, at: number): string {
 // ---------------------------------------------------------------- nodes
 
 export function shapePath(shape: SceneNode["shape"], b: Box): string {
+  const outline = shapeOutline(shape, b);
+  if (outline) return outline;
   const { x, y, w, h } = b;
   switch (shape) {
     case "box":
@@ -672,8 +678,9 @@ function node(ctx: Ctx, nd: SceneNode): string {
     const fill = nd.color
       ? mixHex(nd.color, bg, ctx.t.name === "dark" ? 0.16 : 0.1)
       : ctx.t.surface;
+    const outline = (nd.bpmn ? notationShape(nd) : undefined) ?? shapePath(nd.shape, nd.box);
     parts.push(
-      `<g fill="${fill}" stroke="${stroke}" stroke-width="1.25">${shapePath(nd.shape, nd.box)}</g>`,
+      `<g fill="${fill}" stroke="${stroke}" stroke-width="1.25">${outline}${notationMarks(nd, stroke, 1.25)}</g>`,
     );
     if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, nd.color, fill));
     parts.push(text(nd.label, nd.labelBox, nd.ink ?? ctx.t.text));
@@ -743,14 +750,18 @@ export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
   if (scene.title && scene.titleBox) out.push(text(scene.title, scene.titleBox, t.text, "start"));
   if (scene.subtitle && scene.subtitleBox)
     out.push(text(scene.subtitle, scene.subtitleBox, t.muted, "start"));
-  for (const g of scene.groups) out.push(`<g id="${ctx.prefix}g-${g.id}">${groupFrame(g)}</g>`);
+  if (scene.journey) out.push(journeyClassic(scene, t));
+  // Pools and lanes are bands with a label strip; everything else is a frame and a header.
+  const lanes = new Map(scene.groups.map((g) => [g.id, g.lane ? laneClassic(g, t) : undefined]));
+  for (const g of scene.groups)
+    out.push(`<g id="${ctx.prefix}g-${g.id}">${lanes.get(g.id)?.frame ?? groupFrame(g)}</g>`);
   for (const e of scene.edges) out.push(edge(ctx, e, scene.routing));
   for (const e of scene.edges) {
     const label = edgeLabel(ctx, e);
     if (label) out.push(label);
   }
   for (const g of scene.groups) {
-    const header = groupHeader(ctx, g);
+    const header = lanes.get(g.id)?.header ?? groupHeader(ctx, g);
     if (header) out.push(`<g id="${ctx.prefix}gh-${g.id}">${header}</g>`);
   }
   for (const nd of scene.nodes) {

@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Incident response
+subtitle: Who does what from the first alert to the postmortem, as a cross-functional flowchart
+kind: flowchart
+
+groups:
+  oncall: { type: lane, label: On-call engineer }
+  lead: { type: lane, label: Incident lead }
+  comms: { type: lane, label: Communications }
+
+nodes:
+  alert: { shape: terminator, label: Alert fires, in: oncall }
+  ack: { shape: process, label: Acknowledge the page, in: oncall }
+  triage: { shape: process, label: Triage the impact, in: oncall }
+  impact: { shape: decision, label: Customers affected?, in: oncall }
+  fix: { shape: process, label: Fix and monitor, in: oncall }
+
+  declare: { shape: process, label: Declare an incident, in: lead }
+  mitigate: { shape: process, label: Coordinate mitigation, in: lead }
+  resolved: { shape: decision, label: Resolved?, in: lead }
+  review: { shape: process, label: Schedule the postmortem, in: lead }
+  closed: { shape: terminator, label: Incident closed, in: lead }
+
+  status: { shape: process, label: Post a status page update, in: comms }
+  update: { shape: process, label: Update every 30 minutes, in: comms }
+  allclear: { shape: process, label: Send the all clear, in: comms }
+
+edges:
+  - alert -> ack -> triage -> impact
+  - impact -> fix: "No"
+  - impact -> declare: "Yes"
+  - fix -> closed
+  - declare -> mitigate -> resolved
+  - declare -> status -> update
+  - resolved -> mitigate: "No"
+  - resolved -> allclear: "Yes"
+  - update -> allclear
+  - allclear -> review -> closed

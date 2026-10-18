@@ -1,6 +1,6 @@
 {
   "name": "orrery",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "private": true,
   "description": "Architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, rendered to SVG, PNG, draw.io, TSX and HTML.",
   "license": "MIT",
@@ -28,6 +28,7 @@
     "@biomejs/biome": "2.5.15",
     "@iconify-json/carbon": "1.2.28",
     "@iconify-json/logos": "1.2.16",
+    "@iconify-json/ph": "1.2.2",
     "@iconify-json/simple-icons": "1.2.100",
     "@iconify-json/tabler": "1.2.42",
     "@primer/octicons": "19.40.0",

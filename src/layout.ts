@@ -2,7 +2,12 @@ import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { contrast, ensureContrast, luminance, mixHex } from "./color.ts";
+import type { LayoutHooks, NodeGeom } from "./hooks.ts";
 import { iconAspect } from "./icons.ts";
+import { journeyLayout } from "./journey.ts";
+import { kindHooks } from "./kinds.ts";
+import { laneHooks } from "./lanes.ts";
+import { notationGeometry, notationHooks, placeNotation } from "./notation.ts";
 import { vendorDir } from "./paths.ts";
 import { stageColors } from "./skins.ts";
 import { resolveGroupStyle } from "./styles.ts";
@@ -118,17 +123,13 @@ const ELK_ROUTING = {
 
 const round = (v: number) => Math.round(v * 100) / 100;
 
-interface NodeGeom {
-  /** Size ELK lays out. */
-  w: number;
-  h: number;
-  label: TextBlock;
-  note?: TextBlock;
-  /** Outside label (icon look in a horizontal flow). */
-  outside?: { w: number; h: number };
-}
+/** The extension modules, in the order their hooks run: lanes and kinds place and route, then
+ * notation moves edge ends from a box onto the outline drawn in it. */
+const HOOKS: LayoutHooks[] = [laneHooks, kindHooks, notationHooks];
 
 function nodeGeometry(n: ModelNode, horizontal: boolean): NodeGeom {
+  const notation = notationGeometry(n, horizontal);
+  if (notation) return notation;
   const S = n.iconSize;
   if (n.look === "icon") {
     const label = textBlock(n.label, SIZES.nodeLabel, Math.max(SIZES.iconLabelMax, S + 40));
@@ -273,6 +274,11 @@ export interface LayoutOptions {
 
 export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Scene> {
   const theme = opts.theme ?? model.theme;
+  // A journey is a grid of stages and lanes with its own layout.
+  if (model.kind === "journey") {
+    const grid = await journeyLayout(model, theme);
+    if (grid) return model.skin === "stage" ? stageColors(grid) : grid;
+  }
   const t = THEME_TOKENS[theme];
   const horizontal = model.direction === "right" || model.direction === "left";
   const s = model.spacing;
@@ -312,7 +318,11 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     "elk.layered.mergeEdges": model.merge ? "true" : "false",
     "elk.layered.unnecessaryBendpoints": "true",
     "elk.layered.thoroughness": "12",
+    ...Object.assign({}, ...HOOKS.map((h) => h.elkOptions?.(model) ?? {})),
   };
+  // Groups ELK never sees (pools and lanes): their members join the nearest group it lays out.
+  const hidden = new Set(HOOKS.flatMap((h) => [...(h.hiddenGroups?.(model) ?? [])]));
+  const order = new Map(HOOKS.flatMap((h) => [...(h.order?.(model) ?? [])]));
 
   const nodeGeom = new Map<string, NodeGeom>();
   const groupGeom = new Map<string, GroupGeom>();
@@ -374,13 +384,15 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   // inline one) start their content, and their top edge, on one line.
   for (const grp of model.groups) {
     const gg = groupGeom.get(grp.id);
-    if (!gg || grp.around) continue;
-    const siblings = model.groups.filter((o) => !o.around && o.parent === grp.parent);
+    if (!gg || grp.around || hidden.has(grp.id)) continue;
+    const siblings = model.groups.filter(
+      (o) => !o.around && !hidden.has(o.id) && o.parent === grp.parent,
+    );
     gg.header = Math.max(...siblings.map((o) => groupGeom.get(o.id)?.header ?? 0));
   }
   for (const grp of model.groups) {
     const gg = groupGeom.get(grp.id);
-    if (!gg || grp.around) continue;
+    if (!gg || grp.around || hidden.has(grp.id)) continue;
     const top = gg.header + 18 + (opts.room?.get(grp.id) ?? 0);
     elkNodes.set(grp.id, {
       id: grp.id,
@@ -415,19 +427,36 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     children: [],
     edges: [],
   };
+  /** The ELK node an item goes into: its parent, skipping groups ELK does not see. */
+  const host = (parent: string | undefined): ElkNode | undefined => {
+    let p = parent;
+    while (p && hidden.has(p)) p = model.groups.find((g) => g.id === p)?.parent;
+    return p ? elkNodes.get(p) : root;
+  };
   // Children keep spec order: groups first, then nodes, each under its parent.
   for (const item of [...model.groups, ...model.nodes]) {
     const el = elkNodes.get(item.id);
     if (!el) continue;
-    const parent = item.parent ? elkNodes.get(item.parent) : root;
+    const parent = host(item.parent);
     (parent?.children ?? root.children)?.push(el);
   }
-  // Spec-order hints along the cross axis for semi-interactive crossing minimization.
+  // Spec-order hints along the cross axis for semi-interactive crossing minimization; a hook's
+  // order (lanes) goes first, spec order breaks ties.
   for (const parent of [root, ...elkNodes.values()]) {
-    parent.children?.forEach((c, i) => {
+    const kids = parent.children ?? [];
+    const rank = order.size
+      ? new Map(
+          kids
+            .map((c, i) => [c, i] as const)
+            .sort(([a, i], [b, j]) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0) || i - j)
+            .map(([c], r) => [c, r] as const),
+        )
+      : undefined;
+    kids.forEach((c, i) => {
+      const at = rank?.get(c) ?? i;
       c.layoutOptions = {
         ...c.layoutOptions,
-        "elk.position": horizontal ? `(0,${i * 10})` : `(${i * 10},0)`,
+        "elk.position": horizontal ? `(0,${at * 10})` : `(${at * 10},0)`,
       };
     });
   }
@@ -448,8 +477,19 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   const overlays = new Map(
     model.groups.filter((g) => g.around?.length).map((g) => [g.id, g.around ?? []]),
   );
-  const free = (e: ModelEdge) => !e.constraint || overlays.has(e.from) || overlays.has(e.to);
-  const members = (id: string) => (overlays.get(id) ?? [id]).filter((m) => !overlays.has(m));
+  const free = (e: ModelEdge) =>
+    !e.constraint ||
+    overlays.has(e.from) ||
+    overlays.has(e.to) ||
+    hidden.has(e.from) ||
+    hidden.has(e.to);
+  /** The nodes a group ELK does not see stands for: an overlay's members, a lane's contents. */
+  const inside = (id: string): string[] =>
+    [...model.nodes, ...model.groups]
+      .filter((x) => x.parent === id)
+      .flatMap((x) => (hidden.has(x.id) ? inside(x.id) : [x.id]));
+  const members = (id: string) =>
+    (overlays.get(id) ?? (hidden.has(id) ? inside(id) : [id])).filter((m) => !overlays.has(m));
   const port = (nodeId: string, side: "in" | "out", e: ModelEdge): string => {
     if (!model.merge || groupIds.has(nodeId)) return nodeId;
     const el = elkNodes.get(nodeId);
@@ -458,7 +498,9 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       side === "in"
         ? e.arrow === "end" || e.arrow === "both"
         : e.arrow === "start" || e.arrow === "both";
-    const id = `${nodeId}::${side}::${e.line}::${head ? 1 : 0}::${e.color ?? ""}`;
+    // Flows of different kinds (a gateway's default and conditional branches) keep their own
+    // trunks, so their start markers do not overlap.
+    const id = `${nodeId}::${side}::${e.line}::${head ? 1 : 0}::${e.color ?? ""}${e.flow ? `::${e.flow}` : ""}`;
     el.ports ??= [];
     if (!el.ports.some((p) => p.id === id)) el.ports.push({ id, width: 0, height: 0 });
     el.layoutOptions = { ...el.layoutOptions, "elk.portConstraints": "FREE" };
@@ -773,6 +815,9 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       badge: n.badge,
       url: n.url,
       parent: n.parent,
+      ...(n.bpmn ? { bpmn: n.bpmn } : {}),
+      ...(n.stage !== undefined ? { stage: n.stage } : {}),
+      ...(n.score !== undefined ? { score: n.score } : {}),
     };
     // Text on a filled group (Google's blue frame, Azure's VNet panel) keeps 4.5:1 contrast.
     let surface: string | undefined;
@@ -880,6 +925,14 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
         };
       }
     }
+    const outside = el.labels?.find((l) => l.id === `${n.id}__label`);
+    placeNotation(node, n, g, {
+      horizontal,
+      label:
+        outside?.x !== undefined && outside.y !== undefined
+          ? { x: round(outside.x), y: round(outside.y + top) }
+          : undefined,
+    });
     if (n.badge)
       node.badgeBox = badgePill(n.badge, node.iconBox && n.look === "icon" ? node.iconBox : box);
     nodes.push(node);
@@ -990,6 +1043,7 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
           arrow: e.arrow,
           color: e.color,
           step: e.step,
+          ...(e.flow ? { flow: e.flow } : {}),
         });
       continue;
     }
@@ -1006,6 +1060,7 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       arrow: e.arrow,
       color: e.color,
       step: e.step,
+      ...(e.flow ? { flow: e.flow } : {}),
     };
     const lab = edgeLabels.get(e.id);
     const elkLabel = el.labels?.[0];
@@ -1086,6 +1141,9 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       };
     }
   }
+
+  const hooked = { model, theme, horizontal, top, nodes, groups, edges, routing: model.routing };
+  for (const h of HOOKS) h.after?.(hooked);
 
   // Overlays are drawn around their members after routing, so an edge can run right along an
   // overlay's border and read as a double line: move that side out until the edge is 8px clear.
@@ -1204,10 +1262,20 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     }
   }
 
-  let width = round((result.width ?? 0) + dx);
-  let height = round((result.height ?? 0) + top + dy);
-  // Overlay groups and free-edge labels are placed after ELK sized the canvas.
-  for (const b of [...groups.map((g) => g.box), ...edges.flatMap((e) => [e.labelBox, e.stepBox])]) {
+  // Pools and lanes place every band themselves, so ELK's flat canvas is no floor for them.
+  let width = hidden.size ? 0 : round((result.width ?? 0) + dx);
+  let height = hidden.size ? 0 : round((result.height ?? 0) + top + dy);
+  // Overlay groups and free-edge labels are placed after ELK sized the canvas; so is everything a
+  // hook moved (lanes, trees).
+  const relocated =
+    model.kind !== "architecture" || hidden.size > 0
+      ? nodes.flatMap((n) => [n.box, n.labelBox, n.noteBox, n.badgeBox])
+      : [];
+  for (const b of [
+    ...groups.map((g) => g.box),
+    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
+    ...relocated,
+  ]) {
     if (!b) continue;
     width = Math.max(width, round(b.x + b.w + SIZES.pad));
     height = Math.max(height, round(b.y + b.h + SIZES.pad));
@@ -1246,7 +1314,7 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     height,
     theme,
     direction: model.direction,
-    routing: model.routing,
+    routing: hooked.routing,
     arrowhead: model.arrowhead,
     animate: animateOf(model),
     skin: model.skin,
@@ -1261,6 +1329,8 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     legend,
     layoutFallback: fallback,
     description: describe(model),
+    kind: model.kind,
+    ...(model.story ? { story: model.story } : {}),
   };
   // The skin only recolors: every box and point above is the same for classic and stage.
   return model.skin === "stage" ? stageColors(scene) : scene;

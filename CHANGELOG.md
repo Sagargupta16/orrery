@@ -2,6 +2,44 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-10-18
+
+### Added
+
+- **Business flows: `kind:`** says what a diagram is, with the same nodes, groups and edges: `architecture` (the default), `flowchart`, `process`, `state`, `tree`, `mindmap` or `journey`. Each sets its own default direction and arrowhead. Eight new examples, one per kind plus a swimlane flowchart and one with local icons, all passing `validate --strict` and `orrery review` at 880px: 40 in the gallery, in a new Business flows category on the website.
+- **BPMN 2.0** (`kind: process`). Nodes take `bpmn:`, one of 32 elements, drawn as the spec and bpmn.io draw them:
+  - **Events:** start, intermediate and end, with message, timer, signal, conditional, error, terminate and escalation triggers, hollow when they catch and filled when they throw.
+  - **Gateways:** exclusive, parallel, inclusive, event-based, complex.
+  - **Activities:** tasks with the user, service, manual, script, send, receive and business-rule markers, subprocesses and call activities.
+  - **Data:** data objects and data stores.
+  - **Flows:** edges take `flow: message`, `default`, `conditional` or `association`, with their markers.
+  - Labels of events and gateways sit below the symbol, and lines end on the outline. draw.io gets its own BPMN shapes.
+- **Pools and swimlanes:** `pool` and `lane` groups lay out as bands across the flow, horizontal or vertical, nested lanes and black-box pools included. ELK lays out the flow, the bands are placed after it, and every edge is rerouted orthogonally on a grid of channels so no line runs through a node or a name strip. Message flows cross between pools. Classic draws the bpmn-js look; stage draws its hairline kit. draw.io gets real swimlanes.
+- **Flowchart and state shapes:** `parallelogram`, `subroutine`, `trapezoid` and `delay` (ISO 5807), plus `initial` and `final` (UML). Flowchart names work as shape synonyms: `terminator`, `decision`, `process`, `data`, `predefined`, `manual`, `database`, `state`.
+- **Trees and mind maps:**
+  - `kind: tree` is a tidy-tree layout with org-chart connectors and no arrowheads.
+  - `kind: mindmap` is a two-sided map: curved branches thick out of the root and one accessible color per first-level branch.
+  - Both are placed by orrery itself, because ELK's mrtree crashes on the ports layout makes.
+- **State machines:** `kind: state` draws self-transitions as loops on a corner of their state, with their labels clear of everything.
+- **Customer journey maps:** `kind: journey` has its own grid layout. `stages:` are the columns and lanes are the rows, with a card per step and edges routed in the gutters. An emotion row plots the stages' average `score:` (-2 to 2) as a smooth curve with a face per stage, in classic and stage.
+- **Stage story for processes and trees:**
+  - A `story:` path is walked hop by hop.
+  - A `process` plays a BPMN token: it splits at parallel gateways, waits at the join, takes the yes branch, sends message flows as their own hops and waits for them.
+  - A tree or mind map grows out of its root a level at a time.
+- **Notation in the review:** `orrery review` picks notation rubrics by `kind:` (BPMN 2.0, ISO 5807 and ANSI X3.5, UML 2.5.1, journey mapping), each rule quoting its source. It adds nine measured checks: start and end events, gateway and decision labels, parallel joins, pool boundaries, initial and final states, and journey completeness.
+- **Icons for business flows:**
+  - 90 business `generic:` names, such as `generic:invoice`, `generic:approval`, `generic:shipping` and `generic:ticket` (482 aliases in all).
+  - Phosphor as pack `ph`, with the regular weight indexed (1,527) and the other five weights by suffix: 18,209 icons in all.
+  - Your own SVG icons: `icons: { name: ./file.svg }`, then `icon: local:<name>`. Files are sanitized (no scripts, handlers, external links or embedded images), single-color art becomes a monochrome template, and a bad file is DG111.
+  - `orrery icons new`, `icons check` and `icons adopt` draw, check and import icons against drawing rules IC01 to IC10 (references/icons.md), and `icons check` writes a contact sheet in both skins and themes.
+
+### Changed
+
+- **Stage and dark are the defaults.** A spec without `skin:` now renders in the stage skin, and one without `theme:` in the dark theme; `skin: classic` and `theme: light` (or `--skin classic`, `--theme light`) bring back the vendors' own style and the light theme. The README, the examples gallery and the website lead with stage in dark, and the website's switch offers Stage before Classic and Dark before Light. Specs that set `skin:` or `theme:` render as before. The HTML viewer opens in the spec's theme instead of always light.
+- The review no longer misfires on pools and lanes (`overlap.outside-group`, `grid.off-center`), tree and mind map connectors, BPMN message flows and associations, journey rows, or plain lines the legend explains (`flow.undirected`). Reviews of the 32 existing examples are unchanged, except four that lose `flow.undirected` findings their legends already answered.
+- DG207, DG208, DG209 and DG217 understand pools, lanes, journeys and BPMN notation. Every existing example still renders byte-identical in both skins.
+- `init` copies a template's icon files with it, and `demo` passes full spec paths.
+
 ## [0.7.1] - 2026-10-18
 
 ### Added

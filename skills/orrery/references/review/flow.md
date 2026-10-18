@@ -42,6 +42,8 @@ An edge label gives the protocol, the action, sync or async, or the mechanism th
 
 Numbered `step:` edges follow the order the request takes, start at 1, and read left to right, top to bottom, or clockwise (AWS-14). `flow.step-order` and `flow.step-numbering` are measured; judge whether the numbering matches the story in the brief (for example, authentication before the data call).
 
+In a `process`, `flowchart` or `state` diagram the lines are the order and `flow.step-order` is not measured. Judge the main path instead: from the start event (or start terminator) along the branches the brief calls the normal case to an end, with every decision's branches labelled (BPMN-04, FC-03). A spec's `story:` lists the path the stage skin animates; it should be that same main path.
+
 ### FLOW-09 Line styles mean one thing each
 
 A dashed line means the same thing everywhere (async, optional, replication) and the legend says which (AZ-13, C4-02). Flag a style used for two meanings.

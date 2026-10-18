@@ -1,23 +1,23 @@
 ---
-// Switches every diagram on the page between its skins (classic, stage) and themes (light, dark).
-// Each choice is remembered; classic and light come first.
+// Switches every diagram on the page between its skins (stage, classic) and themes (dark, light).
+// Each choice is remembered; stage and dark, the defaults, come first.
 ---
 
 <div class="flex flex-wrap items-center gap-2">
   <div class="inline-flex rounded-full border border-line p-1" role="group" aria-label="Diagram style">
-    <button type="button" data-diagram-skin="classic" class="diagram-skin min-h-9 rounded-full px-3.5 font-mono text-xs"
-      >Classic</button
-    >
     <button type="button" data-diagram-skin="stage" class="diagram-skin min-h-9 rounded-full px-3.5 font-mono text-xs"
       >Stage</button
     >
+    <button type="button" data-diagram-skin="classic" class="diagram-skin min-h-9 rounded-full px-3.5 font-mono text-xs"
+      >Classic</button
+    >
   </div>
   <div class="inline-flex rounded-full border border-line p-1" role="group" aria-label="Diagram theme">
-    <button type="button" data-diagram-theme="light" class="diagram-theme min-h-9 rounded-full px-3.5 font-mono text-xs"
-      >Light</button
-    >
     <button type="button" data-diagram-theme="dark" class="diagram-theme min-h-9 rounded-full px-3.5 font-mono text-xs"
       >Dark</button
+    >
+    <button type="button" data-diagram-theme="light" class="diagram-theme min-h-9 rounded-full px-3.5 font-mono text-xs"
+      >Light</button
     >
   </div>
 </div>
@@ -30,10 +30,10 @@
       background-color 180ms var(--ease-out-quint),
       color 180ms var(--ease-out-quint);
   }
-  html:not([data-diagrams="dark"]) .diagram-theme[data-diagram-theme="light"],
-  html[data-diagrams="dark"] .diagram-theme[data-diagram-theme="dark"],
-  html:not([data-skin="stage"]) .diagram-skin[data-diagram-skin="classic"],
-  html[data-skin="stage"] .diagram-skin[data-diagram-skin="stage"] {
+  html:not([data-diagrams="light"]) .diagram-theme[data-diagram-theme="dark"],
+  html[data-diagrams="light"] .diagram-theme[data-diagram-theme="light"],
+  html:not([data-skin="classic"]) .diagram-skin[data-diagram-skin="stage"],
+  html[data-skin="classic"] .diagram-skin[data-diagram-skin="classic"] {
     background: var(--color-ink);
     color: var(--color-canvas);
   }
@@ -41,28 +41,28 @@
   .thumb {
     display: none;
   }
-  html:not([data-skin="stage"]):not([data-diagrams="dark"]) .thumb-classic-light,
-  html:not([data-skin="stage"])[data-diagrams="dark"] .thumb-classic-dark,
-  html[data-skin="stage"]:not([data-diagrams="dark"]) .thumb-stage-light,
-  html[data-skin="stage"][data-diagrams="dark"] .thumb-stage-dark {
+  html:not([data-skin="classic"]):not([data-diagrams="light"]) .thumb-stage-dark,
+  html:not([data-skin="classic"])[data-diagrams="light"] .thumb-stage-light,
+  html[data-skin="classic"]:not([data-diagrams="light"]) .thumb-classic-dark,
+  html[data-skin="classic"][data-diagrams="light"] .thumb-classic-light {
     display: block;
   }
 </style>
 
 <script>
   const root = document.documentElement;
-  if (localStorage.getItem("orrery-diagrams") === "dark") root.dataset.diagrams = "dark";
-  if (localStorage.getItem("orrery-skin") === "stage") root.dataset.skin = "stage";
+  if (localStorage.getItem("orrery-diagrams") === "light") root.dataset.diagrams = "light";
+  if (localStorage.getItem("orrery-skin") === "classic") root.dataset.skin = "classic";
   for (const button of document.querySelectorAll<HTMLButtonElement>("button.diagram-theme")) {
     button.addEventListener("click", () => {
-      const theme = button.dataset.diagramTheme ?? "light";
+      const theme = button.dataset.diagramTheme ?? "dark";
       root.dataset.diagrams = theme;
       localStorage.setItem("orrery-diagrams", theme);
     });
   }
   for (const button of document.querySelectorAll<HTMLButtonElement>("button.diagram-skin")) {
     button.addEventListener("click", () => {
-      const skin = button.dataset.diagramSkin ?? "classic";
+      const skin = button.dataset.diagramSkin ?? "stage";
       root.dataset.skin = skin;
       localStorage.setItem("orrery-skin", skin);
     });

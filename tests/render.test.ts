@@ -186,7 +186,7 @@ describe("SVG", () => {
   it("runs numbered edges in step order and loops them as one story", async () => {
     const s = await layout(
       model(
-        "nodes: { a: A, b: B, c: C }\nedges:\n  - a -> b: { step: 1 }\n  - b -> c: { step: 2 }\n",
+        "skin: classic\nnodes: { a: A, b: B, c: C }\nedges:\n  - a -> b: { step: 1 }\n  - b -> c: { step: 2 }\n",
       ),
     );
     const svg = renderSvg(s);
@@ -423,12 +423,12 @@ describe("HTML", () => {
     expect(html).not.toMatch(/<script[^>]+src=|<link\b|@import|<iframe/i);
   });
 
-  it("escapes the title and starts in the requested theme", () => {
+  it("escapes the title and starts in the spec's theme, dark by default", () => {
     const html = page();
     expect(html).toContain(
       "<title>Orders &lt;v2&gt; &amp; &quot;friends&quot; &#39;quoted&#39; {braces}</title>",
     );
-    expect(html).toContain('<body data-theme="light">');
+    expect(html).toContain('<body data-theme="dark">');
   });
 });
 

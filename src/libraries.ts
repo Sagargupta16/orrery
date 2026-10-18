@@ -21,6 +21,8 @@ export interface LibrarySource {
   mono?: boolean;
   /** Appended to a slug to get the library's own icon name (Octicons: "-24"). */
   suffix?: string;
+  /** Weights the library names by suffix ("-bold"); only the plain names are indexed (Phosphor). */
+  variants?: string[];
 }
 
 interface IconifyIcon {

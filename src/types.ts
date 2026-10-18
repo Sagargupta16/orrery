@@ -1,6 +1,8 @@
 // The diagram model at three stages: what the author writes (Spec*), what the parser hands to
 // layout (Model*), and what layout hands to every renderer (Scene*).
 
+import type { SceneJourney } from "./journey.ts";
+
 export type Direction = "right" | "down" | "left" | "up";
 export type ThemeName = "light" | "dark";
 export type EdgeLine = "solid" | "dashed" | "dotted" | "thick";
@@ -19,7 +21,15 @@ export type ShapeKind =
   | "note"
   | "person"
   | "cloud"
-  | "stack";
+  | "stack"
+  // Flowchart (ISO 5807): data in or out, a predefined process, a manual operation, a delay.
+  | "parallelogram"
+  | "subroutine"
+  | "trapezoid"
+  | "delay"
+  // State machines (UML): the initial pseudostate and the final state.
+  | "initial"
+  | "final";
 export type Routing = "orthogonal" | "polyline" | "spline";
 export type Spacing = "compact" | "normal" | "loose";
 
@@ -42,7 +52,136 @@ export const SHAPES: readonly ShapeKind[] = [
   "person",
   "cloud",
   "stack",
+  "parallelogram",
+  "subroutine",
+  "trapezoid",
+  "delay",
+  "initial",
+  "final",
 ];
+
+/**
+ * What a diagram is. architecture: the vendors' boxes and lines (the default); flowchart,
+ * process (BPMN 2.0), state (UML state machine): flows on the same layered layout; tree and
+ * mindmap: hierarchies; journey: a customer journey grid of stages and lanes.
+ */
+export type DiagramKind =
+  | "architecture"
+  | "flowchart"
+  | "process"
+  | "state"
+  | "tree"
+  | "mindmap"
+  | "journey";
+export const DIAGRAM_KINDS: readonly DiagramKind[] = [
+  "architecture",
+  "flowchart",
+  "process",
+  "state",
+  "tree",
+  "mindmap",
+  "journey",
+];
+
+/** BPMN 2.0 elements a process node can be (`bpmn:` on a node). */
+export type BpmnKind =
+  | "start"
+  | "start-message"
+  | "start-timer"
+  | "start-signal"
+  | "start-conditional"
+  | "intermediate"
+  | "intermediate-message"
+  | "intermediate-timer"
+  | "intermediate-signal"
+  | "end"
+  | "end-message"
+  | "end-error"
+  | "end-signal"
+  | "end-terminate"
+  | "end-escalation"
+  | "exclusive"
+  | "parallel"
+  | "inclusive"
+  | "event-based"
+  | "complex"
+  | "task"
+  | "user-task"
+  | "service-task"
+  | "manual-task"
+  | "script-task"
+  | "send-task"
+  | "receive-task"
+  | "business-rule-task"
+  | "subprocess"
+  | "call-activity"
+  | "data-object"
+  | "data-store";
+export const BPMN_KINDS: readonly BpmnKind[] = [
+  "start",
+  "start-message",
+  "start-timer",
+  "start-signal",
+  "start-conditional",
+  "intermediate",
+  "intermediate-message",
+  "intermediate-timer",
+  "intermediate-signal",
+  "end",
+  "end-message",
+  "end-error",
+  "end-signal",
+  "end-terminate",
+  "end-escalation",
+  "exclusive",
+  "parallel",
+  "inclusive",
+  "event-based",
+  "complex",
+  "task",
+  "user-task",
+  "service-task",
+  "manual-task",
+  "script-task",
+  "send-task",
+  "receive-task",
+  "business-rule-task",
+  "subprocess",
+  "call-activity",
+  "data-object",
+  "data-store",
+];
+/** Events and gateways are drawn as a symbol with the label outside it. */
+export const isBpmnEvent = (k: BpmnKind | undefined): boolean =>
+  !!k && /^(start|intermediate|end)/.test(k);
+export const isBpmnGateway = (k: BpmnKind | undefined): boolean =>
+  k === "exclusive" ||
+  k === "parallel" ||
+  k === "inclusive" ||
+  k === "event-based" ||
+  k === "complex";
+
+/**
+ * What an edge means in a process. sequence: the order of work (the default); message: between
+ * pools (dashed, a hollow circle at the start); default: the branch a gateway takes when no
+ * condition holds (a slash at the start); conditional: a condition on a sequence flow (a small
+ * diamond at the start); association: links an annotation or data (dotted, no arrowhead).
+ */
+export type EdgeFlow = "sequence" | "message" | "default" | "conditional" | "association";
+export const EDGE_FLOWS: readonly EdgeFlow[] = [
+  "sequence",
+  "message",
+  "default",
+  "conditional",
+  "association",
+];
+
+/** An SVG file the spec registers as an icon (`icons:`), used as `local:<name>`. */
+export interface LocalIcon {
+  name: string;
+  /** Absolute path, resolved against the spec's folder. */
+  path: string;
+}
 export const ROUTINGS: readonly Routing[] = ["orthogonal", "polyline", "spline"];
 export const SPACINGS: readonly Spacing[] = ["compact", "normal", "loose"];
 
@@ -82,6 +221,12 @@ export interface ModelNode {
   badge?: string;
   url?: string;
   iconSize: number;
+  /** BPMN element (process diagrams): drawn in BPMN 2.0 notation instead of `shape`. */
+  bpmn?: BpmnKind;
+  /** Journey column (one of the spec's `stages`). */
+  stage?: string;
+  /** Journey emotion at this step, -2 (very negative) to 2 (very positive). */
+  score?: number;
 }
 
 export interface ModelGroup {
@@ -108,6 +253,8 @@ export interface ModelEdge {
   step?: number;
   /** false: drawn after layout and ignored by it (links between side-by-side zones). */
   constraint: boolean;
+  /** Process flow kind; unset is a sequence flow. */
+  flow?: EdgeFlow;
 }
 
 /** What one line style means in this diagram (spec `legend:`), drawn as a key. */
@@ -137,6 +284,14 @@ export interface Model {
   nodes: ModelNode[];
   groups: ModelGroup[];
   edges: ModelEdge[];
+  /** What the diagram is; unset in the spec is architecture. */
+  kind: DiagramKind;
+  /** Journey columns in order. */
+  stages?: string[];
+  /** The path the stage story takes, as node ids in order (otherwise steps, else the longest path). */
+  story?: string[];
+  /** SVG files registered as `local:<name>` icons. */
+  icons?: LocalIcon[];
 }
 
 export interface Point {
@@ -183,6 +338,9 @@ export interface SceneNode {
   /** Label and note colors, set when the node sits on a filled group that needs them. */
   ink?: string;
   inkMuted?: string;
+  bpmn?: BpmnKind;
+  stage?: string;
+  score?: number;
 }
 
 export interface SceneGroup {
@@ -205,6 +363,11 @@ export interface SceneGroup {
   overlay?: boolean;
   /** Inner panel of a frame group (Google Cloud's blue frame). */
   inner?: { box: Box; fill: string };
+  /**
+   * A pool or lane band (process and swimlane diagrams): `header` is the strip its label sits
+   * in, across the flow (on the left of a horizontal flow, on top of a vertical one).
+   */
+  lane?: { horizontal: boolean; header: Box };
 }
 
 export interface SceneEdge {
@@ -219,6 +382,7 @@ export interface SceneEdge {
   labelBox?: Box;
   step?: number;
   stepBox?: Box;
+  flow?: EdgeFlow;
 }
 
 export interface SceneLegendItem {
@@ -257,4 +421,9 @@ export interface Scene {
   layoutFallback?: string;
   /** Plain-language summary used for the SVG <desc> and alt text. */
   description: string;
+  kind: DiagramKind;
+  /** The spec's story path (node ids), for the stage story. */
+  story?: string[];
+  /** Journey grid: stage columns, lane rows and the emotion curve. */
+  journey?: SceneJourney;
 }

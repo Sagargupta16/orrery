@@ -8,7 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { basename, dirname, extname, join, resolve } from "node:path";
+import { basename, dirname, extname, join, relative, resolve } from "node:path";
 import {
   allIcons,
   iconInfo,
@@ -20,6 +20,14 @@ import {
 } from "./icons.ts";
 import { importMermaid } from "./import/mermaid.ts";
 import { cachePath, LibraryError, librarySource, loadLibrary } from "./libraries.ts";
+import {
+  adoptIcon,
+  checkIcon,
+  ICON_RULES,
+  LocalIconError,
+  shownPath,
+  starterIcon,
+} from "./local-icons.ts";
 import { examplesDir, skillRoot } from "./paths.ts";
 import { FORMATS, type Format, renderModel } from "./render/index.ts";
 import { renderPng } from "./render/png.ts";
@@ -55,6 +63,9 @@ Usage:
   orrery icons list [--pack aws] [--category Compute] [--type service] [--json]
   orrery icons packs [--json]
   orrery icons fetch [pack...]
+  orrery icons new <name> [--dir icons] [--force]
+  orrery icons check <icon.svg> [-o sheet.png]
+  orrery icons adopt <file.svg> --name <name> [--dir icons] [--force]
   orrery styles [--json]
   orrery import mermaid <flowchart.mmd|-> [-o diagram.yaml]
   orrery init [template] [-o diagram.yaml] [--list]
@@ -84,6 +95,8 @@ const KNOWN_FLAGS = new Set([
   "limit",
   "category",
   "width",
+  "dir",
+  "name",
 ]);
 
 /** The option a typo most likely meant: a prefix match (--formats, --output) or a near spelling. */
@@ -194,6 +207,21 @@ function printDiagnostics(list: Diagnostic[], json: boolean) {
   }
 }
 
+/** A render stopped by a library download or a bad local icon file, as a diagnostic. */
+function renderFailure(e: unknown): Diagnostic | undefined {
+  if (e instanceof LibraryError)
+    return { severity: "error", code: "DG301", message: e.message, fixes: e.fixes };
+  if (e instanceof LocalIconError)
+    return {
+      severity: "error",
+      code: "DG111",
+      message: `icon file ${e.file} ${e.problem}`,
+      subject: { where: "icons", file: e.file },
+      fixes: [e.fix],
+    };
+  return undefined;
+}
+
 function readSpec(path: string): { text: string; name: string; path: string } {
   if (path === "-") return { text: readFileSync(0, "utf8"), name: "diagram", path: "stdin.yaml" };
   const full = resolve(path);
@@ -215,7 +243,7 @@ async function cmdRender(args: Args, validateOnly: boolean) {
   const spec = readSpec(specPath);
   const parsed = parseSpec(spec.text, spec.path);
   const diagnostics: Diagnostic[] = [...parsed.diagnostics];
-  const themeFlag = String(args.flags.theme ?? parsed.model?.theme ?? "light");
+  const themeFlag = String(args.flags.theme ?? parsed.model?.theme ?? "dark");
   if (!["light", "dark", "both"].includes(themeFlag)) usage(`--theme must be light, dark or both`);
   const themes: ThemeName[] = themeFlag === "both" ? ["light", "dark"] : [themeFlag as ThemeName];
   const fonts = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
@@ -277,9 +305,10 @@ async function cmdRender(args: Args, validateOnly: boolean) {
         skin: args.flags.skin as Skin | undefined,
       });
     } catch (e) {
-      if (!(e instanceof LibraryError)) throw e;
+      const failure = renderFailure(e);
+      if (!failure) throw e;
       result = { artifacts: [], diagnostics: [], scenes: {} };
-      diagnostics.push({ severity: "error", code: "DG301", message: e.message, fixes: e.fixes });
+      diagnostics.push(failure);
     }
     diagnostics.push(...result.diagnostics);
     const scene = result.scenes[themes[0] ?? "light"];
@@ -419,7 +448,7 @@ async function cmdIcons(args: Args) {
       process.exitCode = 1;
       return;
     }
-    const theme = (args.flags.theme === "dark" ? "dark" : "light") as ThemeName;
+    const theme = (args.flags.theme === "light" ? "light" : "dark") as ThemeName;
     const t = THEME_TOKENS[theme];
     await loadIconLibraries([info.id]);
     const r = renderIcon(info.id, "s", { theme, background: t.background, ink: t.text });
@@ -432,7 +461,164 @@ async function cmdIcons(args: Args) {
     process.stdout.write(`${JSON.stringify(info, null, 2)}\n`);
     return;
   }
-  usage(`unknown icons command "${sub ?? ""}" (use search, show, list, packs or fetch)`);
+  if (sub === "new") {
+    const [name] = rest;
+    if (!name || !ICON_NAME.test(name))
+      usage("icons new needs a name of lowercase letters, digits and -, e.g. icons new invoice");
+    const file = join(
+      resolve(typeof args.flags.dir === "string" ? args.flags.dir : "icons"),
+      `${name}.svg`,
+    );
+    if (existsSync(file) && args.flags.force !== true) {
+      process.stderr.write(`${shownPath(file)} exists; pass --force to overwrite\n`);
+      process.exitCode = 1;
+      return;
+    }
+    writeAtomic(file, starterIcon(name));
+    const shown = shownPath(file);
+    process.stdout.write(
+      `wrote ${shown}: a 24 grid starter (stroke 1.5, round caps and joins, currentColor)\n\nDrawing rules (references/icons.md in the skill folder has each one in full):\n`,
+    );
+    for (const r of ICON_RULES) process.stdout.write(`  ${r.id}  ${r.title}\n`);
+    process.stdout.write(
+      `\nnext:\n  1. replace the placeholder parts with the drawing: two to six parts, silhouette first\n  2. orrery icons check ${shown}   (writes ${name}.sheet.png next to it; look at it)\n  3. in the spec: icons: { ${name}: ./${shown} }, then icon: local:${name}\n`,
+    );
+    return;
+  }
+  if (sub === "check") {
+    const [file] = rest;
+    if (!file) usage("icons check needs an .svg file");
+    if (!existsSync(file)) usage(`no such file: ${file}`);
+    const out = typeof args.flags.out === "string" ? resolve(args.flags.out) : undefined;
+    process.exitCode = (await checkIconFile(resolve(file), out)) ? 0 : 1;
+    return;
+  }
+  if (sub === "adopt") {
+    const [src] = rest;
+    const name = args.flags.name;
+    if (!src) usage("icons adopt needs an .svg file");
+    if (typeof name !== "string" || !ICON_NAME.test(name))
+      usage("icons adopt needs --name <name> of lowercase letters, digits and -");
+    if (!existsSync(src)) usage(`no such file: ${src}`);
+    const file = join(
+      resolve(typeof args.flags.dir === "string" ? args.flags.dir : "icons"),
+      `${name}.svg`,
+    );
+    if (existsSync(file) && args.flags.force !== true) {
+      process.stderr.write(`${shownPath(file)} exists; pass --force to overwrite\n`);
+      process.exitCode = 1;
+      return;
+    }
+    const from = shownPath(resolve(src));
+    let ok = false;
+    try {
+      const adopted = adoptIcon(readFileSync(resolve(src), "utf8"), from);
+      writeAtomic(file, adopted.svg);
+      process.stdout.write(`wrote ${shownPath(file)} from ${from}\n`);
+      for (const note of adopted.notes) process.stdout.write(`  ${note}\n`);
+      const out = typeof args.flags.out === "string" ? resolve(args.flags.out) : undefined;
+      ok = await checkIconFile(file, out);
+    } catch (e) {
+      if (!(e instanceof LocalIconError)) throw e;
+      process.stderr.write(`error ${e.file} ${e.problem}\n      fix: ${e.fix}\n`);
+    }
+    process.stdout.write(`${OWNED_MARK}\n`);
+    process.exitCode = ok ? 0 : 1;
+    return;
+  }
+  usage(
+    `unknown icons command "${sub ?? ""}" (use search, show, list, packs, fetch, new, check or adopt)`,
+  );
+}
+
+const ICON_NAME = /^[a-z0-9][a-z0-9-]*$/;
+const OWNED_MARK =
+  "reminder: a mark owned by someone else is theirs to publish; adopting it does not license it.";
+
+/** Prints every rule's verdict and writes the contact sheet; true when the icon passes. */
+async function checkIconFile(path: string, out?: string): Promise<boolean> {
+  const shown = shownPath(path);
+  let check: ReturnType<typeof checkIcon>;
+  try {
+    check = checkIcon(readFileSync(path, "utf8"), shown);
+  } catch (e) {
+    if (!(e instanceof LocalIconError)) throw e;
+    process.stderr.write(`error ${shown} ${e.problem}\n      fix: ${e.fix}\n`);
+    return false;
+  }
+  const [x0, y0, x1, y1] = check.box;
+  process.stdout.write(
+    `${shown}: drawn from ${x0},${y0} to ${x1},${y1}; ${check.parts} part(s), ${check.commands} command(s), stroke ${check.widths.join(", ") || "none"}\n`,
+  );
+  for (const r of check.results) {
+    if (r.ok) process.stdout.write(`ok    ${r.id} ${r.title}${r.note ? ` (${r.note})` : ""}\n`);
+    else
+      process.stdout.write(
+        `FAIL  ${r.id} ${r.title}: ${r.problems.join("; ")}\n      fix: ${r.fix}\n`,
+      );
+  }
+  const sheet = out
+    ? extname(out)
+      ? out
+      : `${out}.png`
+    : join(dirname(path), `${basename(path, extname(path))}.sheet.png`);
+  writeAtomic(sheet, await iconSheet(path));
+  const failing = check.results.filter((r) => !r.ok).length;
+  process.stdout.write(
+    `wrote ${shownPath(sheet)}: look at all four tiles before handing over (IC10)\n${failing ? `failed: ${failing} rule(s)` : "ok: every rule passes"}\n`,
+  );
+  return !failing;
+}
+
+/**
+ * The icon at 48 and 24 px in classic and stage, light and dark, drawn by the real renderers from
+ * a two-node spec, so the sheet shows what a diagram will show.
+ */
+async function iconSheet(path: string): Promise<Uint8Array> {
+  const name =
+    basename(path, extname(path))
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "icon";
+  const file = path.replaceAll("\\", "/").replaceAll("'", "''");
+  const tiles: { svg: string; w: number; h: number; caption: string }[] = [];
+  for (const skin of SKINS) {
+    const spec = [
+      `skin: ${skin}`,
+      "animate: none",
+      `icons: { ${name}: '${file}' }`,
+      "nodes:",
+      `  large: { icon: "local:${name}", label: 48 px, size: 48 }`,
+      `  small: { icon: "local:${name}", label: 24 px, size: 24 }`,
+    ].join("\n");
+    const parsed = parseSpec(spec, join(dirname(path), "sheet.yaml"));
+    if (!parsed.model) throw new Error(parsed.diagnostics.map((d) => d.message).join("; "));
+    const r = await renderModel({
+      model: parsed.model,
+      formats: ["svg"],
+      themes: ["light", "dark"],
+      name: `${name}-${skin}`,
+    });
+    for (const a of r.artifacts)
+      tiles.push({ svg: String(a.data), w: a.width, h: a.height, caption: `${skin} ${a.theme}` });
+  }
+  const pad = 16;
+  const cap = 22;
+  const cw = Math.max(...tiles.map((t) => t.w));
+  const ch = Math.max(...tiles.map((t) => t.h));
+  const w = 2 * cw + 3 * pad;
+  const h = 2 * (ch + cap) + 3 * pad;
+  const body = tiles
+    .map((t, i) => {
+      const x = pad + (i % 2) * (cw + pad);
+      const y = pad + Math.floor(i / 2) * (ch + cap + pad);
+      return `<text x="${x}" y="${y + 14}" font-size="12" fill="#52525b">${t.caption}</text>${t.svg.replace("<svg ", `<svg x="${x}" y="${y + cap}" `)}`;
+    })
+    .join("");
+  return renderPng(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="Inter"><rect width="${w}" height="${h}" fill="#f4f4f5"/>${body}</svg>`,
+    { scale: 2 },
+  );
 }
 
 function cmdStyles(args: Args) {
@@ -473,10 +659,18 @@ function cmdInit(args: Args) {
     process.exitCode = 1;
     return;
   }
-  writeAtomic(out, readFileSync(file, "utf8"));
-  process.stdout.write(
-    `wrote ${out} from template ${name}\nnext: orrery render ${basename(out)}\n`,
-  );
+  const text = readFileSync(file, "utf8");
+  writeAtomic(out, text);
+  process.stdout.write(`wrote ${out} from template ${name}\n`);
+  // A template's own icons go along, at the same place relative to the spec.
+  for (const icon of parseSpec(text, file).model?.icons ?? []) {
+    const rel = relative(examplesDir, icon.path);
+    const dest = join(dirname(out), rel);
+    if (rel.startsWith("..") || (existsSync(dest) && args.flags.force !== true)) continue;
+    writeAtomic(dest, readFileSync(icon.path));
+    process.stdout.write(`wrote ${dest}\n`);
+  }
+  process.stdout.write(`next: orrery render ${basename(out)}\n`);
 }
 
 function cmdImport(args: Args) {
@@ -525,14 +719,23 @@ async function cmdReview(args: Args) {
       ? resolve("diagram")
       : spec.path.replace(/\.(ya?ml|json)$/i, "");
   const skin = args.flags.skin as Skin | undefined;
-  const run = await reviewModel({
-    model: skin ? { ...parsed.model, skin } : parsed.model,
-    name: spec.name,
-    width,
-    theme,
-    fonts,
-    diagnostics: parsed.diagnostics,
-  });
+  let run: Awaited<ReturnType<typeof reviewModel>>;
+  try {
+    run = await reviewModel({
+      model: skin ? { ...parsed.model, skin } : parsed.model,
+      name: spec.name,
+      width,
+      theme,
+      fonts,
+      diagnostics: parsed.diagnostics,
+    });
+  } catch (e) {
+    const failure = renderFailure(e);
+    if (!failure) throw e;
+    printDiagnostics([failure], false);
+    process.exitCode = 1;
+    return;
+  }
   writeAtomic(`${base}.review.json`, `${JSON.stringify(run.report, null, 2)}\n`);
   if (run.png) writeAtomic(`${base}.review.png`, run.png);
   if (args.flags.json === true) process.stdout.write(`${JSON.stringify(run.report, null, 2)}\n`);
@@ -602,8 +805,9 @@ async function cmdDemo(args: Args) {
   let failed = 0;
   let libraryFixes: string[] | undefined;
   for (const t of templates()) {
-    const text = readFileSync(join(examplesDir, `${t}.yaml`), "utf8");
-    const parsed = parseSpec(text, `${t}.yaml`);
+    const file = join(examplesDir, `${t}.yaml`);
+    // The full path: a template's icons: files resolve against its folder.
+    const parsed = parseSpec(readFileSync(file, "utf8"), file);
     if (!parsed.model) {
       failed += 1;
       process.stderr.write(`${t}: ${parsed.diagnostics.map((d) => d.message).join("; ")}\n`);
@@ -619,10 +823,11 @@ async function cmdDemo(args: Args) {
       });
     } catch (e) {
       // Offline, a template that needs an npm icon library fails alone; the rest still render.
-      if (!(e instanceof LibraryError)) throw e;
+      const failure = renderFailure(e);
+      if (!failure) throw e;
       failed += 1;
-      libraryFixes ??= e.fixes;
-      process.stderr.write(`${t}: error DG301 ${e.message}\n`);
+      if (e instanceof LibraryError) libraryFixes ??= e.fixes;
+      process.stderr.write(`${t}: error ${failure.code} ${failure.message}\n`);
       continue;
     }
     for (const a of r.artifacts) writeAtomic(join(dir, `${t}.${a.format}`), a.data);

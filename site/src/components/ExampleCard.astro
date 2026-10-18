@@ -19,10 +19,10 @@ const { example: e, eager = false } = Astro.props;
 const src = (variant: string) => url(`gallery/${e.name}/${e.name}-${variant}.svg`);
 // Classic light first (eager when asked); the other three load when their switch shows them.
 const variants = [
-  { cls: "thumb-classic-light", file: "light", bg: "bg-white" },
-  { cls: "thumb-classic-dark", file: "dark", bg: "bg-[#0d1117]" },
-  { cls: "thumb-stage-light", file: "stage-light", bg: "bg-[#eef2f6]" },
-  { cls: "thumb-stage-dark", file: "stage-dark", bg: "bg-[#0b1012]" },
+  { cls: "thumb-stage-dark", file: "dark", bg: "bg-[#0b1012]" },
+  { cls: "thumb-stage-light", file: "light", bg: "bg-[#eef2f6]" },
+  { cls: "thumb-classic-dark", file: "classic-dark", bg: "bg-[#0d1117]" },
+  { cls: "thumb-classic-light", file: "classic-light", bg: "bg-white" },
 ];
 ---
 

@@ -2,8 +2,6 @@
 title: GitOps delivery to three clouds
 subtitle: Actions builds and signs, Argo CD syncs three clusters, Cloudflare fronts them, Grafana watches
 direction: right
-# The README's first picture shows the stage skin; the rest of the gallery is classic.
-skin: stage
 layout: { merge: false, spacing: compact }
 
 legend:

@@ -1,6 +1,7 @@
 import { checkScene } from "../check.ts";
 import { loadIconLibraries } from "../icons.ts";
 import { fitIcons, layout } from "../layout.ts";
+import { loadLocalIcons } from "../local-icons.ts";
 import type { AnimateMode, Diagnostic, Model, Scene, Skin, ThemeName } from "../types.ts";
 import { renderDrawio } from "./drawio.ts";
 import { renderHtml } from "./html.ts";
@@ -49,6 +50,8 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
     ...new Set(req.formats.includes("html") ? [...req.themes, "light", "dark"] : req.themes),
   ] as ThemeName[];
   const scenes: Partial<Record<ThemeName, Scene>> = {};
+  // The spec's own SVG icons are read before layout, which measures every icon it places.
+  await loadLocalIcons(model);
   for (const theme of themes) scenes[theme] = await layout(model, { theme });
   if (req.formats.length) {
     const ids = Object.values(scenes).flatMap((s) => [
@@ -105,7 +108,8 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
         lightStill: stillOf("light", scenes.light),
         darkStill: stillOf("dark", scenes.dark),
         name: req.name,
-        initial: req.themes[0] ?? model.theme,
+        // Both themes are in the page; it opens in the spec's own, dark unless the spec says light.
+        initial: model.theme,
       }),
       width: scenes.light.width,
       height: scenes.light.height,

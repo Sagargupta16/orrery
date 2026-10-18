@@ -189,7 +189,7 @@ describe("layout", () => {
   });
 
   it("follows the spec theme when no theme is passed", async () => {
-    expect((await layout({ ...sample, theme: "dark" })).theme).toBe("dark");
+    expect((await layout({ ...sample, theme: "light" })).theme).toBe("light");
   });
 
   it("scales the gaps with layout.spacing", async () => {

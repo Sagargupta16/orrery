@@ -20,15 +20,15 @@ export function getStaticPaths() {
 const { example: e, prev, next } = Astro.props;
 const file = (suffix: string) => url(`gallery/${e.name}/${e.name}${suffix}`);
 const downloads = [
-  ["SVG", "light", file("-light.svg")],
   ["SVG", "dark", file("-dark.svg")],
-  ["SVG, stage skin", "light", file("-stage-light.svg")],
-  ["SVG, stage skin", "dark", file("-stage-dark.svg")],
-  ["PNG", "light", file("-light.png")],
+  ["SVG", "light", file("-light.svg")],
+  ["SVG, classic skin", "dark", file("-classic-dark.svg")],
+  ["SVG, classic skin", "light", file("-classic-light.svg")],
   ["PNG", "dark", file("-dark.png")],
-  ["draw.io", "light", file("-light.drawio")],
+  ["PNG", "light", file("-light.png")],
   ["draw.io", "dark", file("-dark.drawio")],
-  ["React TSX", "light", file("-light.tsx")],
+  ["draw.io", "light", file("-light.drawio")],
+  ["React TSX", "dark", file("-dark.tsx")],
   ["HTML viewer", "both themes", file(".html")],
   ["YAML spec", "source", file(".yaml")],
 ];
@@ -53,12 +53,12 @@ const downloads = [
     <figure class="panel mt-10 overflow-hidden">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
         <DiagramTheme />
-        <a class="font-mono text-xs text-accent-soft hover:text-ink" href={file("-light.svg")}>Open full size</a>
+        <a class="font-mono text-xs text-accent-soft hover:text-ink" href={file("-dark.svg")}>Open full size</a>
       </div>
-      <img src={file("-light.svg")} alt={e.alt} class="thumb thumb-classic-light w-full bg-white p-3 sm:p-6" />
-      <img src={file("-dark.svg")} alt={e.alt} class="thumb thumb-classic-dark w-full bg-[#0d1117] p-3 sm:p-6" loading="lazy" />
-      <img src={file("-stage-light.svg")} alt={e.alt} class="thumb thumb-stage-light w-full bg-[#eef2f6] p-3 sm:p-6" loading="lazy" />
-      <img src={file("-stage-dark.svg")} alt={e.alt} class="thumb thumb-stage-dark w-full bg-[#0b1012] p-3 sm:p-6" loading="lazy" />
+      <img src={file("-dark.svg")} alt={e.alt} class="thumb thumb-stage-dark w-full bg-[#0b1012] p-3 sm:p-6" />
+      <img src={file("-light.svg")} alt={e.alt} class="thumb thumb-stage-light w-full bg-[#eef2f6] p-3 sm:p-6" loading="lazy" />
+      <img src={file("-classic-dark.svg")} alt={e.alt} class="thumb thumb-classic-dark w-full bg-[#0d1117] p-3 sm:p-6" loading="lazy" />
+      <img src={file("-classic-light.svg")} alt={e.alt} class="thumb thumb-classic-light w-full bg-white p-3 sm:p-6" loading="lazy" />
     </figure>
 
     <div class="mt-10 grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
