@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.4.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.4.1 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -9449,6 +9449,11 @@ async function layout(model, opts = {}) {
     }
   }
   const groupIds = new Set(model.groups.map((g) => g.id));
+  const overlays = new Map(
+    model.groups.filter((g) => g.around?.length).map((g) => [g.id, g.around ?? []])
+  );
+  const free = (e) => !e.constraint || overlays.has(e.from) || overlays.has(e.to);
+  const members = (id) => (overlays.get(id) ?? [id]).filter((m) => !overlays.has(m));
   const port = (nodeId, side, e) => {
     if (!model.merge || groupIds.has(nodeId)) return nodeId;
     const el = elkNodes.get(nodeId);
@@ -9461,11 +9466,18 @@ async function layout(model, opts = {}) {
     return id;
   };
   const labelledFrom = new Set(
-    model.edges.filter((e) => e.constraint && (e.label || e.step !== void 0)).map((e) => e.from)
+    model.edges.filter((e) => !free(e) && (e.label || e.step !== void 0)).map((e) => e.from)
   );
   const edgeLabels = /* @__PURE__ */ new Map();
   for (const e of model.edges) {
-    if (!e.constraint) continue;
+    if (free(e)) {
+      if (!e.constraint) continue;
+      let i = 0;
+      for (const s2 of members(e.from))
+        for (const t2 of members(e.to))
+          if (s2 !== t2) root.edges?.push({ id: `${e.id}__via${i++}`, sources: [s2], targets: [t2] });
+      continue;
+    }
     const elkEdge = {
       id: e.id,
       sources: [port(e.from, "out", e)],
@@ -9494,14 +9506,14 @@ async function layout(model, opts = {}) {
   let { graph: result, fallback } = await runElk(root);
   const strict = crossings(result);
   if (strict.count > 0) {
-    const free = structuredClone(root);
+    const free2 = structuredClone(root);
     const leaves = new Set(model.nodes.map((n3) => n3.id).filter((id) => strict.nodes.has(id)));
     const unpin = (n3) => {
       if (leaves.has(n3.id) && n3.layoutOptions) delete n3.layoutOptions["elk.position"];
       for (const c of n3.children ?? []) unpin(c);
     };
-    unpin(free);
-    const alt = await runElk(free);
+    unpin(free2);
+    const alt = await runElk(free2);
     if (crossings(alt.graph).count < strict.count) ({ graph: result, fallback } = alt);
   }
   const top = titleBlock ? Math.ceil(SIZES.pad + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6) : 0;
@@ -9865,8 +9877,10 @@ async function layout(model, opts = {}) {
         full: union([nd.box, nd.iconBox, nd.labelBox, nd.noteBox])
       };
     }
-    const box = groups.find((x) => x.id === id)?.box;
-    return box ? { side: box, full: box } : void 0;
+    const g = groups.find((x) => x.id === id);
+    if (!g) return void 0;
+    const head = g.overlay ? [g.iconBox, g.labelBox].filter((b) => !!b && b.w > 0) : [];
+    return { side: g.box, full: g.box, avoid: head.length ? union(head) : void 0 };
   };
   const freeRoutes = /* @__PURE__ */ new Map();
   const claimed = [];
@@ -9891,17 +9905,18 @@ async function layout(model, opts = {}) {
     for (const e of model.edges) {
       const a = attachBox(e.from);
       const b = attachBox(e.to);
-      if (e.constraint || !a || !b) continue;
-      let points = freeRoute(a, b, 0);
+      if (!free(e) || !a || !b) continue;
+      const route = (d) => steer(steer(freeRoute(a, b, d), "to", b.avoid, b.full), "from", a.avoid, a.full);
+      let points = route(0);
       if (points.length === 2 !== straight) continue;
       if (!straight)
-        points = [0, 12, -12, 24, -24, 36, -36].map((d) => freeRoute(a, b, d)).find((p) => fits(p, e)) ?? points;
+        points = [0, 12, -12, 24, -24, 36, -36].map(route).find((p) => fits(p, e)) ?? points;
       freeRoutes.set(e.id, points);
       claimed.push(...points.slice(1).map((q, i) => ({ e, p: points[i] ?? q, q })));
     }
   }
   for (const e of model.edges) {
-    if (!e.constraint) {
+    if (free(e)) {
       const points2 = freeRoutes.get(e.id);
       if (points2)
         edges.push({
@@ -9977,7 +9992,7 @@ async function layout(model, opts = {}) {
   const footprints = nodes.map((n3) => union([n3.box, n3.iconBox, n3.labelBox, n3.noteBox]));
   for (const e of model.edges) {
     const edge3 = edges.find((x) => x.id === e.id);
-    if (e.constraint || !edge3 || !e.label && e.step === void 0) continue;
+    if (!free(e) || !edge3 || !e.label && e.step === void 0) continue;
     const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
     const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
     const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
@@ -10302,6 +10317,36 @@ function union(boxes) {
   const w = Math.max(...list.map((b) => b.x + b.w)) - x;
   const h = Math.max(...list.map((b) => b.y + b.h)) - y;
   return { x, y, w, h };
+}
+function steer(points, end, avoid, border) {
+  if (!avoid) return points;
+  const pts = (end === "to" ? [...points].reverse() : [...points]).map((q) => ({ ...q }));
+  const [e, p] = pts;
+  const far = pts.at(-1);
+  if (!e || !p || !far || pts.length < 2) return points;
+  const gap = 12;
+  const under = e.x >= avoid.x - gap && e.x <= avoid.x + avoid.w + gap && e.y >= avoid.y - gap && e.y <= avoid.y + avoid.h + gap;
+  if (!under) return points;
+  const vertical = Math.abs(p.x - e.x) < 0.5;
+  const k = vertical ? "x" : "y";
+  const j = vertical ? "y" : "x";
+  const clear = 20;
+  const lo = (vertical ? avoid.x : avoid.y) - clear;
+  const hi = (vertical ? avoid.x + avoid.w : avoid.y + avoid.h) + clear;
+  const min = (vertical ? border.x : border.y) + gap;
+  const max = (vertical ? border.x + border.w : border.y + border.h) - gap;
+  const to = (far[k] <= (lo + hi) / 2 ? [lo, hi] : [hi, lo]).map(round).find((v) => v >= min && v <= max);
+  if (to === void 0) return points;
+  let out = pts;
+  if (pts.length === 2) {
+    const mid = round((e[j] + far[j]) / 2);
+    const at = (a, b) => vertical ? { x: a, y: b } : { x: b, y: a };
+    out = [at(to, e[j]), at(to, mid), at(far[k], mid), far];
+  } else {
+    e[k] = to;
+    p[k] = to;
+  }
+  return end === "to" ? out.reverse() : out;
 }
 function freeRoute(from, to, shift) {
   const sideBySide = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
@@ -14257,7 +14302,7 @@ function suggestIds(id, ids, kind) {
 }
 
 // src/cli.ts
-var VERSION = true ? "0.4.0" : "dev";
+var VERSION = true ? "0.4.1" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
