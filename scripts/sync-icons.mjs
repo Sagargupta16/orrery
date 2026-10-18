@@ -829,8 +829,8 @@ function updateDocs(before, after) {
     [`${total(before)} icons`, `${total(after)} icons`],
     [`${sum(before, libs(before))} icons`, `${sum(after, libs(after))} icons`],
     [
-      `official_icons-${total(before).replace(",", "%2C")}`,
-      `official_icons-${total(after).replace(",", "%2C")}`,
+      `official_icons-${total(before).replaceAll(",", "%2C")}`,
+      `official_icons-${total(after).replaceAll(",", "%2C")}`,
     ],
     [`${sum(before, ["logos", "si"])} tech logos`, `${sum(after, ["logos", "si"])} tech logos`],
     [`${sum(before, ["tabler"])} neutral symbols`, `${sum(after, ["tabler"])} neutral symbols`],
