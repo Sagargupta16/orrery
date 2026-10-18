@@ -14705,18 +14705,42 @@ var OPS = [
   ["...", { line: "dotted", arrow: "none" }],
   ["--", { line: "solid", arrow: "none" }]
 ];
-var OP_RE = new RegExp(
-  [
-    "-\\[([^\\]]*)\\]->",
-    "--\\[([^\\]]*)\\]-->",
-    ...OPS.map(([op]) => {
-      const esc2 = op.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      return /[<>]/.test(op) ? esc2 : `(?<=\\s)${esc2}(?=\\s)`;
-    })
-  ].join("|"),
-  "g"
-);
-var hasOperator = (s) => new RegExp(OP_RE.source).test(` ${s} `);
+var LABELED = [
+  ["-[", "]->", "solid"],
+  ["--[", "]-->", "dashed"]
+];
+var space = (c) => c !== void 0 && /\s/.test(c);
+function operatorAt(s, i) {
+  for (const [open, close, line] of LABELED) {
+    if (!s.startsWith(open, i)) continue;
+    const end = s.indexOf("]", i + open.length);
+    if (end >= 0 && s.startsWith(close, end))
+      return {
+        length: end + close.length - i,
+        op: { line, arrow: "end", label: s.slice(i + open.length, end).trim() }
+      };
+  }
+  for (const [text2, op] of OPS) {
+    if (!s.startsWith(text2, i)) continue;
+    if (/[<>]/.test(text2) || space(s[i - 1]) && space(s[i + text2.length]))
+      return { length: text2.length, op };
+  }
+  return void 0;
+}
+function operators(s) {
+  const found = [];
+  for (let i = 0; i < s.length; ) {
+    const hit = operatorAt(s, i);
+    if (!hit) {
+      i += 1;
+      continue;
+    }
+    found.push({ index: i, ...hit });
+    i += hit.length;
+  }
+  return found;
+}
+var hasOperator = (s) => operators(` ${s} `).length > 0;
 function labelColon(s) {
   let depth = 0;
   for (let i = 0; i < s.length; i++) {
@@ -14739,15 +14763,10 @@ function parseEdgeExpression(expr) {
   }
   const parts = [];
   let last = 0;
-  for (const m of body.matchAll(OP_RE)) {
+  for (const m of operators(body)) {
     parts.push(body.slice(last, m.index).trim());
-    if (m[1] !== void 0) parts.push({ line: "solid", arrow: "end", label: m[1].trim() });
-    else if (m[2] !== void 0) parts.push({ line: "dashed", arrow: "end", label: m[2].trim() });
-    else {
-      const op = OPS.find(([o]) => o === m[0])?.[1];
-      if (op) parts.push({ ...op });
-    }
-    last = (m.index ?? 0) + m[0].length;
+    parts.push({ ...m.op });
+    last = m.index + m.length;
   }
   parts.push(body.slice(last).trim());
   if (parts.length < 3) return `no arrow found in "${expr}" (use ->, -->, <->, -- ...)`;

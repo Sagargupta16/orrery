@@ -20,6 +20,10 @@ All notable changes to this project are documented here. Follows [Semantic Versi
 
 - The 0.6 stage look: the dot texture, translucent washes of grey group fills, ringed step discs and the packet trail.
 
+### Fixed
+
+- CodeQL stops reporting the edge operator `-->` as an HTML comment filter (`js/bad-tag-filter`), which came back as a new alert whenever the bundled CLI's line numbers shifted. Edge expressions are now read by a small scanner instead of one regex; on the examples' edges and 20,000 generated expressions it returns exactly what the regex did.
+
 ## [0.6.1] - 2026-10-18
 
 ### Fixed
