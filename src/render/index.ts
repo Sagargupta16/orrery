@@ -1,7 +1,7 @@
 import { checkScene } from "../check.ts";
 import { loadIconLibraries } from "../icons.ts";
 import { fitIcons, layout } from "../layout.ts";
-import type { AnimateMode, Diagnostic, Model, Scene, ThemeName } from "../types.ts";
+import type { AnimateMode, Diagnostic, Model, Scene, Skin, ThemeName } from "../types.ts";
 import { renderDrawio } from "./drawio.ts";
 import { renderHtml } from "./html.ts";
 import { renderPng } from "./png.ts";
@@ -21,6 +21,8 @@ export interface RenderRequest {
   fonts?: string[];
   /** Overrides the spec's animate mode. */
   animate?: AnimateMode;
+  /** Overrides the spec's skin; an unset animate mode then follows the new skin. */
+  skin?: Skin;
 }
 
 export interface Artifact {
@@ -38,7 +40,11 @@ export interface RenderResult {
 }
 
 export async function renderModel(req: RenderRequest): Promise<RenderResult> {
-  const model = req.animate ? { ...req.model, animate: req.animate } : req.model;
+  const model: Model = {
+    ...req.model,
+    ...(req.skin ? { skin: req.skin } : {}),
+    ...(req.animate ? { animate: req.animate } : {}),
+  };
   const themes = [
     ...new Set(req.formats.includes("html") ? [...req.themes, "light", "dark"] : req.themes),
   ] as ThemeName[];

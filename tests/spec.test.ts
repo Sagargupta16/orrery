@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { animateOf } from "../src/layout.ts";
 import { parseEdgeExpression, parseSpec } from "../src/spec.ts";
 import type { Diagnostic } from "../src/types.ts";
 import { listDiagnostics, model, must } from "./helpers.ts";
@@ -343,10 +344,13 @@ describe("defaults", () => {
       layering: "source",
       merge: true,
       arrowhead: "open",
-      animate: "packets",
+      skin: "classic",
       title: undefined,
       background: undefined,
     });
+    // Unset animate follows the skin: packets for classic.
+    expect(m.animate).toBeUndefined();
+    expect(animateOf(m)).toBe("packets");
     expect(
       m.nodes.map(({ id, label, look, shape, iconSize }) => ({ id, label, look, shape, iconSize })),
     ).toEqual([
@@ -399,6 +403,15 @@ describe("defaults", () => {
       ["a", "card"],
       ["b", "shape"],
     ]);
+  });
+
+  it("reads skin as classic or stage, and lets it pick the default motion", () => {
+    const stage = model("skin: stage\nnodes: { a: A }\n");
+    expect(stage.skin).toBe("stage");
+    expect(animateOf(stage)).toBe("relay");
+    expect(animateOf(model("skin: stage\nanimate: packets\nnodes: { a: A }\n"))).toBe("packets");
+    expect(animateOf(model("animate: relay\nnodes: { a: A }\n"))).toBe("relay");
+    expect(finding("skin: stag\nnodes: { a: A }\n", "DG107").fixes).toEqual(['use "stage"']);
   });
 
   it("reads arrowhead as open or filled", () => {

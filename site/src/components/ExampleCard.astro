@@ -16,7 +16,14 @@ interface Props {
   eager?: boolean;
 }
 const { example: e, eager = false } = Astro.props;
-const src = (theme: string) => url(`gallery/${e.name}/${e.name}-${theme}.svg`);
+const src = (variant: string) => url(`gallery/${e.name}/${e.name}-${variant}.svg`);
+// Classic light first (eager when asked); the other three load when their switch shows them.
+const variants = [
+  { cls: "thumb-classic-light", file: "light", bg: "bg-white" },
+  { cls: "thumb-classic-dark", file: "dark", bg: "bg-[#0d1117]" },
+  { cls: "thumb-stage-light", file: "stage-light", bg: "bg-[#eef2f6]" },
+  { cls: "thumb-stage-dark", file: "stage-dark", bg: "bg-[#0b1012]" },
+];
 ---
 
 <a
@@ -25,24 +32,19 @@ const src = (theme: string) => url(`gallery/${e.name}/${e.name}-${theme}.svg`);
   data-categories={e.categories.join(" ")}
 >
   <div class="border-b border-line">
-    <img
-      class="thumb-light block h-auto w-full bg-white p-3"
-      src={src("light")}
-      alt={e.alt}
-      width={e.width}
-      height={e.height}
-      loading={eager ? "eager" : "lazy"}
-      decoding="async"
-    />
-    <img
-      class="thumb-dark hidden h-auto w-full bg-[#0d1117] p-3"
-      src={src("dark")}
-      alt={e.alt}
-      width={e.width}
-      height={e.height}
-      loading="lazy"
-      decoding="async"
-    />
+    {
+      variants.map((v, i) => (
+        <img
+          class={`thumb ${v.cls} h-auto w-full p-3 ${v.bg}`}
+          src={src(v.file)}
+          alt={e.alt}
+          width={e.width}
+          height={e.height}
+          loading={eager && i === 0 ? "eager" : "lazy"}
+          decoding="async"
+        />
+      ))
+    }
   </div>
   <div class="flex flex-col gap-2.5 p-5">
     <h3 class="font-semibold tracking-tight text-ink">{e.title}</h3>

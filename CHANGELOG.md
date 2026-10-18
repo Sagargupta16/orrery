@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-10-18
+
+### Added
+
+- **`skin: stage`**, a showcase look over the same layout, after the animated scenes on the owner's portfolio site. Every box and point stays where `classic` puts it: the skin only recolors, after layout. The canvas is a gradient with a 16 px dot texture and one blue tint wash; grey and white group fills become translucent panels, so the texture shows through; step discs and badges are ink with a tint ring; lines are bright enough for 3:1 and text for 4.5:1 (all 32 examples and both README diagrams pass `orrery review --skin stage` with no contrast failure, at the same scores as classic). Vendor borders, tiles, icons and Google's blue frame keep their colors. Dark and light. `render --skin stage` and `review --skin stage` override the spec.
+- **`animate: relay`**, the stage skin's default and available to classic: on one clock each line draws itself in turn behind a dot (a mask reveals it, so a dashed line stays dashed), its arrowhead lights when it arrives, and the node it reaches lights up on a flat tint plate; everything holds until 92% of the loop and resets by 95%. Beats follow the `step:` numbers when there are any, else the distance from the entry points, at most eight, so a loop lasts about three to six seconds. PNG and draw.io stay still, and the full diagram is always drawn underneath. In stage, `animate: packets` gets a fading trail instead of the halo.
+- The README hero is drawn in the stage skin; the website gallery and every example page switch between Classic and Stage next to Light and Dark, starting on Classic.
+
+### Changed
+
+- `animate` no longer defaults in the spec: unset means the skin's default (`packets` for classic, `relay` for stage), so `--skin stage` on a classic spec animates with relay unless the spec names a mode.
+- `diagram.schema.json` knows `skin` and `relay`.
+
 ## [0.5.2] - 2026-10-18
 
 ### Changed

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.5.2 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.6.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -8604,6 +8604,122 @@ import { existsSync as existsSync3 } from "node:fs";
 import { createRequire } from "node:module";
 import { join as join5 } from "node:path";
 
+// src/themes.ts
+var THEME_TOKENS = {
+  light: {
+    name: "light",
+    background: "#ffffff",
+    text: "#232f3e",
+    muted: "#5f6b7a",
+    edge: "#545b64",
+    edgeLabel: "#3b4552",
+    surface: "#ffffff",
+    border: "#c6ccd4",
+    zone: "#f4f6f8",
+    // Numbered callouts are black with white digits in the AWS deck.
+    stepFill: "#000000",
+    stepText: "#ffffff",
+    shadow: "#0f172a",
+    flow: "#0972d3"
+  },
+  dark: {
+    name: "dark",
+    background: "#0d1117",
+    text: "#e6edf3",
+    muted: "#9aa4b2",
+    edge: "#8b949e",
+    edgeLabel: "#c9d1d9",
+    surface: "#161b22",
+    border: "#3d444d",
+    zone: "#151b23",
+    stepFill: "#e6edf3",
+    stepText: "#0d1117",
+    shadow: "#000000",
+    flow: "#58a6ff"
+  }
+};
+var INK = "#0b1012";
+var PAPER = "#eef2f6";
+var STAGE_TOKENS = {
+  dark: {
+    name: "dark",
+    background: INK,
+    text: "#e6edf3",
+    muted: mixHex("#e6edf3", INK, 0.68),
+    edge: mixHex("#ffffff", INK, 0.42),
+    edgeLabel: mixHex("#e6edf3", INK, 0.86),
+    surface: mixHex("#ffffff", INK, 0.05),
+    border: mixHex("#ffffff", INK, 0.16),
+    zone: mixHex("#ffffff", INK, 0.03),
+    stepFill: INK,
+    stepText: "#e6edf3",
+    shadow: "#000000",
+    flow: "#60a5fa",
+    stage: {
+      top: "#0e1a24",
+      tint: "#2563eb",
+      tintOpacity: 0.14,
+      dot: "#ffffff",
+      dotOpacity: 0.06,
+      wash: "#ffffff",
+      washOpacity: 0.035,
+      ring: "#60a5fa"
+    }
+  },
+  light: {
+    name: "light",
+    background: PAPER,
+    text: "#1f2933",
+    muted: mixHex("#1f2933", PAPER, 0.74),
+    edge: mixHex("#0b1012", PAPER, 0.56),
+    edgeLabel: "#2b3640",
+    surface: "#ffffff",
+    border: mixHex("#0b1012", PAPER, 0.16),
+    zone: mixHex("#ffffff", PAPER, 0.6),
+    stepFill: INK,
+    stepText: "#ffffff",
+    shadow: "#0f172a",
+    flow: "#2563eb",
+    stage: {
+      top: "#ffffff",
+      tint: "#2563eb",
+      tintOpacity: 0.08,
+      dot: "#0b1012",
+      dotOpacity: 0.07,
+      wash: "#ffffff",
+      washOpacity: 0.7,
+      ring: "#2563eb"
+    }
+  }
+};
+function tokensFor(scene) {
+  return scene.skin === "stage" ? STAGE_TOKENS[scene.theme] : THEME_TOKENS[scene.theme];
+}
+var FONT_STACK = "Inter, 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif";
+
+// src/skins.ts
+function neutral(hex) {
+  const c = parseHex(hex);
+  if (!c) return false;
+  return Math.max(...c) - Math.min(...c) < 26;
+}
+function stageColors(scene) {
+  const t = tokensFor(scene);
+  const s = t.stage;
+  if (!s) return scene;
+  const canvas = scene.background && scene.background !== "transparent" ? scene.background : t.background;
+  const washed = mixHex(s.wash, canvas, s.washOpacity);
+  for (const g of scene.groups) {
+    if (g.fill === "none" || !neutral(g.fill)) continue;
+    g.fill = washed;
+    const inner = g.inner && neutral(g.inner.fill);
+    if (g.inner && inner) g.inner.fill = washed;
+    g.wash = { color: s.wash, opacity: s.washOpacity, ...inner ? { inner: true } : {} };
+    g.labelColor = ensureContrast(g.labelColor, washed, 4.5);
+  }
+  return scene;
+}
+
 // src/styles.ts
 var AWS_DECK = "AWS Architecture Icons deck 2026-07-31, Groups slide";
 var aws = (s) => ({
@@ -9161,42 +9277,6 @@ function textBlock(text2, size, maxWidth, weight = 400, lineHeight = 1.3) {
   const width = Math.max(0, ...lines.map((l) => measure(l, size, weight)));
   return { lines, size, weight, lead, width, height: lines.length ? lines.length * lead : 0 };
 }
-
-// src/themes.ts
-var THEME_TOKENS = {
-  light: {
-    name: "light",
-    background: "#ffffff",
-    text: "#232f3e",
-    muted: "#5f6b7a",
-    edge: "#545b64",
-    edgeLabel: "#3b4552",
-    surface: "#ffffff",
-    border: "#c6ccd4",
-    zone: "#f4f6f8",
-    // Numbered callouts are black with white digits in the AWS deck.
-    stepFill: "#000000",
-    stepText: "#ffffff",
-    shadow: "#0f172a",
-    flow: "#0972d3"
-  },
-  dark: {
-    name: "dark",
-    background: "#0d1117",
-    text: "#e6edf3",
-    muted: "#9aa4b2",
-    edge: "#8b949e",
-    edgeLabel: "#c9d1d9",
-    surface: "#161b22",
-    border: "#3d444d",
-    zone: "#151b23",
-    stepFill: "#e6edf3",
-    stepText: "#0d1117",
-    shadow: "#000000",
-    flow: "#58a6ff"
-  }
-};
-var FONT_STACK = "Inter, 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif";
 
 // src/layout.ts
 var elkInstance;
@@ -10201,14 +10281,15 @@ async function layout(model, opts = {}) {
     width = Math.max(width, Math.ceil(legend3.box.w + SIZES.pad * 2));
     height = Math.ceil(legend3.box.y + legend3.box.h + SIZES.pad);
   }
-  return {
+  const scene = {
     width,
     height,
     theme,
     direction: model.direction,
     routing: model.routing,
     arrowhead: model.arrowhead,
-    animate: model.animate,
+    animate: animateOf(model),
+    skin: model.skin,
     background: model.background,
     title: titleBlock,
     titleBox,
@@ -10221,7 +10302,9 @@ async function layout(model, opts = {}) {
     layoutFallback: fallback,
     description: describe(model)
   };
+  return model.skin === "stage" ? stageColors(scene) : scene;
 }
+var animateOf = (model) => model.animate ?? (model.skin === "stage" ? "relay" : "packets");
 function placeLegend(entries, width, height) {
   const P = 10;
   const rows = entries.map((e) => ({
@@ -10683,8 +10766,10 @@ function icon(ctx, id, box, color, background) {
 function groupFrame(g) {
   const { box } = g;
   const dash = g.dash ? ` stroke-dasharray="${g.dash}"` : "";
-  const inner = g.inner ? `<rect x="${n(g.inner.box.x)}" y="${n(g.inner.box.y)}" width="${n(g.inner.box.w)}" height="${n(g.inner.box.h)}" rx="${Math.max(0, g.radius - 2)}" fill="${g.inner.fill}"/>` : "";
-  return inner ? `<rect x="${n(box.x)}" y="${n(box.y)}" width="${n(box.w)}" height="${n(box.h)}"${g.radius ? ` rx="${g.radius}"` : ""} fill="${g.fill}" stroke="${g.stroke}" stroke-width="${g.strokeWidth}"${dash}/>${inner}` : `<rect x="${n(box.x)}" y="${n(box.y)}" width="${n(box.w)}" height="${n(box.h)}"${g.radius ? ` rx="${g.radius}"` : ""} fill="${g.fill}" stroke="${g.stroke}" stroke-width="${g.strokeWidth}"${dash}/>`;
+  const paint = (fill2, washed) => g.wash && washed ? `fill="${g.wash.color}" fill-opacity="${g.wash.opacity}"` : `fill="${fill2}"`;
+  const inner = g.inner ? `<rect x="${n(g.inner.box.x)}" y="${n(g.inner.box.y)}" width="${n(g.inner.box.w)}" height="${n(g.inner.box.h)}" rx="${Math.max(0, g.radius - 2)}" ${paint(g.inner.fill, g.wash?.inner)}/>` : "";
+  const fill = paint(g.fill, !!g.wash && !g.inner);
+  return `<rect x="${n(box.x)}" y="${n(box.y)}" width="${n(box.w)}" height="${n(box.h)}"${g.radius ? ` rx="${g.radius}"` : ""} ${fill} stroke="${g.stroke}" stroke-width="${g.strokeWidth}"${dash}/>${inner}`;
 }
 function surfaceBehind(ctx, g) {
   if (g.overlay) {
@@ -10816,6 +10901,7 @@ function edge(ctx, e, routing) {
   ];
   const motion = ctx.motion.get(e.id);
   if (motion) parts.push(packets(ctx, e, d, motion));
+  const beat = ctx.relay.edges.get(e.id);
   const orig = e.points;
   const last = orig[orig.length - 1];
   const beforeLast = orig[orig.length - 2];
@@ -10826,6 +10912,14 @@ function edge(ctx, e, routing) {
     parts.push(arrowHead(last, beforeLast, len, half, color, open, width));
   if (start && firstPt && second)
     parts.push(arrowHead(firstPt, second, len, half, color, open, width));
+  if (beat) {
+    const lit = ctx.relay.color;
+    const heads = [
+      end && last && beforeLast ? arrowHead(last, beforeLast, len, half, lit, open, width) : "",
+      start && firstPt && second ? arrowHead(firstPt, second, len, half, lit, open, width) : ""
+    ].join("");
+    parts.push(relayLine(ctx, e, d, heads, beat, width, dash));
+  }
   return `<g id="${ctx.prefix}e-${e.id}">${parts.join("")}</g>`;
 }
 function edgeLabel(ctx, e) {
@@ -10843,9 +10937,11 @@ function edgeLabel(ctx, e) {
     const s = e.stepBox;
     const cx = s.x + s.w / 2;
     const cy = s.y + s.h / 2;
-    const motion = ctx.motion.get(e.id);
+    const motion = ctx.motion.get(e.id) ?? relayMotion(ctx, e.id);
     if (motion?.stepped) parts.push(ping(ctx, cx, cy, s.w / 2, motion));
-    parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(s.w / 2)}" fill="${ctx.t.stepFill}"/>`);
+    parts.push(
+      `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(s.w / 2)}" fill="${ctx.t.stepFill}"${ring(ctx)}/>`
+    );
     parts.push(
       `<text x="${n(cx)}" y="${n(cy + 5)}" font-size="14" font-weight="700" fill="${ctx.t.stepText}" text-anchor="middle">${e.step}</text>`
     );
@@ -10910,9 +11006,17 @@ function packets(ctx, e, d, m) {
     const opacity = from === 0 ? "0;1;1;0;0" : "0;0;1;1;0;0";
     const fade = keyTimes([...fadeIn, end - FADE, end, cycle], cycle);
     const at = keyTimes([0, from, end, cycle], cycle);
-    const begin = m.begin - shift;
-    const loop = `dur="${secs(cycle)}" repeatCount="indefinite"${begin ? ` begin="${secs(begin)}"` : ""}`;
-    return `<g opacity="0"><circle r="${n(r * 2.3)}" fill="${color}" fill-opacity="0.22"/><circle r="${r}" fill="${color}"/><animateMotion path="${d}" ${loop} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${at}"/><animate attributeName="opacity" values="${opacity}" keyTimes="${fade}" ${loop}/></g>`;
+    const dot = (lag, body) => {
+      const begin = m.begin - shift + lag;
+      const loop = `dur="${secs(cycle)}" repeatCount="indefinite"${begin ? ` begin="${secs(begin)}"` : ""}`;
+      return `<g opacity="0">${body}<animateMotion path="${d}" ${loop} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${at}"/><animate attributeName="opacity" values="${opacity}" keyTimes="${fade}" ${loop}/></g>`;
+    };
+    if (ctx.scene.skin === "stage")
+      return dot(0.1, `<circle r="${n(r * 0.5)}" fill="${color}" fill-opacity="0.3"/>`) + dot(0.05, `<circle r="${n(r * 0.72)}" fill="${color}" fill-opacity="0.55"/>`) + dot(0, `<circle r="${r}" fill="${color}"/>`);
+    return dot(
+      0,
+      `<circle r="${n(r * 2.3)}" fill="${color}" fill-opacity="0.22"/><circle r="${r}" fill="${color}"/>`
+    );
   };
   if (e.arrow === "both")
     return m.stepped ? one(false, start) + one(true, start + travel) : one(false, start) + one(true, start, cycle / 2);
@@ -10923,6 +11027,106 @@ function ping(ctx, cx, cy, r, m) {
   const loop = `dur="${secs(m.cycle)}" repeatCount="indefinite"`;
   return `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" fill="none" stroke="${ctx.t.flow}" stroke-width="2" opacity="0"><animate attributeName="r" values="${n(r)};${n(r)};${n(r)};${n(r + 8)};${n(r + 8)}" keyTimes="${at}" ${loop}/><animate attributeName="opacity" values="0;0;0.7;0;0" keyTimes="${at}" ${loop}/></circle>`;
 }
+var FIRST = 0.3;
+var BEAT = 0.55;
+var DRAW = 0.45;
+var HOLD = 1.2;
+var END = 0.92;
+var GONE = 0.95;
+var MAX_BEATS = 8;
+function relayPlan(scene, t) {
+  const relay = {
+    color: t.stage?.ring ?? t.flow,
+    cycle: 0,
+    edges: /* @__PURE__ */ new Map(),
+    nodes: /* @__PURE__ */ new Map()
+  };
+  if (scene.animate !== "relay") return relay;
+  const drawn = scene.edges.filter((e) => e.points.length > 1);
+  if (!drawn.length) return relay;
+  const raw = /* @__PURE__ */ new Map();
+  const steps = [...new Set(drawn.flatMap((e) => e.step === void 0 ? [] : [e.step]))].sort(
+    (a, b) => a - b
+  );
+  if (steps.length) {
+    for (const e of drawn) raw.set(e.id, e.step === void 0 ? 0 : steps.indexOf(e.step) + 1);
+  } else {
+    const into = new Set(drawn.map((e) => e.to));
+    const level = /* @__PURE__ */ new Map();
+    const queue = [...new Set(drawn.map((e) => e.from))].filter((id) => !into.has(id));
+    for (const id of queue) level.set(id, 0);
+    for (let i = 0; i < queue.length; i++) {
+      const id = queue[i] ?? "";
+      const l = level.get(id) ?? 0;
+      for (const e of drawn)
+        if (e.from === id && !level.has(e.to)) {
+          level.set(e.to, l + 1);
+          queue.push(e.to);
+        }
+    }
+    for (const e of drawn) raw.set(e.id, level.get(e.from) ?? 0);
+  }
+  const distinct = [...new Set(raw.values())].sort((a, b) => a - b);
+  const beatOf = (v) => {
+    const i = distinct.indexOf(v);
+    return distinct.length > MAX_BEATS ? Math.floor(i * MAX_BEATS / distinct.length) : i;
+  };
+  let last = 0;
+  for (const e of drawn) {
+    const b = beatOf(raw.get(e.id) ?? 0);
+    last = Math.max(last, b);
+    const t0 = FIRST + b * BEAT;
+    relay.edges.set(e.id, { t0, t1: t0 + DRAW, stepped: e.step !== void 0 });
+  }
+  relay.cycle = Math.max(3, (FIRST + last * BEAT + DRAW + HOLD) / END);
+  const nodes = new Set(scene.nodes.map((nd) => nd.id));
+  const leaves = /* @__PURE__ */ new Map();
+  for (const e of drawn) {
+    const b = relay.edges.get(e.id);
+    if (!b) continue;
+    if (nodes.has(e.to)) relay.nodes.set(e.to, Math.min(relay.nodes.get(e.to) ?? b.t1, b.t1));
+    if (nodes.has(e.from)) leaves.set(e.from, Math.min(leaves.get(e.from) ?? b.t0, b.t0));
+  }
+  for (const [id, at] of leaves) if (!relay.nodes.has(id)) relay.nodes.set(id, at);
+  return relay;
+}
+function relayMotion(ctx, id) {
+  const b = ctx.relay.edges.get(id);
+  return b?.stepped ? { cycle: ctx.relay.cycle, start: b.t0, travel: DRAW, begin: 0, stepped: true } : void 0;
+}
+function relayLine(ctx, e, d, heads, b, width, dash) {
+  const { cycle, color } = ctx.relay;
+  const loop = `dur="${secs(cycle)}" repeatCount="indefinite"`;
+  const kt = (times) => keyTimes(times, cycle);
+  const end = END * cycle;
+  const gone = GONE * cycle;
+  const id = `${ctx.prefix}rm-${e.id}`;
+  const reverse = e.arrow === "start";
+  const hide = reverse ? "-1" : "1";
+  ctx.defs.push(
+    `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="${ctx.scene.width}" height="${ctx.scene.height}"><path d="${d}" fill="none" stroke="#ffffff" stroke-width="${n(width + 8)}" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="${hide}"><animate attributeName="stroke-dashoffset" values="${hide};${hide};0;0;${hide}" keyTimes="${kt([0, b.t0, b.t1, gone, cycle])}" ${loop}/></path></mask>`
+  );
+  const show = (from) => `<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt([0, from, from + 0.05, end, gone, cycle])}" ${loop}/>`;
+  const r = e.line === "thick" ? 3.6 : 3;
+  return `<g mask="url(#${id})" opacity="0"><path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linejoin="round"${dash}/>${show(b.t0)}</g>` + (heads ? `<g opacity="0">${heads}${show(b.t1)}</g>` : "") + `<circle r="${r}" fill="${color}" opacity="0"><animateMotion path="${d}" ${loop} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${kt([0, b.t0, b.t1, cycle])}"/><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt([0, b.t0, b.t0 + 0.05, b.t1 - 0.05, b.t1, cycle])}" ${loop}/></circle>`;
+}
+function plate(ctx, nd, at) {
+  const { cycle, color } = ctx.relay;
+  const icon2 = nd.look === "icon" && nd.iconBox ? nd.iconBox : void 0;
+  const b = icon2 ?? nd.box;
+  const pad = icon2 ? 7 : 4;
+  const loop = `dur="${secs(cycle)}" repeatCount="indefinite"`;
+  const times = keyTimes([0, at, at + 0.15, END * cycle, GONE * cycle, cycle], cycle);
+  return `<rect x="${n(b.x - pad)}" y="${n(b.y - pad)}" width="${n(b.w + 2 * pad)}" height="${n(b.h + 2 * pad)}" rx="${icon2 ? 10 : 12}" fill="${color}" fill-opacity="0.14" stroke="${color}" stroke-opacity="0.6" stroke-width="1" opacity="0"><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${times}" ${loop}/></rect>`;
+}
+function stageCanvas(ctx, W, H, s) {
+  const p = ctx.prefix;
+  ctx.defs.push(
+    `<linearGradient id="${p}bg" x1="0" y1="0" x2="0.36" y2="1"><stop offset="0" stop-color="${s.top}"/><stop offset="0.6" stop-color="${ctx.t.background}"/></linearGradient><radialGradient id="${p}tint" cx="0.88" cy="0.04" r="0.7"><stop offset="0" stop-color="${s.tint}" stop-opacity="${s.tintOpacity}"/><stop offset="1" stop-color="${s.tint}" stop-opacity="0"/></radialGradient><pattern id="${p}dots" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="8" cy="8" r="0.9" fill="${s.dot}" fill-opacity="${s.dotOpacity}"/></pattern>`
+  );
+  return `<rect width="${W}" height="${H}" fill="url(#${p}bg)"/><rect width="${W}" height="${H}" fill="url(#${p}dots)"/><rect width="${W}" height="${H}" fill="url(#${p}tint)"/>`;
+}
+var ring = (ctx) => ctx.t.stage ? ` stroke="${ctx.t.stage.ring}" stroke-width="1.5"` : "";
 function shapePath(shape, b) {
   const { x, y, w, h } = b;
   switch (shape) {
@@ -10971,7 +11175,7 @@ function badge(ctx, label, anchor2, placed) {
   const h = placed?.h ?? 16;
   const x = placed?.x ?? anchor2.x + anchor2.w - w / 2 - 2;
   const y = placed?.y ?? anchor2.y - 7;
-  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(h / 2)}" fill="${ctx.t.stepFill}"/><text x="${n(x + w / 2)}" y="${n(y + h / 2 + 3.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
+  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(h / 2)}" fill="${ctx.t.stepFill}"${ring(ctx)}/><text x="${n(x + w / 2)}" y="${n(y + h / 2 + 3.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
 }
 function node(ctx, nd) {
   const parts = [];
@@ -11029,9 +11233,17 @@ function legend(ctx, l) {
 }
 var FLOW_CSS = `@keyframes sdw-flow{to{stroke-dashoffset:-20}}.sdw-flow{animation:sdw-flow 1.1s linear infinite}.sdw-solid{stroke-dasharray:7 3}`;
 function renderSvg(scene, opts = {}) {
-  const t = THEME_TOKENS[scene.theme];
+  const t = tokensFor(scene);
   const prefix = opts.idPrefix ? `${opts.idPrefix.replace(/[^A-Za-z0-9_-]/g, "")}-` : "";
-  const ctx = { t, prefix, scene, motion: motionPlan(scene), symbols: /* @__PURE__ */ new Map(), defs: [] };
+  const ctx = {
+    t,
+    prefix,
+    scene,
+    motion: motionPlan(scene),
+    relay: relayPlan(scene, t),
+    symbols: /* @__PURE__ */ new Map(),
+    defs: []
+  };
   const { width: W, height: H } = scene;
   const titleId = `${prefix}sdw-title`;
   const descId = `${prefix}sdw-desc`;
@@ -11045,7 +11257,8 @@ function renderSvg(scene, opts = {}) {
   out.push(`<desc id="${descId}">${esc(scene.description)}</desc>`);
   if (scene.animate === "flow") out.push(`<style>${FLOW_CSS}</style>`);
   const defsAt = out.length;
-  if (scene.background !== "transparent") {
+  if (scene.background === void 0 && t.stage) out.push(stageCanvas(ctx, W, H, t.stage));
+  else if (scene.background !== "transparent") {
     out.push(`<rect width="${W}" height="${H}" fill="${scene.background ?? t.background}"/>`);
   }
   if (scene.title && scene.titleBox) out.push(text(scene.title, scene.titleBox, t.text, "start"));
@@ -11060,6 +11273,10 @@ function renderSvg(scene, opts = {}) {
   for (const g of scene.groups) {
     const header = groupHeader(ctx, g);
     if (header) out.push(`<g id="${ctx.prefix}gh-${g.id}">${header}</g>`);
+  }
+  for (const nd of scene.nodes) {
+    const at = ctx.relay.nodes.get(nd.id);
+    if (at !== void 0) out.push(plate(ctx, nd, at));
   }
   for (const nd of scene.nodes) out.push(node(ctx, nd));
   if (scene.legend?.items.length) out.push(legend(ctx, scene.legend));
@@ -11325,7 +11542,7 @@ function legend2(ctx, l) {
   }
 }
 function renderDrawio(scene, name = "Diagram") {
-  const t = THEME_TOKENS[scene.theme];
+  const t = tokensFor(scene);
   const ctx = { t, scene, icons: 0, cells: [], groupBox: /* @__PURE__ */ new Map() };
   if (scene.title && scene.titleBox) {
     ctx.cells.push(
@@ -11608,7 +11825,11 @@ function renderTsx(scene, name) {
 // src/render/index.ts
 var FORMATS = ["svg", "png", "drawio", "tsx", "html"];
 async function renderModel(req) {
-  const model = req.animate ? { ...req.model, animate: req.animate } : req.model;
+  const model = {
+    ...req.model,
+    ...req.skin ? { skin: req.skin } : {},
+    ...req.animate ? { animate: req.animate } : {}
+  };
   const themes = [
     ...new Set(req.formats.includes("html") ? [...req.themes, "light", "dark"] : req.themes)
   ];
@@ -13014,7 +13235,7 @@ function measureGrid(c) {
   });
 }
 function textItems(scene) {
-  const t = THEME_TOKENS[scene.theme];
+  const t = tokensFor(scene);
   const canvas = scene.background && scene.background !== "transparent" ? scene.background : t.background;
   const byDepth = [...scene.groups].sort((a, b) => a.depth - b.depth);
   const surfaceAt = (x, y) => {
@@ -13671,7 +13892,8 @@ var SHAPES2 = [
 ];
 var ROUTINGS = ["orthogonal", "polyline", "spline"];
 var SPACINGS = ["compact", "normal", "loose"];
-var ANIMATE_MODES = ["packets", "flow", "none"];
+var ANIMATE_MODES = ["packets", "flow", "relay", "none"];
+var SKINS = ["classic", "stage"];
 
 // src/spec.ts
 var TOP_KEYS = [
@@ -13685,6 +13907,7 @@ var TOP_KEYS = [
   "arrowhead",
   "layout",
   "animate",
+  "skin",
   "background",
   "legend",
   "nodes",
@@ -13954,7 +14177,8 @@ function parseSpec(source, filename = "diagram.yaml") {
   }
   const merge = layout2.merge !== false;
   const arrowhead = oneOf(raw.arrowhead, ["open", "filled"], "open", "arrowhead");
-  const animate = raw.animate === true ? "packets" : raw.animate === false ? "none" : oneOf(raw.animate, ANIMATE_MODES, "packets", "animate");
+  const animate = raw.animate === void 0 ? void 0 : raw.animate === true ? "packets" : raw.animate === false ? "none" : oneOf(raw.animate, ANIMATE_MODES, "packets", "animate");
+  const skin = oneOf(raw.skin, SKINS, "classic", "skin");
   const background = hexColor(raw.background, "background", "", { where: "background" }, [
     "transparent"
   ]);
@@ -14376,7 +14600,8 @@ function parseSpec(source, filename = "diagram.yaml") {
     layering,
     merge,
     arrowhead,
-    animate,
+    ...animate ? { animate } : {},
+    skin,
     background: background === "transparent" ? "transparent" : background,
     ...legend3.length ? { legend: legend3 } : {},
     nodes,
@@ -14390,15 +14615,17 @@ function suggestIds(id, ids, kind) {
 }
 
 // src/cli.ts
-var VERSION = true ? "0.5.2" : "dev";
+var VERSION = true ? "0.6.0" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
   orrery render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
-                    [--scale 3] [--animate packets|flow|none] [--static] [--font extra.ttf]
+                    [--scale 3] [--skin classic|stage] [--animate packets|flow|relay|none]
+                    [--static] [--font extra.ttf]
                     [--strict] [--force] [--json]
   orrery validate <spec.yaml> [--strict] [--json]
-  orrery review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--strict] [--json]
+  orrery review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--skin classic|stage]
+                    [--strict] [--json]
   orrery icons search <words...> [--pack aws] [--type service] [--limit 15] [--json]
   orrery icons show <icon-id> [-o icon.svg|icon.png] [--theme dark]
   orrery icons list [--pack aws] [--category Compute] [--type service] [--json]
@@ -14420,6 +14647,7 @@ var KNOWN_FLAGS = /* @__PURE__ */ new Set([
   "theme",
   "scale",
   "animate",
+  "skin",
   "font",
   "pack",
   "type",
@@ -14488,6 +14716,8 @@ function parseArgs(argv) {
       }
       if (key === "animate" && value !== true && !ANIMATE_MODES.includes(value))
         usage(`--animate must be ${ANIMATE_MODES.join(", ")} (got "${value}")`);
+      if (key === "skin" && !SKINS.includes(value))
+        usage(`--skin must be ${SKINS.join(", ")} (got "${value}")`);
       const prev = out.flags[key];
       out.flags[key] = key === "font" && typeof prev === "string" ? `${prev},${value}` : value;
     } else out._.push(a);
@@ -14582,7 +14812,8 @@ async function cmdRender(args, validateOnly) {
         name: spec.name,
         scale,
         fonts: fonts2,
-        animate: animateFlag
+        animate: animateFlag,
+        skin: args.flags.skin
       });
     } catch (e) {
       if (!(e instanceof LibraryError)) throw e;
@@ -14844,8 +15075,9 @@ async function cmdReview(args) {
   for (const f of fonts2) if (!existsSync5(f)) usage(`no such file: ${f} (from --font)`);
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
   const base = outFlag ? resolve(outFlag) : spec.path === "stdin.yaml" ? resolve("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
+  const skin = args.flags.skin;
   const run = await reviewModel({
-    model: parsed.model,
+    model: skin ? { ...parsed.model, skin } : parsed.model,
     name: spec.name,
     width,
     theme,

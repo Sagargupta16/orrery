@@ -11,7 +11,7 @@ description: >-
   flowchart into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.5.2"
+  version: "0.6.0"
   author: Sagar Gupta
 ---
 
@@ -86,7 +86,7 @@ Follow this order. Write the spec early and let the validator steer; do not plan
 
 | Format | Use for |
 | --- | --- |
-| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Animated by default: packets travel the edges, numbered steps play in order (`animate: none` or `--static` for a still file). |
+| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Animated by default: packets travel the edges, numbered steps play in order (`animate: none` or `--static` for a still file). `skin: stage` (or `--skin stage`) draws the same layout on a showcase canvas and animates it with `relay`; keep the default `classic` for vendor architecture docs and use `stage` for a README hero, a slide or a project page. |
 | `png` | Slides, chat, tickets, anywhere SVG is not accepted. Always a still frame. Rendered with the bundled Inter font at 3x by default (`--scale`), so it stays sharp when zoomed or projected. |
 | `drawio` | Hand-editing in diagrams.net or the VS Code Draw.io extension; every node, group and edge is an editable cell with the official icon embedded. |
 | `tsx` | A React component (`export default function Name(props)`) for docs sites and apps. |
@@ -116,9 +116,9 @@ Patterns with spec fragments (three-tier, serverless, event-driven, data lake, s
 
 | Command | Does |
 | --- | --- |
-| `render <spec> [-o base] [-f svg,png,drawio,tsx,html\|all] [--theme light\|dark\|both] [--scale 3] [--animate packets\|flow\|none] [--static] [--font extra.ttf] [--strict] [--json]` | Validate, lay out, render, write atomically; `--json` prints a receipt with sha256 and size per file. |
+| `render <spec> [-o base] [-f svg,png,drawio,tsx,html\|all] [--theme light\|dark\|both] [--scale 3] [--skin classic\|stage] [--animate packets\|flow\|relay\|none] [--static] [--font extra.ttf] [--strict] [--json]` | Validate, lay out, render, write atomically; `--json` prints a receipt with sha256 and size per file. |
 | `validate <spec> [--strict] [--json]` | Spec errors plus layout warnings (edge through a node, label collisions, too wide). |
-| `review <spec> [--width 880] [--theme light\|dark] [--json] [-o base]` | Scores the diagram at a display width on six dimensions, writes `<base>.review.json` and a PNG at that width (`/orrery:review` in Claude Code runs the whole loop). |
+| `review <spec> [--width 880] [--theme light\|dark] [--skin classic\|stage] [--json] [-o base]` | Scores the diagram at a display width on six dimensions, writes `<base>.review.json` and a PNG at that width (`/orrery:review` in Claude Code runs the whole loop). |
 | `icons search <words> [--pack aws] [--type service]` | Ranked icon ids with official names. |
 | `icons show <id> [-o icon.png]` | One icon's metadata, optionally rendered. |
 | `icons list [--pack gcp] [--category Databases]`, `icons packs` | Browse the catalog and its sources. |

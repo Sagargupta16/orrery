@@ -6,7 +6,7 @@ import { contrast, isHex, mixHex } from "./color.ts";
 import { aliases, iconAspect, iconInfo, resolveIcon } from "./icons.ts";
 import { renderModel } from "./render/index.ts";
 import { renderPng } from "./render/png.ts";
-import { THEME_TOKENS } from "./themes.ts";
+import { tokensFor } from "./themes.ts";
 import type {
   Box,
   Diagnostic,
@@ -1631,7 +1631,7 @@ interface TextItem {
 
 /** Every text run in a scene with the color it is drawn in and the worst surface under it. */
 function textItems(scene: Scene): TextItem[] {
-  const t = THEME_TOKENS[scene.theme];
+  const t = tokensFor(scene);
   const canvas =
     scene.background && scene.background !== "transparent" ? scene.background : t.background;
   const byDepth = [...scene.groups].sort((a, b) => a.depth - b.depth);

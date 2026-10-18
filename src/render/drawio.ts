@@ -2,7 +2,7 @@
 // the same geometry as the SVG; official icons are embedded as SVG data, so the file opens offline.
 import { mixHex } from "../color.ts";
 import { renderIcon } from "../icons.ts";
-import { THEME_TOKENS, type Theme } from "../themes.ts";
+import { type Theme, tokensFor } from "../themes.ts";
 import type {
   Box,
   EdgeLine,
@@ -314,7 +314,7 @@ function legend(ctx: Ctx, l: SceneLegend) {
 }
 
 export function renderDrawio(scene: Scene, name = "Diagram"): string {
-  const t = THEME_TOKENS[scene.theme];
+  const t = tokensFor(scene);
   const ctx: Ctx = { t, scene, icons: 0, cells: [], groupBox: new Map() };
   if (scene.title && scene.titleBox) {
     ctx.cells.push(
