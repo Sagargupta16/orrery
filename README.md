@@ -13,7 +13,7 @@ One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML view
 **[sagargupta.online/orrery](https://sagargupta.online/orrery/)**: every example in light and dark, with its spec and downloads.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.7.0-2563eb)
+![Version](https://img.shields.io/badge/version-0.7.1-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-16%2C682-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
@@ -167,6 +167,10 @@ A finding counts only if it cites a measured value or a vendor rule. Each round 
 | `tabler` | 6,286 | [Tabler Icons](https://tabler.io/icons) | npm `@iconify-json/tabler` |
 
 Bundled packs exist only as vendor downloads, so they ship with the skill and work offline. The npm sets load at render time from a local `node_modules`, the user cache or jsDelivr, checked against a pinned SHA-256; `orrery icons fetch` caches them ahead of time, and [icons.md](skills/orrery/references/icons.md#where-icons-load-from) has the details. Renovate's monthly dependency PR also checks the vendors' pages for new releases and carries the updated packs. Icons, logos and trademarks belong to their owners and are used under the terms listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the AWS, Microsoft and Google terms allow them in architecture diagrams.
+
+## Community
+
+Made a diagram with orrery? Share it in [Show and tell](https://github.com/Sagargupta16/orrery/discussions/categories/show-and-tell). Questions go to [Q&A](https://github.com/Sagargupta16/orrery/discussions/categories/q-a), and requests for icons, examples, outputs or styles to [Ideas](https://github.com/Sagargupta16/orrery/discussions/categories/ideas). Found a bug? Open an [issue](https://github.com/Sagargupta16/orrery/issues). If orrery saved you a diagram, a star helps other people find it.
 
 ## Development
 

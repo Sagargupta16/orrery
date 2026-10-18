@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.7.1] - 2026-10-18
+
+### Added
+
+- **GitHub Discussions** is on, with Q&A, Ideas and Show and tell. The README has a Community section pointing at them, and the new-issue page links to Discussions for questions and ideas.
+
 ## [0.7.0] - 2026-10-18
 
 ### Changed
