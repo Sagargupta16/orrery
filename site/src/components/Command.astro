@@ -1,0 +1,36 @@
+---
+// A shell command with a copy button. Lines are copied joined by newlines.
+interface Props {
+  lines: string[];
+  prompt?: string;
+}
+const { lines, prompt = "$" } = Astro.props;
+const text = lines.join("\n");
+---
+
+<div class="flex min-w-0 items-start gap-2 rounded-xl border border-line bg-canvas/60 py-1.5 pl-4 pr-1.5">
+  <pre
+    class="min-w-0 flex-1 overflow-x-auto py-2 font-mono text-[0.82rem] leading-relaxed text-ink"><code>{lines.map((l) => (<span class="block"><span class="select-none text-faint">{prompt} </span>{l}</span>))}</code></pre>
+  <button
+    type="button"
+    class="copy inline-flex min-h-9 shrink-0 items-center rounded-lg border border-line px-3 font-mono text-[0.7rem] text-dim transition-colors duration-200 hover:border-line-strong hover:text-ink"
+    data-copy={text}
+    aria-label="Copy command">Copy</button
+  >
+</div>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>("button.copy")) {
+    if (button.dataset.bound) continue;
+    button.dataset.bound = "1";
+    button.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(button.dataset.copy ?? "");
+      button.textContent = "Copied";
+      button.classList.add("text-ok");
+      setTimeout(() => {
+        button.textContent = "Copy";
+        button.classList.remove("text-ok");
+      }, 1400);
+    });
+  }
+</script>

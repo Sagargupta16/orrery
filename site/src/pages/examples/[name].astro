@@ -1,0 +1,113 @@
+---
+import { Code } from "astro:components";
+import Command from "../../components/Command.astro";
+import DiagramTheme from "../../components/DiagramTheme.astro";
+import examples from "../../data/generated/examples.json";
+import Base from "../../layouts/Base.astro";
+import { blob, url } from "../../lib/url";
+
+export function getStaticPaths() {
+  return examples.map((example, i) => ({
+    params: { name: example.name },
+    props: {
+      example,
+      prev: examples[(i - 1 + examples.length) % examples.length],
+      next: examples[(i + 1) % examples.length],
+    },
+  }));
+}
+
+const { example: e, prev, next } = Astro.props;
+const file = (suffix: string) => url(`gallery/${e.name}/${e.name}${suffix}`);
+const downloads = [
+  ["SVG", "light", file("-light.svg")],
+  ["SVG", "dark", file("-dark.svg")],
+  ["PNG", "light", file("-light.png")],
+  ["PNG", "dark", file("-dark.png")],
+  ["draw.io", "light", file("-light.drawio")],
+  ["draw.io", "dark", file("-dark.drawio")],
+  ["React TSX", "light", file("-light.tsx")],
+  ["HTML viewer", "both themes", file(".html")],
+  ["YAML spec", "source", file(".yaml")],
+];
+---
+
+<Base title={`${e.title} | orrery`} description={e.caption} image={`gallery/${e.name}/${e.name}-dark.svg`}>
+  <article class="mx-auto max-w-6xl px-5 pt-12 sm:px-8 sm:pt-16">
+    <nav class="flex flex-wrap items-center gap-2 font-mono text-xs text-faint" aria-label="Breadcrumb">
+      <a class="hover:text-ink" href={url("gallery/")}>Gallery</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-dim">{e.name}</span>
+    </nav>
+    <h1 class="display mt-5 text-[clamp(2.1rem,5vw,3.6rem)]">{e.title}</h1>
+    <p class="mt-4 max-w-3xl text-lg text-dim">{e.caption}</p>
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+      {e.packs.filter((p) => p !== "generic").map((p) => <span class="chip">{p}</span>)}
+      <span class="chip tabular">{e.counts.nodes} nodes</span>
+      <span class="chip tabular">{e.counts.groups} groups</span>
+      <span class="chip tabular">{e.counts.edges} edges</span>
+    </div>
+
+    <figure class="panel mt-10 overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+        <DiagramTheme />
+        <a class="font-mono text-xs text-accent-soft hover:text-ink" href={file("-light.svg")}>Open full size</a>
+      </div>
+      <img src={file("-light.svg")} alt={e.alt} class="thumb-light w-full bg-white p-3 sm:p-6" />
+      <img src={file("-dark.svg")} alt={e.alt} class="thumb-dark hidden w-full bg-[#0d1117] p-3 sm:p-6" />
+    </figure>
+
+    <div class="mt-10 grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
+      <div class="panel min-w-0 overflow-hidden">
+        <div class="flex items-center justify-between border-b border-line px-5 py-3">
+          <span class="font-mono text-xs text-dim">{e.name}.yaml</span>
+          <a class="font-mono text-xs text-accent-soft hover:text-ink" href={blob(`skills/orrery/examples/${e.name}.yaml`)}
+            >On GitHub</a
+          >
+        </div>
+        <div class="max-h-[640px] overflow-auto px-5 py-4">
+          <Code code={e.spec} lang="yaml" theme="github-dark-default" />
+        </div>
+      </div>
+      <div class="flex min-w-0 flex-col gap-4">
+        <div class="panel p-5">
+          <h2 class="font-semibold tracking-tight">Start from this one</h2>
+          <p class="mt-1 text-sm text-dim">Copies the spec to diagram.yaml, then renders every format.</p>
+          <div class="mt-4 space-y-2">
+            <Command lines={[`orrery init ${e.name}`, "orrery render diagram.yaml -f all --theme both"]} />
+          </div>
+        </div>
+        <div class="panel overflow-hidden">
+          <h2 class="border-b border-line px-5 py-3 font-semibold tracking-tight">Downloads</h2>
+          <ul>
+            {
+              downloads.map(([kind, variant, href]) => (
+                <li class="border-b border-line last:border-0">
+                  <a
+                    href={href}
+                    download
+                    class="flex min-h-12 items-center justify-between px-5 text-sm transition-colors duration-200 hover:bg-raised"
+                  >
+                    <span class="text-ink">{kind}</span>
+                    <span class="font-mono text-xs text-faint">{variant}</span>
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <nav class="mt-12 grid gap-4 sm:grid-cols-2" aria-label="More examples">
+      <a href={url(`examples/${prev.name}/`)} class="lift panel p-5">
+        <p class="eyebrow">Previous</p>
+        <p class="mt-2 font-semibold tracking-tight">{prev.title}</p>
+      </a>
+      <a href={url(`examples/${next.name}/`)} class="lift panel p-5 sm:text-right">
+        <p class="eyebrow">Next</p>
+        <p class="mt-2 font-semibold tracking-tight">{next.title}</p>
+      </a>
+    </nav>
+  </article>
+</Base>

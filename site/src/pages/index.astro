@@ -1,0 +1,405 @@
+---
+import { Code } from "astro:components";
+import Command from "../components/Command.astro";
+import DiagramTheme from "../components/DiagramTheme.astro";
+import ExampleCard from "../components/ExampleCard.astro";
+import examples from "../data/generated/examples.json";
+import meta from "../data/generated/meta.json";
+import packs from "../data/generated/packs.json";
+import Base from "../layouts/Base.astro";
+import { blob, repo, url } from "../lib/url";
+
+const fmt = (n: number) => n.toLocaleString("en-US");
+const byName = new Map(examples.map((e) => [e.name, e]));
+const featuredNames = [
+  "gitops-kubernetes",
+  "ai-agent-mcp",
+  "aws-three-tier",
+  "azure-hub-spoke",
+  "gcp-gke-platform",
+  "ibm-cloud-openshift",
+  "rag-open-source",
+  "system-design-url-shortener",
+  "modern-web-stack",
+];
+const featured = featuredNames
+  .map((n) => byName.get(n))
+  .filter((e) => e !== undefined)
+  .slice(0, 6);
+const starter = byName.get("starter");
+const starterFile = (suffix: string) => url(`gallery/starter/starter${suffix}`);
+
+const install = [
+  {
+    name: "Claude Code plugin",
+    note: "The skill, three reviewer agents and the /orrery:review loop.",
+    prompt: ">",
+    lines: ["/plugin marketplace add Sagargupta16/orrery", "/plugin install orrery@orrery"],
+  },
+  {
+    name: "Any Agent Skills client",
+    note: "Codex, Cursor, Kiro, Copilot and the rest of the skills CLI's agents.",
+    prompt: "$",
+    lines: ["npx skills add Sagargupta16/orrery"],
+  },
+  {
+    name: "GitHub CLI",
+    note: "Installs from the latest release into the agent you pick.",
+    prompt: "$",
+    lines: ["gh skill install Sagargupta16/orrery orrery"],
+  },
+  {
+    name: "Gemini CLI",
+    note: "An extension that loads the orrery skill.",
+    prompt: "$",
+    lines: ["gemini extensions install https://github.com/Sagargupta16/orrery"],
+  },
+  {
+    name: "Just the CLI, from npm",
+    note: "No clone, no agent. Node.js 22 or newer.",
+    prompt: "$",
+    lines: ["npx @sagargupta1610/orrery render diagram.yaml -f all --theme both"],
+  },
+];
+
+const steps = [
+  ["Write the spec", "Nodes with official icon ids, nested groups, labelled edges. Or let your agent write it."],
+  ["Validate", "Spec errors stop the render, layout warnings do not; every diagnostic carries its fix."],
+  ["Lay out", "ELK places nested boundaries, routes edges at right angles and keeps the order you wrote."],
+  ["Render", "Animated SVG, a still PNG, editable draw.io, a React component and an HTML viewer."],
+  ["Review", "Measured at the width people see it, then judged against each vendor's own rules."],
+];
+
+const outputs = [
+  ["SVG", "Animated by default: a packet travels each edge, numbered steps play in order.", starterFile("-dark.svg")],
+  ["PNG", "A still frame at 2x for slides and docs that strip SVG.", starterFile("-dark.png")],
+  ["draw.io", "Every node, group and edge stays editable in diagrams.net.", starterFile("-dark.drawio")],
+  ["React TSX", "A typed component with ids made unique through useId().", starterFile("-dark.tsx")],
+  ["HTML viewer", "One file with both themes, zoom and PNG and SVG export.", starterFile(".html")],
+];
+
+const validateSample = `$ orrery validate orders.yaml
+error DG101 node "fn" uses unknown icon "aws:lamda"
+      fix: use icon "aws:lambda"
+      fix: run \`orrery icons search lamda\`
+error DG108 unknown key "lable" in node "db"
+      fix: rename "lable" to "label"
+failed: 2 error(s), 0 warning(s)`;
+
+const reviewSample = `$ orrery review gitops-0.2.yaml --width 880
+review gitops-0.2: 1964x786 in a 880px column
+score 85.3/100  FAIL
+blocker quality.label-size node labels render
+        at 5.82px at this width
+        fix: use direction: down`;
+---
+
+<Base>
+  <!-- Hero -->
+  <section class="relative overflow-hidden">
+    <svg
+      class="pointer-events-none absolute -right-48 -top-40 h-[760px] w-[760px] opacity-90 sm:-right-24"
+      viewBox="0 0 760 760"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="380" cy="380" r="370" stroke="rgb(255 255 255 / 0.05)" />
+      <circle cx="380" cy="380" r="280" stroke="rgb(255 255 255 / 0.06)" />
+      <circle cx="380" cy="380" r="190" stroke="rgb(255 255 255 / 0.07)" />
+      <circle cx="380" cy="380" r="104" stroke="rgb(255 255 255 / 0.08)" />
+      <circle cx="380" cy="380" r="22" fill="rgb(255 255 255 / 0.08)" />
+      <g class="orbit" style="--period: 38s"><circle cx="484" cy="380" r="6" fill="#60a5fa" /></g>
+      <g class="orbit orbit-reverse" style="--period: 64s"><circle cx="380" cy="190" r="5" fill="#e6edf3" fill-opacity="0.7" /></g>
+      <g class="orbit" style="--period: 96s"><circle cx="100" cy="380" r="7" fill="#e6edf3" fill-opacity="0.45" /></g>
+      <g class="orbit orbit-reverse" style="--period: 140s"><circle cx="380" cy="750" r="4" fill="#60a5fa" fill-opacity="0.7" /></g>
+    </svg>
+
+    <div class="relative mx-auto max-w-6xl px-5 pb-16 pt-16 sm:px-8 sm:pt-24">
+      <p class="eyebrow">Open source &middot; MIT &middot; v{meta.version}</p>
+      <h1 class="display mt-5 max-w-4xl text-[clamp(2.6rem,7vw,5.4rem)]">
+        Architecture diagrams drawn to each vendor's own rules.
+      </h1>
+      <p class="mt-6 max-w-2xl text-lg text-dim sm:text-xl">
+        Write a short YAML spec. orrery lays it out with ELK, draws it with the official AWS, Azure, Google Cloud,
+        Kubernetes, GitHub and IBM icons, and renders animated SVG, PNG, editable draw.io, React and HTML.
+      </p>
+      <div class="mt-9 flex flex-wrap gap-3">
+        <a href="#install" class="btn btn-primary">Install</a>
+        <a href={url("gallery/")} class="btn btn-ghost">Browse {meta.examples} examples</a>
+      </div>
+      <dl class="mt-12 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+        {
+          [
+            [fmt(meta.icons), "official icons"],
+            [String(meta.packs), "icon packs"],
+            [String(meta.examples), "reference diagrams"],
+            ["5", "output formats"],
+          ].map(([value, label]) => (
+            <div class="bg-canvas px-4 py-4">
+              <dt class="sr-only">{label}</dt>
+              <dd class="tabular font-mono text-2xl text-ink">{value}</dd>
+              <dd class="mt-1 text-xs text-faint">{label}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+
+    <div class="relative mx-auto max-w-6xl px-5 pb-8 sm:px-8">
+      <figure class="panel overflow-hidden">
+        <a href={url("art/hero-dark.svg")} class="block bg-[#0d1117] p-3 sm:p-6" aria-label="Open the hero diagram full size">
+          <img
+            src={url("art/hero-dark.svg")}
+            alt="GitOps delivery to three clouds: GitHub Actions builds and signs, Argo CD syncs GKE, AKS and EKS, Cloudflare fronts them and Grafana watches"
+            class="mx-auto w-full"
+            width="1758"
+            height="1296"
+            fetchpriority="high"
+          />
+        </a>
+        <figcaption class="flex flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3.5 text-sm text-dim">
+          <span>This diagram is 40 lines of YAML. It moves because every SVG is animated by default.</span>
+          <a class="font-mono text-xs text-accent-soft hover:text-ink" href={blob("docs/hero.yaml")}>docs/hero.yaml</a>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- Install -->
+  <section id="install" class="reveal mx-auto max-w-6xl scroll-mt-20 px-5 pt-24 sm:px-8">
+    <p class="eyebrow">Install</p>
+    <h2 class="display mt-3 text-[clamp(2rem,4.5vw,3.2rem)]">One skill, every agent.</h2>
+    <p class="mt-4 max-w-2xl text-dim">
+      The CLI, the layout engine, the PNG renderer, the fonts and the four cloud packs ship inside the skill, so it
+      runs with no install step. Pick the place you work.
+    </p>
+    <div class="mt-10 grid gap-4 md:grid-cols-2">
+      {
+        install.map((c, i) => (
+          <div class={`panel flex min-w-0 flex-col gap-4 p-5 sm:p-6 ${i === 0 ? "md:col-span-2" : ""}`}>
+            <div>
+              <h3 class="font-semibold tracking-tight">{c.name}</h3>
+              <p class="mt-1 text-sm text-dim">{c.note}</p>
+            </div>
+            <Command lines={c.lines} prompt={c.prompt} />
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- Spec to picture -->
+  {
+    starter && (
+      <section class="reveal mx-auto max-w-6xl px-5 pt-28 sm:px-8">
+        <p class="eyebrow">From spec to picture</p>
+        <h2 class="display mt-3 max-w-3xl text-[clamp(2rem,4.5vw,3.2rem)]">
+          The YAML is the whole input.
+        </h2>
+        <div class="mt-10 grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div class="panel min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between border-b border-line px-5 py-3">
+              <span class="font-mono text-xs text-dim">starter.yaml</span>
+              <span class="chip">{starter.counts.nodes} nodes</span>
+            </div>
+            <div class="max-h-[520px] overflow-auto px-5 py-4">
+              <Code code={starter.spec} lang="yaml" theme="github-dark-default" />
+            </div>
+          </div>
+          <figure class="panel flex min-w-0 flex-col overflow-hidden">
+            <div class="flex flex-1 items-center bg-[#0d1117] p-4 sm:p-6">
+              <img src={starterFile("-dark.svg")} alt={starter.alt} class="mx-auto w-full" loading="lazy" />
+            </div>
+            <figcaption class="border-t border-line px-5 py-3.5 font-mono text-xs text-dim">
+              orrery render starter.yaml -f all --theme both
+            </figcaption>
+          </figure>
+        </div>
+        <div class="mt-4 grid gap-px overflow-hidden rounded-[14px] border border-line bg-line sm:grid-cols-2 lg:grid-cols-5">
+          {outputs.map(([name, note, href]) => (
+            <a href={href} class="group bg-canvas p-5 transition-colors duration-200 hover:bg-raised">
+              <p class="flex items-center justify-between font-mono text-sm text-ink">
+                {name}
+                <span class="text-faint transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">
+                  &rarr;
+                </span>
+              </p>
+              <p class="mt-2 text-sm text-dim">{note}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <!-- How it works -->
+  <section class="reveal mx-auto max-w-6xl px-5 pt-28 sm:px-8">
+    <p class="eyebrow">How it works</p>
+    <h2 class="display mt-3 max-w-3xl text-[clamp(2rem,4.5vw,3.2rem)]">Five steps, all of them checkable.</h2>
+    <div class="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
+      <ol class="space-y-px overflow-hidden rounded-[14px] border border-line bg-line">
+        {
+          steps.map(([title, body], i) => (
+            <li class="flex gap-4 bg-canvas p-5">
+              <span class="tabular mt-0.5 font-mono text-sm text-accent-soft">0{i + 1}</span>
+              <div>
+                <h3 class="font-semibold tracking-tight">{title}</h3>
+                <p class="mt-1 text-sm text-dim">{body}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+      <figure class="panel overflow-hidden bg-[#0d1117] p-4 sm:p-6">
+        <img
+          src={url("art/how-it-works-dark.svg")}
+          alt="A YAML spec is validated, laid out by ELK, checked and rendered with the icon packs to SVG, PNG, draw.io, TSX and HTML"
+          class="mx-auto max-h-[720px] w-auto"
+          loading="lazy"
+        />
+      </figure>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="reveal mx-auto max-w-6xl px-5 pt-28 sm:px-8">
+    <p class="eyebrow">What you get</p>
+    <h2 class="display mt-3 max-w-3xl text-[clamp(2rem,4.5vw,3.2rem)]">Correct first, then beautiful.</h2>
+    <div class="mt-10 grid gap-4 md:grid-cols-3">
+      <div class="panel p-6 md:col-span-2">
+        <h3 class="text-lg font-semibold tracking-tight">Official icons, current releases</h3>
+        <p class="mt-2 max-w-xl text-sm text-dim">
+          The cloud packs are rebuilt from each vendor's own download and pinned by SHA-256; the logo and glyph sets
+          load from their npm libraries. Renovate's monthly pull request moves all of them to the newest release.
+        </p>
+        <div class="mt-5 flex flex-wrap gap-2">
+          {packs.map((p) => <span class="chip tabular">{p.key} {fmt(p.count)}</span>)}
+        </div>
+      </div>
+      <div class="panel p-6">
+        <h3 class="text-lg font-semibold tracking-tight">Each vendor's conventions</h3>
+        <p class="mt-2 text-sm text-dim">
+          AWS groups follow the Architecture Icons deck, Google Cloud frames are measured from Google's own diagrams,
+          Azure uses filled arrowheads, and C4 views use C4 notation. Every value cites its source.
+        </p>
+      </div>
+      <div class="panel min-w-0 p-6 md:col-span-3 lg:col-span-1">
+        <h3 class="text-lg font-semibold tracking-tight">Validation with the fix</h3>
+        <p class="mt-2 text-sm text-dim">A typo in an icon id comes back with the id you meant.</p>
+        <pre class="mt-4 overflow-x-auto rounded-xl border border-line bg-canvas/60 p-4 font-mono text-[0.74rem] leading-relaxed text-dim"><code set:text={validateSample} /></pre>
+      </div>
+      <div class="panel min-w-0 p-6 md:col-span-3 lg:col-span-2">
+        <h3 class="text-lg font-semibold tracking-tight">A review board that measures before it judges</h3>
+        <p class="mt-2 max-w-2xl text-sm text-dim">
+          <code class="font-mono text-ink">orrery review</code> scores six dimensions at the width readers see the
+          diagram. In Claude Code, <code class="font-mono text-ink">/orrery:review</code> adds three reviewer agents for
+          vendor conventions, the story the arrows tell, and legibility, and keeps a patch only when the score rises.
+        </p>
+        <pre class="mt-4 overflow-x-auto rounded-xl border border-line bg-canvas/60 p-4 font-mono text-[0.74rem] leading-relaxed text-dim"><code set:text={reviewSample} /></pre>
+      </div>
+      <div class="panel p-6">
+        <h3 class="text-lg font-semibold tracking-tight">Animated by default</h3>
+        <p class="mt-2 text-sm text-dim">
+          <code class="font-mono text-ink">animate: packets</code> sends a packet along every edge,{" "}
+          <code class="font-mono text-ink">flow</code> moves the dashes, <code class="font-mono text-ink">none</code>{" "}
+          keeps it still. GitHub keeps the motion in README images.
+        </p>
+      </div>
+      <div class="panel p-6 md:col-span-2">
+        <h3 class="text-lg font-semibold tracking-tight">Fits where the diagram goes</h3>
+        <p class="mt-2 max-w-xl text-sm text-dim">
+          Light and dark renders from one spec, a legend for every line style you use, warnings when a diagram is too
+          wide to read in a README column, and byte-identical output for the same spec, so diffs stay clean.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery preview -->
+  <section class="reveal mx-auto max-w-6xl px-5 pt-28 sm:px-8">
+    <div class="flex flex-wrap items-end justify-between gap-6">
+      <div>
+        <p class="eyebrow">Gallery</p>
+        <h2 class="display mt-3 text-[clamp(2rem,4.5vw,3.2rem)]">Every kind of diagram.</h2>
+      </div>
+      <DiagramTheme />
+    </div>
+    <div class="mt-6 flex flex-wrap gap-2">
+      {
+        meta.categories.map((c) => (
+          <a href={url(`gallery/?c=${c.id}`)} class="chip min-h-9 transition-colors duration-200 hover:border-line-strong hover:text-ink">
+            {c.label} <span class="tabular text-faint">{c.count}</span>
+          </a>
+        ))
+      }
+    </div>
+    <div class="mt-8 columns-1 gap-4 sm:columns-2 lg:columns-3">
+      {featured.map((e) => <ExampleCard example={e} />)}
+    </div>
+    <div class="mt-8">
+      <a href={url("gallery/")} class="btn btn-ghost">See all {meta.examples} examples</a>
+    </div>
+  </section>
+
+  <!-- Icon packs -->
+  <section id="icons" class="reveal mx-auto max-w-6xl scroll-mt-20 px-5 pt-28 sm:px-8">
+    <p class="eyebrow">Icon packs</p>
+    <h2 class="display mt-3 text-[clamp(2rem,4.5vw,3.2rem)]">{fmt(meta.icons)} icons in {meta.packs} packs.</h2>
+    <p class="mt-4 max-w-2xl text-dim">
+      Search them from the CLI with <code class="font-mono text-ink">orrery icons search load balancer</code>, or use
+      one of {meta.aliases} short names such as <code class="font-mono text-ink">aws:sqs</code> or{" "}
+      <code class="font-mono text-ink">k8s:deploy</code>.
+    </p>
+    <div class="panel mt-10 overflow-x-auto">
+      <table class="w-full min-w-[640px] text-left text-sm">
+        <thead class="border-b border-line">
+          <tr class="eyebrow">
+            <th class="px-5 py-3.5 font-normal">Pack</th>
+            <th class="px-5 py-3.5 font-normal">Source</th>
+            <th class="px-5 py-3.5 text-right font-normal">Icons</th>
+            <th class="px-5 py-3.5 font-normal">Version</th>
+            <th class="px-5 py-3.5 font-normal">Ships</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            packs.map((p) => (
+              <tr class="border-b border-line last:border-0">
+                <td class="px-5 py-3.5 font-mono text-ink">{p.key}</td>
+                <td class="px-5 py-3.5">
+                  <a class="text-dim hover:text-ink" href={p.source}>
+                    {p.title}
+                  </a>
+                </td>
+                <td class="tabular px-5 py-3.5 text-right font-mono text-ink">{fmt(p.count)}</td>
+                <td class="px-5 py-3.5 font-mono text-xs text-dim">{p.version}</td>
+                <td class="px-5 py-3.5 font-mono text-xs text-dim">{p.ships}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Closing -->
+  <section class="reveal mx-auto max-w-6xl px-5 pt-28 sm:px-8">
+    <div class="panel relative overflow-hidden px-6 py-14 text-center sm:px-12">
+      <svg class="pointer-events-none absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2" viewBox="0 0 520 520" fill="none" aria-hidden="true">
+        <circle cx="260" cy="260" r="250" stroke="rgb(255 255 255 / 0.05)" />
+        <circle cx="260" cy="260" r="170" stroke="rgb(255 255 255 / 0.06)" />
+        <g class="orbit" style="--period: 30s"><circle cx="430" cy="260" r="5" fill="#60a5fa" /></g>
+        <g class="orbit orbit-reverse" style="--period: 52s"><circle cx="260" cy="10" r="4" fill="#e6edf3" fill-opacity="0.6" /></g>
+      </svg>
+      <h2 class="display relative mx-auto max-w-2xl text-[clamp(2rem,4.5vw,3.2rem)]">Ask your agent for a diagram.</h2>
+      <p class="relative mx-auto mt-4 max-w-xl text-dim">
+        "Draw the architecture of this repo." "A three-tier web app on AWS across two Availability Zones." "Turn this
+        Mermaid flowchart into a Google Cloud diagram."
+      </p>
+      <div class="relative mt-8 flex flex-wrap justify-center gap-3">
+        <a href="#install" class="btn btn-primary">Install orrery</a>
+        <a href={repo} class="btn btn-ghost">Star on GitHub</a>
+      </div>
+    </div>
+  </section>
+</Base>

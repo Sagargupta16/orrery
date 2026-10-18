@@ -1,0 +1,89 @@
+---
+import DiagramTheme from "../components/DiagramTheme.astro";
+import ExampleCard from "../components/ExampleCard.astro";
+import examples from "../data/generated/examples.json";
+import meta from "../data/generated/meta.json";
+import Base from "../layouts/Base.astro";
+---
+
+<Base
+  title={`Gallery: ${meta.examples} architecture diagrams | orrery`}
+  description={`Every orrery example, rendered from its YAML spec in light and dark: AWS, Azure, Google Cloud, IBM Cloud, Kubernetes, AI, data and system design.`}
+>
+  <section class="mx-auto max-w-6xl px-5 pt-16 sm:px-8 sm:pt-20">
+    <p class="eyebrow">Gallery</p>
+    <h1 class="display mt-4 text-[clamp(2.4rem,6vw,4.4rem)]">{meta.examples} reference diagrams.</h1>
+    <p class="mt-5 max-w-2xl text-lg text-dim">
+      Each one is a spec in the repository, rendered here by the same CLI you install. Open one for its YAML and every
+      output format; <code class="font-mono text-ink">orrery init &lt;name&gt;</code> copies it as a starting point.
+    </p>
+
+    <div class="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Filter by kind">
+        <button type="button" class="filter chip min-h-9" data-filter="all" aria-pressed="true">
+          All <span class="tabular text-faint">{meta.examples}</span>
+        </button>
+        {
+          meta.categories.map((c) => (
+            <button type="button" class="filter chip min-h-9" data-filter={c.id} aria-pressed="false">
+              {c.label} <span class="tabular text-faint">{c.count}</span>
+            </button>
+          ))
+        }
+      </div>
+      <DiagramTheme />
+    </div>
+
+    <div id="grid" class="mt-8 columns-1 gap-4 sm:columns-2 lg:columns-3">
+      {examples.map((e, i) => <ExampleCard example={e} eager={i < 3} />)}
+    </div>
+    <p id="empty" class="mt-8 hidden text-dim">Nothing in this category yet.</p>
+  </section>
+</Base>
+
+<style>
+  .filter {
+    transition:
+      background-color 180ms var(--ease-out-quint),
+      color 180ms var(--ease-out-quint),
+      border-color 180ms var(--ease-out-quint);
+  }
+  .filter:hover {
+    border-color: var(--color-line-strong);
+    color: var(--color-ink);
+  }
+  .filter[aria-pressed="true"] {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-canvas);
+  }
+  .filter[aria-pressed="true"] span {
+    color: rgb(11 16 18 / 0.6);
+  }
+</style>
+
+<script>
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>("button.filter")];
+  const cards = [...document.querySelectorAll<HTMLElement>(".example-card")];
+  const empty = document.getElementById("empty");
+
+  function apply(filter: string) {
+    let shown = 0;
+    for (const card of cards) {
+      const match = filter === "all" || (card.dataset.categories ?? "").split(" ").includes(filter);
+      card.hidden = !match;
+      if (match) shown += 1;
+    }
+    for (const b of buttons) b.setAttribute("aria-pressed", String(b.dataset.filter === filter));
+    empty?.classList.toggle("hidden", shown > 0);
+    const params = new URLSearchParams(location.search);
+    if (filter === "all") params.delete("c");
+    else params.set("c", filter);
+    const query = params.toString();
+    history.replaceState(null, "", query ? `?${query}` : location.pathname);
+  }
+
+  for (const b of buttons) b.addEventListener("click", () => apply(b.dataset.filter ?? "all"));
+  const initial = new URLSearchParams(location.search).get("c");
+  if (initial && buttons.some((b) => b.dataset.filter === initial)) apply(initial);
+</script>

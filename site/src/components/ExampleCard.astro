@@ -1,0 +1,55 @@
+---
+import { url } from "../lib/url";
+
+interface Props {
+  example: {
+    name: string;
+    title: string;
+    caption: string;
+    alt: string;
+    width: number;
+    height: number;
+    packs: string[];
+    categories: string[];
+    counts: { nodes: number; edges: number; groups: number };
+  };
+  eager?: boolean;
+}
+const { example: e, eager = false } = Astro.props;
+const src = (theme: string) => url(`gallery/${e.name}/${e.name}-${theme}.svg`);
+---
+
+<a
+  href={url(`examples/${e.name}/`)}
+  class="example-card lift panel group mb-4 flex break-inside-avoid flex-col overflow-hidden"
+  data-categories={e.categories.join(" ")}
+>
+  <div class="border-b border-line">
+    <img
+      class="thumb-light block h-auto w-full bg-white p-3"
+      src={src("light")}
+      alt={e.alt}
+      width={e.width}
+      height={e.height}
+      loading={eager ? "eager" : "lazy"}
+      decoding="async"
+    />
+    <img
+      class="thumb-dark hidden h-auto w-full bg-[#0d1117] p-3"
+      src={src("dark")}
+      alt={e.alt}
+      width={e.width}
+      height={e.height}
+      loading="lazy"
+      decoding="async"
+    />
+  </div>
+  <div class="flex flex-col gap-2.5 p-5">
+    <h3 class="font-semibold tracking-tight text-ink">{e.title}</h3>
+    <p class="line-clamp-3 text-sm text-dim">{e.caption}</p>
+    <div class="flex flex-wrap gap-1.5 pt-2">
+      {e.packs.filter((p) => p !== "generic").map((p) => <span class="chip">{p}</span>)}
+      <span class="chip tabular">{e.counts.nodes} nodes</span>
+    </div>
+  </div>
+</a>

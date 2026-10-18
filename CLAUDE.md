@@ -55,6 +55,7 @@ npx -y @sagargupta1610/skillcheck lint skills
 - `scripts/sync-icons.mjs` -- official packs -> `skills/orrery/assets/icons/*.json`; npm-published sets get only index rows and a `lib` pin
 - `src/review.ts` -- `orrery review`: six scored dimensions at a display width; overlap findings map from `checkScene` diagnostics, so geometry rules live once in `src/check.ts`
 - `agents/*.md`, `commands/review.md` -- the three read-only reviewer agents and `/orrery:review`; their rubrics and the loop protocol are in `skills/orrery/references/review/`
+- `site/` -- the website at https://sagargupta.online/orrery/ (Astro 7 + Tailwind 4, separate pnpm project with its own lockfile). `site/scripts/prepare.mjs` renders every example with the built CLI into git-ignored `public/gallery/` and reads captions from `examples/README.md`, so a new example needs an entry there; `pages.yml` deploys `main`
 - `src/libraries.ts` -- loads the npm-published sets (octicons, carbon, logos, simple-icons, tabler) at render time: node_modules, then the user cache, then jsDelivr/unpkg, sha256-checked
 
 ## Key files

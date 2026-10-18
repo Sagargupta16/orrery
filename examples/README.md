@@ -1,6 +1,6 @@
 # Example gallery
 
-Twenty-six diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
+Thirty-two diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
 
 Run the commands from the repository root; `orrery` stands for `node skills/orrery/scripts/orrery.mjs`. `pnpm gallery` re-renders every picture here, and `node scripts/gallery.mjs --check` (run by CI) fails when a committed picture no longer matches its spec.
 
@@ -21,6 +21,12 @@ Run the commands from the repository root; `orrery` stands for `node skills/orre
 <a href="rag-open-source.svg"><img src="rag-open-source.svg" alt="Retrieval-augmented generation with Qdrant, bge-m3, LangChain, FastAPI, Ollama and Langfuse"></a>
 
 `orrery render skills/orrery/examples/rag-open-source.yaml -o examples/rag-open-source -f svg,png`
+
+[`ai-agent-mcp`](../skills/orrery/examples/ai-agent-mcp.yaml): an AI coding agent on the Model Context Protocol: the MCP host runs one MCP client per server, stdio to a local filesystem server, Streamable HTTP with OAuth to remote GitHub and Postgres servers, Claude choosing each tool, and OTLP traces to Grafana Cloud.
+
+<a href="ai-agent-mcp.svg"><img src="ai-agent-mcp.svg" alt="AI coding agent on the Model Context Protocol: a developer prompts the agent loop in the MCP host, which asks Claude and calls tools through three MCP clients over stdio and Streamable HTTP"></a>
+
+`orrery render skills/orrery/examples/ai-agent-mcp.yaml -o examples/ai-agent-mcp -f svg,png`
 
 [`system-design-url-shortener`](../skills/orrery/examples/system-design-url-shortener.yaml): vendor-neutral `generic:` icons and product logos, from CDN, load balancer and API servers to Redis, PostgreSQL and a Kafka, Flink and ClickHouse click pipeline.
 
@@ -58,6 +64,12 @@ Run the commands from the repository root; `orrery` stands for `node skills/orre
 
 `orrery render skills/orrery/examples/gcp-streaming-analytics.yaml -o examples/gcp-streaming-analytics -f svg,png`
 
+[`gcp-vertex-mlops`](../skills/orrery/examples/gcp-vertex-mlops.yaml): MLOps on Gemini Enterprise Agent Platform (formerly Vertex AI): Cloud Build ships the pipeline, Pub/Sub and Cloud Run functions start it, Dataflow and Managed Training feed Model Registry and an online endpoint, and drift alerts retrain.
+
+<a href="gcp-vertex-mlops.svg"><img src="gcp-vertex-mlops.svg" alt="MLOps on Google Cloud: Cloud Build ships pipeline code to Agent Platform Pipelines, which trains, registers and serves a model; drift alerts restart it through Cloud Logging, Pub/Sub and Cloud Run functions"></a>
+
+`orrery render skills/orrery/examples/gcp-vertex-mlops.yaml -o examples/gcp-vertex-mlops -f svg,png`
+
 [`azure-hub-spoke`](../skills/orrery/examples/azure-hub-spoke.yaml): a hub-spoke network on Azure: on-premises reaches the hub's ExpressRoute and VPN gateways and Azure Firewall, which forwards over the peerings to the spokes, with Bastion in the hub, AKS in one spoke and VMs with a private endpoint to Azure SQL in the other, Private DNS and Log Analytics.
 
 <a href="azure-hub-spoke.svg"><img src="azure-hub-spoke.svg" alt="Hub-spoke network on Azure with ExpressRoute, a VPN backup, Azure Firewall, Bastion and two peered spokes"></a>
@@ -76,6 +88,18 @@ Run the commands from the repository root; `orrery` stands for `node skills/orre
 
 `orrery render skills/orrery/examples/azure-aks-platform.yaml -o examples/azure-aks-platform -f svg,png`
 
+[`azure-openai-rag`](../skills/orrery/examples/azure-openai-rag.yaml): Azure OpenAI chat grounded in an Azure AI Search index, behind Application Gateway and private endpoints, with an indexer filling the index from Blob Storage.
+
+<a href="azure-openai-rag.svg"><img src="azure-openai-rag.svg" alt="Retrieval augmented generation on Azure: Application Gateway, Container Apps, private endpoints, Azure OpenAI, Azure AI Search and Blob Storage ingestion"></a>
+
+`orrery render skills/orrery/examples/azure-openai-rag.yaml -o examples/azure-openai-rag -f svg,png`
+
+[`ibm-cloud-openshift`](../skills/orrery/examples/ibm-cloud-openshift.yaml): IBM Cloud Internet Services in front of a static site in Cloud Object Storage and a three-zone Red Hat OpenShift cluster, with App ID and services reached through Virtual Private Endpoints.
+
+<a href="ibm-cloud-openshift.svg"><img src="ibm-cloud-openshift.svg" alt="Web application on Red Hat OpenShift on IBM Cloud across three zones in a VPC"></a>
+
+`orrery render skills/orrery/examples/ibm-cloud-openshift.yaml -o examples/ibm-cloud-openshift -f svg,png`
+
 [`multi-cloud`](../skills/orrery/examples/multi-cloud.yaml): AWS, Google Cloud and Azure in their own vendor frames (the Azure subscription inside its Microsoft Entra tenant), federated to one Okta tenant and joined at a colocation router by Direct Connect, Partner Interconnect and ExpressRoute, each reaching its workload through a gateway or router in a VPC or VNet.
 
 <a href="multi-cloud.svg"><img src="multi-cloud.svg" alt="AWS, Google Cloud and Azure with a shared identity provider"></a>
@@ -93,6 +117,12 @@ Run the commands from the repository root; `orrery` stands for `node skills/orre
 <a href="system-design-chat.svg"><img src="system-design-chat.svg" alt="Chat system design drawn with shapes"></a>
 
 `orrery render skills/orrery/examples/system-design-chat.yaml -o examples/system-design-chat -f svg,png`
+
+[`system-design-video-streaming`](../skills/orrery/examples/system-design-video-streaming.yaml): uploads go to object storage through a pre-signed URL, a queue feeds transcoding workers that write HLS and DASH renditions, and viewers stream segments from the CDN while view events flow through Kafka to recommendations.
+
+<a href="system-design-video-streaming.svg"><img src="system-design-video-streaming.svg" alt="Video streaming system design with upload, transcoding, CDN playback, metadata, search and recommendations"></a>
+
+`orrery render skills/orrery/examples/system-design-video-streaming.yaml -o examples/system-design-video-streaming -f svg,png`
 
 [`c4-container`](../skills/orrery/examples/c4-container.yaml): a C4 container view built from shapes: two people, a `c4:boundary` system, its containers and database, and grey external systems.
 
