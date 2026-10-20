@@ -8,7 +8,17 @@ export interface Args {
   flags: Record<string, string | boolean>;
 }
 
-const BOOL = new Set(["json", "strict", "force", "static", "list", "help", "version", "review"]);
+const BOOL = new Set([
+  "json",
+  "strict",
+  "force",
+  "static",
+  "list",
+  "help",
+  "version",
+  "review",
+  "link",
+]);
 const KNOWN_FLAGS = new Set([
   ...BOOL,
   "out",
