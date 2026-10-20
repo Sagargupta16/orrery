@@ -28225,7 +28225,17 @@ async function cmdWatch(args) {
 }
 
 // src/cli/args.ts
-var BOOL = /* @__PURE__ */ new Set(["json", "strict", "force", "static", "list", "help", "version", "review"]);
+var BOOL = /* @__PURE__ */ new Set([
+  "json",
+  "strict",
+  "force",
+  "static",
+  "list",
+  "help",
+  "version",
+  "review",
+  "link"
+]);
 var KNOWN_FLAGS = /* @__PURE__ */ new Set([
   ...BOOL,
   "out",
