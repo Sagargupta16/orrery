@@ -18,11 +18,19 @@ export const isObj = (v: unknown): v is Obj =>
 export interface Context {
   /** Over HTTP the caller may not share this machine's files: paths and out_dir are refused. */
   http: boolean;
+  /** The client renders MCP Apps views, so render and review add the viewer's data (mcp/viewer.ts). */
+  ui?: boolean;
 }
 
 export type Content =
   | { type: "text"; text: string }
   | { type: "image"; data: string; mimeType: string };
+
+/** A result with _meta for the client (never the model) next to its content. */
+export interface ToolOutput {
+  content: Content[];
+  _meta?: Obj;
+}
 
 export interface Tool {
   name: string;
@@ -35,7 +43,9 @@ export interface Tool {
     additionalProperties: false;
   };
   annotations?: { readOnlyHint?: boolean; idempotentHint?: boolean };
-  run(input: Obj, ctx: Context): Promise<Content[]>;
+  /** Listed as is: render and review name the viewer here (`_meta.ui.resourceUri`). */
+  _meta?: Obj;
+  run(input: Obj, ctx: Context): Promise<Content[] | ToolOutput>;
 }
 
 export const text = (t: string): Content => ({ type: "text", text: t });

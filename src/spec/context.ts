@@ -1,5 +1,12 @@
 // The state one parse shares across its steps, and the id helpers that read and fill it.
-import type { Diagnostic, LocalIcon, ModelEdge, ModelGroup, ModelNode } from "../types.ts";
+import type {
+  Diagnostic,
+  LocalIcon,
+  ModelEdge,
+  ModelGroup,
+  ModelNode,
+  TagStyle,
+} from "../types.ts";
 import { ID_RE } from "./keys.ts";
 import { isObj, type Obj, type Reporter } from "./values.ts";
 
@@ -14,6 +21,8 @@ export interface Ctx extends Reporter {
   groups: ModelGroup[];
   nodes: ModelNode[];
   edges: ModelEdge[];
+  /** Top-level `tags:` styles, read before the items that take their color and line. */
+  tagStyles: Record<string, TagStyle>;
   /** Group `contains` lists, applied once every node and group exists. */
   pendingContains: [string, string[]][];
   /** Node `align` targets, checked once every node exists. */
@@ -37,6 +46,7 @@ export function newContext(
     groups: [],
     nodes: [],
     edges: [],
+    tagStyles: {},
     pendingContains: [],
     pendingAlign: [],
   };

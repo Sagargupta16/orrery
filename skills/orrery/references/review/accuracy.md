@@ -13,6 +13,9 @@ Used by the accuracy reviewer (`orrery:accuracy-reviewer`). The other reviewers 
 | ACC-07 | A number in a note or badge (task count, memory, retention, replica count) matches the evidence. | minor |
 | ACC-08 | Everything the brief asks the figure to show is drawn. | major |
 | ACC-09 | One name per thing across the figure, its caption and the document around it: the "Orders API" of one figure is not the "order service" of the next. | minor |
+| ACC-10 | One thing, one node: no service split into two boxes, no two resources that share a short name merged into one, and copies drawn as one node with a count badge unless their spread is the point. | major |
+| ACC-11 | No invented structure: services that sit side by side are not chained into a pipeline, and a call through a gateway, queue or proxy is not drawn as a direct line that skips it. | major |
+| ACC-12 | Each resource sits in its innermost boundary only, never in two groups at once. An inferred flow the user has not confirmed is dashed and says `(unverified)`. | minor |
 
 ## Evidence
 

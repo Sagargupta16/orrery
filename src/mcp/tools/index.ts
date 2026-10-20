@@ -1,5 +1,6 @@
-// The nine tools in the order tools/list returns them.
+// The ten tools in the order tools/list returns them.
 import type { Tool } from "../kit.ts";
+import { describeTool } from "./describe.ts";
 import { drawioLinkTool } from "./drawio.ts";
 import { authoringGuideTool } from "./guide.ts";
 import { iconsSearchTool } from "./icons.ts";
@@ -14,6 +15,7 @@ export const TOOLS: Tool[] = [
   validateTool,
   renderTool,
   reviewTool,
+  describeTool,
   iconsSearchTool,
   listTemplatesTool,
   getTemplateTool,

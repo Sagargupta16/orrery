@@ -18,6 +18,15 @@ interface Content {
 interface ToolResult {
   content: Content[];
   isError?: boolean;
+  _meta?: Record<string, unknown>;
+}
+interface ViewerData {
+  title: string;
+  theme: string;
+  svg: { light?: string; dark?: string };
+  width: number;
+  height: number;
+  review?: { score: number; pass: boolean; dimensions: Record<string, number> };
 }
 interface Response {
   id?: number | string;
@@ -36,12 +45,20 @@ const meta = {
   "io.modelcontextprotocol/protocolVersion": MODERN,
   "io.modelcontextprotocol/clientCapabilities": {},
 };
+// A client that renders MCP Apps views (ext-apps, 2026-01-26).
+const APPS = {
+  extensions: { "io.modelcontextprotocol/ui": { mimeTypes: ["text/html;profile=mcp-app"] } },
+};
+const appsMeta = { ...meta, "io.modelcontextprotocol/clientCapabilities": APPS };
+const VIEWER = "ui://orrery/viewer";
+const VIEWER_KEY = "orrery/viewer";
 
 const TOOL_NAMES = [
   "get_authoring_guide",
   "validate",
   "render",
   "review",
+  "describe",
   "icons_search",
   "list_templates",
   "get_template",
@@ -51,6 +68,9 @@ const TOOL_NAMES = [
 
 const textOf = (r: ToolResult, i = 0) => r.content[i]?.text ?? "";
 const jsonOf = <T = Record<string, unknown>>(r: ToolResult, i = 0) => JSON.parse(textOf(r, i)) as T;
+/** The contents of a resources/read reply. */
+const contentsOf = (r?: Response) =>
+  (r?.result?.contents ?? []) as { uri: string; mimeType: string; text: string }[];
 const isPng = (c?: Content) =>
   c?.type === "image" &&
   c.mimeType === "image/png" &&
@@ -71,8 +91,12 @@ function rpc(method: string, params?: unknown): Promise<Response> {
   return new Promise((resolve) => waiting.set(id, resolve));
 }
 
-async function call(name: string, args: Record<string, unknown>): Promise<ToolResult> {
-  const r = await rpc("tools/call", { name, arguments: args });
+async function call(
+  name: string,
+  args: Record<string, unknown>,
+  _meta?: Record<string, unknown>,
+): Promise<ToolResult> {
+  const r = await rpc("tools/call", { name, arguments: args, ...(_meta ? { _meta } : {}) });
   if (!r.result) throw new Error(`tools/call ${name}: ${JSON.stringify(r.error)}`);
   return r.result as unknown as ToolResult;
 }
@@ -105,7 +129,11 @@ describe("mcp over stdio", () => {
     });
     expect(asked.result).toMatchObject({
       protocolVersion: "2025-06-18",
-      capabilities: { tools: {} },
+      capabilities: {
+        tools: {},
+        resources: {},
+        extensions: { "io.modelcontextprotocol/ui": {} },
+      },
       serverInfo: { name: "orrery" },
     });
     expect(String(asked.result?.instructions)).toContain("get_authoring_guide");
@@ -144,19 +172,116 @@ describe("mcp over stdio", () => {
       _meta: { "io.modelcontextprotocol/protocolVersion": MODERN },
     });
     expect(noCaps.error?.code).toBe(-32602);
-    expect((await rpc("resources/list")).error?.code).toBe(-32601);
+    expect((await rpc("prompts/list")).error?.code).toBe(-32601);
   });
 
-  it("lists the nine tools, read-only ones marked", async () => {
+  it("lists the ten tools, read-only ones marked, render and review linked to the viewer", async () => {
     const tools = (await rpc("tools/list")).result?.tools as {
       name: string;
       inputSchema: { type: string };
       annotations?: { readOnlyHint?: boolean };
+      _meta?: { ui?: { resourceUri?: string }; "ui/resourceUri"?: string };
     }[];
     expect(tools.map((t) => t.name)).toEqual(TOOL_NAMES);
     for (const t of tools) expect(t.inputSchema.type).toBe("object");
     const readOnly = tools.filter((t) => t.annotations?.readOnlyHint).map((t) => t.name);
     expect(readOnly).toEqual(TOOL_NAMES.filter((n) => n !== "render"));
+    // MCP Apps: `_meta.ui.resourceUri`, and the deprecated flat key the ext-apps SDK still writes.
+    const linked = tools.filter((t) => t._meta?.ui?.resourceUri === VIEWER).map((t) => t.name);
+    expect(linked).toEqual(["render", "review"]);
+    for (const t of tools.filter((x) => linked.includes(x.name)))
+      expect(t._meta?.["ui/resourceUri"]).toBe(VIEWER);
+  });
+
+  it("lists the viewer as a resource and reads it in both eras", async () => {
+    const list = await rpc("resources/list");
+    expect(list.result?.resources).toEqual([
+      expect.objectContaining({ uri: VIEWER, mimeType: "text/html;profile=mcp-app" }),
+    ]);
+    const read = await rpc("resources/read", { uri: VIEWER });
+    const [page] = contentsOf(read);
+    expect(page).toMatchObject({ uri: VIEWER, mimeType: "text/html;profile=mcp-app" });
+    expect(page?.text.startsWith("<!doctype html>")).toBe(true);
+    const modern = await rpc("resources/read", { uri: VIEWER, _meta: meta });
+    expect(modern.result?.resultType).toBe("complete");
+    expect(contentsOf(modern)[0]?.text).toBe(page?.text);
+    expect((await rpc("resources/templates/list")).result?.resourceTemplates).toEqual([]);
+    const missing = await rpc("resources/read", { uri: "ui://orrery/nope" });
+    expect(missing.error).toMatchObject({ code: -32002, data: { uri: "ui://orrery/nope" } });
+    const missingModern = await rpc("resources/read", { uri: "file:///etc/passwd", _meta: meta });
+    expect(missingModern.error?.code).toBe(-32602);
+  });
+
+  it("serves a viewer page that needs nothing from the network", async () => {
+    const read = await rpc("resources/read", { uri: VIEWER });
+    const html = contentsOf(read)[0]?.text ?? "";
+    expect(html).not.toMatch(/https?:\/\//);
+    expect(html).not.toMatch(/<script\b[^>]*\bsrc=/i);
+    expect(html).not.toMatch(/<link\b/i);
+    expect(html).not.toMatch(/@import|url\(|fetch\(|XMLHttpRequest|WebSocket|eval\(/);
+    expect(html.match(/<script\b/g)).toHaveLength(1);
+    // The ext-apps handshake and the notifications it draws from.
+    for (const method of [
+      "ui/initialize",
+      "ui/notifications/initialized",
+      "ui/notifications/tool-result",
+      "ui/notifications/host-context-changed",
+      "ui/notifications/size-changed",
+    ])
+      expect(html).toContain(`"${method}"`);
+    expect(html).toContain(`"${VIEWER_KEY}"`);
+  });
+
+  it("hands an MCP Apps client both themes in the result _meta, and nobody else", async () => {
+    const plain = await call("render", { spec: STARTER_TEXT, name: "starter", scale: 1 }, meta);
+    expect(Object.keys(plain._meta ?? {})).toEqual(["io.modelcontextprotocol/serverInfo"]);
+    const legacy = await call("render", { spec: STARTER_TEXT, name: "starter", scale: 1 });
+    expect(legacy._meta).toBeUndefined();
+    const apps = await call(
+      "render",
+      { spec: STARTER_TEXT, name: "starter", scale: 1, formats: ["png"] },
+      appsMeta,
+    );
+    expect(apps._meta).toHaveProperty(["io.modelcontextprotocol/serverInfo"]);
+    const view = apps._meta?.[VIEWER_KEY] as ViewerData;
+    const receipt = jsonOf<{ outputs: { format: string; theme: string }[] }>(apps);
+    // It opens on the theme the call rendered.
+    expect(view).toMatchObject({ title: "Web app on AWS", theme: receipt.outputs[0]?.theme });
+    expect(view.svg.light).toMatch(/^<svg /);
+    expect(view.svg.dark).toMatch(/^<svg /);
+    // The picture plays: the viewer gets the animated SVG even when only a PNG was asked for.
+    expect(view.svg.light).toMatch(/<animate/);
+    expect(view.width).toBeGreaterThan(0);
+    // The content the model reads is what it was: a receipt and the outputs asked for.
+    expect(receipt.outputs.map((o) => o.format)).toEqual(["png"]);
+    expect(apps.content).toHaveLength(2);
+    expect(plain.content.map((c) => c.type)).toEqual(legacy.content.map((c) => c.type));
+    const review = await call("review", { spec_path: STARTER }, appsMeta);
+    const scored = review._meta?.[VIEWER_KEY] as ViewerData;
+    const report = jsonOf<{ score: number; pass: boolean }>(review);
+    expect(scored.review).toMatchObject({ score: report.score, pass: report.pass });
+    expect(Object.keys(scored.review?.dimensions ?? {})).toContain("overlap");
+    expect(scored.svg.dark).toMatch(/^<svg /);
+  });
+
+  it("describe tells the diagram as text or JSON", async () => {
+    const r = await call("describe", { spec_path: STARTER });
+    expect(r.isError).toBeFalsy();
+    const t = textOf(r);
+    expect(t.split("\n")[0]).toBe("Web app on AWS");
+    expect(t).toContain("6 nodes, 3 groups, 5 edges");
+    expect(t).toMatch(/^- r\d+c\d+ users: -> alb \(HTTPS\)$/m);
+    const data = jsonOf<{ nodes: { id: string; group?: string }[]; groups: { id: string }[] }>(
+      await call("describe", { spec: STARTER_TEXT, format: "json" }),
+    );
+    expect(data.nodes).toHaveLength(6);
+    expect(data.nodes.find((n) => n.id === "app")?.group).toBe("vpc");
+    expect(data.groups.map((g) => g.id)).toEqual(["aws", "region", "vpc"]);
+    const bad = await call("describe", { spec: "nodes:\n  f: { icon: aws:lamda }\n" });
+    expect(bad.isError).toBeFalsy();
+    expect(jsonOf(bad).ok).toBe(false);
+    const format = await call("describe", { spec: STARTER_TEXT, format: "xml" });
+    expect(format.isError).toBe(true);
   });
 
   it("get_authoring_guide returns the skill and the spec reference", async () => {
@@ -320,6 +445,34 @@ describe("mcp over stdio", () => {
   });
 });
 
+// ---------------------------------------------------------------- MCP Apps over a legacy handshake
+
+describe("mcp apps over stdio after a legacy initialize", () => {
+  it("keeps the capabilities initialize declared for the connection", async () => {
+    const own = spawn(process.execPath, [MAIN, "mcp"], {
+      cwd: dir,
+      stdio: ["pipe", "pipe", "ignore"],
+    });
+    const replies = new Map<number, (r: Response) => void>();
+    createInterface({ input: own.stdout as NodeJS.ReadableStream }).on("line", (line) => {
+      const msg = JSON.parse(line) as Response;
+      replies.get(Number(msg.id))?.(msg);
+    });
+    const ask = (id: number, method: string, params: unknown) => {
+      own.stdin?.write(`${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`);
+      return new Promise<Response>((resolve) => replies.set(id, resolve));
+    };
+    await ask(1, "initialize", { protocolVersion: "2025-11-25", capabilities: APPS });
+    const r = (await ask(2, "tools/call", { name: "render", arguments: { spec: STARTER_TEXT } }))
+      .result as unknown as ToolResult;
+    const view = r._meta?.[VIEWER_KEY] as ViewerData;
+    expect(view.svg.light).toMatch(/^<svg /);
+    expect(view.svg.dark).toMatch(/^<svg /);
+    own.stdin?.end();
+    await new Promise((resolve) => own.once("close", resolve));
+  });
+});
+
 // ---------------------------------------------------------------- HTTP
 
 let server: ChildProcess;
@@ -406,6 +559,24 @@ describe("mcp over HTTP", () => {
     expect(r.json?.result?.resultType).toBe("complete");
     const result = r.json?.result as unknown as ToolResult;
     expect(jsonOf(result).ok).toBe(true);
+  });
+
+  it("reads the viewer and adds its data for an MCP Apps client over HTTP", async () => {
+    const read = await modern("resources/read", { uri: VIEWER });
+    expect(read.status).toBe(200);
+    expect(contentsOf(read.json)[0]?.mimeType).toBe("text/html;profile=mcp-app");
+    const r = await post(
+      {
+        jsonrpc: "2.0",
+        id: 8,
+        method: "tools/call",
+        params: { name: "render", arguments: { spec: STARTER_TEXT }, _meta: appsMeta },
+      },
+      { "mcp-protocol-version": MODERN, "mcp-method": "tools/call", "mcp-name": "render" },
+    );
+    const result = r.json?.result as unknown as ToolResult | undefined;
+    const view = result?._meta?.[VIEWER_KEY] as ViewerData | undefined;
+    expect(view?.svg.dark).toMatch(/^<svg /);
   });
 
   it("refuses paths, out_dir and icon files over HTTP", async () => {

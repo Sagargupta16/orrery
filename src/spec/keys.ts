@@ -23,6 +23,7 @@ export const TOP_KEYS = [
   "views",
   "classes",
   "include",
+  "embed",
   "nodes",
   "groups",
   "edges",

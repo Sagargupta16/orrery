@@ -300,6 +300,11 @@ export interface TagStyle {
 export interface LegendEntry {
   line: EdgeLine;
   label: string;
+  /** A tag style's row: its color, and `chip` when it sets no line (a color swatch, no sample). */
+  color?: string;
+  chip?: boolean;
+  /** The tag the row explains; a view keeps the row only when something it shows carries it. */
+  tag?: string;
 }
 
 export interface Model {
@@ -432,6 +437,9 @@ export interface SceneEdge {
 
 export interface SceneLegendItem {
   line: EdgeLine;
+  /** A tag row's color; `chip` draws a color swatch instead of a sample line. */
+  color?: string;
+  chip?: boolean;
   /** Where the sample line is drawn (a short horizontal stroke across the middle of the box). */
   swatch: Box;
   label: TextBlock;

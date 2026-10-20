@@ -18,6 +18,8 @@ const BOOL = new Set([
   "version",
   "review",
   "link",
+  // Language clients start servers with --stdio; orrery lsp only speaks stdio, so it is a no-op.
+  "stdio",
 ]);
 const KNOWN_FLAGS = new Set([
   ...BOOL,

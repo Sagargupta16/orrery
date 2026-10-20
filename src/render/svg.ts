@@ -696,7 +696,10 @@ function node(ctx: Ctx, nd: SceneNode): string {
 
 // ---------------------------------------------------------------- legend
 
-/** The key for line styles: a sample of each line in the edge color, its meaning beside it. */
+/**
+ * The key for line styles: a sample of each line in the edge color, its meaning beside it. A tag
+ * row draws its sample in the tag's color, or a chip of that color when the tag sets no line.
+ */
 function legend(ctx: Ctx, l: SceneLegend): string {
   const b = l.box;
   const parts = [
@@ -706,8 +709,11 @@ function legend(ctx: Ctx, l: SceneLegend): string {
     const s = item.swatch;
     const { width, dash } = stroke(item.line);
     const y = s.y + s.h / 2;
+    const color = item.color ?? ctx.t.edge;
     parts.push(
-      `<path d="M${n(s.x)} ${n(y)} H${n(s.x + s.w)}" fill="none" stroke="${ctx.t.edge}" stroke-width="${width}"${dash}/>`,
+      item.chip
+        ? `<rect x="${n(s.x + 6)}" y="${n(s.y + 1)}" width="${n(s.w - 12)}" height="${n(s.h - 2)}" rx="3" fill="${color}"/>`
+        : `<path d="M${n(s.x)} ${n(y)} H${n(s.x + s.w)}" fill="none" stroke="${color}" stroke-width="${width}"${dash}/>`,
     );
     parts.push(text(item.label, item.labelBox, ctx.t.text, "start"));
   }

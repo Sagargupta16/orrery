@@ -52,10 +52,10 @@ var require_identity = __commonJS({
     var NODE_TYPE = /* @__PURE__ */ Symbol.for("yaml.node.type");
     var isAlias = (node4) => !!node4 && typeof node4 === "object" && node4[NODE_TYPE] === ALIAS;
     var isDocument = (node4) => !!node4 && typeof node4 === "object" && node4[NODE_TYPE] === DOC;
-    var isMap4 = (node4) => !!node4 && typeof node4 === "object" && node4[NODE_TYPE] === MAP;
+    var isMap7 = (node4) => !!node4 && typeof node4 === "object" && node4[NODE_TYPE] === MAP;
     var isPair2 = (node4) => !!node4 && typeof node4 === "object" && node4[NODE_TYPE] === PAIR;
-    var isScalar3 = (node4) => !!node4 && typeof node4 === "object" && node4[NODE_TYPE] === SCALAR;
-    var isSeq4 = (node4) => !!node4 && typeof node4 === "object" && node4[NODE_TYPE] === SEQ;
+    var isScalar6 = (node4) => !!node4 && typeof node4 === "object" && node4[NODE_TYPE] === SCALAR;
+    var isSeq7 = (node4) => !!node4 && typeof node4 === "object" && node4[NODE_TYPE] === SEQ;
     function isCollection(node4) {
       if (node4 && typeof node4 === "object")
         switch (node4[NODE_TYPE]) {
@@ -76,7 +76,7 @@ var require_identity = __commonJS({
         }
       return false;
     }
-    var hasAnchor = (node4) => (isScalar3(node4) || isCollection(node4)) && !!node4.anchor;
+    var hasAnchor = (node4) => (isScalar6(node4) || isCollection(node4)) && !!node4.anchor;
     exports.ALIAS = ALIAS;
     exports.DOC = DOC;
     exports.MAP = MAP;
@@ -88,11 +88,11 @@ var require_identity = __commonJS({
     exports.isAlias = isAlias;
     exports.isCollection = isCollection;
     exports.isDocument = isDocument;
-    exports.isMap = isMap4;
+    exports.isMap = isMap7;
     exports.isNode = isNode;
     exports.isPair = isPair2;
-    exports.isScalar = isScalar3;
-    exports.isSeq = isSeq4;
+    exports.isScalar = isScalar6;
+    exports.isSeq = isSeq7;
   }
 });
 
@@ -1006,14 +1006,14 @@ var require_foldFlowLines = __commonJS({
     var FOLD_FLOW = "flow";
     var FOLD_BLOCK = "block";
     var FOLD_QUOTED = "quoted";
-    function foldFlowLines(text4, indent, mode = "flow", { indentAtStart, lineWidth = 80, minContentWidth = 20, onFold, onOverflow } = {}) {
+    function foldFlowLines(text5, indent, mode = "flow", { indentAtStart, lineWidth = 80, minContentWidth = 20, onFold, onOverflow } = {}) {
       if (!lineWidth || lineWidth < 0)
-        return text4;
+        return text5;
       if (lineWidth < minContentWidth)
         minContentWidth = 0;
       const endStep = Math.max(1 + minContentWidth, 1 + lineWidth - indent.length);
-      if (text4.length <= endStep)
-        return text4;
+      if (text5.length <= endStep)
+        return text5;
       const folds = [];
       const escapedFolds = {};
       let end = lineWidth - indent.length;
@@ -1030,14 +1030,14 @@ var require_foldFlowLines = __commonJS({
       let escStart = -1;
       let escEnd = -1;
       if (mode === FOLD_BLOCK) {
-        i = consumeMoreIndentedLines(text4, i, indent.length);
+        i = consumeMoreIndentedLines(text5, i, indent.length);
         if (i !== -1)
           end = i + endStep;
       }
-      for (let ch; ch = text4[i += 1]; ) {
+      for (let ch; ch = text5[i += 1]; ) {
         if (mode === FOLD_QUOTED && ch === "\\") {
           escStart = i;
-          switch (text4[i + 1]) {
+          switch (text5[i + 1]) {
             case "x":
               i += 3;
               break;
@@ -1054,12 +1054,12 @@ var require_foldFlowLines = __commonJS({
         }
         if (ch === "\n") {
           if (mode === FOLD_BLOCK)
-            i = consumeMoreIndentedLines(text4, i, indent.length);
+            i = consumeMoreIndentedLines(text5, i, indent.length);
           end = i + indent.length + endStep;
           split = void 0;
         } else {
           if (ch === " " && prev && prev !== " " && prev !== "\n" && prev !== "	") {
-            const next = text4[i + 1];
+            const next = text5[i + 1];
             if (next && next !== " " && next !== "\n" && next !== "	")
               split = i;
           }
@@ -1071,12 +1071,12 @@ var require_foldFlowLines = __commonJS({
             } else if (mode === FOLD_QUOTED) {
               while (prev === " " || prev === "	") {
                 prev = ch;
-                ch = text4[i += 1];
+                ch = text5[i += 1];
                 overflow = true;
               }
               const j = i > escEnd + 1 ? i - 2 : escStart - 1;
               if (escapedFolds[j])
-                return text4;
+                return text5;
               folds.push(j);
               escapedFolds[j] = true;
               end = j + endStep;
@@ -1091,39 +1091,39 @@ var require_foldFlowLines = __commonJS({
       if (overflow && onOverflow)
         onOverflow();
       if (folds.length === 0)
-        return text4;
+        return text5;
       if (onFold)
         onFold();
-      let res = text4.slice(0, folds[0]);
+      let res = text5.slice(0, folds[0]);
       for (let i2 = 0; i2 < folds.length; ++i2) {
         const fold = folds[i2];
-        const end2 = folds[i2 + 1] || text4.length;
+        const end2 = folds[i2 + 1] || text5.length;
         if (fold === 0)
           res = `
-${indent}${text4.slice(0, end2)}`;
+${indent}${text5.slice(0, end2)}`;
         else {
           if (mode === FOLD_QUOTED && escapedFolds[fold])
-            res += `${text4[fold]}\\`;
+            res += `${text5[fold]}\\`;
           res += `
-${indent}${text4.slice(fold + 1, end2)}`;
+${indent}${text5.slice(fold + 1, end2)}`;
         }
       }
       return res;
     }
-    function consumeMoreIndentedLines(text4, i, indent) {
+    function consumeMoreIndentedLines(text5, i, indent) {
       let end = i;
       let start = i + 1;
-      let ch = text4[start];
+      let ch = text5[start];
       while (ch === " " || ch === "	") {
         if (i < start + indent) {
-          ch = text4[++i];
+          ch = text5[++i];
         } else {
           do {
-            ch = text4[++i];
+            ch = text5[++i];
           } while (ch && ch !== "\n");
           end = i;
           start = i + 1;
-          ch = text4[start];
+          ch = text5[start];
         }
       }
       return end;
@@ -4002,10 +4002,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -4019,7 +4019,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep) {
+          if (!keyProps.anchor && !keyProps.tag && !sep2) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -4043,7 +4043,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep ?? [], {
+        const valueProps = resolveProps.resolveProps(sep2 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -4059,7 +4059,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep2, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -4150,7 +4150,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep = "";
+        let sep2 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -4164,13 +4164,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep + cb;
-              sep = "";
+                comment += sep2 + cb;
+              sep2 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep += source;
+                sep2 += source;
               hasSpace = true;
               break;
             default:
@@ -4200,9 +4200,9 @@ var require_resolve_flow_collection = __commonJS({
     var blockMsg = "Block collections are not allowed within flow collections";
     var isBlock = (token) => token && (token.type === "block-map" || token.type === "block-seq");
     function resolveFlowCollection({ composeNode, composeEmptyNode }, ctx, fc, onError, tag) {
-      const isMap4 = fc.start.source === "{";
-      const fcName = isMap4 ? "flow map" : "flow sequence";
-      const NodeClass = tag?.nodeClass ?? (isMap4 ? YAMLMap.YAMLMap : YAMLSeq.YAMLSeq);
+      const isMap7 = fc.start.source === "{";
+      const fcName = isMap7 ? "flow map" : "flow sequence";
+      const NodeClass = tag?.nodeClass ?? (isMap7 ? YAMLMap.YAMLMap : YAMLSeq.YAMLSeq);
       const coll = new NodeClass(ctx.schema);
       coll.flow = true;
       const atRoot = ctx.atRoot;
@@ -4213,18 +4213,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep && !value) {
+          if (!props.anchor && !props.tag && !sep2 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -4238,7 +4238,7 @@ var require_resolve_flow_collection = __commonJS({
             offset = props.end;
             continue;
           }
-          if (!isMap4 && ctx.options.strict && utilContainsNewline.containsNewline(key))
+          if (!isMap7 && ctx.options.strict && utilContainsNewline.containsNewline(key))
             onError(
               key,
               // checked by containsNewline()
@@ -4278,8 +4278,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap4 && !sep && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep, null, props, onError);
+        if (!isMap7 && !sep2 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep2, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -4291,7 +4291,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep ?? [], {
+          const valueProps = resolveProps.resolveProps(sep2 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -4301,9 +4301,9 @@ var require_resolve_flow_collection = __commonJS({
             startOnNewline: false
           });
           if (valueProps.found) {
-            if (!isMap4 && !props.found && ctx.options.strict) {
-              if (sep)
-                for (const st of sep) {
+            if (!isMap7 && !props.found && ctx.options.strict) {
+              if (sep2)
+                for (const st of sep2) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -4320,7 +4320,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep2, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -4333,7 +4333,7 @@ var require_resolve_flow_collection = __commonJS({
           const pair = new Pair.Pair(keyNode, valueNode);
           if (ctx.options.keepSourceTokens)
             pair.srcToken = collItem;
-          if (isMap4) {
+          if (isMap7) {
             const map = coll;
             if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
               onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
@@ -4349,7 +4349,7 @@ var require_resolve_flow_collection = __commonJS({
           offset = valueNode ? valueNode.range[2] : valueProps.end;
         }
       }
-      const expectedEnd = isMap4 ? "}" : "]";
+      const expectedEnd = isMap7 ? "}" : "]";
       const [ce, ...ee] = fc.end;
       let cePos = offset;
       if (ce?.source === expectedEnd)
@@ -4500,7 +4500,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep = "";
+      let sep2 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart2; ++i)
         value += lines2[i][0].slice(trimIndent) + "\n";
@@ -4517,24 +4517,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep === " ")
-            sep = "\n";
-          else if (!prevMoreIndented && sep === "\n")
-            sep = "\n\n";
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          if (sep2 === " ")
+            sep2 = "\n";
+          else if (!prevMoreIndented && sep2 === "\n")
+            sep2 = "\n\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep === "\n")
+          if (sep2 === "\n")
             value += "\n";
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          value += sep + content;
-          sep = " ";
+          value += sep2 + content;
+          sep2 = " ";
           prevMoreIndented = false;
         }
       }
@@ -4717,25 +4717,25 @@ var require_resolve_flow_scalar = __commonJS({
         trimBoth = /^[ \t]+|[ \t]+$/g;
       }
       let res = match[1].replace(trimEnd, "");
-      let sep = " ";
+      let sep2 = " ";
       let pos = line.lastIndex;
       while (match = line.exec(source)) {
         const lm = match[1].replace(trimBoth, "");
         if (lm === "") {
-          if (sep === "\n")
-            res += sep;
+          if (sep2 === "\n")
+            res += sep2;
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          res += sep + lm;
-          sep = " ";
+          res += sep2 + lm;
+          sep2 = " ";
         }
         pos = line.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep + (match?.[1] ?? "");
+      return res + sep2 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -5545,14 +5545,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep, value }) {
+    function stringifyItem({ start, key, sep: sep2, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep)
-        for (const st of sep)
+      if (sep2)
+        for (const st of sep2)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -5631,15 +5631,15 @@ var require_cst = __commonJS({
     var cstScalar = require_cst_scalar();
     var cstStringify = require_cst_stringify();
     var cstVisit = require_cst_visit();
-    var BOM = "\uFEFF";
+    var BOM2 = "\uFEFF";
     var DOCUMENT = "";
     var FLOW_END = "";
     var SCALAR = "";
     var isCollection = (token) => !!token && "items" in token;
-    var isScalar3 = (token) => !!token && (token.type === "scalar" || token.type === "single-quoted-scalar" || token.type === "double-quoted-scalar" || token.type === "block-scalar");
+    var isScalar6 = (token) => !!token && (token.type === "scalar" || token.type === "single-quoted-scalar" || token.type === "double-quoted-scalar" || token.type === "block-scalar");
     function prettyToken(token) {
       switch (token) {
-        case BOM:
+        case BOM2:
           return "<BOM>";
         case DOCUMENT:
           return "<DOC>";
@@ -5653,7 +5653,7 @@ var require_cst = __commonJS({
     }
     function tokenType(source) {
       switch (source) {
-        case BOM:
+        case BOM2:
           return "byte-order-mark";
         case DOCUMENT:
           return "doc-mode";
@@ -5715,12 +5715,12 @@ var require_cst = __commonJS({
     exports.setScalarValue = cstScalar.setScalarValue;
     exports.stringify = cstStringify.stringify;
     exports.visit = cstVisit.visit;
-    exports.BOM = BOM;
+    exports.BOM = BOM2;
     exports.DOCUMENT = DOCUMENT;
     exports.FLOW_END = FLOW_END;
     exports.SCALAR = SCALAR;
     exports.isCollection = isCollection;
-    exports.isScalar = isScalar3;
+    exports.isScalar = isScalar6;
     exports.prettyToken = prettyToken;
     exports.tokenType = tokenType;
   }
@@ -6719,18 +6719,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep;
+          let sep2;
           if (scalar.end) {
-            sep = scalar.end;
-            sep.push(this.sourceToken);
+            sep2 = scalar.end;
+            sep2.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep = [this.sourceToken];
+            sep2 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep }]
+            items: [{ start, key: scalar, sep: sep2 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -6883,15 +6883,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep = it.sep;
-                  sep.push(this.sourceToken);
+                  const sep2 = it.sep;
+                  sep2.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep }]
+                    items: [{ start: start2, key, sep: sep2 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -7085,13 +7085,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep = fc.end.splice(1, fc.end.length);
-            sep.push(this.sourceToken);
+            const sep2 = fc.end.splice(1, fc.end.length);
+            sep2.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep }]
+              items: [{ start, key: fc, sep: sep2 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -7250,7 +7250,7 @@ var require_public_api = __commonJS({
         return docs;
       return Object.assign([], { empty: true }, composer$1.streamInfo());
     }
-    function parseDocument2(source, options = {}) {
+    function parseDocument4(source, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
       const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
@@ -7269,14 +7269,14 @@ var require_public_api = __commonJS({
       }
       return doc;
     }
-    function parse2(src2, reviver, options) {
+    function parse3(src2, reviver, options) {
       let _reviver = void 0;
       if (typeof reviver === "function") {
         _reviver = reviver;
       } else if (options === void 0 && reviver && typeof reviver === "object") {
         options = reviver;
       }
-      const doc = parseDocument2(src2, options);
+      const doc = parseDocument4(src2, options);
       if (!doc)
         return null;
       doc.warnings.forEach((warning) => log.warn(doc.options.logLevel, warning));
@@ -7310,9 +7310,9 @@ var require_public_api = __commonJS({
         return value.toString(options);
       return new Document.Document(value, _replacer, options).toString(options);
     }
-    exports.parse = parse2;
+    exports.parse = parse3;
     exports.parseAllDocuments = parseAllDocuments;
-    exports.parseDocument = parseDocument2;
+    exports.parseDocument = parseDocument4;
     exports.stringify = stringify3;
   }
 });
@@ -7368,20 +7368,6 @@ var require_dist = __commonJS({
     exports.visitAsync = visit.visitAsync;
   }
 });
-
-// src/describe.ts
-async function cmdDescribe(_args) {
-  throw new Error("orrery describe is not built yet");
-}
-
-// src/diff.ts
-async function cmdDiff(_args) {
-  throw new Error("orrery diff is not built yet");
-}
-
-// src/doc/index.ts
-import { existsSync as existsSync9, readFileSync as readFileSync9, statSync as statSync4 } from "node:fs";
-import { basename as basename4, dirname as dirname5, extname as extname3, join as join7, resolve as resolve5 } from "node:path";
 
 // src/cli/io.ts
 import { createHash as createHash2 } from "node:crypto";
@@ -7675,23 +7661,23 @@ function decode(s, bad) {
 var TAG = /<([A-Za-z_][\w:.-]*)/y;
 var ATTR = /\s*(?:([A-Za-z_][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')|(\/?>))/y;
 var MALFORMED = "re-export it from the editor as plain SVG";
-function openTag(text4, lt, bad) {
+function openTag(text5, lt, bad) {
   TAG.lastIndex = lt;
-  const name = TAG.exec(text4)?.[1];
+  const name = TAG.exec(text5)?.[1];
   if (!name)
-    throw bad(`is not well-formed XML near ${JSON.stringify(text4.slice(lt, lt + 24))}`, MALFORMED);
+    throw bad(`is not well-formed XML near ${JSON.stringify(text5.slice(lt, lt + 24))}`, MALFORMED);
   const node4 = { name, attrs: /* @__PURE__ */ new Map(), children: [] };
   let j = TAG.lastIndex;
   for (; ; ) {
     ATTR.lastIndex = j;
-    const a = ATTR.exec(text4);
+    const a = ATTR.exec(text5);
     if (!a) throw bad(`has a malformed <${node4.name}> tag`, MALFORMED);
     j = ATTR.lastIndex;
     if (a[4]) return { node: node4, selfClosing: a[4] === "/>", end: j };
     node4.attrs.set(a[1] ?? "", decode(a[2] ?? a[3] ?? "", bad));
   }
 }
-function parseXml(text4, bad) {
+function parseXml(text5, bad) {
   const doc = { name: "#document", attrs: /* @__PURE__ */ new Map(), children: [] };
   const stack = [doc];
   const top = () => stack[stack.length - 1] ?? doc;
@@ -7700,32 +7686,32 @@ function parseXml(text4, bad) {
     top().children.push({ name: "#text", attrs: /* @__PURE__ */ new Map(), children: [], text: decode(raw, bad) });
   };
   let i = 0;
-  while (i < text4.length) {
-    const lt = text4.indexOf("<", i);
+  while (i < text5.length) {
+    const lt = text5.indexOf("<", i);
     if (lt < 0) {
-      pushText(text4.slice(i));
+      pushText(text5.slice(i));
       break;
     }
-    if (lt > i) pushText(text4.slice(i, lt));
+    if (lt > i) pushText(text5.slice(i, lt));
     const skipTo = (end, what) => {
-      const at = text4.indexOf(end, lt);
+      const at = text5.indexOf(end, lt);
       if (at < 0) throw bad(`has ${what} that never ends`, MALFORMED);
       return at + end.length;
     };
-    if (text4.startsWith("<!--", lt)) i = skipTo("-->", "a comment");
-    else if (text4.startsWith("<?", lt)) i = skipTo("?>", "a processing instruction");
-    else if (text4.startsWith("<![CDATA[", lt)) {
+    if (text5.startsWith("<!--", lt)) i = skipTo("-->", "a comment");
+    else if (text5.startsWith("<?", lt)) i = skipTo("?>", "a processing instruction");
+    else if (text5.startsWith("<![CDATA[", lt)) {
       const end = skipTo("]]>", "a CDATA section");
       top().children.push({
         name: "#text",
         attrs: /* @__PURE__ */ new Map(),
         children: [],
-        text: text4.slice(lt + 9, end - 3)
+        text: text5.slice(lt + 9, end - 3)
       });
       i = end;
-    } else if (/^<!doctype/i.test(text4.slice(lt, lt + 9))) {
-      const close = text4.indexOf(">", lt);
-      const bracket = text4.indexOf("[", lt);
+    } else if (/^<!doctype/i.test(text5.slice(lt, lt + 9))) {
+      const close = text5.indexOf(">", lt);
+      const bracket = text5.indexOf("[", lt);
       if (close < 0) throw bad("has a DOCTYPE that never ends", MALFORMED);
       if (bracket >= 0 && bracket < close)
         throw bad(
@@ -7733,10 +7719,10 @@ function parseXml(text4, bad) {
           "delete the DOCTYPE; an icon needs none"
         );
       i = close + 1;
-    } else if (text4[lt + 1] === "/") {
-      const close = text4.indexOf(">", lt);
+    } else if (text5[lt + 1] === "/") {
+      const close = text5.indexOf(">", lt);
       if (close < 0) throw bad("is not well-formed XML (a closing tag never ends)", MALFORMED);
-      const name = text4.slice(lt + 2, close).trim();
+      const name = text5.slice(lt + 2, close).trim();
       const open = stack.pop();
       if (!open || open === doc || open.name !== name)
         throw bad(
@@ -7745,7 +7731,7 @@ function parseXml(text4, bad) {
         );
       i = close + 1;
     } else {
-      const { node: node4, selfClosing, end } = openTag(text4, lt, bad);
+      const { node: node4, selfClosing, end } = openTag(text5, lt, bad);
       top().children.push(node4);
       if (!selfClosing) stack.push(node4);
       i = end;
@@ -8554,9 +8540,9 @@ ${body}
 </svg>
 `;
 }
-function adoptIcon(text4, file) {
+function adoptIcon(text5, file) {
   const bad = badFor(file);
-  const root = sanitize(parseXml(text4, bad), bad, true);
+  const root = sanitize(parseXml(text5, bad), bad, true);
   const d = drawingOf(root, bad);
   const notes = [];
   refuseUnadoptable(d, bad);
@@ -8758,8 +8744,8 @@ function searchIcons(query, opts = {}) {
   const q = clean(query);
   const [maybePack, rest] = q.includes(":") ? q.split(":", 2) : [void 0, q];
   const pack = opts.pack ?? (maybePack && (PACK_ORDER.includes(maybePack) || maybePack === LOCAL_PACK) ? maybePack : void 0);
-  const text4 = (rest ?? q).replace(/-/g, " ");
-  const qTokens = tokens(text4);
+  const text5 = (rest ?? q).replace(/-/g, " ");
+  const qTokens = tokens(text5);
   if (!qTokens.length) return [];
   const joined = qTokens.join("-");
   const collapsedQ = qTokens.join("");
@@ -8975,9 +8961,9 @@ var ROOT_PAINT = [
   "opacity",
   "color"
 ];
-function localArt(text4, file) {
+function localArt(text5, file) {
   const bad = badFor(file);
-  const root = sanitize(parseXml(text4, bad), bad);
+  const root = sanitize(parseXml(text5, bad), bad);
   const [x2, y, w, h] = viewBoxOf(root, bad);
   const ids = /* @__PURE__ */ new Set();
   const collect = (n4) => {
@@ -9203,18 +9189,18 @@ function resultsOf(out) {
   }
   return results;
 }
-function checkIcon(text4, file) {
+function checkIcon(text5, file) {
   const bad = badFor(file);
-  localArt(text4, file);
-  const root = sanitize(parseXml(text4, bad), bad);
+  localArt(text5, file);
+  const root = sanitize(parseXml(text5, bad), bad);
   const m = measure(drawingOf(root, bad), bad);
   const out = {};
   for (const r4 of ICON_RULES) out[r4.id] = { problems: [] };
   const v = {
     fail: (id, problem) => out[id]?.problems.push(problem),
-    note: (id, text5) => {
+    note: (id, text6) => {
       const o = out[id];
-      if (o) o.note = text5;
+      if (o) o.note = text6;
     }
   };
   ic01Grid(m, v);
@@ -9248,7 +9234,7 @@ var HELP = `orrery ${VERSION}: architecture and system design diagrams with offi
 Usage:
   orrery render <spec.yaml> [-o out] [-f svg,png,drawio,drawio.svg,tsx,html|all] [--theme light|dark|both]
                     [--scale 3] [--skin classic|stage] [--animate packets|flow|relay|none]
-                    [--static] [--font extra.ttf]
+                    [--static] [--font extra.ttf] [--view <name>|all]
                     [--strict] [--force] [--json]
   orrery validate <spec.yaml> [--strict] [--json]
   orrery review <spec.yaml> [-o out] [--width 880] [--theme light|dark] [--skin classic|stage]
@@ -9268,7 +9254,9 @@ Usage:
   orrery doc <design.md> [-o out.html|out.md|out.docx] [-f html,md,docx] [--theme light]
                     [--skin classic|stage]
   orrery mcp [--port 8765]
-  orrery mcp install <claude-code|claude-desktop|cursor|vscode|gemini|codex|kiro> [--force]
+  orrery mcp install <claude-code|claude-desktop|cursor|vscode|gemini|codex|kiro> [project|user]
+                    [--force] [--json]
+  orrery mcp install --list
   orrery diff <before.yaml> <after.yaml> [-o changes.svg] [--json]
   orrery verify <spec.yaml> [--link] [--commit <sha>] [--json]
   orrery describe <spec.yaml> [--json]
@@ -9351,240 +9339,6 @@ function fontFiles(args) {
   for (const f of fonts2) if (!existsSync3(f)) usage(`no such file: ${f} (from --font)`);
   return fonts2;
 }
-
-// src/doc/zip.ts
-import { deflateRawSync } from "node:zlib";
-var CRC_TABLE = Array.from({ length: 256 }, (_, n4) => {
-  let c = n4;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 3988292384 ^ c >>> 1 : c >>> 1;
-  return c >>> 0;
-});
-function crc32(data) {
-  let c = 4294967295;
-  for (const byte of data) c = (CRC_TABLE[(c ^ byte) & 255] ?? 0) ^ c >>> 8;
-  return (c ^ 4294967295) >>> 0;
-}
-var DOS_DATE = 1 << 5 | 1;
-function zip(files) {
-  const parts = [];
-  const central = [];
-  let offset = 0;
-  for (const [name, content] of files) {
-    const raw = typeof content === "string" ? Buffer.from(content, "utf8") : content;
-    const deflated = deflateRawSync(raw, { level: 9 });
-    const stored = deflated.length >= raw.length;
-    const body = stored ? raw : deflated;
-    const file = Buffer.from(name, "utf8");
-    const crc = crc32(raw);
-    const local2 = Buffer.alloc(30);
-    local2.writeUInt32LE(67324752, 0);
-    local2.writeUInt16LE(20, 4);
-    local2.writeUInt16LE(stored ? 0 : 8, 8);
-    local2.writeUInt16LE(DOS_DATE, 12);
-    local2.writeUInt32LE(crc, 14);
-    local2.writeUInt32LE(body.length, 18);
-    local2.writeUInt32LE(raw.length, 22);
-    local2.writeUInt16LE(file.length, 26);
-    parts.push(local2, file, body);
-    const entry = Buffer.alloc(46);
-    entry.writeUInt32LE(33639248, 0);
-    entry.writeUInt16LE(20, 4);
-    entry.writeUInt16LE(20, 6);
-    entry.writeUInt16LE(stored ? 0 : 8, 10);
-    entry.writeUInt16LE(DOS_DATE, 14);
-    entry.writeUInt32LE(crc, 16);
-    entry.writeUInt32LE(body.length, 20);
-    entry.writeUInt32LE(raw.length, 24);
-    entry.writeUInt16LE(file.length, 28);
-    entry.writeUInt32LE(offset, 42);
-    central.push(entry, file);
-    offset += local2.length + file.length + body.length;
-  }
-  const size = central.reduce((s, b) => s + b.length, 0);
-  const end = Buffer.alloc(22);
-  end.writeUInt32LE(101010256, 0);
-  end.writeUInt16LE(files.length, 8);
-  end.writeUInt16LE(files.length, 10);
-  end.writeUInt32LE(size, 12);
-  end.writeUInt32LE(offset, 16);
-  return Buffer.concat([...parts, ...central, end]);
-}
-
-// src/doc/docx.ts
-var PAGE = { w: 11906, h: 16838, margin: 1440 };
-var TEXT_W = PAGE.w - 2 * PAGE.margin;
-var MAX_PICTURE_H = (PAGE.h - 2 * PAGE.margin) * 0.8;
-var EMU_PER_TWIP = 635;
-var EMU_PER_PX = 9525;
-var BULLETS = ["\u2022", "\u25E6", "\u25AA"];
-var W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-var R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-var REL = "http://schemas.openxmlformats.org/package/2006/relationships";
-var WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
-var A = "http://schemas.openxmlformats.org/drawingml/2006/main";
-var PIC = "http://schemas.openxmlformats.org/drawingml/2006/picture";
-var DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
-var CONTENT_TYPES = `${DECL}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`;
-var ROOT_RELS = `${DECL}<Relationships xmlns="${REL}"><Relationship Id="rId1" Type="${R}/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="${REL}/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`;
-var heading = (n4, size) => `<w:style w:type="paragraph" w:styleId="Heading${n4}"><w:name w:val="heading ${n4}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:qFormat/><w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="${n4 === 1 ? 360 : 280}" w:after="120"/><w:outlineLvl w:val="${n4 - 1}"/></w:pPr><w:rPr><w:b/><w:color w:val="1F2328"/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr></w:style>`;
-var MONO = '<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/>';
-var SOFT = '<w:shd w:val="clear" w:color="auto" w:fill="F6F8FA"/>';
-var STYLES = `${DECL}<w:styles xmlns:w="${W}"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>${[
-  '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>',
-  heading(1, 36),
-  heading(2, 30),
-  heading(3, 26),
-  '<w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="caption"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="35"/><w:qFormat/><w:pPr><w:spacing w:before="80" w:after="240"/><w:jc w:val="center"/></w:pPr><w:rPr><w:i/><w:color w:val="59636E"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:style>',
-  '<w:style w:type="paragraph" w:customStyle="1" w:styleId="Figure"><w:name w:val="Figure"/><w:basedOn w:val="Normal"/><w:next w:val="Caption"/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="0"/><w:jc w:val="center"/></w:pPr></w:style>',
-  `<w:style w:type="paragraph" w:customStyle="1" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:pPr>${SOFT}<w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:left="144" w:right="144"/></w:pPr><w:rPr>${MONO}<w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr></w:style>`,
-  '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="29"/><w:qFormat/><w:pPr><w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="D1D9E0"/></w:pBdr><w:ind w:left="288"/></w:pPr><w:rPr><w:color w:val="59636E"/></w:rPr></w:style>',
-  '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:uiPriority w:val="34"/><w:qFormat/><w:pPr><w:spacing w:after="60"/></w:pPr></w:style>',
-  `<w:style w:type="character" w:customStyle="1" w:styleId="CodeChar"><w:name w:val="Code Char"/><w:rPr>${MONO}<w:sz w:val="20"/><w:szCs w:val="20"/>${SOFT}</w:rPr></w:style>`,
-  '<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:uiPriority w:val="99"/><w:unhideWhenUsed/><w:rPr><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style>',
-  '<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>',
-  `<w:style w:type="table" w:customStyle="1" w:styleId="DocTable"><w:name w:val="Doc Table"/><w:basedOn w:val="TableNormal"/><w:tblPr><w:tblBorders>${["top", "left", "bottom", "right", "insideH", "insideV"].map((s) => `<w:${s} w:val="single" w:sz="4" w:space="0" w:color="D1D9E0"/>`).join("")}</w:tblBorders><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>`
-].join("")}</w:styles>`;
-var x = (s) => s.replace(/[^\P{Cc}\t\n\r]/gu, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-function pngImage(data) {
-  const png2 = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-  if (png2.length < 24 || png2.readUInt32BE(0) !== 2303741511 || png2.toString("ascii", 12, 16) !== "IHDR")
-    return void 0;
-  return { data, width: png2.readUInt32BE(16), height: png2.readUInt32BE(20) };
-}
-function extent(img, fill2) {
-  const maxW = TEXT_W * EMU_PER_TWIP;
-  const maxH = MAX_PICTURE_H * EMU_PER_TWIP;
-  let cx = fill2 ? maxW : Math.min(maxW, img.width * EMU_PER_PX);
-  let cy = cx * img.height / img.width;
-  if (cy > maxH) {
-    cx = cx * maxH / cy;
-    cy = maxH;
-  }
-  return [Math.round(cx), Math.round(cy)];
-}
-var para = (pPr, content) => `<w:p>${pPr ? `<w:pPr>${pPr}</w:pPr>` : ""}${content}</w:p>`;
-var style = (id) => `<w:pStyle w:val="${id}"/>`;
-function run(text4, f = {}) {
-  const rPr = f.style || f.b || f.i ? `<w:rPr>${f.style ? `<w:rStyle w:val="${f.style}"/>` : ""}${f.b ? "<w:b/>" : ""}${f.i ? "<w:i/>" : ""}</w:rPr>` : "";
-  return `<w:r>${rPr}<w:t xml:space="preserve">${x(text4)}</w:t></w:r>`;
-}
-function rel(p, type, target, external = false) {
-  const id = `rId${p.rels.length + 1}`;
-  p.rels.push(
-    `<Relationship Id="${id}" Type="${R}/${type}" Target="${x(target)}"${external ? ' TargetMode="External"' : ""}/>`
-  );
-  return id;
-}
-function picture(p, img, name, alt, fill2) {
-  const n4 = p.media.length + 1;
-  const file = `image${n4}.png`;
-  p.media.push([`word/media/${file}`, img.data]);
-  const id = rel(p, "image", `media/${file}`);
-  const [cx, cy] = extent(img, fill2);
-  return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${n4}" name="${x(name)}" descr="${x(alt)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="${PIC}"><pic:pic><pic:nvPicPr><pic:cNvPr id="${n4}" name="${file}" descr="${x(alt)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
-}
-function runs(p, list, f = {}) {
-  return list.map((n4) => {
-    switch (n4.t) {
-      case "text":
-        return run(n4.s, f);
-      case "code":
-        return run(n4.s, { ...f, style: "CodeChar" });
-      case "strong":
-        return runs(p, n4.c, { ...f, b: true });
-      case "em":
-        return runs(p, n4.c, { ...f, i: true });
-      case "link":
-        return /^(https?|mailto):/i.test(n4.href) ? `<w:hyperlink r:id="${rel(p, "hyperlink", n4.href, true)}" w:history="1">${runs(p, n4.c, { ...f, style: "Hyperlink" })}</w:hyperlink>` : runs(p, n4.c, f);
-      case "img": {
-        const img = p.input.image(n4.src);
-        return img ? picture(p, img, `Image ${p.media.length + 1}`, n4.alt, false) : run(`[${n4.alt || n4.src}]`, { ...f, i: true });
-      }
-      default:
-        return "<w:r><w:br/></w:r>";
-    }
-  }).join("");
-}
-function table(p, b) {
-  const w = Math.floor(TEXT_W / Math.max(1, b.head.length));
-  const cell = (c, k, head2, last) => {
-    const jc = b.align[k] ? `<w:jc w:val="${b.align[k]}"/>` : "";
-    return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${head2 ? SOFT : ""}</w:tcPr>${para(`${last ? "" : "<w:keepNext/>"}<w:spacing w:after="0"/>${jc}`, runs(p, c, head2 ? { b: true } : {}))}</w:tc>`;
-  };
-  const row = (cells, head2, last) => `<w:tr>${head2 ? "<w:trPr><w:tblHeader/></w:trPr>" : ""}${cells.map((c, k) => cell(c, k, head2, last)).join("")}</w:tr>`;
-  const rows = b.rows.map((r4, k) => row(r4, false, k === b.rows.length - 1)).join("");
-  return `<w:tbl><w:tblPr><w:tblStyle w:val="DocTable"/><w:tblW w:w="5000" w:type="pct"/></w:tblPr><w:tblGrid>${b.head.map(() => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${row(b.head, true, !b.rows.length)}${rows}</w:tbl>${para("", "")}`;
-}
-function block(p, b, quote) {
-  switch (b.t) {
-    case "heading":
-      return para(style(quote ? "Quote" : `Heading${Math.min(b.level, 3)}`), runs(p, b.c));
-    case "para":
-      return para(quote ? style("Quote") : "", runs(p, b.c));
-    case "list":
-      return b.items.map((it, k) => {
-        const left = 720 + it.depth * 360 + (quote ? 288 : 0);
-        const mark = it.ordered ? `${it.num}.` : BULLETS[it.depth % BULLETS.length] ?? "";
-        const end = k === b.items.length - 1 ? '<w:spacing w:after="160"/>' : "";
-        return para(
-          `${style("ListParagraph")}${end}<w:ind w:left="${left}" w:hanging="360"/>`,
-          `${run(mark)}<w:r><w:tab/></w:r>${runs(p, it.c)}`
-        );
-      }).join("");
-    case "code": {
-      const lines2 = b.s.split("\n");
-      return lines2.map(
-        (l, k) => para(
-          `${style("Code")}${k === lines2.length - 1 ? '<w:spacing w:after="160"/>' : ""}`,
-          l ? run(l.replaceAll("	", "    ")) : ""
-        )
-      ).join("");
-    }
-    case "table":
-      return table(p, b);
-    case "quote":
-      return b.c.map((c) => block(p, c, true)).join("");
-    case "hr":
-      return para(
-        '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="D1D9E0"/></w:pBdr>',
-        ""
-      );
-    case "figure": {
-      const f = p.input.figures.get(b.n);
-      if (!f?.png) return "";
-      const img = { data: f.png, width: f.width, height: f.height };
-      return `${para(style("Figure"), picture(p, img, `Figure ${b.n}`, f.caption, true))}${para(style("Caption"), `${run("Figure ")}<w:fldSimple w:instr=" SEQ Figure \\* ARABIC "><w:r><w:t>${b.n}</w:t></w:r></w:fldSimple>${run(`: ${f.caption}`)}`)}`;
-    }
-  }
-}
-function renderDocx(input) {
-  const p = {
-    input,
-    rels: [`<Relationship Id="rId1" Type="${R}/styles" Target="styles.xml"/>`],
-    media: []
-  };
-  const m = PAGE.margin;
-  const body = input.blocks.map((b) => block(p, b, false)).join("") || "<w:p/>";
-  const document = `${DECL}<w:document xmlns:w="${W}" xmlns:r="${R}" xmlns:wp="${WP}" xmlns:a="${A}" xmlns:pic="${PIC}"><w:body>${body}<w:sectPr><w:pgSz w:w="${PAGE.w}" w:h="${PAGE.h}"/><w:pgMar w:top="${m}" w:right="${m}" w:bottom="${m}" w:left="${m}" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
-  const core = `${DECL}<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>${x(input.title)}</dc:title></cp:coreProperties>`;
-  const data = zip([
-    ["[Content_Types].xml", CONTENT_TYPES],
-    ["_rels/.rels", ROOT_RELS],
-    ["docProps/core.xml", core],
-    ["word/document.xml", document],
-    ["word/styles.xml", STYLES],
-    [
-      "word/_rels/document.xml.rels",
-      `${DECL}<Relationships xmlns="${REL}">${p.rels.join("")}</Relationships>`
-    ],
-    ...p.media
-  ]);
-  return { data, figures: document.match(/<wp:docPr id="\d+" name="Figure \d+"/g)?.length ?? 0 };
-}
-
-// src/doc/figures.ts
-import { existsSync as existsSync7, readFileSync as readFileSync7, statSync as statSync2 } from "node:fs";
-import { basename as basename3, resolve as resolve3 } from "node:path";
 
 // src/check/geometry.ts
 var overlaps = (a, b, pad = 0) => a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
@@ -10052,11 +9806,11 @@ function headOnShortEnd({ scene, warn }) {
     if (n4 < 2) continue;
     const spline = scene.routing === "spline" && (n4 - 1) % 3 === 0 && n4 > 2;
     const head2 = headLength(scene, e);
-    const ends2 = [
+    const ends3 = [
       ...e.arrow === "end" || e.arrow === "both" ? [{ at: e.to, pts: [...e.points].reverse() }] : [],
       ...e.arrow === "start" || e.arrow === "both" ? [{ at: e.from, pts: e.points }] : []
     ];
-    for (const { at, pts } of ends2) {
+    for (const { at, pts } of ends3) {
       const { raw, run: run2 } = endRun(pts);
       const zero = raw < 0.01;
       if (!zero && (spline || run2 >= head2 - EPS)) continue;
@@ -10820,8 +10574,8 @@ function crossings(graph) {
     const s = e.sections?.[0];
     if (!s) return [];
     const pts = [s.startPoint, ...s.bendPoints ?? [], s.endPoint];
-    const ends2 = [nodeOf(e.sources[0]), nodeOf(e.targets[0])];
-    return [{ ends: ends2, segs: pts.slice(1).map((q, i) => [pts[i] ?? q, q]) }];
+    const ends3 = [nodeOf(e.sources[0]), nodeOf(e.targets[0])];
+    return [{ ends: ends3, segs: pts.slice(1).map((q, i) => [pts[i] ?? q, q]) }];
   });
   const cross = (a, b, c, d) => {
     const o = (p, q, r4) => (q.x - p.x) * (r4.y - p.y) - (q.y - p.y) * (r4.x - p.x);
@@ -10905,16 +10659,16 @@ function load() {
   }
   return tables;
 }
-function measure2(text4, size, weight = 400) {
+function measure2(text5, size, weight = 400) {
   const table2 = load()[weight] ?? load()[400];
-  if (!table2) return text4.length * size * 0.6;
+  if (!table2) return text5.length * size * 0.6;
   let units = 0;
-  for (const ch of text4) units += table2.widths.get(ch.codePointAt(0) ?? 32) ?? table2.fallback;
+  for (const ch of text5) units += table2.widths.get(ch.codePointAt(0) ?? 32) ?? table2.fallback;
   return units / unitsPerEm * size;
 }
-function wrap(text4, size, maxWidth, weight = 400) {
+function wrap(text5, size, maxWidth, weight = 400) {
   const lines2 = [];
-  for (const paragraph of text4.split(/\r?\n/)) {
+  for (const paragraph of text5.split(/\r?\n/)) {
     const words = paragraph.split(/\s+/).filter(Boolean);
     let line = "";
     for (const word of words) {
@@ -10940,21 +10694,21 @@ function wrap(text4, size, maxWidth, weight = 400) {
         line = part;
         continue;
       }
-      let chunk = "";
+      let chunk2 = "";
       for (const ch of word) {
-        if (measure2(chunk + ch, size, weight) > maxWidth && chunk) {
-          lines2.push(chunk);
-          chunk = ch;
-        } else chunk += ch;
+        if (measure2(chunk2 + ch, size, weight) > maxWidth && chunk2) {
+          lines2.push(chunk2);
+          chunk2 = ch;
+        } else chunk2 += ch;
       }
-      line = chunk;
+      line = chunk2;
     }
     if (line || !words.length) lines2.push(line);
   }
   return lines2;
 }
-function textBlock(text4, size, maxWidth, weight = 400, lineHeight = 1.3) {
-  const lines2 = text4 ? wrap(text4, size, maxWidth, weight) : [];
+function textBlock(text5, size, maxWidth, weight = 400, lineHeight = 1.3) {
+  const lines2 = text5 ? wrap(text5, size, maxWidth, weight) : [];
   const lead = Math.round(size * lineHeight * 10) / 10;
   const width2 = Math.max(0, ...lines2.map((l) => measure2(l, size, weight)));
   return { lines: lines2, size, weight, lead, width: width2, height: lines2.length ? lines2.length * lead : 0 };
@@ -11586,9 +11340,9 @@ function moveTo(n4, main2, cross, horizontal) {
 var BRANCH_COLORS = ["#2f7fe0", "#d9480f", "#2f9e44", "#8b5cf6", "#0c8599", "#d6336c", "#b45309"];
 var ROOT_TEXT = 16;
 var ROOT_ICON = 4 / 3;
-function enlargeRoot(n4, text4, horizontal) {
+function enlargeRoot(n4, text5, horizontal) {
   if (n4.bpmn) return;
-  const label = text4 ? textBlock(text4, ROOT_TEXT, 220, 600) : n4.label;
+  const label = text5 ? textBlock(text5, ROOT_TEXT, 220, 600) : n4.label;
   const b = n4.box;
   const cx = b.x + b.w / 2;
   const cy = b.y + b.h / 2;
@@ -11675,8 +11429,8 @@ function placeMindmap(ctx) {
   const t = tidy(
     h.kids,
     (id) => {
-      const frame = f.chain(id);
-      return { ...m.get(id)?.across ?? { lo: 0, hi: 0 }, loIn: frame, hiIn: frame };
+      const frame2 = f.chain(id);
+      return { ...m.get(id)?.across ?? { lo: 0, hi: 0 }, loIn: frame2, hiIn: frame2 };
     },
     gap
   );
@@ -11751,8 +11505,8 @@ function placeHalves(mind, halves) {
     const need = (id) => {
       const z = sizes.get(id);
       const label = z ? (horizontal ? z.w : z.h) + 24 : 0;
-      const frame = fr.enter(id) + fr.leave(id);
-      return frame ? Math.max(drop, label) + frame + LABEL_GAP : label;
+      const frame2 = fr.enter(id) + fr.leave(id);
+      return frame2 ? Math.max(drop, label) + frame2 + LABEL_GAP : label;
     };
     const lv = levels(
       depths(ctx, (id) => depth.get(id)),
@@ -11838,8 +11592,8 @@ function placeTree(ctx) {
     const a = m.get(id)?.across ?? { lo: 0, hi: 0 };
     const z = sizes.get(id);
     const half = z ? (horizontal ? z.h : z.w) / 2 + 4 : 0;
-    const frame = fr.chain(id);
-    return { lo: Math.min(a.lo, -half), hi: Math.max(a.hi, half), loIn: frame, hiIn: frame };
+    const frame2 = fr.chain(id);
+    return { lo: Math.min(a.lo, -half), hi: Math.max(a.hi, half), loIn: frame2, hiIn: frame2 };
   };
   const sibling = Math.round(28 * s);
   const cousin = Math.round(44 * s);
@@ -12897,7 +12651,7 @@ function elbow(p, q, horizontal) {
 var uniq = (v) => [...v].sort((a, b) => a - b).filter((x2, i, s) => i === 0 || x2 - (s[i - 1] ?? 0) > 0.5);
 var indexOf = (list, v) => list.findIndex((x2) => Math.abs(x2 - v) <= 0.5);
 var stateOf = (g, i, j, d) => (i * g.ny + j) * 4 + d;
-function gridRoute(xsIn, ysIn, starts, ends2, obstacles, penalty) {
+function gridRoute(xsIn, ysIn, starts, ends3, obstacles, penalty) {
   const xs = uniq(xsIn);
   const ys = uniq(ysIn);
   const g = {
@@ -12918,7 +12672,7 @@ function gridRoute(xsIn, ysIn, starts, ends2, obstacles, penalty) {
     heap: [],
     goals: /* @__PURE__ */ new Map()
   };
-  seed(g, s, starts, ends2);
+  seed(g, s, starts, ends3);
   return trace(g, s, search(g, s, costs, N));
 }
 function segmentCosts(g) {
@@ -13003,7 +12757,7 @@ function ray(g, port, back, visit) {
     }
   }
 }
-function seed(g, srch, starts, ends2) {
+function seed(g, srch, starts, ends3) {
   const { dist, prev, startOf, heap, goals } = srch;
   for (const port of starts)
     ray(g, port, false, (i, j, len2) => {
@@ -13016,7 +12770,7 @@ function seed(g, srch, starts, ends2) {
         push(heap, cost, s);
       }
     });
-  for (const port of ends2)
+  for (const port of ends3)
     ray(g, port, true, (i, j, len2) => {
       const s = stateOf(g, i, j, port.d);
       const extra = port.cost + len2;
@@ -13293,23 +13047,23 @@ function portsFor(r4, P2, me, a, b, msg) {
   const level = Math.min(as1, bs1) - Math.max(as0, bs0) > 0.5;
   const below = cMid(b.box) > cMid(a.box);
   let starts;
-  let ends2;
+  let ends3;
   if (me.from === me.to) {
     starts = sides(a, true, { flow: 0, back: INF, c0: INF, c1: INF }, msg);
-    ends2 = sides(b, false, { flow: INF, back: INF, c0: 0, c1: 10 }, msg);
+    ends3 = sides(b, false, { flow: INF, back: INF, c0: 0, c1: 10 }, msg);
   } else if (msg || level) {
     const near = { c0: below ? 40 : 0, c1: below ? 0 : 40 };
     const far = { c0: below ? 0 : 40, c1: below ? 40 : 0 };
     starts = a.band ? bandPort(a, b, true) : sides(a, true, { flow: 80, back: 120, ...near }, msg);
-    ends2 = b.band ? bandPort(b, a, false) : sides(b, false, { flow: 80, back: 120, ...far }, msg);
+    ends3 = b.band ? bandPort(b, a, false) : sides(b, false, { flow: 80, back: 120, ...far }, msg);
   } else if (ahead > 0) {
     starts = a.band ? bandPort(a, b, true) : sides(a, true, { flow: 0, back: INF, c0: aside(a), c1: aside(a) }, msg);
-    ends2 = b.band ? bandPort(b, a, false) : sides(b, false, { flow: 0, back: INF, c0: aside(b), c1: aside(b) }, msg);
+    ends3 = b.band ? bandPort(b, a, false) : sides(b, false, { flow: 0, back: INF, c0: aside(b), c1: aside(b) }, msg);
   } else {
     starts = a.band ? bandPort(a, b, true) : sides(a, true, { flow: 25, back: INF, c0: 0, c1: 0 }, msg);
-    ends2 = b.band ? bandPort(b, a, false) : sides(b, false, { flow: 25, back: INF, c0: 0, c1: 0 }, msg);
+    ends3 = b.band ? bandPort(b, a, false) : sides(b, false, { flow: 25, back: INF, c0: 0, c1: 0 }, msg);
   }
-  return { starts, ends: ends2 };
+  return { starts, ends: ends3 };
 }
 
 // src/layout/lanes/routes.ts
@@ -13468,31 +13222,31 @@ function routeOne(rt, me, edge3, a, b, msg) {
   const ysOf = () => [...horizontal ? cLines : mLines];
   const addX = (v) => (horizontal ? mLines : cLines).add(round2(v));
   const addY = (v) => (horizontal ? cLines : mLines).add(round2(v));
-  const { starts, ends: ends2 } = portsFor(rt.r, rt.ports, me, a, b, msg);
-  const obstacles = obstaclesFor(rt, me, a, b, starts, ends2);
-  for (const port of [...starts, ...ends2]) {
+  const { starts, ends: ends3 } = portsFor(rt.r, rt.ports, me, a, b, msg);
+  const obstacles = obstaclesFor(rt, me, a, b, starts, ends3);
+  for (const port of [...starts, ...ends3]) {
     if (STEPS[port.d].x) addY(port.p.y);
     else addX(port.p.x);
   }
-  const pref = (rt.joins.get(me.to) ?? 0) > 1 ? ends2 : starts;
+  const pref = (rt.joins.get(me.to) ?? 0) > 1 ? ends3 : starts;
   const prefM = pref[0] ? horizontal ? pref[0].p.x : pref[0].p.y : 0;
   const penalty = penaltyOf(rt, me, edge3, prefM);
-  let points = gridRoute(xsOf(), ysOf(), starts, ends2, obstacles, penalty);
+  let points = gridRoute(xsOf(), ysOf(), starts, ends3, obstacles, penalty);
   if (!points)
     points = gridRoute(
       xsOf(),
       ysOf(),
       starts,
-      ends2,
+      ends3,
       obstacles.filter((o) => o.own),
       () => 0
     );
   const s0 = starts[0];
-  const e0 = ends2[0];
+  const e0 = ends3[0];
   if (!points && s0 && e0) points = elbow(s0.p, e0.p, horizontal);
   return points;
 }
-function obstaclesFor(rt, me, a, b, starts, ends2) {
+function obstaclesFor(rt, me, a, b, starts, ends3) {
   const obstacles = [];
   for (const n4 of rt.r.ctx.nodes) {
     if (n4.id === me.from || n4.id === me.to) continue;
@@ -13505,7 +13259,7 @@ function obstaclesFor(rt, me, a, b, starts, ends2) {
   for (const h of rt.groupHeads) obstacles.push({ box: h, own: false });
   for (const [end, ports, out] of [
     [a, starts, true],
-    [b, ends2, false]
+    [b, ends3, false]
   ])
     for (const part of end.parts) {
       const o = { box: grow3(part, part === end.box ? 4 : 2), own: true };
@@ -13623,13 +13377,13 @@ var makeBand = (group2, depth) => ({
   inset: 0
 });
 function bandTree(model, ids) {
-  const bands = /* @__PURE__ */ new Map();
+  const bands2 = /* @__PURE__ */ new Map();
   const roots = [];
-  for (const g of model.groups) if (ids.has(g.id)) bands.set(g.id, makeBand(g, 0));
+  for (const g of model.groups) if (ids.has(g.id)) bands2.set(g.id, makeBand(g, 0));
   for (const g of model.groups) {
-    const b = bands.get(g.id);
+    const b = bands2.get(g.id);
     if (!b) continue;
-    const parent = g.parent ? bands.get(g.parent) : void 0;
+    const parent = g.parent ? bands2.get(g.parent) : void 0;
     if (parent) parent.kids.push(b);
     else roots.push(b);
   }
@@ -13640,10 +13394,10 @@ function bandTree(model, ids) {
   for (const r4 of roots) deepen(r4, 0);
   const own = /* @__PURE__ */ new Map();
   const tree = {
-    bands,
+    bands: bands2,
     roots,
     bandFor(parent) {
-      const b = parent ? bands.get(parent) : void 0;
+      const b = parent ? bands2.get(parent) : void 0;
       if (!b) {
         tree.loose ??= makeBand(void 0, 0);
         return tree.loose;
@@ -13983,16 +13737,16 @@ function paintBands(ctx, all, run2) {
   groups.push(...painted);
   groups.sort((a, b) => a.depth - b.depth);
 }
-function inkOnBands(sc, bands) {
+function inkOnBands(sc, bands2) {
   const { ctx, parentOf, sceneGroup } = sc;
   const t = THEME_TOKENS[ctx.theme];
   for (const n4 of ctx.nodes) {
     if (n4.ink) continue;
     let surface;
     for (let p = n4.parent; p && !surface; p = parentOf.get(p)) {
-      const fill2 = bands.get(p)?.scene?.fill;
+      const fill2 = bands2.get(p)?.scene?.fill;
       if (fill2 && fill2 !== "none") surface = fill2;
-      else if (!bands.has(p) && (sceneGroup.get(p)?.fill ?? "none") !== "none") break;
+      else if (!bands2.has(p) && (sceneGroup.get(p)?.fill ?? "none") !== "none") break;
     }
     if (!surface) continue;
     const ink = ensureContrast(t.text, surface, 4.5);
@@ -14066,7 +13820,7 @@ function planPlacement(model, hidden) {
     ends: /* @__PURE__ */ new Map(),
     grids: /* @__PURE__ */ new Map()
   };
-  const ignore = (subject, setting, reason) => plan.ignored.push({ subject, setting, reason });
+  const ignore = (subject, setting2, reason) => plan.ignored.push({ subject, setting: setting2, reason });
   const own = selfPlaced(model.kind);
   const groups = new Map(model.groups.map((g) => [g.id, g]));
   const nodes = new Map(model.nodes.map((n4) => [n4.id, n4]));
@@ -14195,12 +13949,12 @@ function layersOf(items, direction) {
     return back ? { id: it.id, lo: -hi, hi: -lo } : { id: it.id, lo, hi };
   }).sort((a, b) => a.lo - b.lo);
   const out = /* @__PURE__ */ new Map();
-  let layer = -1;
+  let layer2 = -1;
   let end = Number.NEGATIVE_INFINITY;
   for (const s of spans2) {
-    if (s.lo >= end - 0.5) layer++;
+    if (s.lo >= end - 0.5) layer2++;
     end = s.lo >= end - 0.5 ? s.hi : Math.max(end, s.hi);
-    out.set(s.id, layer);
+    out.set(s.id, layer2);
   }
   return out;
 }
@@ -14320,11 +14074,11 @@ function sceneDefects(scene) {
     }
     for (const t of tags) if (t.id !== e.id && inLength(segs, t.box, 0.5) > 1) count++;
     for (const c of chips) if (inLength(segs, c, 0.5) > 1) count++;
-    const ends2 = [];
+    const ends3 = [];
     if (e.arrow === "end" || e.arrow === "both")
-      ends2.push([e.points.at(-1), e.points.at(-2), e.to]);
-    if (e.arrow === "start" || e.arrow === "both") ends2.push([e.points[0], e.points[1], e.from]);
-    for (const [tip, prev, target] of ends2) {
+      ends3.push([e.points.at(-1), e.points.at(-2), e.to]);
+    if (e.arrow === "start" || e.arrow === "both") ends3.push([e.points[0], e.points[1], e.from]);
+    for (const [tip, prev, target] of ends3) {
       if (!tip || !prev) continue;
       const L = Math.hypot(tip.x - prev.x, tip.y - prev.y) || 1;
       const [ux, uy] = [(tip.x - prev.x) / L, (tip.y - prev.y) / L];
@@ -14543,7 +14297,7 @@ function moveOff(ctx, edges, e, hug, borders) {
   const lo = Math.min(p[j], q[j]);
   const hi = Math.max(p[j], q[j]);
   const last = pts.length - 2;
-  const ends2 = /* @__PURE__ */ new Set([e.from, e.to]);
+  const ends3 = /* @__PURE__ */ new Set([e.from, e.to]);
   const heads = {
     start: e.arrow === "start" || e.arrow === "both",
     end: e.arrow !== "none" && e.arrow !== "start"
@@ -14575,7 +14329,7 @@ function moveOff(ctx, edges, e, hug, borders) {
   const own = tags(e);
   const carry = own.length > 0 && beside(union2(own), at, lo, hi, upright);
   const walls = [
-    ...nodes.filter((n4) => !ends2.has(n4.id)).flatMap((n4) => [
+    ...nodes.filter((n4) => !ends3.has(n4.id)).flatMap((n4) => [
       grow4(n4.box, SKIM),
       grow4(union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox].filter(real2)), 4)
     ]),
@@ -14584,15 +14338,15 @@ function moveOff(ctx, edges, e, hug, borders) {
     ...carry ? [] : own.map((b) => grow4(b, 2))
   ];
   const titles2 = groups.filter((g) => !g.overlay && g.label.lines.length).map((g) => g.labelBox);
-  const holds = (gid) => [...ends2].some((id) => id === gid || rel2.above(id).includes(gid));
+  const holds = (gid) => [...ends3].some((id) => id === gid || rel2.above(id).includes(gid));
   const strangers = groups.filter((g) => !g.overlay && !holds(g.id)).map((g) => g.box);
   const homes = groups.filter(
-    (g) => !g.overlay && [...ends2].every((id) => id === g.id || rel2.above(id).includes(g.id))
+    (g) => !g.overlay && [...ends3].every((id) => id === g.id || rel2.above(id).includes(g.id))
   ).map((g) => g.box);
   const within2 = (path, b) => path.every(
     (pt) => pt.x >= b.x - 0.5 && pt.x <= b.x + b.w + 0.5 && pt.y >= b.y - 0.5 && pt.y <= b.y + b.h + 0.5
   );
-  const unrelated = others.filter((o) => !ends2.has(o.from) && !ends2.has(o.to));
+  const unrelated = others.filter((o) => !ends3.has(o.from) && !ends3.has(o.to));
   const part = (path) => path.slice(Math.max(0, i - 1), i + 3);
   const before = segmentsOf2(part(pts));
   const crowded = nearTitle(part(pts), titles2);
@@ -14613,7 +14367,7 @@ function moveOff(ctx, edges, e, hug, borders) {
     for (const b of borders.filter(overlapsRun))
       for (const s of cross(b)) r4 = Math.min(r4, Math.abs(v - s));
     for (const n4 of nodes) {
-      if (ends2.has(n4.id) || !overlapsRun(n4.box)) continue;
+      if (ends3.has(n4.id) || !overlapsRun(n4.box)) continue;
       const [c0, c1] = cross(n4.box);
       r4 = Math.min(r4, v < c0 ? c0 - v : v > c1 ? v - c1 : 0);
     }
@@ -14775,9 +14529,9 @@ function moveClear(ctx) {
   }
   return { dx, dy };
 }
-function placeLegend(entries2, width2, height) {
+function placeLegend(entries3, width2, height) {
   const P2 = 10;
-  const rows = entries2.map((e) => ({
+  const rows = entries3.map((e) => ({
     line: e.line,
     label: textBlock(e.label, SIZES.edgeLabel, 240)
   }));
@@ -14963,9 +14717,9 @@ function sceneEdges(ctx, freeRoutes, rerouted) {
       continue;
     }
     const el = result2.edges?.find((x2) => x2.id === e.id) ?? findEdge(result2, e.id);
-    const section = el?.sections?.[0];
-    if (!el || !section) continue;
-    const points = sectionPoints(ctx, e, section);
+    const section2 = el?.sections?.[0];
+    if (!el || !section2) continue;
+    const points = sectionPoints(ctx, e, section2);
     const edge3 = {
       id: e.id,
       from: e.from,
@@ -15081,7 +14835,7 @@ function detour(a, b, obstacles, borders = [], used = []) {
   const found = shortest(lines2, walls, borders, starts, goals);
   return found && simplify([found.start.at, ...found.path, found.goal.at]);
 }
-function routeLines(all, walls, borders, ends2) {
+function routeLines(all, walls, borders, ends3) {
   const x0 = Math.min(...all.map((r4) => r4.x)) - 40;
   const y0 = Math.min(...all.map((r4) => r4.y)) - 40;
   const x1 = Math.max(...all.map((r4) => r4.x + r4.w)) + 40;
@@ -15091,7 +14845,7 @@ function routeLines(all, walls, borders, ends2) {
       [
         min,
         max,
-        ...ends2.map((f) => pick2(f.stub)),
+        ...ends3.map((f) => pick2(f.stub)),
         ...walls.flatMap((r4) => [lo(r4) - 12, hi(r4) + 12]),
         ...borders.flatMap((r4) => [lo(r4) - 16, lo(r4) + 16, hi(r4) - 16, hi(r4) + 16])
       ].map(round)
@@ -15391,10 +15145,10 @@ function addEdges(ctx) {
   for (const e of model.edges) {
     if (free(e)) {
       if (!e.constraint || inBlock(e) || opts.loose?.has(e.id)) continue;
-      const ends2 = (id) => [...new Set(members(id).map(rep))];
+      const ends3 = (id) => [...new Set(members(id).map(rep))];
       let i = 0;
-      for (const s of ends2(e.from))
-        for (const t of ends2(e.to))
+      for (const s of ends3(e.from))
+        for (const t of ends3(e.to))
           if (s !== t) root.edges?.push({ id: `${e.id}__via${i++}`, sources: [s], targets: [t] });
       continue;
     }
@@ -15513,8 +15267,8 @@ function nodeGeometry(n4, horizontal) {
   }
   return { w: Math.ceil(w), h: Math.ceil(h), label, note };
 }
-function badgePill(text4, anchor2) {
-  const w = round(Math.max(18, measure2(text4, 10, 600) + 10));
+function badgePill(text5, anchor2) {
+  const w = round(Math.max(18, measure2(text5, 10, 600) + 10));
   const x2 = Math.max(anchor2.x + anchor2.w - w / 2 - 2, anchor2.x + anchor2.w / 2 + 6);
   return { x: round(x2), y: round(anchor2.y - 7), w, h: 16 };
 }
@@ -15747,8 +15501,8 @@ function blockElks(ctx, elkNodes) {
       ...model.edges.filter((e) => plan.blockOf.get(e.from) === id && plan.blockOf.get(e.to) === id).map((e) => {
         if (horizontal) return 0;
         const step = e.step !== void 0 ? SIZES.step + 2 : 0;
-        const text4 = e.label ? textBlock(e.label, SIZES.edgeLabel, SIZES.edgeLabelMax) : void 0;
-        return Math.ceil((text4 ? text4.width + 12 : 0) + step + 32);
+        const text5 = e.label ? textBlock(e.label, SIZES.edgeLabel, SIZES.edgeLabelMax) : void 0;
+        return Math.ceil((text5 ? text5.width + 12 : 0) + step + 32);
       })
     );
     elkNodes.set(id, {
@@ -16046,9 +15800,9 @@ function emotionCurve(grid) {
     const points = [];
     const scores = [];
     stages.forEach((_, c) => {
-      const here = scored.filter((x2) => x2.col === c).map((x2) => x2.node.score ?? 0);
-      if (!here.length) return;
-      const avg = here.reduce((a, b) => a + b, 0) / here.length;
+      const here2 = scored.filter((x2) => x2.col === c).map((x2) => x2.node.score ?? 0);
+      if (!here2.length) return;
+      const avg = here2.reduce((a, b) => a + b, 0) / here2.length;
       scores.push(round3(avg));
       points.push({ x: round3((colX[c] ?? 0) + (colW[c] ?? 0) / 2), y: round3(zero - avg * per) });
     });
@@ -16110,9 +15864,9 @@ function canvasOf(grid, gridBottom) {
   }
   return { width: width2, height, titleBox, subtitleBox, legend: legend4 };
 }
-function placeLegend2(entries2, width2, height) {
+function placeLegend2(entries3, width2, height) {
   const P2 = 10;
-  const rows = entries2.map((e) => ({
+  const rows = entries3.map((e) => ({
     line: e.line,
     label: textBlock(e.label, SIZES.edgeLabel, 240)
   }));
@@ -16360,23 +16114,23 @@ function separateTracks(grid, routes, movable) {
       return m.vertical ? [Math.min(p.y, q.y), Math.max(p.y, q.y)] : [Math.min(p.x, q.x), Math.max(p.x, q.x)];
     };
     const sorted = [...list].sort((m, q) => (span(m)[0] ?? 0) - (span(q)[0] ?? 0));
-    const ends2 = [];
+    const ends3 = [];
     const track = /* @__PURE__ */ new Map();
     for (const m of sorted) {
       const [lo, hi] = span(m);
-      let t = ends2.findIndex((end) => end < lo - 6);
+      let t = ends3.findIndex((end) => end < lo - 6);
       if (t < 0) {
-        t = ends2.length;
-        ends2.push(hi);
-      } else ends2[t] = hi;
+        t = ends3.length;
+        ends3.push(hi);
+      } else ends3[t] = hi;
       track.set(m, t);
     }
-    if (ends2.length < 2) continue;
+    if (ends3.length < 2) continue;
     const room2 = (m) => m.vertical ? G - 4 : G + 2 * pad - 12;
     for (const m of list) {
       const t = track.get(m) ?? 0;
-      const gap = Math.min(6, room2(m) / (ends2.length - 1));
-      const d = round3((t - (ends2.length - 1) / 2) * gap);
+      const gap = Math.min(6, room2(m) / (ends3.length - 1));
+      const d = round3((t - (ends3.length - 1) / 2) * gap);
       const pts = routes.get(m.id);
       const p = pts?.[m.i];
       const q = pts?.[m.i + 1];
@@ -16542,9 +16296,9 @@ function fits(k, edge3, c) {
     const toward = (end) => flat ? end.x : end.y;
     const headAt = (end) => last && end === q && (edge3.arrow === "end" || edge3.arrow === "both") || first && end === p && (edge3.arrow === "start" || edge3.arrow === "both");
     const need = (end) => headAt(end) ? ARROW + 4 : 4;
-    const ends2 = [p, q].map((end) => ({ v: toward(end), need: need(end) }));
-    const loEnd = ends2.find((x2) => Math.abs(x2.v - lo) < 0.01) ?? { need: 4 };
-    const hiEnd = ends2.find((x2) => Math.abs(x2.v - hi) < 0.01) ?? { need: 4 };
+    const ends3 = [p, q].map((end) => ({ v: toward(end), need: need(end) }));
+    const loEnd = ends3.find((x2) => Math.abs(x2.v - lo) < 0.01) ?? { need: 4 };
+    const hiEnd = ends3.find((x2) => Math.abs(x2.v - hi) < 0.01) ?? { need: 4 };
     if (b0 < lo + loEnd.need || b1 > hi - hiEnd.need) return false;
   }
   return true;
@@ -17137,8 +16891,8 @@ function fitIcons(scene) {
     if (w >= b.w - 0.01) continue;
     const x2 = round(b.x + (b.w - w) / 2);
     for (const e of scene.edges) {
-      const ends2 = [e.from === n4.id ? 0 : -1, e.to === n4.id ? e.points.length - 1 : -1];
-      for (const i of ends2) {
+      const ends3 = [e.from === n4.id ? 0 : -1, e.to === n4.id ? e.points.length - 1 : -1];
+      for (const i of ends3) {
         const p = e.points[i];
         const next = e.points[i === 0 ? 1 : i - 1];
         if (!p || !next || Math.abs(next.y - p.y) > 0.5 || p.y < b.y || p.y > b.y + b.h) continue;
@@ -17387,9 +17141,9 @@ function cellGap(ctx, list) {
     const [f, t] = [cellOfGrid(e.from), cellOfGrid(e.to)];
     return f && t && f !== t && (e.label || e.step !== void 0);
   }).map((e) => {
-    const text4 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+    const text5 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
     const step = e.step !== void 0 ? SIZES.step + 2 : 0;
-    return { w: (e.label ? text4.width + 12 : 0) + step, h: Math.max(text4.height + 6, step) };
+    return { w: (e.label ? text5.width + 12 : 0) + step, h: Math.max(text5.height + 6, step) };
   });
   return Math.round(Math.max(40 * s, ...labels2.map((l) => (horizontal ? l.h : l.w) + 32)));
 }
@@ -17555,13 +17309,13 @@ function wallsOf(ctx) {
     const u = union2(parts);
     return [{ id: g.id, box: { x: u.x - 4, y: u.y - 1, w: u.w + 8, h: u.h + 2 } }];
   });
-  const ends2 = (e) => nodes.filter((n4) => n4.id === e.from || n4.id === e.to);
+  const ends3 = (e) => nodes.filter((n4) => n4.id === e.from || n4.id === e.to);
   const others = (e) => [
     ...nodes.filter((n4) => n4.id !== e.from && n4.id !== e.to).map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox])),
     ...headers.filter((h) => !(rel2.overlays.has(h.id) && (h.id === e.from || h.id === e.to))).map((h) => h.box),
     ...elkMarks.filter((m) => m.id !== e.id).map((m) => m.box)
   ];
-  const own = (e) => ends2(e).flatMap((n4) => [n4.box, n4.labelBox, n4.noteBox].filter((b) => !!b && b.w > 0));
+  const own = (e) => ends3(e).flatMap((n4) => [n4.box, n4.labelBox, n4.noteBox].filter((b) => !!b && b.w > 0));
   const walls = (e) => [...others(e), ...own(e)];
   const roomyWalls = (e) => [
     ...others(e).map((b) => ({ x: b.x - 4, y: b.y - 4, w: b.w + 8, h: b.h + 8 })),
@@ -17884,7 +17638,7 @@ function laneClassic(g, _t) {
   const b = g.box;
   const dash = g.dash ? ` stroke-dasharray="${g.dash}"` : "";
   const line = `stroke="${g.stroke}" stroke-width="${g.strokeWidth}"`;
-  const frame = `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" fill="${g.fill}" ${line}${dash}/>`;
+  const frame2 = `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" fill="${g.fill}" ${line}${dash}/>`;
   const parts = [];
   const d = divider(g);
   if (d) parts.push(`<path d="${d}" fill="none" ${line}/>`);
@@ -17894,7 +17648,7 @@ function laneClassic(g, _t) {
   parts.push(
     lines(L, nameOf(g), baseline, ` font-size="${n(L.size)}"${weight} fill="${g.labelColor}"`)
   );
-  return { frame, header: parts.join("") };
+  return { frame: frame2, header: parts.join("") };
 }
 function laneStage(g, k, _t, h, glow) {
   const lane = g.lane;
@@ -17905,7 +17659,7 @@ function laneStage(g, k, _t, h, glow) {
   const tone = (c, a) => `fill="${c}"${a < 1 ? ` fill-opacity="${n(a)}"` : ""}`;
   const dash = g.dash ? ` stroke-dasharray="${n(3 * h)} ${n(3 * h)}"` : "";
   const panel = g.depth === 0 ? tone(k.line, k.panel) : `fill="none"`;
-  const frame = rect3(b, `${panel} ${line(k.line, k.frame)}${dash}`) + glow(rect3(b, `fill="none" ${line(k.tint, 0.45)}${dash}`));
+  const frame2 = rect3(b, `${panel} ${line(k.line, k.frame)}${dash}`) + glow(rect3(b, `fill="none" ${line(k.tint, 0.45)}${dash}`));
   const parts = [];
   const d = divider(g);
   if (d) {
@@ -17935,7 +17689,7 @@ function laneStage(g, k, _t, h, glow) {
       track / 2
     )
   );
-  return { frame, header: parts.join("") };
+  return { frame: frame2, header: parts.join("") };
 }
 
 // src/render/notation.ts
@@ -18298,7 +18052,7 @@ var stroke = (c, a, w) => `stroke="${c}"${a < 1 ? ` stroke-opacity="${a}"` : ""}
 var rect = (b, rx, paint, extra = "") => `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}"${rx ? ` rx="${n(rx)}"` : ""} ${paint}${extra}/>`;
 
 // src/render/stage/text.ts
-var MONO2 = "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace";
+var MONO = "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace";
 var ADVANCE2 = 0.6;
 var LABEL3 = { size: 11.5, weight: 700, caps: true, track: 0.08 };
 var NOTE2 = { size: 10, weight: 400, caps: false, track: 0 };
@@ -18335,7 +18089,7 @@ function mono(lines2, f, size, at, color, anchor2, extra = "") {
   const middle = anchor2 === "middle" ? ` text-anchor="middle"` : "";
   return `<text font-size="${n(size)}" font-weight="${f.weight}"${spacing} fill="${color}"${middle}${extra}>${spans2}</text>`;
 }
-function block2(b, box, f, size, color, anchor2 = "middle", extra = "") {
+function block(b, box, f, size, color, anchor2 = "middle", extra = "") {
   const lead = b.lines.length ? box.h / b.lines.length : b.lead;
   const x2 = anchor2 === "middle" ? box.x + box.w / 2 : box.x;
   return mono(b.lines, f, size, { x: x2, y: box.y, lead }, color, anchor2, extra);
@@ -18371,12 +18125,12 @@ function titles(ctx) {
   if (scene.title && scene.titleBox) {
     const b = scene.titleBox;
     const size = sizeFor(scene.title.lines, TITLE, W2 - b.x - 24, 11);
-    out.push(block2(scene.title, b, TITLE, size, mixHex(k.line, t.background, 0.85), "start"));
+    out.push(block(scene.title, b, TITLE, size, mixHex(k.line, t.background, 0.85), "start"));
   }
   if (scene.subtitle && scene.subtitleBox) {
     const b = scene.subtitleBox;
     const size = sizeFor(scene.subtitle.lines, SUBTITLE, W2 - b.x - 24, 9);
-    out.push(block2(scene.subtitle, b, SUBTITLE, size, t.text, "start"));
+    out.push(block(scene.subtitle, b, SUBTITLE, size, t.text, "start"));
   }
   return out;
 }
@@ -18638,7 +18392,7 @@ function groupHeader(ctx, g) {
       })
     );
     if (crossed) parts.push(rect(chip, 3, fill(ctx.t.background)));
-    parts.push(block2(g.label, b, HEADER2, size, g.labelColor, "start"));
+    parts.push(block(g.label, b, HEADER2, size, g.labelColor, "start"));
   }
   return parts.join("");
 }
@@ -18655,13 +18409,13 @@ function edgeLabel(ctx, e) {
     const w = Math.max(b.w, ...e.label.lines.map((l) => monoWidth(l, EDGE, size) + 8));
     const chip = { x: b.x + b.w / 2 - w / 2, y: b.y, w, h: b.h };
     parts.push(rect(chip, 3, `${fill(k.tile)} ${stroke(k.line, k.hair, h)}`));
-    parts.push(block2(e.label, b, EDGE, size, ctx.t.edgeLabel));
+    parts.push(block(e.label, b, EDGE, size, ctx.t.edgeLabel));
     if (runs2) {
       const color = e.color ?? k.tint;
       parts.push(
         lit(
           ctx,
-          rect(chip, 3, `${fill(k.tile)} ${stroke(color, 0.5, h)}`) + block2(e.label, b, EDGE, size, color),
+          rect(chip, 3, `${fill(k.tile)} ${stroke(color, 0.5, h)}`) + block(e.label, b, EDGE, size, color),
           on,
           story.hold + RAMP
         )
@@ -18706,12 +18460,17 @@ function legend(ctx) {
     const s = item.swatch;
     const y = s.y + s.h / 2;
     const dash = item.line === "dashed" ? ` stroke-dasharray="${n(4 * h)} ${n(3 * h)}"` : item.line === "dotted" ? ` stroke-dasharray="${n(h)} ${n(2.5 * h)}"` : "";
+    const color = item.color ?? k.line;
     parts.push(
-      `<path d="M${n(s.x)} ${n(y)} H${n(s.x + s.w)}" fill="none" ${stroke(k.line, k.arrow, item.line === "thick" ? 1.8 * h : h)} stroke-linecap="round"${dash}/>`
+      item.chip ? rect(
+        { x: s.x + 6, y: s.y + 1, w: s.w - 12, h: s.h - 2 },
+        3,
+        `${fill(color, 0.3)} ${stroke(color, 1, h)}`
+      ) : `<path d="M${n(s.x)} ${n(y)} H${n(s.x + s.w)}" fill="none" ${stroke(color, k.arrow, item.line === "thick" ? 1.8 * h : h)} stroke-linecap="round"${dash}/>`
     );
     const b = item.labelBox;
     parts.push(
-      block2(
+      block(
         item.label,
         b,
         KEY,
@@ -18747,7 +18506,7 @@ function badge(ctx, label, anchor2, placed) {
 function labels(ctx, nd, anchor2, room2) {
   const own = sizeFor(nd.label.lines, LABEL3, room2, 8);
   const parts = [
-    block2(
+    block(
       nd.label,
       nd.labelBox,
       LABEL3,
@@ -18758,7 +18517,7 @@ function labels(ctx, nd, anchor2, room2) {
   ];
   if (nd.note && nd.noteBox)
     parts.push(
-      block2(
+      block(
         nd.note,
         nd.noteBox,
         NOTE2,
@@ -18875,8 +18634,8 @@ var NO = /\b(no|not|non|reject(ed|s)?|declined?|denied|fail(ed|s|ure)?|invalid|u
 function branch(outs) {
   const conditioned = outs.filter((e) => e.flow !== "default");
   const pool = conditioned.length ? conditioned : outs;
-  const text4 = (e) => e.label?.lines.join(" ") ?? "";
-  return pool.find((e) => YES.test(text4(e)) && !NO.test(text4(e))) ?? pool[0];
+  const text5 = (e) => e.label?.lines.join(" ") ?? "";
+  return pool.find((e) => YES.test(text5(e)) && !NO.test(text5(e))) ?? pool[0];
 }
 function tokenGraph(scene) {
   const kind = new Map(scene.nodes.map((nd) => [nd.id, nd.bpmn ?? ""]));
@@ -19172,7 +18931,7 @@ function renderStage(scene, opts = {}) {
   const descId = `${prefix}sdw-desc`;
   const out = [];
   out.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W2}" height="${H}" viewBox="0 0 ${W2} ${H}" role="img" aria-labelledby="${titleId} ${descId}" font-family="${esc(MONO2)}">`
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W2}" height="${H}" viewBox="0 0 ${W2} ${H}" role="img" aria-labelledby="${titleId} ${descId}" font-family="${esc(MONO)}">`
   );
   out.push(
     `<title id="${titleId}">${esc(scene.title?.lines.join(" ") ?? "Architecture diagram")}</title>`
@@ -19587,9 +19346,9 @@ function relayLine(ctx, e, d, heads, b, width2, dash) {
   ctx.defs.push(
     `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="${ctx.scene.width}" height="${ctx.scene.height}"><path d="${d}" fill="none" stroke="#ffffff" stroke-width="${n(width2 + 8)}" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="${hide}"><animate attributeName="stroke-dashoffset" values="${hide};${hide};0;0;${hide}" keyTimes="${kt2([0, b.t0, b.t1, gone, cycle])}" ${loop2}/></path></mask>`
   );
-  const show2 = (from) => `<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt2([0, from, from + 0.05, end, gone, cycle])}" ${loop2}/>`;
+  const show3 = (from) => `<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt2([0, from, from + 0.05, end, gone, cycle])}" ${loop2}/>`;
   const r4 = e.line === "thick" ? 3.6 : 3;
-  return `<g mask="url(#${id})" opacity="0"><path d="${d}" fill="none" stroke="${color}" stroke-width="${width2}" stroke-linejoin="round"${dash}/>${show2(b.t0)}</g>` + (heads ? `<g opacity="0">${heads}${show2(b.t1)}</g>` : "") + `<circle r="${r4}" fill="${color}" opacity="0"><animateMotion path="${d}" ${loop2} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${kt2([0, b.t0, b.t1, cycle])}"/><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt2([0, b.t0, b.t0 + 0.05, b.t1 - 0.05, b.t1, cycle])}" ${loop2}/></circle>`;
+  return `<g mask="url(#${id})" opacity="0"><path d="${d}" fill="none" stroke="${color}" stroke-width="${width2}" stroke-linejoin="round"${dash}/>${show3(b.t0)}</g>` + (heads ? `<g opacity="0">${heads}${show3(b.t1)}</g>` : "") + `<circle r="${r4}" fill="${color}" opacity="0"><animateMotion path="${d}" ${loop2} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${kt2([0, b.t0, b.t1, cycle])}"/><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt2([0, b.t0, b.t0 + 0.05, b.t1 - 0.05, b.t1, cycle])}" ${loop2}/></circle>`;
 }
 function plate(ctx, nd, at) {
   const { cycle, color } = ctx.relay;
@@ -19700,8 +19459,9 @@ function legend2(ctx, l) {
     const s = item.swatch;
     const { width: width2, dash } = stroke2(item.line);
     const y = s.y + s.h / 2;
+    const color = item.color ?? ctx.t.edge;
     parts.push(
-      `<path d="M${n(s.x)} ${n(y)} H${n(s.x + s.w)}" fill="none" stroke="${ctx.t.edge}" stroke-width="${width2}"${dash}/>`
+      item.chip ? `<rect x="${n(s.x + 6)}" y="${n(s.y + 1)}" width="${n(s.w - 12)}" height="${n(s.h - 2)}" rx="3" fill="${color}"/>` : `<path d="M${n(s.x)} ${n(y)} H${n(s.x + s.w)}" fill="none" stroke="${color}" stroke-width="${width2}"${dash}/>`
     );
     parts.push(text(item.label, item.labelBox, ctx.t.text, "start"));
   }
@@ -19838,7 +19598,7 @@ function journeyClassic(scene, t) {
   const dark = t.name === "dark";
   const bg = scene.background && scene.background !== "transparent" ? scene.background : t.background;
   const head2 = mixHex(t.text, bg, dark ? 0.1 : 0.06);
-  const bands = [mixHex(t.text, bg, dark ? 0.05 : 0.035), mixHex(t.text, bg, dark ? 0.028 : 0.016)];
+  const bands2 = [mixHex(t.text, bg, dark ? 0.05 : 0.035), mixHex(t.text, bg, dark ? 0.028 : 0.016)];
   const ink = ensureContrast(t.text, head2, 4.5);
   const parts = [];
   for (const st of j.stages) {
@@ -19852,7 +19612,7 @@ function journeyClassic(scene, t) {
     parts.push(text2(st.label, st.labelBox, ink));
   }
   j.rows.forEach((r4, i) => {
-    const fill2 = bands[i % 2] ?? head2;
+    const fill2 = bands2[i % 2] ?? head2;
     for (const c of r4.cells) parts.push(rect2(c, 6, `fill="${fill2}"`));
     parts.push(rect2(r4.header, 6, `fill="${head2}"`));
     if (r4.color)
@@ -19865,7 +19625,7 @@ function journeyClassic(scene, t) {
       );
     parts.push(text2(r4.label, r4.labelBox, ink));
   });
-  if (j.curve) parts.push(emotionClassic(scene, j.curve, t, head2, bands[0] ?? head2, ink));
+  if (j.curve) parts.push(emotionClassic(scene, j.curve, t, head2, bands2[0] ?? head2, ink));
   return `<g>${parts.join("")}</g>`;
 }
 function emotionClassic(scene, c, t, head2, band, ink) {
@@ -19990,8 +19750,8 @@ function iconData(ctx, id, color, background) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${r4.viewBox.join(" ")}">${r4.body}</svg>`;
   return `data:image/svg+xml,${Buffer.from(svg).toString("base64")}`;
 }
-function style2(entries2) {
-  return Object.entries(entries2).filter(([, v]) => v !== void 0 && v !== "").map(([k, v]) => v === null ? k : `${k}=${v}`).join(";").concat(";");
+function style(entries3) {
+  return Object.entries(entries3).filter(([, v]) => v !== void 0 && v !== "").map(([k, v]) => v === null ? k : `${k}=${v}`).join(";").concat(";");
 }
 var FONT = "Inter,Helvetica,Arial,sans-serif";
 function geometry(box, parent, ctx) {
@@ -20011,7 +19771,7 @@ function group(ctx, g) {
   if (g.lane) {
     const { horizontal, header: header2 } = g.lane;
     const black = header2.w === g.box.w && header2.h === g.box.h;
-    const lane = style2({
+    const lane = style({
       ...black ? { whiteSpace: "wrap", align: "center", verticalAlign: "middle" } : {
         swimlane: null,
         horizontal: horizontal ? 0 : 1,
@@ -20037,7 +19797,7 @@ function group(ctx, g) {
     );
     return;
   }
-  const s = style2({
+  const s = style({
     rounded: g.radius ? 1 : 0,
     absoluteArcSize: g.radius ? 1 : void 0,
     arcSize: g.radius ? g.radius * 2 : void 0,
@@ -20066,13 +19826,13 @@ function group(ctx, g) {
   );
   if (g.inner) {
     ctx.cells.push(
-      `<mxCell id="g-${g.id}:inner" value="" style="${style2({ rounded: 1, absoluteArcSize: 1, arcSize: 8, fillColor: g.inner.fill, strokeColor: "none", movable: 0, resizable: 0, connectable: 0 })}" vertex="1" parent="g-${g.id}">${geometry(g.inner.box, g.id, ctx)}</mxCell>`
+      `<mxCell id="g-${g.id}:inner" value="" style="${style({ rounded: 1, absoluteArcSize: 1, arcSize: 8, fillColor: g.inner.fill, strokeColor: "none", movable: 0, resizable: 0, connectable: 0 })}" vertex="1" parent="g-${g.id}">${geometry(g.inner.box, g.id, ctx)}</mxCell>`
     );
   }
   if (g.icon && g.iconBox) {
     const img = iconData(ctx, g.icon, void 0, g.fill === "none" ? void 0 : g.fill);
     ctx.cells.push(
-      `<mxCell id="g-${g.id}:icon" value="" style="${style2({ shape: "image", html: 1, imageAspect: 1, aspect: "fixed", movable: 0, resizable: 0, image: img })}" vertex="1" parent="g-${g.id}">${geometry(g.iconBox, g.id, ctx)}</mxCell>`
+      `<mxCell id="g-${g.id}:icon" value="" style="${style({ shape: "image", html: 1, imageAspect: 1, aspect: "fixed", movable: 0, resizable: 0, image: img })}" vertex="1" parent="g-${g.id}">${geometry(g.iconBox, g.id, ctx)}</mxCell>`
     );
   }
 }
@@ -20176,7 +19936,7 @@ function node3(ctx, nd) {
   if (nd.look === "icon" && nd.icon && nd.iconBox) {
     const vertical = ctx.scene.direction === "down" || ctx.scene.direction === "up";
     const img = iconData(ctx, nd.icon, nd.color);
-    s = vertical ? style2({
+    s = vertical ? style({
       shape: "label",
       image: img,
       imageWidth: nd.iconBox.w,
@@ -20194,7 +19954,7 @@ function node3(ctx, nd) {
       fontSize: 13,
       fontFamily: FONT,
       spacing: 0
-    }) : style2({
+    }) : style({
       shape: "image",
       image: img,
       imageAspect: 1,
@@ -20215,7 +19975,7 @@ function node3(ctx, nd) {
     geom = geometry(vertical ? nd.box : nd.iconBox, nd.parent, ctx);
   } else if (nd.look === "card") {
     const img = nd.icon ? iconData(ctx, nd.icon, void 0, ctx.t.surface) : void 0;
-    s = style2({
+    s = style({
       shape: "label",
       rounded: 1,
       absoluteArcSize: 1,
@@ -20244,7 +20004,7 @@ function node3(ctx, nd) {
     const img = nd.icon ? iconData(ctx, nd.icon, nd.color, fill2) : void 0;
     const sym = symbolBox(nd);
     const dot2 = !nd.bpmn && (nd.shape === "initial" || nd.shape === "final");
-    s = style2({
+    s = style({
       ...notationStyle(nd) ?? SHAPE_STYLE[nd.shape],
       whiteSpace: sym ? "nowrap" : "wrap",
       html: 1,
@@ -20284,7 +20044,7 @@ function edge2(ctx, e, boxes) {
   const end = e.arrow === "end" || e.arrow === "both";
   const start = e.arrow === "start" || e.arrow === "both";
   const routing = ctx.scene.routing;
-  const s = style2({
+  const s = style({
     edgeStyle: routing === "orthogonal" ? "orthogonalEdgeStyle" : "none",
     curved: routing === "spline" ? 1 : void 0,
     rounded: 1,
@@ -20329,7 +20089,7 @@ function edge2(ctx, e, boxes) {
   );
   if (e.step !== void 0 && e.stepBox) {
     ctx.cells.push(
-      `<mxCell id="${e.id}:step" value="${e.step}" style="${style2({ ellipse: null, whiteSpace: "wrap", html: 1, fillColor: ctx.t.stepFill, strokeColor: "none", fontColor: ctx.t.stepText, fontStyle: 1, fontSize: 14, fontFamily: FONT })}" vertex="1" parent="1">${geometry(e.stepBox)}</mxCell>`
+      `<mxCell id="${e.id}:step" value="${e.step}" style="${style({ ellipse: null, whiteSpace: "wrap", html: 1, fillColor: ctx.t.stepFill, strokeColor: "none", fontColor: ctx.t.stepText, fontStyle: 1, fontSize: 14, fontFamily: FONT })}" vertex="1" parent="1">${geometry(e.stepBox)}</mxCell>`
     );
   }
 }
@@ -20338,32 +20098,32 @@ function journey(ctx, j) {
   const dark = t.name === "dark";
   const bg = scene.background && scene.background !== "transparent" ? scene.background : t.background;
   const head2 = mixHex(t.text, bg, dark ? 0.1 : 0.06);
-  const bands = [mixHex(t.text, bg, dark ? 0.05 : 0.035), mixHex(t.text, bg, dark ? 0.028 : 0.016)];
+  const bands2 = [mixHex(t.text, bg, dark ? 0.05 : 0.035), mixHex(t.text, bg, dark ? 0.028 : 0.016)];
   const ink = ensureContrast(t.text, head2, 4.5);
   let i = 0;
   const id = () => `journey:${i++}`;
   const box = (b, fill2, extra = {}) => ctx.cells.push(
-    `<mxCell id="${id()}" value="" style="${style2({ rounded: 1, absoluteArcSize: 1, arcSize: 12, html: 1, fillColor: fill2, strokeColor: "none", connectable: 0, ...extra })}" vertex="1" parent="1">${geometry(b)}</mxCell>`
+    `<mxCell id="${id()}" value="" style="${style({ rounded: 1, absoluteArcSize: 1, arcSize: 12, html: 1, fillColor: fill2, strokeColor: "none", connectable: 0, ...extra })}" vertex="1" parent="1">${geometry(b)}</mxCell>`
   );
   const label = (b, lines2, color, size, bold = false) => ctx.cells.push(
-    `<mxCell id="${id()}" value="${esc(lines2.map(esc).join("<br>"))}" style="${style2({ text: null, html: 1, align: "center", verticalAlign: "middle", whiteSpace: "nowrap", fontSize: size, fontStyle: bold ? 1 : 0, fontColor: color, fontFamily: FONT, spacing: 0, connectable: 0 })}" vertex="1" parent="1">${geometry(b)}</mxCell>`
+    `<mxCell id="${id()}" value="${esc(lines2.map(esc).join("<br>"))}" style="${style({ text: null, html: 1, align: "center", verticalAlign: "middle", whiteSpace: "nowrap", fontSize: size, fontStyle: bold ? 1 : 0, fontColor: color, fontFamily: FONT, spacing: 0, connectable: 0 })}" vertex="1" parent="1">${geometry(b)}</mxCell>`
   );
   for (const st of j.stages) {
     box(st.box, head2);
     ctx.cells.push(
-      `<mxCell id="${id()}" value="${esc(st.number)}" style="${style2({ ellipse: null, html: 1, fillColor: t.stepFill, strokeColor: "none", fontColor: t.stepText, fontStyle: 1, fontSize: 12, fontFamily: FONT, connectable: 0 })}" vertex="1" parent="1">${geometry(st.numberBox)}</mxCell>`
+      `<mxCell id="${id()}" value="${esc(st.number)}" style="${style({ ellipse: null, html: 1, fillColor: t.stepFill, strokeColor: "none", fontColor: t.stepText, fontStyle: 1, fontSize: 12, fontFamily: FONT, connectable: 0 })}" vertex="1" parent="1">${geometry(st.numberBox)}</mxCell>`
     );
     label(st.labelBox, st.label.lines, ink, st.label.size, st.label.weight === 600);
   }
   j.rows.forEach((r4, n4) => {
-    const fill2 = bands[n4 % 2] ?? head2;
+    const fill2 = bands2[n4 % 2] ?? head2;
     for (const c of r4.cells) box(c, fill2);
     box(r4.header, head2);
     if (r4.color)
       box({ x: r4.header.x, y: r4.header.y + 8, w: 3, h: r4.header.h - 16 }, r4.color, { arcSize: 3 });
     label(r4.labelBox, r4.label.lines, ink, r4.label.size, r4.label.weight === 600);
   });
-  if (j.curve) emotion(ctx, j.curve, head2, bands[0] ?? head2, ink, box, label, id);
+  if (j.curve) emotion(ctx, j.curve, head2, bands2[0] ?? head2, ink, box, label, id);
 }
 function emotion(ctx, c, head2, band, ink, box, label, id) {
   const { t } = ctx;
@@ -20378,7 +20138,7 @@ function emotion(ctx, c, head2, band, ink, box, label, id) {
     if (!first || !last) return;
     const mid = rest.length ? `<Array as="points">${rest.map((p) => `<mxPoint x="${n3(p.x)}" y="${n3(p.y)}"/>`).join("")}</Array>` : "";
     ctx.cells.push(
-      `<mxCell id="${id()}" value="" style="${style2({ endArrow: "none", startArrow: "none", html: 1, ...extra })}" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="${n3(first.x)}" y="${n3(first.y)}" as="sourcePoint"/><mxPoint x="${n3(last.x)}" y="${n3(last.y)}" as="targetPoint"/>${mid}</mxGeometry></mxCell>`
+      `<mxCell id="${id()}" value="" style="${style({ endArrow: "none", startArrow: "none", html: 1, ...extra })}" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="${n3(first.x)}" y="${n3(first.y)}" as="sourcePoint"/><mxPoint x="${n3(last.x)}" y="${n3(last.y)}" as="targetPoint"/>${mid}</mxGeometry></mxCell>`
     );
   };
   const x0 = c.band.x + 10;
@@ -20407,7 +20167,7 @@ function emotion(ctx, c, head2, band, ink, box, label, id) {
   c.points.forEach((p, k) => {
     const fill2 = moodColor(c.scores[k] ?? 0, t, band);
     ctx.cells.push(
-      `<mxCell id="${id()}" value="" style="${style2({ ellipse: null, html: 1, fillColor: fill2, strokeColor: band, strokeWidth: 2, connectable: 0 })}" vertex="1" parent="1">${geometry({ x: p.x - 9, y: p.y - 9, w: 18, h: 18 })}</mxCell>`
+      `<mxCell id="${id()}" value="" style="${style({ ellipse: null, html: 1, fillColor: fill2, strokeColor: band, strokeWidth: 2, connectable: 0 })}" vertex="1" parent="1">${geometry({ x: p.x - 9, y: p.y - 9, w: 18, h: 18 })}</mxCell>`
     );
   });
 }
@@ -20415,12 +20175,14 @@ function legend3(ctx, l) {
   const { box } = l;
   const local2 = (b) => ({ ...b, x: b.x - box.x, y: b.y - box.y });
   ctx.cells.push(
-    `<mxCell id="legend" value="" style="${style2({ rounded: 1, absoluteArcSize: 1, arcSize: 12, html: 1, fillColor: ctx.t.surface, strokeColor: ctx.t.border, container: 1, collapsible: 0, recursiveResize: 0 })}" vertex="1" parent="1">${geometry(box)}</mxCell>`
+    `<mxCell id="legend" value="" style="${style({ rounded: 1, absoluteArcSize: 1, arcSize: 12, html: 1, fillColor: ctx.t.surface, strokeColor: ctx.t.border, container: 1, collapsible: 0, recursiveResize: 0 })}" vertex="1" parent="1">${geometry(box)}</mxCell>`
   );
   for (const [i, item] of l.items.entries()) {
+    const color = item.color ?? ctx.t.edge;
+    const s = item.swatch;
     ctx.cells.push(
-      `<mxCell id="legend:${i}:line" value="" style="${style2({ line: null, html: 1, fillColor: "none", strokeColor: ctx.t.edge, ...lineStyle(item.line) })}" vertex="1" parent="legend">${geometry(local2(item.swatch))}</mxCell>`,
-      `<mxCell id="legend:${i}:text" value="${esc(esc(item.label.lines.join(" ")))}" style="${style2({ text: null, html: 1, align: "left", verticalAlign: "middle", whiteSpace: "nowrap", fontSize: item.label.size, fontColor: ctx.t.text, fontFamily: FONT, spacing: 0 })}" vertex="1" parent="legend">${geometry(local2(item.labelBox))}</mxCell>`
+      item.chip ? `<mxCell id="legend:${i}:chip" value="" style="${style({ rounded: 1, absoluteArcSize: 1, arcSize: 6, html: 1, fillColor: color, strokeColor: "none" })}" vertex="1" parent="legend">${geometry(local2({ x: s.x + 6, y: s.y + 1, w: s.w - 12, h: s.h - 2 }))}</mxCell>` : `<mxCell id="legend:${i}:line" value="" style="${style({ line: null, html: 1, fillColor: "none", strokeColor: color, ...lineStyle(item.line) })}" vertex="1" parent="legend">${geometry(local2(s))}</mxCell>`,
+      `<mxCell id="legend:${i}:text" value="${esc(esc(item.label.lines.join(" ")))}" style="${style({ text: null, html: 1, align: "left", verticalAlign: "middle", whiteSpace: "nowrap", fontSize: item.label.size, fontColor: ctx.t.text, fontFamily: FONT, spacing: 0 })}" vertex="1" parent="legend">${geometry(local2(item.labelBox))}</mxCell>`
     );
   }
 }
@@ -20429,12 +20191,12 @@ function renderDrawio(scene, name = "Diagram") {
   const ctx = { t, scene, icons: 0, cells: [], groupBox: /* @__PURE__ */ new Map() };
   if (scene.title && scene.titleBox) {
     ctx.cells.push(
-      `<mxCell id="title" value="${esc(esc(scene.title.lines.join(" ")))}" style="${style2({ text: null, html: 1, align: "left", verticalAlign: "top", fontSize: 20, fontStyle: 1, fontColor: t.text, fontFamily: FONT, spacing: 0 })}" vertex="1" parent="1">${geometry({ ...scene.titleBox, w: scene.titleBox.w + 20 })}</mxCell>`
+      `<mxCell id="title" value="${esc(esc(scene.title.lines.join(" ")))}" style="${style({ text: null, html: 1, align: "left", verticalAlign: "top", fontSize: 20, fontStyle: 1, fontColor: t.text, fontFamily: FONT, spacing: 0 })}" vertex="1" parent="1">${geometry({ ...scene.titleBox, w: scene.titleBox.w + 20 })}</mxCell>`
     );
   }
   if (scene.subtitle && scene.subtitleBox) {
     ctx.cells.push(
-      `<mxCell id="subtitle" value="${esc(esc(scene.subtitle.lines.join(" ")))}" style="${style2({ text: null, html: 1, align: "left", verticalAlign: "top", fontSize: 13, fontColor: t.muted, fontFamily: FONT, spacing: 0 })}" vertex="1" parent="1">${geometry({ ...scene.subtitleBox, w: scene.subtitleBox.w + 20 })}</mxCell>`
+      `<mxCell id="subtitle" value="${esc(esc(scene.subtitle.lines.join(" ")))}" style="${style({ text: null, html: 1, align: "left", verticalAlign: "top", fontSize: 13, fontColor: t.muted, fontFamily: FONT, spacing: 0 })}" vertex="1" parent="1">${geometry({ ...scene.subtitleBox, w: scene.subtitleBox.w + 20 })}</mxCell>`
     );
   }
   if (scene.journey) journey(ctx, scene.journey);
@@ -20464,11 +20226,115 @@ function renderDrawio(scene, name = "Diagram") {
 }
 
 // src/render/embed.ts
-function embedSvgSpec(svg, _source) {
-  return svg;
+var import_yaml = __toESM(require_dist(), 1);
+import { deflateSync, inflateSync } from "node:zlib";
+var NAMESPACE = "https://sagargupta.online/orrery/spec";
+var VERSION2 = 1;
+var KEYWORD = "orrery-spec";
+var PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
+var NOT_XML = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u;
+var ENTITIES2 = { lt: "<", gt: ">", amp: "&", quot: '"', apos: "'" };
+var isPng = (bytes) => PNG_SIGNATURE.every((b, i) => bytes[i] === b);
+function embeds(source) {
+  if (!source) return false;
+  try {
+    const top = (0, import_yaml.parse)(source, { logLevel: "silent" });
+    return !(top && typeof top === "object" && top.embed === false);
+  } catch {
+    return true;
+  }
 }
-function embedPngSpec(png2, _source) {
-  return png2;
+function embedSvgSpec(svg, source) {
+  if (!embeds(source)) return svg;
+  const plain2 = !NOT_XML.test(source);
+  const body = plain2 ? source.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/]]>/g, "]]&gt;").replace(/\r/g, "&#13;") : Buffer.from(source, "utf8").toString("base64");
+  const attrs = `xmlns:orrery="${NAMESPACE}" version="${VERSION2}"${plain2 ? "" : ' encoding="base64"'}`;
+  const metadata = `
+<metadata><orrery:spec ${attrs}>${body}</orrery:spec></metadata>`;
+  return svg.replace(
+    /<svg\b[^>]*>/,
+    (root) => root.endsWith("/>") ? `${root.slice(0, -2)}>${metadata}
+</svg>` : `${root}${metadata}`
+  );
+}
+function embedPngSpec(png2, source) {
+  if (!embeds(source)) return png2;
+  const end = chunks(png2).find((c) => c.type === "IEND");
+  if (!end) return png2;
+  const header2 = [...Buffer.from(KEYWORD, "latin1"), 0, 1, 0, 0, 0];
+  const data = concat([
+    new Uint8Array(header2),
+    deflateSync(Buffer.from(source, "utf8"), { level: 9 })
+  ]);
+  return concat([png2.subarray(0, end.at), chunk("iTXt", data), png2.subarray(end.at)]);
+}
+function extractSpec(file) {
+  if (typeof file !== "string") {
+    if (!isPng(file)) return extractSpec(new TextDecoder().decode(file));
+    for (const c of chunks(file)) {
+      const text5 = c.type === "iTXt" ? readItxt(c.data) : void 0;
+      if (text5 !== void 0) return text5;
+    }
+    return void 0;
+  }
+  const m = /<orrery:spec\b([^>]*)>([\s\S]*?)<\/orrery:spec>/.exec(file);
+  if (!m) return void 0;
+  const [, attrs = "", body = ""] = m;
+  if (/\sencoding="base64"/.test(attrs)) return Buffer.from(body, "base64").toString("utf8");
+  return body.replace(
+    /&(lt|gt|amp|quot|apos|#\d+|#x[\da-fA-F]+);/g,
+    (_, name) => name.startsWith("#") ? String.fromCodePoint(Number(name[1] === "x" ? `0${name.slice(1)}` : name.slice(1))) : ENTITIES2[name] ?? ""
+  );
+}
+function readItxt(data) {
+  const keyEnd = data.indexOf(0);
+  if (Buffer.from(data.subarray(0, keyEnd)).toString("latin1") !== KEYWORD) return void 0;
+  const compressed = data[keyEnd + 1] === 1;
+  const languageEnd = data.indexOf(0, keyEnd + 3);
+  const translatedEnd = data.indexOf(0, languageEnd + 1);
+  if (languageEnd < 0 || translatedEnd < 0) return void 0;
+  const text5 = data.subarray(translatedEnd + 1);
+  return new TextDecoder().decode(compressed ? inflateSync(text5) : text5);
+}
+function chunks(png2) {
+  if (!isPng(png2)) return [];
+  const view = new DataView(png2.buffer, png2.byteOffset, png2.byteLength);
+  const list = [];
+  for (let at = 8; at + 12 <= png2.length; ) {
+    const length2 = view.getUint32(at);
+    const type = String.fromCharCode(...png2.subarray(at + 4, at + 8));
+    list.push({ type, at, data: png2.subarray(at + 8, at + 8 + length2) });
+    at += 12 + length2;
+  }
+  return list;
+}
+function chunk(type, data) {
+  const out = new Uint8Array(12 + data.length);
+  const view = new DataView(out.buffer);
+  view.setUint32(0, data.length);
+  out.set(Buffer.from(type, "latin1"), 4);
+  out.set(data, 8);
+  view.setUint32(8 + data.length, crc32(out.subarray(4, 8 + data.length)));
+  return out;
+}
+function concat(parts) {
+  const out = new Uint8Array(parts.reduce((n4, p) => n4 + p.length, 0));
+  let at = 0;
+  for (const p of parts) {
+    out.set(p, at);
+    at += p.length;
+  }
+  return out;
+}
+var CRC_TABLE = Array.from({ length: 256 }, (_, n4) => {
+  let c = n4;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 3988292384 ^ c >>> 1 : c >>> 1;
+  return c >>> 0;
+});
+function crc32(data) {
+  let c = 4294967295;
+  for (const byte of data) c = (CRC_TABLE[(c ^ byte) & 255] ?? 0) ^ c >>> 8;
+  return (c ^ 4294967295) >>> 0;
 }
 
 // src/render/html.ts
@@ -20831,7 +20697,7 @@ async function renderModel(req) {
 }
 
 // src/spec/index.ts
-var import_yaml = __toESM(require_dist(), 1);
+var import_yaml3 = __toESM(require_dist(), 1);
 
 // src/spec/keys.ts
 var TOP_KEYS = [
@@ -20856,6 +20722,7 @@ var TOP_KEYS = [
   "views",
   "classes",
   "include",
+  "embed",
   "nodes",
   "groups",
   "edges"
@@ -21069,6 +20936,7 @@ function newContext(raw, filename, diagnostics, report) {
     groups: [],
     nodes: [],
     edges: [],
+    tagStyles: {},
     pendingContains: [],
     pendingAlign: []
   };
@@ -21175,7 +21043,30 @@ function parseTagStyles(ctx) {
     if (label) style3.label = label;
     styles[name] = style3;
   }
+  ctx.tagStyles = styles;
   return styles;
+}
+function tagged(ctx, tags) {
+  const out = {};
+  for (const t of tags ?? []) {
+    out.color ??= ctx.tagStyles[t]?.color;
+    out.line ??= ctx.tagStyles[t]?.line;
+  }
+  return out;
+}
+function tagLegend(ctx) {
+  const used = new Set([...ctx.nodes, ...ctx.groups, ...ctx.edges].flatMap((x2) => x2.tags ?? []));
+  return Object.entries(ctx.tagStyles).flatMap(
+    ([tag, s]) => s.label && used.has(tag) ? [
+      {
+        line: s.line ?? "solid",
+        label: s.label,
+        ...s.color ? { color: s.color } : {},
+        ...s.line ? {} : { chip: true },
+        tag
+      }
+    ] : []
+  );
 }
 function parseViews(ctx) {
   const raw = ctx.raw.views;
@@ -21190,6 +21081,13 @@ function parseViews(ctx) {
   const views = [];
   for (const [name, value] of Object.entries(raw)) {
     const v = isObj(value) ? value : {};
+    if (name === "all") {
+      ctx.err("DG118", 'view name "all" is taken: --view all draws every view', {
+        subject: { where: "views", view: name },
+        fixes: ["rename the view, e.g. everything"]
+      });
+      continue;
+    }
     if (!TAG2.test(name) || !isObj(value)) {
       ctx.err("DG118", `view "${name}" needs a mapping with include, exclude, depth or title`, {
         subject: { where: "views", view: name },
@@ -21281,10 +21179,10 @@ function operatorAt(s, i) {
         op: { line, arrow: "end", label: s.slice(i + open.length, end).trim() }
       };
   }
-  for (const [text4, op] of OPS) {
-    if (!s.startsWith(text4, i)) continue;
-    if (/[<>]/.test(text4) || space(s[i - 1]) && space(s[i + text4.length]))
-      return { length: text4.length, op };
+  for (const [text5, op] of OPS) {
+    if (!s.startsWith(text5, i)) continue;
+    if (/[<>]/.test(text5) || space(s[i - 1]) && space(s[i + text5.length]))
+      return { length: text5.length, op };
   }
   return void 0;
 }
@@ -21449,18 +21347,20 @@ function push2(ctx, from, to, op, label, extra, where) {
       fixes: ["use step: 1, 2, 3..."]
     });
   }
+  const meta = metaOf(ctx, extra, where, { edge: where });
+  const tag = tagged(ctx, meta.tags);
   edges.push({
     id: `e${edges.length + 1}`,
     from: reverse ? to : from,
     to: reverse ? from : to,
     label: op.label ?? label,
-    line: lineRaw !== void 0 ? oneOf(ctx, lineRaw, EDGE_LINES, op.line, `${where} line`) : flowLine ?? op.line,
+    line: lineRaw !== void 0 ? oneOf(ctx, lineRaw, EDGE_LINES, op.line, `${where} line`) : flowLine ?? (op.line === "solid" ? tag.line ?? op.line : op.line),
     arrow: arrowRaw !== void 0 ? oneOf(ctx, arrowRaw, ARROWS, "end", `${where} arrow`) : flow === "association" ? "none" : reverse ? "end" : op.arrow,
-    color,
+    color: color ?? tag.color,
     step: step !== void 0 && Number.isInteger(step) ? step : void 0,
     constraint: pick(extra, "constraint", EDGE_SYNONYMS) !== false,
     ...flow && flow !== "sequence" ? { flow } : {},
-    ...metaOf(ctx, extra, where, { edge: where })
+    ...meta
   });
 }
 
@@ -21493,6 +21393,11 @@ function parseSettings(ctx) {
   const background = hexColor(ctx, raw.background, "background", "", { where: "background" }, [
     "transparent"
   ]);
+  if (raw.embed !== void 0 && raw.embed !== null && typeof raw.embed !== "boolean")
+    ctx.err("DG107", "embed must be true or false", {
+      subject: { where: "embed", value: raw.embed },
+      fixes: ["use embed: false to keep the spec out of the rendered SVG and PNG"]
+    });
   return { kind, direction, theme, defaultLook, ...layout2, arrowhead, animate, skin, background };
 }
 function parseLayout(ctx) {
@@ -21723,17 +21628,18 @@ function parseGroup(ctx, id, value) {
       subject: { group: id, cols: colsRaw },
       fixes: ["use cols: 2 for a 2 x 2 grid of four children"]
     });
+  const meta = metaOf(ctx, g, `group "${id}"`, { group: id });
   groups.push({
     id,
     type: style3?.key ?? "box",
     label: str(pick(g, "label", GROUP_SYNONYMS)) ?? style3?.label ?? (style3 ? "" : id),
     parent: str(pick(g, "in", GROUP_SYNONYMS)),
-    color,
+    color: color ?? tagged(ctx, meta.tags).color,
     fill: fill2,
     icon: icon2,
     dashed: typeof dashed === "boolean" ? dashed : void 0,
     ...cols ? { cols } : {},
-    ...metaOf(ctx, g, `group "${id}"`, { group: id })
+    ...meta
   });
   const containsRaw = pick(g, "contains", GROUP_SYNONYMS);
   const contains2 = typeof containsRaw === "string" ? [containsRaw] : containsRaw;
@@ -21874,6 +21780,7 @@ function parseNode(ctx, settings, id, value) {
   const label = str(pick(n4, "label", NODE_SYNONYMS)) ?? (bpmn && (isBpmnEvent(bpmn) || isBpmnGateway(bpmn)) || !bpmn && (shape === "initial" || shape === "final") ? "" : void 0) ?? (icon2 ? iconInfo(icon2)?.name : void 0) ?? id;
   const { rank, align } = nodeRank(ctx, id, n4);
   const on = str(pick(n4, "on", NODE_SYNONYMS));
+  const meta = metaOf(ctx, n4, `node "${id}"`, { node: id });
   ctx.nodes.push({
     id,
     label,
@@ -21882,7 +21789,8 @@ function parseNode(ctx, settings, id, value) {
     look,
     shape,
     parent: str(pick(n4, "in", NODE_SYNONYMS)),
-    color,
+    // Its own color, else the first of its tags' colors.
+    color: color ?? tagged(ctx, meta.tags).color,
     badge: str(pick(n4, "badge", NODE_SYNONYMS)),
     url,
     iconSize,
@@ -21892,7 +21800,7 @@ function parseNode(ctx, settings, id, value) {
     ...rank !== void 0 ? { rank } : {},
     ...align !== void 0 ? { align } : {},
     ...on ? { on } : {},
-    ...metaOf(ctx, n4, `node "${id}"`, { node: id })
+    ...meta
   });
 }
 function nodeObject(value) {
@@ -21994,8 +21902,8 @@ function nodeSize(ctx, id, n4, look) {
   let iconSize = look === "card" ? 32 : 48;
   if (typeof sizeRaw === "number") iconSize = Math.max(16, Math.min(128, sizeRaw));
   else if (sizeRaw !== void 0) {
-    const named = { sm: 32, md: 48, lg: 64, xl: 80 };
-    const v = named[String(sizeRaw)];
+    const named2 = { sm: 32, md: 48, lg: 64, xl: 80 };
+    const v = named2[String(sizeRaw)];
     if (v) iconSize = v;
     else
       ctx.err("DG107", `node "${id}" size must be sm, md, lg, xl or a number of px`, {
@@ -22037,18 +21945,252 @@ function checkAlign(ctx) {
   }
 }
 
+// src/spec/reuse.ts
+var import_yaml2 = __toESM(require_dist(), 1);
+import { existsSync as existsSync7, readFileSync as readFileSync7 } from "node:fs";
+import { dirname as dirname5, relative as relative2, resolve as resolve3 } from "node:path";
+var NAME = /^[a-z0-9][a-z0-9_-]*$/i;
+function applyIncludes(raw, filename, r4) {
+  if (raw.include === void 0 || raw.include === null) return raw;
+  const file = resolve3(filename);
+  const show3 = (p) => relative2(dirname5(file), p).replaceAll("\\", "/") || p;
+  return withIncludes(raw, file, [file], r4, show3);
+}
+function withIncludes(raw, file, chain, r4, show3) {
+  const list = includeList(raw.include, show3(file), r4);
+  let merged = {};
+  const origin = /* @__PURE__ */ new Map();
+  for (const entry of list) {
+    const path = resolve3(dirname5(file), entry);
+    const subject = { where: "include", file: show3(path) };
+    if (chain.includes(path)) {
+      r4.err("DG122", `include cycle: ${[...chain, path].map(show3).join(" -> ")}`, {
+        subject,
+        fixes: [`remove the include of ${show3(path)} from ${show3(file)}`]
+      });
+      continue;
+    }
+    const sub = readIncluded(path, show3(path), r4);
+    if (!sub) continue;
+    const full = withIncludes(sub, path, [...chain, path], r4, show3);
+    merged = layer(merged, full, show3(path), origin, r4);
+  }
+  return { ...raw, ...layer(merged, raw, "this spec", origin, r4) };
+}
+function includeList(value, where, r4) {
+  if (value === void 0 || value === null) return [];
+  const list = typeof value === "string" ? [value] : value;
+  if (Array.isArray(list) && list.every((x2) => typeof x2 === "string" && x2.trim()))
+    return list.map((x2) => x2.trim());
+  r4.err("DG122", `include in ${where} must be a spec file or a list of them`, {
+    subject: { where: "include" },
+    fixes: ["write include: [shared/aws-frame.yaml], relative to this spec's folder"]
+  });
+  return [];
+}
+function readIncluded(path, name, r4) {
+  const subject = { where: "include", file: name };
+  if (!existsSync7(path)) {
+    r4.err("DG122", `include ${name} not found`, {
+      subject,
+      fixes: ["check the path; it is read relative to the including spec's folder"]
+    });
+    return void 0;
+  }
+  let raw;
+  try {
+    const text5 = readFileSync7(path, "utf8");
+    raw = /\.json$/i.test(path) ? JSON.parse(text5) : (0, import_yaml2.parse)(text5);
+  } catch (e) {
+    r4.err("DG122", `cannot read include ${name}: ${e.message.split("\n")[0]}`, {
+      subject,
+      fixes: [`fix the YAML/JSON syntax of ${name}`]
+    });
+    return void 0;
+  }
+  if (isObj(raw)) return raw;
+  r4.err("DG122", `include ${name} must be a spec: a mapping with groups, nodes or edges`, {
+    subject,
+    fixes: [`start ${name} with groups: or nodes:`]
+  });
+  return void 0;
+}
+function layer(base, top, name, origin, r4) {
+  const own = [...idEntries(top.groups), ...idEntries(top.nodes)];
+  const ids = new Set(own.flatMap(([id]) => id === void 0 ? [] : [id]));
+  const out = {};
+  const odd = (v) => v !== void 0 && v !== null && !Array.isArray(v) && !isObj(v);
+  for (const key of ["groups", "nodes", "edges"]) if (odd(top[key])) out[key] = top[key];
+  for (const key of ["groups", "nodes"]) {
+    if (key in out) continue;
+    const kept = idEntries(base[key]).filter(([id]) => {
+      if (id === void 0 || !ids.has(id)) return true;
+      r4.warn("DG122", `"${id}" in ${name} replaces the one in ${origin.get(id) ?? "an include"}`, {
+        subject: { where: "include", id },
+        fixes: [`rename "${id}" if both are meant to be drawn`]
+      });
+      return false;
+    });
+    const items = [...kept, ...idEntries(top[key])].map(([, item]) => item);
+    if (items.length) out[key] = items;
+    else if (top[key] !== void 0) out[key] = top[key];
+  }
+  for (const id of ids) origin.set(id, name);
+  const edges = [...edgeItems(base.edges), ...edgeItems(top.edges)];
+  if (!("edges" in out) && (edges.length || top.edges !== void 0))
+    out.edges = edges.length ? edges : top.edges;
+  for (const key of ["classes", "tags"]) {
+    if (isObj(base[key]) && isObj(top[key])) out[key] = { ...base[key], ...top[key] };
+    else if (top[key] !== void 0) out[key] = top[key];
+    else if (base[key] !== void 0) out[key] = base[key];
+  }
+  return out;
+}
+function idEntries(value) {
+  if (Array.isArray(value))
+    return value.map((item) => {
+      if (isObj(item) && typeof item.id === "string") return [item.id, item];
+      if (isObj(item) && Object.keys(item).length === 1) return [Object.keys(item)[0], item];
+      return [void 0, item];
+    });
+  if (isObj(value)) return Object.entries(value).map(([id, v]) => [id, { [id]: v }]);
+  return [];
+}
+var edgeItems = (value) => Array.isArray(value) ? value : isObj(value) ? Object.entries(value).map(([k, v]) => ({ [k]: v })) : [];
+function applyClasses(raw, r4) {
+  const used = (v) => JSON.stringify(v ?? null).includes('"class"');
+  if (raw.classes === void 0 && !used(raw.nodes) && !used(raw.groups) && !used(raw.edges))
+    return raw;
+  const classes = readClasses(raw.classes, r4);
+  const out = { ...raw };
+  const nodes = mapItems(
+    raw.nodes,
+    (item, id) => withClass(item, `node "${id}"`, { node: id }, NODE_SYNONYMS, classes, r4)
+  );
+  const groups = mapItems(
+    raw.groups,
+    (item, id) => withClass(item, `group "${id}"`, { group: id }, GROUP_SYNONYMS, classes, r4)
+  );
+  if (nodes) out.nodes = nodes;
+  if (groups) out.groups = groups;
+  const edges = edgeItems(raw.edges);
+  if (edges.length)
+    out.edges = edges.map((item, i) => {
+      if (!isObj(item)) return item;
+      const where = `edges[${i}]`;
+      const at = (o) => withClass(o, where, { edge: where }, EDGE_SYNONYMS, classes, r4);
+      if ("class" in item) return at(item);
+      const [key] = Object.keys(item);
+      const inner = key === void 0 ? void 0 : item[key];
+      return key !== void 0 && Object.keys(item).length === 1 && isObj(inner) ? { [key]: at(inner) } : item;
+    });
+  return out;
+}
+function readClasses(value, r4) {
+  if (value === void 0 || value === null) return {};
+  if (!isObj(value)) {
+    r4.err("DG121", "classes must be a mapping of a class name to node, group or edge keys", {
+      subject: { where: "classes" },
+      fixes: ['write classes: { service: { look: card, color: "#2563eb" } }']
+    });
+    return {};
+  }
+  const out = {};
+  for (const [name, def] of Object.entries(value)) {
+    if (NAME.test(name) && isObj(def)) out[name] = def;
+    else
+      r4.err("DG121", `class "${name}" needs a mapping of node, group or edge keys`, {
+        subject: { where: "classes", class: name },
+        fixes: [`write ${NAME.test(name) ? name : "service"}: { look: card }`]
+      });
+  }
+  return out;
+}
+function mapItems(value, fn) {
+  if (isObj(value))
+    return Object.fromEntries(
+      Object.entries(value).map(([id, v]) => [id, isObj(v) ? fn(v, id) : v])
+    );
+  if (!Array.isArray(value)) return void 0;
+  return value.map((item) => {
+    if (!isObj(item)) return item;
+    if (typeof item.id === "string") return fn(item, item.id);
+    const keys = Object.keys(item);
+    const [id] = keys;
+    const v = id === void 0 ? void 0 : item[id];
+    return id !== void 0 && keys.length === 1 && isObj(v) ? { [id]: fn(v, id) } : item;
+  });
+}
+function withClass(item, where, subject, synonyms, classes, r4) {
+  const raw = item.class;
+  if (raw === void 0 || raw === null) return item;
+  const names = typeof raw === "string" ? [raw] : raw;
+  if (!Array.isArray(names) || names.some((x2) => typeof x2 !== "string")) {
+    r4.err("DG121", `${where} class must be a class name or a list of them`, {
+      subject,
+      fixes: ["write class: service, or class: [service, critical]"]
+    });
+    return item;
+  }
+  const out = {};
+  const canon = (k) => synonyms[k] ?? k;
+  const assign = (src2) => {
+    for (const [k, v] of Object.entries(src2)) {
+      for (const t of Object.keys(out)) if (canon(t) === canon(k)) delete out[t];
+      out[k] = v;
+    }
+  };
+  for (const name of names) {
+    const def = classes[name];
+    if (def) {
+      assign(def);
+      continue;
+    }
+    const near = closest(name, Object.keys(classes));
+    r4.err("DG121", `${where} uses unknown class "${name}"`, {
+      subject: { ...subject, class: name },
+      fixes: near ? [`did you mean "${near}"? use class: ${near}`] : [`define it: classes: { ${name}: { ... } }`]
+    });
+  }
+  assign(item);
+  return out;
+}
+function includedFiles(raw, filename) {
+  const seen = /* @__PURE__ */ new Set();
+  const walk = (item, file) => {
+    const list = typeof item.include === "string" ? [item.include] : item.include;
+    if (!Array.isArray(list)) return;
+    for (const entry of list) {
+      if (typeof entry !== "string") continue;
+      const path = resolve3(dirname5(file), entry.trim());
+      if (seen.has(path) || !existsSync7(path)) continue;
+      seen.add(path);
+      try {
+        const text5 = readFileSync7(path, "utf8");
+        const sub = /\.json$/i.test(path) ? JSON.parse(text5) : (0, import_yaml2.parse)(text5);
+        if (isObj(sub)) walk(sub, path);
+      } catch {
+      }
+    }
+  };
+  walk(raw, resolve3(filename));
+  return [...seen];
+}
+
 // src/spec/index.ts
 function parseSpec(source, filename = "diagram.yaml") {
   const diagnostics = [];
   const report = reporter(diagnostics);
-  const raw = readSource(source, filename, report.err);
-  if (!raw) return { diagnostics };
+  const read = readSource(source, filename, report.err);
+  if (!read) return { diagnostics };
+  const raw = applyClasses(applyIncludes(read, filename, report), report);
   const ctx = newContext(raw, filename, diagnostics, report);
   unknownKeys(ctx, raw, TOP_KEYS, {}, "the top level");
   const settings = parseSettings(ctx);
   const legend4 = parseLegend(ctx);
   parseLocalIcons(ctx);
   parseStages(ctx, settings.kind);
+  const tagStyles = parseTagStyles(ctx);
   parseGroups(ctx);
   parseNodes(ctx, settings);
   checkAlign(ctx);
@@ -22059,7 +22201,7 @@ function parseSpec(source, filename = "diagram.yaml") {
   parseEdges(ctx);
   const story = parseStory(ctx);
   checkBorders(ctx);
-  const tagStyles = parseTagStyles(ctx);
+  legend4.push(...tagLegend(ctx));
   const views = parseViews(ctx);
   checkViews(ctx, views);
   const { nodes, groups, edges, stages, localIcons } = ctx;
@@ -22098,7 +22240,7 @@ function parseSpec(source, filename = "diagram.yaml") {
 function readSource(source, filename, err) {
   let raw;
   try {
-    raw = /\.json$/i.test(filename) ? JSON.parse(source) : (0, import_yaml.parse)(source);
+    raw = /\.json$/i.test(filename) ? JSON.parse(source) : (0, import_yaml3.parse)(source);
   } catch (e) {
     err("DG100", `cannot parse ${filename}: ${e.message.split("\n")[0]}`, {
       fixes: ["fix the YAML/JSON syntax at the reported line"]
@@ -22114,7 +22256,841 @@ function readSource(source, filename, err) {
   return raw;
 }
 
+// src/describe.ts
+var centre = (b) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+var median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 0;
+function bands(values, tol) {
+  const order = values.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
+  const out = new Array(values.length);
+  let band = 0;
+  let last = Number.NEGATIVE_INFINITY;
+  for (const [v, i] of order) {
+    if (v - last > tol && last !== Number.NEGATIVE_INFINITY) band += 1;
+    out[i] = band + 1;
+    last = v;
+  }
+  return out;
+}
+var ends2 = (e) => e.arrow === "start" ? [e.to, e.from] : [e.from, e.to];
+function describeData(scene, model) {
+  const modelNodes = new Map(model.nodes.map((n4) => [n4.id, n4]));
+  const modelGroups = new Map(model.groups.map((g) => [g.id, g]));
+  const nodes = scene.nodes.filter((n4) => modelNodes.has(n4.id));
+  const centres = nodes.map((n4) => centre(n4.box));
+  const rows = bands(
+    centres.map((c) => c.y),
+    median(nodes.map((n4) => n4.box.h)) / 2
+  );
+  const place = /* @__PURE__ */ new Map();
+  const reading = nodes.map((n4, i) => ({ id: n4.id, row: rows[i] ?? 1, x: centres[i]?.x ?? 0 })).sort((a, b) => a.row - b.row || a.x - b.x);
+  for (const r4 of reading)
+    place.set(r4.id, {
+      row: r4.row,
+      col: [...place.values()].filter((p) => p.row === r4.row).length + 1
+    });
+  const sceneGroups = new Map(scene.groups.map((g) => [g.id, g]));
+  const sceneNodes2 = new Map(nodes.map((n4) => [n4.id, n4]));
+  const boxOf2 = (id) => sceneNodes2.get(id)?.box ?? sceneGroups.get(id)?.box;
+  const byReading = (a, b) => {
+    const pa = place.get(a);
+    const pb = place.get(b);
+    if (pa && pb) return pa.row - pb.row || pa.col - pb.col;
+    const ba = boxOf2(a);
+    const bb = boxOf2(b);
+    return ba && bb ? centre(ba).y - centre(bb).y || centre(ba).x - centre(bb).x : 0;
+  };
+  const links2 = /* @__PURE__ */ new Map();
+  const add = (id, link) => links2.set(id, [...links2.get(id) ?? [], link]);
+  for (const e of model.edges) {
+    const label = { ...e.label ? { label: e.label } : {}, edge: e.id };
+    if (e.arrow === "both" || e.arrow === "none") {
+      add(e.from, { dir: e.arrow, with: e.to, ...label });
+      add(e.to, { dir: e.arrow, with: e.from, ...label });
+      continue;
+    }
+    const [a, b] = ends2(e);
+    add(a, { dir: "out", with: b, ...label });
+    add(b, { dir: "in", with: a, ...label });
+  }
+  const members = (id) => [
+    ...model.groups.filter((g) => g.parent === id).map((g) => g.id),
+    ...modelGroups.get(id)?.around ?? nodes.filter((n4) => n4.parent === id).map((n4) => n4.id)
+  ].sort(byReading);
+  const groups = [];
+  const visit = (id) => {
+    const g = modelGroups.get(id);
+    if (!g) return;
+    const list = members(id);
+    groups.push({
+      id,
+      label: g.label,
+      type: g.type,
+      ...g.parent ? { parent: g.parent } : {},
+      members: list,
+      ...g.around ? { overlay: true } : {},
+      links: links2.get(id) ?? []
+    });
+    if (!g.around) {
+      for (const m of list) if (modelGroups.has(m)) visit(m);
+    }
+  };
+  const top = model.groups.filter((g) => !g.parent || !modelGroups.has(g.parent)).map((g) => g.id).sort(byReading);
+  for (const id of top) visit(id);
+  const described = nodes.map((n4) => {
+    const m = modelNodes.get(n4.id);
+    const p = place.get(n4.id) ?? { row: 1, col: 1 };
+    return {
+      id: n4.id,
+      label: m?.label ?? n4.id,
+      ...m?.note ? { note: m.note } : {},
+      ...m?.icon ? { icon: m.icon } : {},
+      ...m?.parent ? { group: m.parent } : {},
+      row: p.row,
+      col: p.col,
+      links: links2.get(n4.id) ?? []
+    };
+  }).sort((a, b) => a.row - b.row || a.col - b.col);
+  const stepped = model.edges.filter((e) => e.step !== void 0).sort((a, b) => (a.step ?? 0) - (b.step ?? 0));
+  const story = stepped.length ? stepped.map((e) => {
+    const [from, to] = ends2(e);
+    return { step: e.step, from, to, ...e.label ? { label: e.label } : {} };
+  }) : (model.story ?? []).slice(1).map((to, i) => {
+    const from = model.story?.[i] ?? "";
+    const e = model.edges.find(
+      (x2) => x2.from === from && x2.to === to || x2.from === to && x2.to === from
+    );
+    return { from, to, ...e?.label ? { label: e.label } : {} };
+  });
+  return {
+    ...model.title ? { title: model.title } : {},
+    ...model.subtitle ? { subtitle: model.subtitle } : {},
+    kind: model.kind,
+    direction: model.direction,
+    size: { width: Math.round(scene.width), height: Math.round(scene.height) },
+    counts: { nodes: model.nodes.length, groups: model.groups.length, edges: model.edges.length },
+    groups,
+    nodes: described,
+    story
+  };
+}
+var ARROW2 = { in: "<-", out: "->", both: "<->", none: "--" };
+function linksText(links2, told) {
+  const end = (l) => {
+    const say = l.label && l.dir !== "in" && !told.has(l.edge);
+    if (say) told.add(l.edge);
+    return `${l.with}${say ? ` (${l.label})` : ""}`;
+  };
+  return Object.keys(ARROW2).map((dir) => {
+    const list = links2.filter((l) => l.dir === dir);
+    return list.length ? `${ARROW2[dir]} ${list.map(end).join(", ")}` : "";
+  }).filter(Boolean).join("; ");
+}
+var named = (id, label) => !label.trim() || label.toLowerCase() === id.replace(/[-_]/g, " ").toLowerCase() ? id : `${id} "${label}"`;
+function describeScene(scene, model) {
+  const d = describeData(scene, model);
+  const plural = (n4, word) => `${n4} ${word}${n4 === 1 ? "" : "s"}`;
+  const lines2 = [];
+  if (d.title) lines2.push(d.title);
+  if (d.subtitle) lines2.push(d.subtitle);
+  const kind = d.kind === "architecture" ? "Architecture" : `${d.kind[0]?.toUpperCase()}${d.kind.slice(1)}`;
+  lines2.push(
+    `${kind} diagram flowing ${d.direction}: ${plural(d.counts.nodes, "node")}, ${plural(d.counts.groups, "group")}, ${plural(d.counts.edges, "edge")}.`
+  );
+  const grouped = new Set(d.groups.map((g) => g.id));
+  const told = /* @__PURE__ */ new Set();
+  const node4 = (n4) => {
+    const links2 = linksText(n4.links, told);
+    lines2.push(`- r${n4.row}c${n4.col} ${named(n4.id, n4.label)}${links2 ? `: ${links2}` : ""}`);
+  };
+  lines2.push(
+    `${d.groups.length ? "Groups and their nodes" : "Nodes"} (rRcC: row R, C-th from the left):`
+  );
+  const loose = d.nodes.filter((n4) => !n4.group || !grouped.has(n4.group));
+  if (loose.length && d.groups.length) lines2.push("Not in a group:");
+  loose.forEach(node4);
+  for (const g of d.groups) {
+    const where = g.parent ? ` in ${g.parent}` : "";
+    const around = g.overlay ? `, drawn around ${g.members.join(", ")}` : "";
+    const links2 = linksText(g.links, told);
+    lines2.push(`${named(g.id, g.label)}${where}${around}${links2 ? `; ${links2}` : ""}:`);
+    if (!g.overlay) d.nodes.filter((n4) => n4.group === g.id).forEach(node4);
+  }
+  if (d.story.length) {
+    lines2.push(
+      d.story.some((s) => s.step !== void 0) ? `Steps: ${d.story.map((s) => `${s.step} ${s.from} -> ${s.to}`).join("; ")}` : `Story: ${[d.story[0]?.from, ...d.story.map((s) => s.to)].join(" -> ")}`
+    );
+  }
+  return lines2.join("\n");
+}
+async function cmdDescribe(args) {
+  const [specPath] = args._;
+  if (!specPath) usage("describe needs a spec file");
+  const spec = readSpec(specPath);
+  const parsed = parseSpec(spec.text, spec.path);
+  const model = parsed.model;
+  if (!model || parsed.diagnostics.some((x2) => x2.severity === "error")) {
+    printDiagnostics(parsed.diagnostics, false);
+    process.exitCode = 1;
+    return;
+  }
+  let scene;
+  try {
+    const r4 = await renderModel({ model, formats: [], themes: [model.theme], name: spec.name });
+    scene = r4.scenes[model.theme];
+  } catch (e) {
+    const failure = renderFailure(e);
+    if (!failure) throw e;
+    printDiagnostics([failure], false);
+    process.exitCode = 1;
+    return;
+  }
+  if (!scene) throw new Error(`no ${model.theme} scene was laid out`);
+  const out = args.flags.json === true ? JSON.stringify(describeData(scene, model), null, 2) : describeScene(scene, model);
+  process.stdout.write(`${out}
+`);
+}
+
+// src/diff.ts
+import { execFileSync } from "node:child_process";
+import { basename as basename3, resolve as resolve4 } from "node:path";
+var ARROW_OPS = { end: "->", start: "<-", both: "<->", none: "--" };
+var edgeName = (e) => `${e.from} ${ARROW_OPS[e.arrow]} ${e.to}`;
+function matchById(before, after, same3) {
+  const afterIds = new Map(after.map((x2) => [x2.id, x2]));
+  const beforeIds = new Set(before.map((x2) => x2.id));
+  const pairs = [];
+  const removed = [];
+  for (const b of before) {
+    const a = afterIds.get(b.id);
+    if (a) pairs.push([b, a]);
+    else removed.push(b);
+  }
+  const added = after.filter((a) => !beforeIds.has(a.id));
+  const renamed = [];
+  for (const r4 of [...removed]) {
+    const candidates = added.filter((a2) => same3(r4, a2));
+    const twins = removed.filter((x2) => candidates.some((a2) => same3(x2, a2)));
+    if (candidates.length !== 1 || twins.length !== 1) continue;
+    const a = candidates[0];
+    renamed.push([r4, a]);
+    pairs.push([r4, a]);
+    removed.splice(removed.indexOf(r4), 1);
+    added.splice(added.indexOf(a), 1);
+  }
+  return { pairs, added, removed, renamed };
+}
+var SYMMETRIC = /* @__PURE__ */ new Set(["both", "none"]);
+function matchEdges(before, after, rename) {
+  const key = (e, map = (id) => id) => {
+    let [from, to] = [map(e.from), map(e.to)];
+    if (SYMMETRIC.has(e.arrow) && from > to) [from, to] = [to, from];
+    return `${from} ${ARROW_OPS[e.arrow]} ${to}`;
+  };
+  const open = /* @__PURE__ */ new Map();
+  for (const e of after) open.set(key(e), [...open.get(key(e)) ?? [], e]);
+  const pairs = [];
+  const removed = [];
+  for (const b of before) {
+    const a = open.get(key(b, rename))?.shift();
+    if (a) pairs.push([b, a]);
+    else removed.push(b);
+  }
+  const added = [...open.values()].flat();
+  added.sort((x2, y) => after.indexOf(x2) - after.indexOf(y));
+  return { pairs, added, removed, renamed: [] };
+}
+function fieldChanges(fields) {
+  return fields.flatMap(
+    ([field2, b, a]) => (b ?? null) === (a ?? null) ? [] : [{ field: field2, before: b ?? null, after: a ?? null }]
+  );
+}
+var groupIcon = (g) => g.icon === null ? "none" : g.icon;
+function compare(before, after) {
+  const groups = matchById(
+    before.groups,
+    after.groups,
+    (a, b) => !!a.label && a.label === b.label && a.type === b.type
+  );
+  const nodes = matchById(
+    before.nodes,
+    after.nodes,
+    (a, b) => !!a.label && a.label === b.label && a.icon === b.icon
+  );
+  const rename = new Map(
+    [...groups.renamed, ...nodes.renamed].map(([b, a]) => [b.id, a.id])
+  );
+  const mapped = (id) => id ? rename.get(id) ?? id : id;
+  const changes = /* @__PURE__ */ new Map();
+  const keep = (item, list) => list.length && changes.set(item, list);
+  for (const [b, a] of nodes.pairs)
+    keep(
+      a,
+      fieldChanges([
+        ["label", b.label, a.label],
+        ["icon", b.icon, a.icon],
+        ["group", mapped(b.parent), a.parent],
+        ["note", b.note, a.note]
+      ])
+    );
+  for (const [b, a] of groups.pairs)
+    keep(
+      a,
+      fieldChanges([
+        ["label", b.label, a.label],
+        ["type", b.type, a.type],
+        ["icon", groupIcon(b), groupIcon(a)],
+        ["group", mapped(b.parent), a.parent]
+      ])
+    );
+  const edges = matchEdges(before.edges, after.edges, (id) => rename.get(id) ?? id);
+  for (const [b, a] of edges.pairs)
+    keep(
+      a,
+      fieldChanges([
+        ["label", b.label, a.label],
+        ["line", b.line, a.line],
+        ["step", b.step, a.step]
+      ])
+    );
+  return { nodes, groups, edges, changes, rename };
+}
+function section(m, changes, name = (x2) => x2.id) {
+  const item = (x2) => ({ id: name(x2), ...x2.label ? { label: x2.label } : {} });
+  return {
+    added: m.added.map(item),
+    removed: m.removed.map(item),
+    changed: m.pairs.flatMap(([, a]) => {
+      const list = changes.get(a);
+      return list ? [{ id: name(a), changes: list }] : [];
+    }),
+    renamed: m.renamed.map(([b, a]) => ({ from: b.id, to: a.id }))
+  };
+}
+function diffModels(before, after, names = { before: "before", after: "after" }) {
+  const c = compare(before, after);
+  const nodes = section(c.nodes, c.changes);
+  const groups = section(c.groups, c.changes);
+  const edges = section(c.edges, c.changes, edgeName);
+  const all = [nodes, groups, edges];
+  const sum = (k) => all.reduce((n4, s) => n4 + s[k].length, 0);
+  return {
+    ...names,
+    nodes,
+    groups,
+    edges,
+    counts: {
+      added: sum("added"),
+      removed: sum("removed"),
+      changed: sum("changed"),
+      renamed: sum("renamed")
+    }
+  };
+}
+var QUOTED = /* @__PURE__ */ new Set(["label", "note"]);
+function show2(field2, v) {
+  if (v === null) return "(none)";
+  return QUOTED.has(field2) ? JSON.stringify(v) : String(v);
+}
+function formatDiff(d) {
+  const c = d.counts;
+  const total = c.added + c.removed + c.changed + c.renamed;
+  const lines2 = [
+    `diff ${d.before} -> ${d.after}: ${total ? `${c.added} added, ${c.removed} removed, ${c.changed} changed, ${c.renamed} renamed` : "no changes"}`
+  ];
+  const kinds = [
+    ["group", d.groups],
+    ["node", d.nodes],
+    ["edge", d.edges]
+  ];
+  const named2 = (x2) => `${x2.id}${x2.label ? ` ${JSON.stringify(x2.label)}` : ""}`;
+  for (const [kind, s] of kinds) {
+    for (const r4 of s.renamed) lines2.push(`> ${kind} ${r4.from} renamed to ${r4.to}`);
+    for (const x2 of s.added) lines2.push(`+ ${kind} ${named2(x2)}`);
+    for (const x2 of s.removed) lines2.push(`- ${kind} ${named2(x2)}`);
+    for (const x2 of s.changed)
+      lines2.push(
+        `~ ${kind} ${x2.id}: ${x2.changes.map((f) => `${f.field} ${show2(f.field, f.before)} -> ${show2(f.field, f.after)}`).join(", ")}`
+      );
+  }
+  return lines2.join("\n");
+}
+var DIFF_INK = {
+  light: { added: "#1a7f37", changed: "#9a6700", removed: "#8c959f" },
+  dark: { added: "#3fb950", changed: "#d29922", removed: "#6e7681" }
+};
+function freshId(base, taken) {
+  let id = base;
+  for (let i = 2; taken.has(id); i++) id = `${base}-${i}`;
+  taken.add(id);
+  return id;
+}
+function diffPicture(before, after, theme) {
+  const c = compare(before, after);
+  const ink = DIFF_INK[theme];
+  const bg = after.background && after.background !== "transparent" ? after.background : THEME_TOKENS[theme].background;
+  const status = /* @__PURE__ */ new Map();
+  for (const m of [c.nodes, c.groups, c.edges]) {
+    for (const a of m.added) status.set(a, "added");
+    for (const [, a] of m.renamed) status.set(a, "changed");
+  }
+  for (const a of c.changes.keys()) status.set(a, "changed");
+  const taken = new Set([...after.nodes, ...after.groups, ...after.edges].map((x2) => x2.id));
+  const overlays = [];
+  const outline = (id, color, dashed) => overlays.push({
+    id: freshId(`diff-${id}`, taken),
+    label: "",
+    type: "box",
+    color,
+    fill: dashed ? "none" : mixHex(color, bg, 0.14),
+    icon: null,
+    dashed,
+    around: [id]
+  });
+  const nodes = after.nodes.map((n4) => {
+    const s = status.get(n4);
+    if (!s) return n4;
+    if (n4.look === "icon") outline(n4.id, ink[s], false);
+    return { ...n4, color: ink[s] };
+  });
+  const groups = after.groups.map((g) => {
+    const s = status.get(g);
+    return s ? { ...g, color: ink[s], dashed: false } : g;
+  });
+  const edges = after.edges.map((e) => {
+    const s = status.get(e);
+    return s ? { ...e, color: ink[s] } : e;
+  });
+  const ghost = /* @__PURE__ */ new Map();
+  for (const g of c.groups.removed) ghost.set(g.id, freshId(g.id, taken));
+  for (const n4 of c.nodes.removed) ghost.set(n4.id, freshId(n4.id, taken));
+  const present = (id) => {
+    if (!id) return void 0;
+    const now = ghost.get(id) ?? c.rename.get(id) ?? id;
+    return taken.has(now) ? now : void 0;
+  };
+  for (const g of c.groups.removed) {
+    const around = g.around?.map(present).filter((x2) => !!x2);
+    if (g.around && !around?.length) continue;
+    groups.push({
+      id: ghost.get(g.id) ?? g.id,
+      label: g.label,
+      type: g.type,
+      parent: around ? void 0 : present(g.parent),
+      color: ink.removed,
+      fill: "none",
+      icon: null,
+      dashed: true,
+      ...around ? { around } : {}
+    });
+  }
+  for (const n4 of c.nodes.removed) {
+    const id = ghost.get(n4.id) ?? n4.id;
+    const ghostNode = {
+      id,
+      label: n4.label,
+      note: n4.note,
+      look: "shape",
+      shape: n4.look === "shape" && !n4.bpmn ? n4.shape : "rounded",
+      parent: present(n4.parent),
+      color: ink.removed,
+      iconSize: n4.iconSize,
+      ...n4.stage && after.stages?.includes(n4.stage) ? { stage: n4.stage } : {}
+    };
+    const prior = before.nodes.slice(0, before.nodes.indexOf(n4)).reverse();
+    const anchor2 = prior.map((p) => present(p.id)).find((x2) => x2 !== void 0);
+    const at = anchor2 ? nodes.findIndex((x2) => x2.id === anchor2) + 1 : 0;
+    nodes.splice(at, 0, ghostNode);
+    outline(id, ink.removed, true);
+  }
+  for (const e of c.edges.removed) {
+    const from = present(e.from);
+    const to = present(e.to);
+    if (!from || !to) continue;
+    edges.push({
+      id: freshId(`removed-${e.id}`, taken),
+      from,
+      to,
+      label: e.label,
+      line: "dashed",
+      arrow: e.arrow,
+      color: ink.removed,
+      constraint: e.constraint,
+      ...e.flow ? { flow: e.flow } : {}
+    });
+  }
+  return {
+    ...after,
+    nodes,
+    groups: [...groups, ...overlays],
+    edges,
+    animate: "none",
+    views: void 0,
+    story: void 0
+  };
+}
+function withKey(svg, theme, counts) {
+  const head2 = /<svg\b[^>]*?\swidth="([\d.]+)" height="([\d.]+)" viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+  if (!head2) return svg;
+  const W2 = Number(head2[1]);
+  const H = Number(head2[2]);
+  const t = THEME_TOKENS[theme];
+  const ink = DIFF_INK[theme];
+  const rows = [
+    [`Added (${counts.added})`, ink.added, false],
+    [`Changed (${counts.changed + counts.renamed})`, ink.changed, false],
+    [`Removed (${counts.removed})`, ink.removed, true]
+  ];
+  const P2 = 10;
+  const size = SIZES.edgeLabel;
+  const widths = rows.map(([label]) => 28 + 8 + Math.ceil(measure2(label, size)));
+  const w = P2 * 2 + widths.reduce((a, b) => a + b, 0) + 20 * (rows.length - 1);
+  const h = P2 * 2 + 14;
+  const x0 = SIZES.pad;
+  const y0 = Math.round(H - SIZES.pad + 12);
+  const newW = Math.ceil(Math.max(W2, x0 + w + SIZES.pad));
+  const newH = Math.ceil(y0 + h + SIZES.pad);
+  const parts = [
+    `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="6" fill="${t.surface}" stroke="${t.border}" stroke-width="1"/>`
+  ];
+  let x2 = x0 + P2;
+  for (const [i, [label, color, dashed]] of rows.entries()) {
+    const fill2 = dashed ? "none" : mixHex(color, t.background, 0.14);
+    parts.push(
+      `<rect x="${x2}" y="${y0 + P2 + 1}" width="28" height="12" rx="3" fill="${fill2}" stroke="${color}" stroke-width="1.5"${dashed ? ' stroke-dasharray="4 3"' : ""}/>`,
+      `<text x="${x2 + 36}" y="${y0 + P2 + 11}" font-size="${size}" fill="${t.text}">${label}</text>`
+    );
+    x2 += (widths[i] ?? 0) + 20;
+  }
+  const grown = svg.replace(
+    head2[0],
+    head2[0].replace(
+      /width="[\d.]+" height="[\d.]+" viewBox="0 0 [\d.]+ [\d.]+"/,
+      `width="${newW}" height="${newH}" viewBox="0 0 ${newW} ${newH}"`
+    )
+  ).replace(
+    `<rect width="${head2[1]}" height="${head2[2]}" `,
+    `<rect width="${newW}" height="${newH}" `
+  );
+  const end = grown.lastIndexOf("</svg>");
+  return `${grown.slice(0, end)}<g id="diff-key">${parts.join("")}</g>
+${grown.slice(end)}`;
+}
+function readSide(arg, cwd = process.cwd()) {
+  const m = /^git:([^:]+):(.+)$/.exec(arg);
+  if (!m) return readSpec(arg);
+  const [, ref = "", path = ""] = m;
+  try {
+    const text5 = execFileSync("git", ["show", `${ref}:${path}`], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 64 * 1024 * 1024
+    });
+    return {
+      text: text5,
+      path: resolve4(cwd, path),
+      name: basename3(path).replace(/\.(ya?ml|json)$/i, "")
+    };
+  } catch (e) {
+    const why = String(e.stderr ?? e.message).split("\n")[0];
+    usage(`cannot read ${arg}: ${why}`);
+  }
+}
+async function cmdDiff(args) {
+  const [beforeArg, afterArg] = args._;
+  if (!beforeArg || !afterArg) usage("diff needs two specs: before and after");
+  const json2 = args.flags.json === true;
+  const sides = [readSide(beforeArg), readSide(afterArg)];
+  const [before, after] = sides.map((s) => parseSpec(s.text, s.path));
+  let failed = false;
+  for (const [i, p] of [before, after].entries()) {
+    if (p?.model) continue;
+    process.stderr.write(`orrery: ${i ? afterArg : beforeArg} has errors
+`);
+    printDiagnostics(p?.diagnostics ?? [], false);
+    failed = true;
+  }
+  if (failed || !before?.model || !after?.model) {
+    process.exitCode = 1;
+    return;
+  }
+  const d = diffModels(before.model, after.model, { before: beforeArg, after: afterArg });
+  const out = typeof args.flags.out === "string" ? resolve4(args.flags.out) : void 0;
+  if (out) {
+    const themeFlag = args.flags.theme ?? after.model.theme;
+    if (themeFlag !== "light" && themeFlag !== "dark") usage("--theme must be light or dark");
+    const theme = themeFlag;
+    const png2 = /\.png$/i.test(out);
+    if (!png2 && !/\.svg$/i.test(out)) usage("-o must name an .svg or .png file");
+    const model = diffPicture(before.model, after.model, theme);
+    try {
+      const result2 = await renderModel({
+        model,
+        formats: ["svg"],
+        themes: [theme],
+        name: `${sides[1].name}-diff`,
+        // The tints are classic colors; stage recolors the scene in its own kit.
+        skin: args.flags.skin ?? "classic",
+        animate: "none"
+      });
+      const svg = result2.artifacts.find((a) => a.format === "svg")?.data;
+      if (typeof svg !== "string") throw new Error("the diff picture did not render");
+      const keyed = withKey(svg, theme, d.counts);
+      const scale = args.flags.scale !== void 0 ? Number(args.flags.scale) : 2;
+      writeAtomic(out, png2 ? await renderPng(keyed, { scale }) : keyed);
+    } catch (e) {
+      const failure = renderFailure(e);
+      if (!failure) throw e;
+      printDiagnostics([failure], false);
+      process.exitCode = 1;
+      return;
+    }
+  }
+  if (json2) process.stdout.write(`${JSON.stringify(out ? { ...d, output: out } : d, null, 2)}
+`);
+  else process.stdout.write(`${formatDiff(d)}${out ? `
+wrote ${out}` : ""}
+`);
+  process.exitCode = 0;
+}
+
+// src/doc/index.ts
+import { existsSync as existsSync10, readFileSync as readFileSync10, statSync as statSync4 } from "node:fs";
+import { basename as basename5, dirname as dirname6, extname as extname3, join as join7, resolve as resolve7 } from "node:path";
+
+// src/doc/zip.ts
+import { deflateRawSync } from "node:zlib";
+var CRC_TABLE2 = Array.from({ length: 256 }, (_, n4) => {
+  let c = n4;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 3988292384 ^ c >>> 1 : c >>> 1;
+  return c >>> 0;
+});
+function crc322(data) {
+  let c = 4294967295;
+  for (const byte of data) c = (CRC_TABLE2[(c ^ byte) & 255] ?? 0) ^ c >>> 8;
+  return (c ^ 4294967295) >>> 0;
+}
+var DOS_DATE = 1 << 5 | 1;
+function zip(files) {
+  const parts = [];
+  const central = [];
+  let offset = 0;
+  for (const [name, content] of files) {
+    const raw = typeof content === "string" ? Buffer.from(content, "utf8") : content;
+    const deflated = deflateRawSync(raw, { level: 9 });
+    const stored = deflated.length >= raw.length;
+    const body = stored ? raw : deflated;
+    const file = Buffer.from(name, "utf8");
+    const crc = crc322(raw);
+    const local2 = Buffer.alloc(30);
+    local2.writeUInt32LE(67324752, 0);
+    local2.writeUInt16LE(20, 4);
+    local2.writeUInt16LE(stored ? 0 : 8, 8);
+    local2.writeUInt16LE(DOS_DATE, 12);
+    local2.writeUInt32LE(crc, 14);
+    local2.writeUInt32LE(body.length, 18);
+    local2.writeUInt32LE(raw.length, 22);
+    local2.writeUInt16LE(file.length, 26);
+    parts.push(local2, file, body);
+    const entry = Buffer.alloc(46);
+    entry.writeUInt32LE(33639248, 0);
+    entry.writeUInt16LE(20, 4);
+    entry.writeUInt16LE(20, 6);
+    entry.writeUInt16LE(stored ? 0 : 8, 10);
+    entry.writeUInt16LE(DOS_DATE, 14);
+    entry.writeUInt32LE(crc, 16);
+    entry.writeUInt32LE(body.length, 20);
+    entry.writeUInt32LE(raw.length, 24);
+    entry.writeUInt16LE(file.length, 28);
+    entry.writeUInt32LE(offset, 42);
+    central.push(entry, file);
+    offset += local2.length + file.length + body.length;
+  }
+  const size = central.reduce((s, b) => s + b.length, 0);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(101010256, 0);
+  end.writeUInt16LE(files.length, 8);
+  end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(size, 12);
+  end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...parts, ...central, end]);
+}
+
+// src/doc/docx.ts
+var PAGE = { w: 11906, h: 16838, margin: 1440 };
+var TEXT_W = PAGE.w - 2 * PAGE.margin;
+var MAX_PICTURE_H = (PAGE.h - 2 * PAGE.margin) * 0.8;
+var EMU_PER_TWIP = 635;
+var EMU_PER_PX = 9525;
+var BULLETS = ["\u2022", "\u25E6", "\u25AA"];
+var W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+var R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+var REL = "http://schemas.openxmlformats.org/package/2006/relationships";
+var WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+var A = "http://schemas.openxmlformats.org/drawingml/2006/main";
+var PIC = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+var DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+var CONTENT_TYPES = `${DECL}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`;
+var ROOT_RELS = `${DECL}<Relationships xmlns="${REL}"><Relationship Id="rId1" Type="${R}/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="${REL}/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`;
+var heading = (n4, size) => `<w:style w:type="paragraph" w:styleId="Heading${n4}"><w:name w:val="heading ${n4}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:qFormat/><w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="${n4 === 1 ? 360 : 280}" w:after="120"/><w:outlineLvl w:val="${n4 - 1}"/></w:pPr><w:rPr><w:b/><w:color w:val="1F2328"/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr></w:style>`;
+var MONO2 = '<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/>';
+var SOFT = '<w:shd w:val="clear" w:color="auto" w:fill="F6F8FA"/>';
+var STYLES = `${DECL}<w:styles xmlns:w="${W}"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>${[
+  '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>',
+  heading(1, 36),
+  heading(2, 30),
+  heading(3, 26),
+  '<w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="caption"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="35"/><w:qFormat/><w:pPr><w:spacing w:before="80" w:after="240"/><w:jc w:val="center"/></w:pPr><w:rPr><w:i/><w:color w:val="59636E"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:style>',
+  '<w:style w:type="paragraph" w:customStyle="1" w:styleId="Figure"><w:name w:val="Figure"/><w:basedOn w:val="Normal"/><w:next w:val="Caption"/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="0"/><w:jc w:val="center"/></w:pPr></w:style>',
+  `<w:style w:type="paragraph" w:customStyle="1" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:pPr>${SOFT}<w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:left="144" w:right="144"/></w:pPr><w:rPr>${MONO2}<w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr></w:style>`,
+  '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="29"/><w:qFormat/><w:pPr><w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="D1D9E0"/></w:pBdr><w:ind w:left="288"/></w:pPr><w:rPr><w:color w:val="59636E"/></w:rPr></w:style>',
+  '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:uiPriority w:val="34"/><w:qFormat/><w:pPr><w:spacing w:after="60"/></w:pPr></w:style>',
+  `<w:style w:type="character" w:customStyle="1" w:styleId="CodeChar"><w:name w:val="Code Char"/><w:rPr>${MONO2}<w:sz w:val="20"/><w:szCs w:val="20"/>${SOFT}</w:rPr></w:style>`,
+  '<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:uiPriority w:val="99"/><w:unhideWhenUsed/><w:rPr><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style>',
+  '<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>',
+  `<w:style w:type="table" w:customStyle="1" w:styleId="DocTable"><w:name w:val="Doc Table"/><w:basedOn w:val="TableNormal"/><w:tblPr><w:tblBorders>${["top", "left", "bottom", "right", "insideH", "insideV"].map((s) => `<w:${s} w:val="single" w:sz="4" w:space="0" w:color="D1D9E0"/>`).join("")}</w:tblBorders><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>`
+].join("")}</w:styles>`;
+var x = (s) => s.replace(/[^\P{Cc}\t\n\r]/gu, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function pngImage(data) {
+  const png2 = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+  if (png2.length < 24 || png2.readUInt32BE(0) !== 2303741511 || png2.toString("ascii", 12, 16) !== "IHDR")
+    return void 0;
+  return { data, width: png2.readUInt32BE(16), height: png2.readUInt32BE(20) };
+}
+function extent(img, fill2) {
+  const maxW = TEXT_W * EMU_PER_TWIP;
+  const maxH = MAX_PICTURE_H * EMU_PER_TWIP;
+  let cx = fill2 ? maxW : Math.min(maxW, img.width * EMU_PER_PX);
+  let cy = cx * img.height / img.width;
+  if (cy > maxH) {
+    cx = cx * maxH / cy;
+    cy = maxH;
+  }
+  return [Math.round(cx), Math.round(cy)];
+}
+var para = (pPr, content) => `<w:p>${pPr ? `<w:pPr>${pPr}</w:pPr>` : ""}${content}</w:p>`;
+var style2 = (id) => `<w:pStyle w:val="${id}"/>`;
+function run(text5, f = {}) {
+  const rPr = f.style || f.b || f.i ? `<w:rPr>${f.style ? `<w:rStyle w:val="${f.style}"/>` : ""}${f.b ? "<w:b/>" : ""}${f.i ? "<w:i/>" : ""}</w:rPr>` : "";
+  return `<w:r>${rPr}<w:t xml:space="preserve">${x(text5)}</w:t></w:r>`;
+}
+function rel(p, type, target, external = false) {
+  const id = `rId${p.rels.length + 1}`;
+  p.rels.push(
+    `<Relationship Id="${id}" Type="${R}/${type}" Target="${x(target)}"${external ? ' TargetMode="External"' : ""}/>`
+  );
+  return id;
+}
+function picture(p, img, name, alt, fill2) {
+  const n4 = p.media.length + 1;
+  const file = `image${n4}.png`;
+  p.media.push([`word/media/${file}`, img.data]);
+  const id = rel(p, "image", `media/${file}`);
+  const [cx, cy] = extent(img, fill2);
+  return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${n4}" name="${x(name)}" descr="${x(alt)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="${PIC}"><pic:pic><pic:nvPicPr><pic:cNvPr id="${n4}" name="${file}" descr="${x(alt)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+}
+function runs(p, list, f = {}) {
+  return list.map((n4) => {
+    switch (n4.t) {
+      case "text":
+        return run(n4.s, f);
+      case "code":
+        return run(n4.s, { ...f, style: "CodeChar" });
+      case "strong":
+        return runs(p, n4.c, { ...f, b: true });
+      case "em":
+        return runs(p, n4.c, { ...f, i: true });
+      case "link":
+        return /^(https?|mailto):/i.test(n4.href) ? `<w:hyperlink r:id="${rel(p, "hyperlink", n4.href, true)}" w:history="1">${runs(p, n4.c, { ...f, style: "Hyperlink" })}</w:hyperlink>` : runs(p, n4.c, f);
+      case "img": {
+        const img = p.input.image(n4.src);
+        return img ? picture(p, img, `Image ${p.media.length + 1}`, n4.alt, false) : run(`[${n4.alt || n4.src}]`, { ...f, i: true });
+      }
+      default:
+        return "<w:r><w:br/></w:r>";
+    }
+  }).join("");
+}
+function table(p, b) {
+  const w = Math.floor(TEXT_W / Math.max(1, b.head.length));
+  const cell = (c, k, head2, last) => {
+    const jc = b.align[k] ? `<w:jc w:val="${b.align[k]}"/>` : "";
+    return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${head2 ? SOFT : ""}</w:tcPr>${para(`${last ? "" : "<w:keepNext/>"}<w:spacing w:after="0"/>${jc}`, runs(p, c, head2 ? { b: true } : {}))}</w:tc>`;
+  };
+  const row = (cells, head2, last) => `<w:tr>${head2 ? "<w:trPr><w:tblHeader/></w:trPr>" : ""}${cells.map((c, k) => cell(c, k, head2, last)).join("")}</w:tr>`;
+  const rows = b.rows.map((r4, k) => row(r4, false, k === b.rows.length - 1)).join("");
+  return `<w:tbl><w:tblPr><w:tblStyle w:val="DocTable"/><w:tblW w:w="5000" w:type="pct"/></w:tblPr><w:tblGrid>${b.head.map(() => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${row(b.head, true, !b.rows.length)}${rows}</w:tbl>${para("", "")}`;
+}
+function block2(p, b, quote) {
+  switch (b.t) {
+    case "heading":
+      return para(style2(quote ? "Quote" : `Heading${Math.min(b.level, 3)}`), runs(p, b.c));
+    case "para":
+      return para(quote ? style2("Quote") : "", runs(p, b.c));
+    case "list":
+      return b.items.map((it, k) => {
+        const left = 720 + it.depth * 360 + (quote ? 288 : 0);
+        const mark = it.ordered ? `${it.num}.` : BULLETS[it.depth % BULLETS.length] ?? "";
+        const end = k === b.items.length - 1 ? '<w:spacing w:after="160"/>' : "";
+        return para(
+          `${style2("ListParagraph")}${end}<w:ind w:left="${left}" w:hanging="360"/>`,
+          `${run(mark)}<w:r><w:tab/></w:r>${runs(p, it.c)}`
+        );
+      }).join("");
+    case "code": {
+      const lines2 = b.s.split("\n");
+      return lines2.map(
+        (l, k) => para(
+          `${style2("Code")}${k === lines2.length - 1 ? '<w:spacing w:after="160"/>' : ""}`,
+          l ? run(l.replaceAll("	", "    ")) : ""
+        )
+      ).join("");
+    }
+    case "table":
+      return table(p, b);
+    case "quote":
+      return b.c.map((c) => block2(p, c, true)).join("");
+    case "hr":
+      return para(
+        '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="D1D9E0"/></w:pBdr>',
+        ""
+      );
+    case "figure": {
+      const f = p.input.figures.get(b.n);
+      if (!f?.png) return "";
+      const img = { data: f.png, width: f.width, height: f.height };
+      return `${para(style2("Figure"), picture(p, img, `Figure ${b.n}`, f.caption, true))}${para(style2("Caption"), `${run("Figure ")}<w:fldSimple w:instr=" SEQ Figure \\* ARABIC "><w:r><w:t>${b.n}</w:t></w:r></w:fldSimple>${run(`: ${f.caption}`)}`)}`;
+    }
+  }
+}
+function renderDocx(input) {
+  const p = {
+    input,
+    rels: [`<Relationship Id="rId1" Type="${R}/styles" Target="styles.xml"/>`],
+    media: []
+  };
+  const m = PAGE.margin;
+  const body = input.blocks.map((b) => block2(p, b, false)).join("") || "<w:p/>";
+  const document = `${DECL}<w:document xmlns:w="${W}" xmlns:r="${R}" xmlns:wp="${WP}" xmlns:a="${A}" xmlns:pic="${PIC}"><w:body>${body}<w:sectPr><w:pgSz w:w="${PAGE.w}" w:h="${PAGE.h}"/><w:pgMar w:top="${m}" w:right="${m}" w:bottom="${m}" w:left="${m}" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const core = `${DECL}<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>${x(input.title)}</dc:title></cp:coreProperties>`;
+  const data = zip([
+    ["[Content_Types].xml", CONTENT_TYPES],
+    ["_rels/.rels", ROOT_RELS],
+    ["docProps/core.xml", core],
+    ["word/document.xml", document],
+    ["word/styles.xml", STYLES],
+    [
+      "word/_rels/document.xml.rels",
+      `${DECL}<Relationships xmlns="${REL}">${p.rels.join("")}</Relationships>`
+    ],
+    ...p.media
+  ]);
+  return { data, figures: document.match(/<wp:docPr id="\d+" name="Figure \d+"/g)?.length ?? 0 };
+}
+
 // src/doc/figures.ts
+import { existsSync as existsSync8, readFileSync as readFileSync8, statSync as statSync2 } from "node:fs";
+import { basename as basename4, resolve as resolve5 } from "node:path";
 var isError = (d) => d.severity === "error";
 async function renderFigure(m, dir, opts, diagnostics) {
   const tag = (d) => ({
@@ -22122,8 +23098,8 @@ async function renderFigure(m, dir, opts, diagnostics) {
     message: `figure ${m.n} (${m.spec}): ${d.message}`,
     subject: { ...d.subject, figure: m.n, line: m.line + 1 }
   });
-  const path = resolve3(dir, m.spec);
-  if (!m.spec || !existsSync7(path) || !statSync2(path).isFile()) {
+  const path = resolve5(dir, m.spec);
+  if (!m.spec || !existsSync8(path) || !statSync2(path).isFile()) {
     diagnostics.push({
       severity: "error",
       code: "DG401",
@@ -22135,10 +23111,11 @@ async function renderFigure(m, dir, opts, diagnostics) {
     });
     return void 0;
   }
-  const parsed = parseSpec(readFileSync7(path, "utf8"), path);
+  const text5 = readFileSync8(path, "utf8");
+  const parsed = parseSpec(text5, path);
   diagnostics.push(...parsed.diagnostics.map(tag));
   if (!parsed.model || parsed.diagnostics.some(isError)) return void 0;
-  const name = basename3(path).replace(/\.(ya?ml|json)$/i, "");
+  const name = basename4(path).replace(/\.(ya?ml|json)$/i, "");
   let result2;
   try {
     result2 = await renderModel({
@@ -22147,7 +23124,9 @@ async function renderFigure(m, dir, opts, diagnostics) {
       themes: [opts.theme],
       name: `fig${m.n}-${name}`,
       scale: 2,
-      skin: opts.skin
+      skin: opts.skin,
+      // Figures carry their spec, so one picked out of the document reopens as its source.
+      source: text5
     });
   } catch (e) {
     const failure = renderFailure(e);
@@ -22172,8 +23151,8 @@ async function renderFigure(m, dir, opts, diagnostics) {
 }
 
 // src/doc/images.ts
-import { existsSync as existsSync8, readFileSync as readFileSync8, statSync as statSync3 } from "node:fs";
-import { extname as extname2, resolve as resolve4 } from "node:path";
+import { existsSync as existsSync9, readFileSync as readFileSync9, statSync as statSync3 } from "node:fs";
+import { extname as extname2, resolve as resolve6 } from "node:path";
 var MIME = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
@@ -22184,17 +23163,17 @@ var MIME = {
 };
 function localFile(src2, dir) {
   if (/^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(src2)) return void 0;
-  const path = resolve4(dir, src2);
-  return existsSync8(path) && statSync3(path).isFile() ? path : void 0;
+  const path = resolve6(dir, src2);
+  return existsSync9(path) && statSync3(path).isFile() ? path : void 0;
 }
 function dataUri(src2, dir) {
   const file = localFile(src2, dir);
   const mime = file && MIME[extname2(file).toLowerCase()];
-  return file && mime ? `data:${mime};base64,${readFileSync8(file).toString("base64")}` : src2;
+  return file && mime ? `data:${mime};base64,${readFileSync9(file).toString("base64")}` : src2;
 }
 function wordImage(src2, dir, diagnostics) {
   const file = localFile(src2, dir);
-  const img = file ? pngImage(readFileSync8(file)) : void 0;
+  const img = file ? pngImage(readFileSync9(file)) : void 0;
   if (file && !img)
     diagnostics.push({
       severity: "warning",
@@ -22227,9 +23206,9 @@ function inlineAt(s, prev) {
   if (ch === "[" || ch === "!" && s[1] === "[") {
     const m = LINK.exec(s);
     if (!m) return void 0;
-    const text4 = m[1] ?? "";
+    const text5 = m[1] ?? "";
     const href = m[2] ?? "";
-    const node4 = ch === "!" ? { t: "img", src: href, alt: text4 } : { t: "link", href, c: inline(text4) };
+    const node4 = ch === "!" ? { t: "img", src: href, alt: text5 } : { t: "link", href, c: inline(text5) };
     return { node: node4, len: m[0].length };
   }
   if (ch === "<") {
@@ -22249,25 +23228,25 @@ function inlineAt(s, prev) {
 }
 function inline(s) {
   const out = [];
-  let text4 = "";
+  let text5 = "";
   const push3 = (node4) => {
-    if (text4) out.push({ t: "text", s: text4 });
-    text4 = "";
+    if (text5) out.push({ t: "text", s: text5 });
+    text5 = "";
     out.push(node4);
   };
   for (let i = 0; i < s.length; ) {
     const ch = s[i] ?? "";
     const next = s[i + 1] ?? "";
     if (ch === "\\" && PUNCT.test(next)) {
-      text4 += next;
+      text5 += next;
       i += 2;
       continue;
     }
     if (ch === "\n" || ch === "\\" && next === "\n") {
-      if (ch === "\\" || / {2,}$/.test(text4)) {
-        text4 = text4.trimEnd();
+      if (ch === "\\" || / {2,}$/.test(text5)) {
+        text5 = text5.trimEnd();
         push3({ t: "br" });
-      } else text4 += " ";
+      } else text5 += " ";
       i += ch === "\\" ? 2 : 1;
       continue;
     }
@@ -22276,11 +23255,11 @@ function inline(s) {
       push3(found.node);
       i += found.len;
     } else {
-      text4 += ch;
+      text5 += ch;
       i += 1;
     }
   }
-  if (text4) out.push({ t: "text", s: text4 });
+  if (text5) out.push({ t: "text", s: text5 });
   return out;
 }
 function plain(list) {
@@ -22331,8 +23310,8 @@ figure,pre,table,blockquote{break-inside:avoid}
 pre,code,th{background:none}
 }`;
 var safeHref = (href) => /^\s*(?:javascript|vbscript|data):/i.test(href) ? "#" : href;
-function slug(text4, seen) {
-  const base = text4.toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").trim().replace(/\s+/g, "-") || "section";
+function slug(text5, seen) {
+  const base = text5.toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").trim().replace(/\s+/g, "-") || "section";
   const n4 = seen.get(base) ?? 0;
   seen.set(base, n4 + 1);
   return n4 ? `${base}-${n4}` : base;
@@ -22458,8 +23437,8 @@ function splitRow(line) {
 }
 function tableAt(lines2, i) {
   const head2 = lines2[i] ?? "";
-  const sep = lines2[i + 1];
-  return head2.includes("|") && sep !== void 0 && TABLE_SEP.test(sep) && splitRow(head2).length === splitRow(sep).length;
+  const sep2 = lines2[i + 1];
+  return head2.includes("|") && sep2 !== void 0 && TABLE_SEP.test(sep2) && splitRow(head2).length === splitRow(sep2).length;
 }
 function startsBlock(lines2, i) {
   const line = lines2[i] ?? "";
@@ -22505,7 +23484,7 @@ ${line.trim()}`;
       i += 1;
     }
   }
-  return [items.map(({ text: text4, ...item }) => ({ ...item, c: inline(text4) })), i];
+  return [items.map(({ text: text5, ...item }) => ({ ...item, c: inline(text5) })), i];
 }
 function parseTable(lines2, from) {
   const head2 = splitRow(lines2[from] ?? "");
@@ -22570,16 +23549,16 @@ function parseBlocks(lines2, from, markers) {
       blocks.push(table2);
       i = next;
     } else {
-      const text4 = [line.trimStart()];
+      const text5 = [line.trimStart()];
       for (i += 1; i < lines2.length && (lines2[i] ?? "").trim() && !startsBlock(lines2, i); i++)
-        text4.push((lines2[i] ?? "").trimStart());
-      blocks.push({ t: "para", c: inline(text4.join("\n").trimEnd()) });
+        text5.push((lines2[i] ?? "").trimStart());
+      blocks.push({ t: "para", c: inline(text5.join("\n").trimEnd()) });
     }
   }
   return blocks;
 }
-function parseDoc(text4) {
-  const lines2 = text4.split(/\r?\n/);
+function parseDoc(text5) {
+  const lines2 = text5.split(/\r?\n/);
   let from = 0;
   let title;
   if (lines2[0]?.trim() === "---") {
@@ -22610,9 +23589,9 @@ function parseDoc(text4) {
 
 // src/doc/md.ts
 var mdEscape = (s) => s.replace(/([\\`*_[\]<>])/g, "\\$1");
-function renderDocMarkdown(text4, doc, figures) {
-  const eol = text4.includes("\r\n") ? "\r\n" : "\n";
-  const lines2 = text4.split(/\r?\n/);
+function renderDocMarkdown(text5, doc, figures) {
+  const eol = text5.includes("\r\n") ? "\r\n" : "\n";
+  const lines2 = text5.split(/\r?\n/);
   const files = [];
   const refs = [];
   for (const m of doc.markers) {
@@ -22649,9 +23628,9 @@ async function renderFigures(b) {
   return figures;
 }
 function buildOutputs(b, figures) {
-  const { req, text: text4, doc, dir, theme } = b;
+  const { req, text: text5, doc, dir, theme } = b;
   const want = new Set(req.formats);
-  const title = doc.title ?? basename4(req.file).replace(/\.(md|markdown)$/i, "");
+  const title = doc.title ?? basename5(req.file).replace(/\.(md|markdown)$/i, "");
   const pending = [];
   if (want.has("html")) {
     const html = renderDocHtml({ ...doc, title }, figures, theme, dir);
@@ -22659,8 +23638,8 @@ function buildOutputs(b, figures) {
     pending.push({ path: `${req.base}.html`, data: html, format: "html", figures: count });
   }
   if (want.has("md")) {
-    const md = renderDocMarkdown(text4, doc, figures);
-    const out = dirname5(`${req.base}.md`);
+    const md = renderDocMarkdown(text5, doc, figures);
+    const out = dirname6(`${req.base}.md`);
     for (const [rel2, data] of md.files) pending.push({ path: join7(out, rel2), data, figures: 0 });
     pending.push({ path: `${req.base}.md`, data: md.text, format: "md", figures: md.figures });
   }
@@ -22699,14 +23678,14 @@ function checkFigureCounts(b, pending) {
   }
 }
 async function buildDoc(req) {
-  const text4 = readFileSync9(req.file, "utf8");
-  const doc = parseDoc(text4);
+  const text5 = readFileSync10(req.file, "utf8");
+  const doc = parseDoc(text5);
   const diagnostics = [];
   const b = {
     req,
-    text: text4,
+    text: text5,
     doc,
-    dir: dirname5(req.file),
+    dir: dirname6(req.file),
     theme: req.theme ?? "light",
     diagnostics
   };
@@ -22734,8 +23713,8 @@ var samePath = (a, b) => process.platform === "win32" ? a.toLowerCase() === b.to
 async function cmdDoc(args) {
   const [docPath] = args._;
   if (!docPath) usage("doc needs a Markdown file");
-  const file = resolve5(docPath);
-  if (!existsSync9(file) || !statSync4(file).isFile()) usage(`no such file: ${docPath}`);
+  const file = resolve7(docPath);
+  if (!existsSync10(file) || !statSync4(file).isFile()) usage(`no such file: ${docPath}`);
   const theme = String(args.flags.theme ?? "light");
   if (theme !== "light" && theme !== "dark") usage("--theme must be light or dark");
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
@@ -22749,13 +23728,13 @@ async function cmdDoc(args) {
       if (!known2(f)) usage(`unknown format "${f}" (use ${DOC_FORMATS.join(", ")} or all)`);
     formats = list;
   } else formats = known2(outExt) ? [outExt] : ["html"];
-  const name = basename4(file).replace(/\.(md|markdown)$/i, "");
+  const name = basename5(file).replace(/\.(md|markdown)$/i, "");
   let base;
-  if (!outFlag) base = join7(dirname5(file), name);
-  else if (outFlag.endsWith("/") || outFlag.endsWith("\\") || existsSync9(outFlag) && statSync4(outFlag).isDirectory())
-    base = join7(resolve5(outFlag), name);
-  else base = resolve5(known2(outExt) ? outFlag.slice(0, -(outExt.length + 1)) : outFlag);
-  if (formats.includes("md") && samePath(resolve5(`${base}.md`), file))
+  if (!outFlag) base = join7(dirname6(file), name);
+  else if (outFlag.endsWith("/") || outFlag.endsWith("\\") || existsSync10(outFlag) && statSync4(outFlag).isDirectory())
+    base = join7(resolve7(outFlag), name);
+  else base = resolve7(known2(outExt) ? outFlag.slice(0, -(outExt.length + 1)) : outFlag);
+  if (formats.includes("md") && samePath(resolve7(`${base}.md`), file))
     usage(`the md output would overwrite ${docPath}; pass -o, e.g. -o dist/${name}.md`);
   const result2 = await buildDoc({
     file,
@@ -22770,7 +23749,7 @@ async function cmdDoc(args) {
 `);
   if (result2.files.length)
     process.stdout.write(
-      `wrote ${result2.files.length} figure file(s) to ${dirname5(result2.files[0] ?? "")}
+      `wrote ${result2.files.length} figure file(s) to ${dirname6(result2.files[0] ?? "")}
 `
     );
   const errors2 = result2.diagnostics.filter(isError).length;
@@ -22782,36 +23761,1416 @@ async function cmdDoc(args) {
   process.exitCode = errors2 ? 1 : 0;
 }
 
+// src/lsp/rpc.ts
+function frame(msg) {
+  const body = JSON.stringify(msg);
+  return `Content-Length: ${Buffer.byteLength(body, "utf8")}\r
+\r
+${body}`;
+}
+function messageReader(onMessage, onBadJson) {
+  let buf = Buffer.alloc(0);
+  return (chunk2) => {
+    buf = buf.length ? Buffer.concat([buf, chunk2]) : chunk2;
+    for (; ; ) {
+      const end = buf.indexOf("\r\n\r\n");
+      if (end < 0) return;
+      const length2 = /content-length:\s*(\d+)/i.exec(buf.subarray(0, end).toString("ascii"))?.[1];
+      const start = end + 4;
+      if (length2 === void 0) {
+        buf = buf.subarray(start);
+        continue;
+      }
+      if (buf.length < start + Number(length2)) return;
+      const body = buf.subarray(start, start + Number(length2)).toString("utf8");
+      buf = buf.subarray(start + Number(length2));
+      let msg;
+      try {
+        msg = JSON.parse(body);
+      } catch {
+        onBadJson();
+        continue;
+      }
+      onMessage(msg);
+    }
+  };
+}
+
+// src/lsp/server.ts
+import { basename as basename6 } from "node:path";
+import { fileURLToPath as fileURLToPath3 } from "node:url";
+
+// src/lsp/complete.ts
+var KIND = { module: 9, property: 10, value: 12, reference: 18, enumMember: 20 };
+var LIMIT = 50;
+function sectionOf(lines2, line, before) {
+  for (let i = line; i >= 0; i--) {
+    const text5 = i === line ? before : lines2[i] ?? "";
+    if (!text5.trim() || /^[\s#-]/.test(text5)) continue;
+    return /^["']?([A-Za-z_$][\w$-]*)["']?\s*:/.exec(text5)?.[1];
+  }
+  return void 0;
+}
+function iconOptions(prefix) {
+  if (!prefix)
+    return PACK_ORDER.map((p) => ({
+      label: `${p}:`,
+      kind: KIND.module,
+      detail: packInfo()[p]?.title,
+      again: true
+    }));
+  const [pack, rest] = prefix.includes(":") ? prefix.split(":", 2) : [void 0, prefix];
+  const found = pack && !rest ? allIcons().filter((i) => i.pack === pack.toLowerCase()).slice(0, LIMIT) : searchIcons(prefix, { limit: LIMIT });
+  return found.map((i) => ({
+    label: i.id,
+    kind: KIND.value,
+    detail: i.name,
+    documentation: `${packInfo()[i.pack]?.title ?? i.pack}, ${i.category}`
+  }));
+}
+function matching(words, prefix) {
+  const p = prefix.toLowerCase();
+  const starts = words.filter((w) => w.toLowerCase().startsWith(p));
+  return [...starts, ...words.filter((w) => !starts.includes(w) && w.toLowerCase().includes(p))];
+}
+function typeOptions(prefix) {
+  return matching(groupStyleKeys(), prefix).map((k) => ({
+    label: k,
+    kind: KIND.enumMember,
+    detail: GROUP_STYLES[k]?.label || void 0
+  }));
+}
+var idOptions = (ids, prefix, what) => matching(ids, prefix).map((id) => ({ label: id, kind: KIND.reference, detail: what }));
+function optionsAt(lines2, pos, ids, present) {
+  const before = (lines2[pos.line] ?? "").replace(/\r$/, "").slice(0, pos.character);
+  const section2 = sectionOf(lines2, pos.line, before);
+  const icon2 = /(?:^|[\s{,])icon:\s+["']?([\w:.-]*)$/.exec(before)?.[1];
+  if (icon2 !== void 0) return { prefix: icon2, options: iconOptions(icon2) };
+  const short2 = /^\s+["']?([\w.-]+)["']?:\s+["']?([a-z0-9]+:[\w.-]*)$/i.exec(before);
+  if (short2 && section2 === "nodes" && !NODE_KEYS.includes(short2[1] ?? ""))
+    return { prefix: short2[2] ?? "", options: iconOptions(short2[2] ?? "") };
+  if (short2 && section2 === "groups" && !GROUP_KEYS.includes(short2[1] ?? ""))
+    return { prefix: short2[2] ?? "", options: typeOptions(short2[2] ?? "") };
+  const type = /(?:^|[\s{,])(?:type|style|kind):\s+["']?([\w:.-]*)$/.exec(before)?.[1];
+  if (type !== void 0 && section2 === "groups")
+    return { prefix: type, options: typeOptions(type) };
+  const ref = /(?:^|[\s{,])(in|parent|group|on|align|from|to|source|target):\s+["']?([\w.-]*)$/.exec(before);
+  if (ref && section2 !== void 0 && ["nodes", "groups", "edges"].includes(section2)) {
+    const [, key = "", prefix = ""] = ref;
+    if (key === "align") return { prefix, options: idOptions(ids.nodes, prefix, "node") };
+    if (["from", "to", "source", "target"].includes(key))
+      return {
+        prefix,
+        options: [
+          ...idOptions(ids.nodes, prefix, "node"),
+          ...idOptions(ids.groups, prefix, "group")
+        ]
+      };
+    return { prefix, options: idOptions(ids.groups, prefix, "group") };
+  }
+  const edge3 = /^\s*-\s+["']?(.*)$/.exec(before)?.[1];
+  if (edge3 !== void 0 && section2 === "edges" && !/:\s|[{]/.test(edge3)) {
+    const prefix = /[A-Za-z0-9_][\w.-]*$/.exec(edge3)?.[0] ?? "";
+    if (prefix || /(^|[\s,>])$/.test(edge3))
+      return {
+        prefix,
+        options: [
+          ...idOptions(ids.nodes, prefix, "node"),
+          ...idOptions(ids.groups, prefix, "group")
+        ]
+      };
+  }
+  if (/^[A-Za-z$]*$/.test(before)) {
+    const keys = TOP_KEYS.filter((k) => !present.includes(k) || k === before);
+    return {
+      prefix: before,
+      options: matching(keys, before).map((k) => ({
+        label: k,
+        kind: KIND.property,
+        insert: `${k}: `
+      }))
+    };
+  }
+  return void 0;
+}
+function complete(text5, pos, ids, present) {
+  const found = optionsAt(text5.split("\n"), pos, ids, present);
+  if (!found) return { isIncomplete: false, items: [] };
+  const { prefix } = found;
+  const range2 = { start: { line: pos.line, character: pos.character - prefix.length }, end: pos };
+  const items = found.options.map((o, i) => {
+    const insert = o.insert ?? o.label;
+    return {
+      label: o.label,
+      kind: o.kind,
+      ...o.detail ? { detail: o.detail } : {},
+      ...o.documentation ? { documentation: o.documentation } : {},
+      sortText: String(i).padStart(4, "0"),
+      // A match the editor's own filter would drop (search found "aws:lambda" for "lamb") keeps
+      // the typed text in front, so the ranked list survives.
+      filterText: o.label.toLowerCase().startsWith(prefix.toLowerCase()) ? o.label : `${prefix} ${o.label}`,
+      textEdit: { range: range2, newText: insert },
+      ...o.again ? { command: { title: "icons", command: "editor.action.triggerSuggest" } } : {}
+    };
+  });
+  return { isIncomplete: true, items };
+}
+
+// src/patch/apply.ts
+var import_yaml7 = __toESM(require_dist(), 1);
+
+// src/patch/edges.ts
+var import_yaml6 = __toESM(require_dist(), 1);
+
+// src/patch/ops.ts
+var import_yaml5 = __toESM(require_dist(), 1);
+
+// src/patch/text.ts
+var import_yaml4 = __toESM(require_dist(), 1);
+var isRecord = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+var lineStart = (t, p) => t.lastIndexOf("\n", p - 1) + 1;
+var lineEnd = (t, p) => {
+  const n4 = t.indexOf("\n", p);
+  return n4 < 0 ? t.length : n4 + 1;
+};
+var isNull = (n4) => !n4 || (0, import_yaml4.isScalar)(n4) && n4.value === null;
+var firstNode = (item) => (0, import_yaml4.isPair)(item) ? item.key ?? item.value : item;
+var lastNode = (item) => (0, import_yaml4.isPair)(item) ? item.value ?? item.key : item;
+function contentEnd(n4) {
+  if (((0, import_yaml4.isMap)(n4) || (0, import_yaml4.isSeq)(n4)) && !n4.flow) {
+    const last = n4.items.at(-1);
+    if (last) return contentEnd(lastNode(last));
+  }
+  return n4.range[1];
+}
+function attachedStart(text5, start, floor) {
+  let s = start;
+  while (s > floor) {
+    const prev = lineStart(text5, s - 1);
+    if (prev < floor || !text5.slice(prev, s).trim().startsWith("#")) break;
+    s = prev;
+  }
+  return s;
+}
+function spansOf(text5, coll, comments) {
+  const out = [];
+  for (const item of coll.items) {
+    const s = firstNode(item).range[0];
+    const e = contentEnd(lastNode(item));
+    if (coll.flow) {
+      out.push({ start: s, end: e });
+      continue;
+    }
+    const start = lineStart(text5, s);
+    const floor = out.at(-1)?.end ?? 0;
+    out.push({
+      start: comments ? attachedStart(text5, start, floor) : start,
+      end: lineEnd(text5, e - 1)
+    });
+  }
+  return out;
+}
+function applyEdits(text5, edits) {
+  let out = text5;
+  for (const e of [...edits].sort((a, b) => b.start - a.start))
+    out = out.slice(0, e.start) + e.text + out.slice(e.end);
+  return out;
+}
+function scalarText(value, ctx) {
+  if (ctx === "json" || typeof value === "string" && /[\n\r\t]/.test(value))
+    return JSON.stringify(value ?? null);
+  if (ctx === "block") return (0, import_yaml4.stringify)(value, { lineWidth: 0 }).trimEnd();
+  const listed = (0, import_yaml4.stringify)([value], {
+    collectionStyle: "flow",
+    flowCollectionPadding: false,
+    lineWidth: 0
+  }).trim();
+  return listed.slice(1, -1).trim();
+}
+function inline2(value, ctx) {
+  const inner = ctx === "json" ? "json" : "flow";
+  if (Array.isArray(value)) return `[${value.map((x2) => inline2(x2, inner)).join(", ")}]`;
+  if (isRecord(value)) {
+    const parts = Object.entries(value).map(
+      ([k, x2]) => `${scalarText(k, inner)}: ${inline2(x2, inner)}`
+    );
+    return parts.length ? `{ ${parts.join(", ")} }` : "{}";
+  }
+  return scalarText(value, ctx);
+}
+var ctxOf = (v, coll) => v.json ? "json" : coll.flow ? "flow" : "block";
+var pairOf = (map, key) => map.items.find((p) => (0, import_yaml4.isScalar)(p.key) && String(p.key.value) === key);
+function removeItem(v, coll, i) {
+  const spans2 = spansOf(v.text, coll, false);
+  const span = spans2[i];
+  if (!coll.flow) return { ...span, text: "" };
+  if (spans2.length === 1)
+    return { start: coll.range[0], end: coll.range[1], text: (0, import_yaml4.isMap)(coll) ? "{}" : "[]" };
+  const next = spans2[i + 1];
+  if (next) return { start: span.start, end: next.start, text: "" };
+  return { start: spans2[i - 1].end, end: span.end, text: "" };
+}
+function insertItem(v, coll, item, before) {
+  const spans2 = spansOf(v.text, coll, true);
+  const last = spans2.at(-1);
+  if (coll.flow || !last) {
+    if (!last) {
+      const text5 = (0, import_yaml4.isMap)(coll) ? `{ ${item} }` : `[${item}]`;
+      return { start: coll.range[0], end: coll.range[1], text: text5 };
+    }
+    return { start: last.end, end: last.end, text: `, ${item}` };
+  }
+  const ref = coll.items[before ?? coll.items.length - 1];
+  const s = firstNode(ref).range[0];
+  const prefix = v.text.slice(lineStart(v.text, s), s);
+  const at = before === void 0 ? last.end : spans2[before].start;
+  return { start: at, end: at, text: `${prefix}${item}
+` };
+}
+function replaceValue(v, map, pair, value) {
+  const text5 = inline2(value, ctxOf(v, map));
+  const node4 = pair.value;
+  if (!node4) return { start: pair.key.range[1], end: pair.key.range[1], text: `: ${text5}` };
+  if ((0, import_yaml4.isScalar)(node4) && node4.range[0] === node4.range[1])
+    return { start: node4.range[0], end: node4.range[0], text: ` ${text5}` };
+  if (((0, import_yaml4.isMap)(node4) || (0, import_yaml4.isSeq)(node4)) && !node4.flow) {
+    const colon = v.text.indexOf(":", pair.key.range[1]);
+    return { start: colon, end: contentEnd(node4), text: `: ${text5}` };
+  }
+  return { start: node4.range[0], end: node4.range[1], text: text5 };
+}
+function insertPair(v, map, key, value, root = false) {
+  const ctx = ctxOf(v, map);
+  let text5 = `${scalarText(key, ctx)}: ${inline2(value, ctx)}`;
+  if (!root || ctx !== "block") return insertItem(v, map, text5);
+  if ((key === "nodes" || key === "groups") && isRecord(value) && Object.keys(value).length)
+    text5 = `${key}:
+${Object.entries(value).map(([k, x2]) => `  ${scalarText(k, "block")}: ${inline2(x2, "block")}`).join("\n")}`;
+  const before = map.items.findIndex(
+    (p) => (0, import_yaml4.isScalar)(p.key) && ["groups", "nodes", "edges"].includes(String(p.key.value))
+  );
+  return insertItem(v, map, text5, before < 0 ? void 0 : before);
+}
+function reorder(v, coll, from, to, after) {
+  const spans2 = spansOf(v.text, coll, !coll.flow);
+  const order = spans2.map((_, i) => i).filter((i) => i !== from);
+  order.splice(order.indexOf(to) + (after ? 1 : 0), 0, from);
+  let text5 = "";
+  for (const [k, i] of order.entries()) {
+    const span = spans2[i];
+    text5 += v.text.slice(span.start, span.end);
+    const next = spans2[k + 1];
+    if (next) text5 += v.text.slice(spans2[k].end, next.start);
+  }
+  return { start: spans2[0].start, end: spans2.at(-1).end, text: text5 };
+}
+
+// src/patch/types.ts
+var PatchError = class extends Error {
+};
+
+// src/patch/ops.ts
+var ICON_ID2 = /^(aws|azure|gcp|k8s|github|ibm|logos|si|tabler|ph|generic|local):[a-z0-9]/i;
+var nest = (keys, value) => keys.reduceRight((acc, k) => ({ [k]: acc }), value);
+function hint(word, options) {
+  let best;
+  let bestScore = Math.max(1, Math.floor(word.length / 3)) + 1;
+  for (const o of options) {
+    const d = distance(word.toLowerCase(), o.toLowerCase());
+    if (d < bestScore) {
+      bestScore = d;
+      best = o;
+    }
+  }
+  return best ? ` (did you mean "${best}"?)` : "";
+}
+var keysOf = (map) => (map?.items ?? []).flatMap((p) => (0, import_yaml5.isScalar)(p.key) ? [String(p.key.value)] : []);
+function editMap(v, map, keys, change, where) {
+  const [key, ...rest] = keys;
+  const here2 = where ? `${where}.${key}` : key;
+  const pair = pairOf(map, key);
+  const root = !where;
+  if (!rest.length) {
+    if (change.kind === "unset") {
+      if (!pair) throw new PatchError(`${here2} is not set${hint(key, keysOf(map))}`);
+      return [removeItem(v, map, map.items.indexOf(pair))];
+    }
+    if (!pair) return [insertPair(v, map, key, change.value, root)];
+    if (change.kind === "add") throw new PatchError(`${here2} is already set; use set to change it`);
+    return [replaceValue(v, map, pair, change.value)];
+  }
+  if (!pair || isNull(pair.value)) {
+    if (change.kind === "unset") throw new PatchError(`${here2} is not set`);
+    const value = nest(rest, change.value);
+    return [pair ? replaceValue(v, map, pair, value) : insertPair(v, map, key, value, root)];
+  }
+  if ((0, import_yaml5.isMap)(pair.value)) return editMap(v, pair.value, rest, change, here2);
+  throw new PatchError(`${here2} is not a mapping, so it has no ${rest.join(".")}`);
+}
+function collectionOf(root, name) {
+  const value = pairOf(root, name)?.value ?? null;
+  if (isNull(value)) return void 0;
+  if ((0, import_yaml5.isMap)(value)) return value;
+  throw new PatchError(`${name} is a list; write it as a mapping keyed by id to patch it`);
+}
+function findEntry(map, segs) {
+  if (!map) return void 0;
+  for (let k = segs.length; k >= 1; k--) {
+    const id = segs.slice(0, k).join(".");
+    const pair = pairOf(map, id);
+    if (pair) return { pair, id, keys: segs.slice(k) };
+  }
+  return void 0;
+}
+function expand2(coll, value) {
+  if (value === null || value === void 0) return {};
+  if (coll === "groups") return typeof value === "string" ? { type: value } : {};
+  if (typeof value !== "string") return { label: String(value) };
+  return resolveIcon(value) || ICON_ID2.test(value.trim()) ? { icon: value } : { label: value };
+}
+function entryOp(v, root, coll, rest, change) {
+  const map = collectionOf(root, coll);
+  const what = coll === "nodes" ? "node" : "group";
+  const found = findEntry(map, rest);
+  if (!found) {
+    if (change.kind !== "add")
+      throw new PatchError(`no ${what} "${rest[0]}"${hint(rest[0] ?? "", keysOf(map))}`);
+    const id2 = rest.join(".");
+    const other = collectionOf(root, coll === "nodes" ? "groups" : "nodes");
+    if (other && pairOf(other, id2))
+      throw new PatchError(`"${id2}" is already a ${coll === "nodes" ? "group" : "node"}`);
+    if (!map)
+      return {
+        edits: editMap(v, root, [coll], { kind: "set", value: { [id2]: change.value } }, "")
+      };
+    return { edits: [insertPair(v, map, id2, change.value)] };
+  }
+  const { pair, id, keys } = found;
+  const m = map;
+  if (!keys.length) {
+    if (change.kind === "add")
+      throw new PatchError(`${what} "${id}" already exists; use set to change it`);
+    if (change.kind === "unset") return { edits: [removeItem(v, m, m.items.indexOf(pair))] };
+    return { edits: [replaceValue(v, m, pair, change.value)] };
+  }
+  if ((0, import_yaml5.isMap)(pair.value)) return { edits: editMap(v, pair.value, keys, change, `${coll}.${id}`) };
+  if ((0, import_yaml5.isSeq)(pair.value)) throw new PatchError(`${coll}.${id} is a list, not a mapping`);
+  const short2 = (0, import_yaml5.isScalar)(pair.value) ? pair.value.value : null;
+  return { edits: [replaceValue(v, m, pair, expand2(coll, short2))], again: true };
+}
+function pathOp(v, root, op) {
+  const segs = op.path.split(".");
+  if (segs.some((s) => !s.trim())) throw new PatchError(`path "${op.path}" has an empty part`);
+  const change = op.op === "unset" ? { kind: "unset" } : { kind: op.op, value: op.value };
+  const [head2, ...rest] = segs;
+  if (head2 === "edges") throw new PatchError("edges are list items; use the edge op");
+  if (head2 === "nodes" || head2 === "groups") {
+    if (!rest.length) throw new PatchError(`name one: ${head2}.<id>`);
+    return entryOp(v, root, head2, rest, change);
+  }
+  return { edits: editMap(v, root, segs, change, "") };
+}
+function moveOp(v, root, op) {
+  const [head2, ...rest] = op.path.split(".");
+  if (head2 !== "nodes" && head2 !== "groups" || !rest.length)
+    throw new PatchError("move takes a node or group path such as nodes.db");
+  const what = head2 === "nodes" ? "node" : "group";
+  const map = collectionOf(root, head2);
+  const found = findEntry(map, rest);
+  if (!map || !found)
+    throw new PatchError(`no ${what} "${rest.join(".")}"${hint(rest.join("."), keysOf(map))}`);
+  if (found.keys.length) throw new PatchError("move takes a node or group path such as nodes.db");
+  const after = op.after !== void 0;
+  const raw = String(op.after ?? op.before);
+  const target = raw.startsWith(`${head2}.`) ? raw.slice(head2.length + 1) : raw;
+  const to = pairOf(map, target);
+  if (!to)
+    throw new PatchError(
+      `no ${what} "${target}" to move ${after ? "after" : "before"}${hint(target, keysOf(map))}`
+    );
+  if (to === found.pair) throw new PatchError(`cannot move "${target}" next to itself`);
+  return {
+    edits: [reorder(v, map, map.items.indexOf(found.pair), map.items.indexOf(to), after)]
+  };
+}
+
+// src/patch/edges.ts
+function labelColon2(s) {
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "[") depth += 1;
+    else if (c === "]") depth = Math.max(0, depth - 1);
+    else if (c === ":" && depth === 0 && (i + 1 === s.length || /\s/.test(s[i + 1] ?? "")))
+      return i;
+  }
+  return -1;
+}
+function hopKey(h) {
+  const [a, b, head2] = h.arrow === "start" ? [h.to, h.from, "end"] : [h.from, h.to, h.arrow];
+  const ends3 = head2 === "both" || head2 === "none" ? [a, b].sort() : [a, b];
+  return `${ends3[0]} ${h.line}-${head2} ${ends3[1]}`;
+}
+var signature = (hops) => [...new Set(hops.map(hopKey))].sort().join(" | ");
+var str2 = (v) => v === void 0 || v === null ? void 0 : String(v);
+function edgeShape(item) {
+  let expr;
+  let extra = {};
+  let label;
+  if (typeof item === "string") expr = item;
+  else if (isRecord(item)) {
+    const keys = Object.keys(item);
+    const only = keys.length === 1 ? keys[0] : void 0;
+    if (only !== void 0 && typeof parseEdgeExpression(only) !== "string") {
+      expr = only;
+      const v = item[only];
+      if (typeof v === "string" || typeof v === "number") label = String(v);
+      else if (isRecord(v)) {
+        extra = v;
+        label = str2(v.label ?? v.text);
+      }
+    } else {
+      extra = item;
+      label = str2(item.label ?? item.text);
+    }
+  } else return "an edge is a line such as api -> db or a mapping";
+  const flow = str2(extra.flow)?.toLowerCase();
+  const line = str2(extra.line ?? extra.style)?.toLowerCase();
+  const arrow = str2(extra.arrow)?.toLowerCase();
+  const flowLine = flow === "message" ? "dashed" : flow === "association" ? "dotted" : void 0;
+  const written = [];
+  const drawn = [];
+  const add = (from, to, opLine, opArrow) => {
+    written.push({ from, to, line: opLine, arrow: opArrow });
+    drawn.push({
+      from,
+      to,
+      line: line ?? flowLine ?? opLine,
+      arrow: arrow ?? (flow === "association" ? "none" : opArrow)
+    });
+  };
+  if (expr !== void 0) {
+    const parsed = parseEdgeExpression(expr);
+    if (typeof parsed === "string") return parsed;
+    const single = parsed.hops.length === 1;
+    label ??= single ? parsed.hops[0]?.op.label ?? parsed.label : parsed.label;
+    for (const hop of parsed.hops)
+      for (const f of hop.from)
+        for (const t of hop.to) {
+          const reverse = hop.op.arrow === "start";
+          add(reverse ? t : f, reverse ? f : t, hop.op.line, reverse ? "end" : hop.op.arrow);
+        }
+  } else {
+    const from = extra.from ?? extra.source;
+    const to = extra.to ?? extra.target;
+    if (from === void 0 || to === void 0) return 'an edge mapping needs "from" and "to"';
+    for (const f of (Array.isArray(from) ? from : [from]).map(String))
+      for (const t of (Array.isArray(to) ? to : [to]).map(String)) add(f, t, "solid", "end");
+  }
+  return {
+    written: signature(written),
+    drawn: signature(drawn),
+    ends: written.map((h) => [h.from, h.to].sort().join(" ~ ")),
+    ...label !== void 0 ? { label: label.trim() } : {}
+  };
+}
+function edgeText(value, ctx) {
+  if (typeof value === "string") {
+    const s = value.trim();
+    const colon = labelColon2(s);
+    const label = colon >= 0 ? s.slice(colon + 1).trim() : "";
+    if (ctx !== "block" || !label) return scalarText(s, ctx);
+    return `${scalarText(s.slice(0, colon).trim(), ctx)}: ${scalarText(label, ctx)}`;
+  }
+  const keys = Object.keys(value);
+  const only = keys.length === 1 ? keys[0] : void 0;
+  if (ctx === "block" && only !== void 0 && typeof parseEdgeExpression(only) !== "string")
+    return `${scalarText(only, ctx)}: ${inline2(value[only], ctx)}`;
+  return inline2(value, ctx);
+}
+function matchEdge(v, seq, list, match) {
+  const want = edgeShape(match);
+  if (typeof want === "string") throw new PatchError(`cannot read match "${match}": ${want}`);
+  const source = (i) => {
+    const node4 = seq.items[i];
+    return v.text.slice(node4.range[0], contentEnd(node4));
+  };
+  const hits5 = [];
+  const near = [];
+  for (const [i, item] of list.entries()) {
+    const have = edgeShape(item);
+    if (typeof have === "string") continue;
+    const same3 = want.written === have.written || want.written === have.drawn;
+    if (same3 && (want.label === void 0 || want.label === have.label)) hits5.push(i);
+    else if (have.ends.some((e) => want.ends.includes(e))) near.push(i);
+  }
+  const parsed = parseEdgeExpression(match);
+  const plain2 = typeof parsed !== "string" && parsed.hops.every((h) => h.op.line === "solid" && h.op.arrow === "end");
+  if (!hits5.length && plain2) {
+    const ends3 = new Set(want.ends);
+    const loose = near.filter((i) => {
+      const have = edgeShape(list[i]);
+      return typeof have !== "string" && have.ends.length === ends3.size && have.ends.every((e) => ends3.has(e)) && (want.label === void 0 || want.label === have.label);
+    });
+    if (loose.length === 1) return loose[0];
+  }
+  if (hits5.length === 1) return hits5[0];
+  const quote = (ids) => ids.slice(0, 3).map((i) => `"${source(i)}"`).join(", ");
+  if (hits5.length > 1)
+    throw new PatchError(
+      `"${match}" matches ${hits5.length} edges (${quote(hits5)}); add the label to pick one`
+    );
+  throw new PatchError(
+    `no edge matches "${match}"${near.length ? `; edges between the same nodes: ${quote(near)}` : ""}`
+  );
+}
+function edgeOp(v, root, list, op) {
+  const { match, value } = op;
+  if (value !== null) {
+    const shape = typeof value === "string" || isRecord(value) ? edgeShape(value) : "it is not a line or mapping";
+    if (typeof shape === "string")
+      throw new PatchError(`value must be an edge such as "api -> db: SQL" (${shape})`);
+  }
+  const edge3 = value;
+  const pair = pairOf(root, "edges");
+  const seq = pair?.value ?? null;
+  if (match === null) {
+    if (edge3 === null) throw new PatchError("give a match to change or remove, or a value to add");
+    if ((0, import_yaml6.isSeq)(seq)) return [insertItem(v, seq, edgeText(edge3, ctxOf(v, seq)))];
+    if (!isNull(seq)) throw new PatchError("edges must be a list to be patched");
+    if (ctxOf(v, root) !== "block")
+      return editMap(v, root, ["edges"], { kind: "set", value: [edge3] }, "");
+    const item = `
+  - ${edgeText(edge3, "block")}`;
+    if (seq) return [{ start: seq.range[0], end: seq.range[1], text: item }];
+    const end = v.text.length;
+    return [{ start: end, end, text: `edges:${item}
+` }];
+  }
+  if (!(0, import_yaml6.isSeq)(seq) || !Array.isArray(list)) throw new PatchError(`no edge matches "${match}"`);
+  const i = matchEdge(v, seq, list, match);
+  if (edge3 === null) return [removeItem(v, seq, i)];
+  const node4 = seq.items[i];
+  return [{ start: node4.range[0], end: contentEnd(node4), text: edgeText(edge3, ctxOf(v, seq)) }];
+}
+
+// src/patch/apply.ts
+var OPS2 = ["set", "unset", "add", "move", "edge"];
+function checkOp(op) {
+  if (!isRecord(op))
+    throw new PatchError("an op must be a mapping such as { op: set, path, value }");
+  if (!OPS2.includes(String(op.op)))
+    throw new PatchError(`unknown op "${String(op.op)}"; use ${OPS2.join(", ")}`);
+  if (op.op !== "edge" && (typeof op.path !== "string" || !op.path))
+    throw new PatchError(`${op.op} needs a path such as nodes.db.note`);
+  if ((op.op === "set" || op.op === "add") && op.value === void 0)
+    throw new PatchError(`${op.op} needs a value`);
+  if (op.op === "move" && op.after === void 0 === (op.before === void 0))
+    throw new PatchError("move needs one of after or before");
+  if (op.op === "edge") {
+    if (!("match" in op) || op.match !== null && typeof op.match !== "string")
+      throw new PatchError("edge needs match: an edge line such as api -> db, or null to add one");
+    if (!("value" in op))
+      throw new PatchError("edge needs value: the new edge, or null to remove it");
+  }
+}
+var short = (v) => {
+  const s = typeof v === "string" ? v : JSON.stringify(v) ?? String(v);
+  return s.length > 48 ? `${s.slice(0, 45)}...` : s;
+};
+function describeOp(op) {
+  if (!isRecord(op)) return short(op);
+  switch (op.op) {
+    case "set":
+    case "add":
+      return `${op.op} ${op.path} ${short(op.value)}`;
+    case "unset":
+      return `unset ${op.path}`;
+    case "move":
+      if (op.after !== void 0) return `move ${op.path} after ${op.after}`;
+      return op.before !== void 0 ? `move ${op.path} before ${op.before}` : `move ${op.path}`;
+    case "edge":
+      if (op.match === null) return `edge add ${short(op.value)}`;
+      if (op.value === null) return `edge remove ${op.match}`;
+      return `edge ${op.match} => ${short(op.value)}`;
+    default:
+      return short(op);
+  }
+}
+function applyOne(text5, op, depth = 0) {
+  const doc = (0, import_yaml7.parseDocument)(text5);
+  const bad = doc.errors[0];
+  if (bad) throw new PatchError(`the spec is not valid YAML: ${bad.message.split("\n")[0]}`);
+  const root = doc.contents;
+  if (!(0, import_yaml7.isMap)(root)) throw new PatchError("the spec must be a mapping");
+  const v = { text: text5, json: /^\s*\{/.test(text5) };
+  let step;
+  if (op.op === "move") step = moveOp(v, root, op);
+  else if (op.op === "edge") {
+    const js = doc.toJS();
+    step = { edits: edgeOp(v, root, isRecord(js) ? js.edges : void 0, op) };
+  } else step = pathOp(v, root, op);
+  const out = applyEdits(text5, step.edits);
+  const check = (0, import_yaml7.parseDocument)(out).errors[0];
+  if (check) throw new PatchError(`the edit made invalid YAML: ${check.message.split("\n")[0]}`);
+  return step.again && depth === 0 ? applyOne(out, op, 1) : out;
+}
+function applyPatches(source, ops) {
+  if (!ops.length) return source;
+  const crlf = source.includes("\r\n");
+  let text5 = crlf ? source.replace(/\r\n/g, "\n") : source;
+  if (!text5.endsWith("\n")) text5 += "\n";
+  for (const [i, op] of ops.entries()) {
+    try {
+      checkOp(op);
+      text5 = applyOne(text5, op);
+    } catch (e) {
+      if (e instanceof PatchError)
+        throw new PatchError(`op ${i + 1} (${describeOp(op)}): ${e.message}`);
+      throw e;
+    }
+  }
+  return crlf ? text5.replace(/\n/g, "\r\n") : text5;
+}
+
+// src/lsp/fixes.ts
+var VALUE_FIXES = [
+  /^use icon "([^"]+)"$/,
+  /^use type "([^"]+)"$/,
+  /^use "([^"]+)"$/,
+  /^use (?:align|stage|on|in): ([^\s,]+)$/
+];
+var KEY_FIX = /^rename "[^"]+" to "([^"]+)"$/;
+var SETTING_FIXES = [
+  [/^use direction: (right|down|left|up)\b/, (m) => ["direction", m[1] ?? ""]],
+  [/^(?:use|try) layout: \{ (\w+): ([\w.-]+) \}$/, (m) => [`layout.${m[1]}`, m[2] ?? ""]]
+];
+function quoted(word, quote) {
+  if (quote === "'") return `'${word.replace(/'/g, "''")}'`;
+  if (quote === '"' || !/^[A-Za-z0-9_][\w.:/-]*$/.test(word)) return JSON.stringify(word);
+  return word;
+}
+function difference(a, b) {
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let tail = 0;
+  while (tail < a.length - start && tail < b.length - start && a[a.length - 1 - tail] === b[b.length - 1 - tail])
+    tail++;
+  return { start, end: a.length - tail, text: b.slice(start, b.length - tail) };
+}
+function setting(text5, path, value) {
+  let out;
+  try {
+    out = applyPatches(text5, [{ op: "set", path, value }]);
+  } catch {
+    return void 0;
+  }
+  if (!text5.endsWith("\n")) out = out.replace(/\r?\n$/, "");
+  return [difference(text5, out)];
+}
+function editsFor(text5, fix, t) {
+  for (const re of VALUE_FIXES) {
+    const word = re.exec(fix)?.[1];
+    if (word === void 0) continue;
+    if (t.kind !== "value" && t.kind !== "token" || t.quote === void 0) return void 0;
+    return [
+      { start: t.start, end: t.end, text: t.kind === "token" ? word : quoted(word, t.quote) }
+    ];
+  }
+  const key = KEY_FIX.exec(fix)?.[1];
+  if (key !== void 0)
+    return t.kind === "key" && t.quote !== void 0 ? [{ start: t.start, end: t.end, text: quoted(key, t.quote) }] : void 0;
+  for (const [re, op] of SETTING_FIXES) {
+    const m = re.exec(fix);
+    if (m) return setting(text5, ...op(m));
+  }
+  return void 0;
+}
+function fixesFor(text5, d, t) {
+  const out = [];
+  for (const fix of d.fixes ?? []) {
+    const edits = editsFor(text5, fix, t);
+    if (edits) out.push({ title: fix, edits });
+  }
+  return out;
+}
+
+// src/lsp/hover.ts
+var ID_CHAR = /[A-Za-z0-9:._-]/;
+function hover(text5, pos) {
+  const line = (text5.split("\n")[pos.line] ?? "").replace(/\r$/, "");
+  let start = Math.min(pos.character, line.length);
+  let end = start;
+  while (start > 0 && ID_CHAR.test(line[start - 1] ?? "")) start--;
+  while (end < line.length && ID_CHAR.test(line[end] ?? "")) end++;
+  const word = line.slice(start, end);
+  if (!/^[a-z0-9]+:[a-z0-9]/i.test(word)) return null;
+  const info = iconInfo(word);
+  if (!info) return null;
+  const pack = packInfo()[info.pack];
+  const lines2 = [
+    `**${info.name}** \`${info.id}\``,
+    ...info.id !== word.toLowerCase() ? [`Short name for \`${info.id}\`.`] : [],
+    `Pack: ${pack?.title ?? info.pack} (\`${info.pack}\`)`,
+    `Category: ${info.category}${info.type ? ` (${info.type})` : ""}`
+  ];
+  return {
+    contents: { kind: "markdown", value: lines2.join("\n\n") },
+    range: {
+      start: { line: pos.line, character: start },
+      end: { line: pos.line, character: end }
+    }
+  };
+}
+
+// src/lsp/locate.ts
+var import_yaml8 = __toESM(require_dist(), 1);
+var SYNONYMS = {
+  node: NODE_SYNONYMS,
+  group: GROUP_SYNONYMS,
+  edge: EDGE_SYNONYMS,
+  path: {}
+};
+var nameOf2 = (n4) => n4 && (0, import_yaml8.isScalar)(n4) && n4.value !== null ? String(n4.value) : void 0;
+function pairOf2(map, names) {
+  if (!map || !(0, import_yaml8.isMap)(map)) return void 0;
+  return map.items.find((p) => names.includes(nameOf2(p.key) ?? "\0"));
+}
+var namesFor = (key, syn) => [
+  key,
+  ...Object.keys(syn).filter((s) => syn[s] === key)
+];
+function scalarTarget(n4, kind) {
+  const t = (0, import_yaml8.isScalar)(n4) ? n4.type : void 0;
+  const quote = t === "PLAIN" ? "" : t === "QUOTE_DOUBLE" ? '"' : t === "QUOTE_SINGLE" ? "'" : void 0;
+  return { start: n4.range[0], end: n4.range[1], kind, quote };
+}
+function locator(text5) {
+  const doc = (0, import_yaml8.parseDocument)(text5);
+  const root = doc.contents;
+  let data;
+  try {
+    data = doc.toJS();
+  } catch {
+    data = void 0;
+  }
+  const list = pairOf2(root, ["edges"])?.value;
+  const edges = (0, import_yaml8.isSeq)(list) ? list.items.map((value) => ({ value })) : (0, import_yaml8.isMap)(list) ? list.items.map((p) => ({ key: p.key, value: p.value })) : [];
+  return { text: text5, doc, root, data: isObj(data) ? data : {}, edges };
+}
+function entryOf(at, coll, id) {
+  const value = pairOf2(at.root, [coll])?.value;
+  if ((0, import_yaml8.isMap)(value)) {
+    const p = pairOf2(value, [id]);
+    return p && { key: p.key, value: p.value };
+  }
+  if (!(0, import_yaml8.isSeq)(value)) return void 0;
+  for (const item of value.items) {
+    if (!(0, import_yaml8.isMap)(item)) continue;
+    const idPair = pairOf2(item, ["id"]);
+    if (idPair?.value && nameOf2(idPair.value) === id) return { key: idPair.value, value: item };
+    const only = item.items.length === 1 ? item.items[0] : void 0;
+    if (only && nameOf2(only.key) === id) return { key: only.key, value: only.value };
+  }
+  return void 0;
+}
+function pathHit(at, keys) {
+  let hit;
+  let map = at.root;
+  for (const k of keys) {
+    const p = pairOf2(map, [k]);
+    if (!p) return hit;
+    hit = { key: p.key, value: p.value };
+    map = p.value;
+  }
+  return hit;
+}
+function fieldHit(container, key, kind) {
+  const p = pairOf2(container, namesFor(key, SYNONYMS[kind]));
+  return p && { key: p.key, value: p.value };
+}
+function edgeFields(hit) {
+  if (hit.key) return hit.value;
+  const v = hit.value;
+  if ((0, import_yaml8.isMap)(v) && v.items.length === 1) {
+    const only = v.items[0];
+    if (typeof parseEdgeExpression(nameOf2(only.key) ?? "") !== "string") return only.value;
+  }
+  return v;
+}
+function edgeCount(item) {
+  const hops = (expr2) => {
+    const parsed = parseEdgeExpression(expr2);
+    return typeof parsed === "string" ? -1 : parsed.hops.reduce((n4, h) => n4 + h.from.length * h.to.length, 0);
+  };
+  if (typeof item === "string") return Math.max(0, hops(item));
+  if (!isObj(item)) return 0;
+  const keys = Object.keys(item);
+  const expr = keys.length === 1 ? hops(keys[0] ?? "") : -1;
+  if (expr >= 0) return expr;
+  const from = pick(item, "from", EDGE_SYNONYMS);
+  const to = pick(item, "to", EDGE_SYNONYMS);
+  if (from === void 0 || to === void 0) return 0;
+  return (Array.isArray(from) ? from.length : 1) * (Array.isArray(to) ? to.length : 1);
+}
+function edgeHit(at, name) {
+  const index2 = /^edges\[(\d+)\]$/.exec(name)?.[1];
+  if (index2 !== void 0) return at.edges[Number(index2)];
+  const n4 = /^e(\d+)$/.exec(name)?.[1];
+  if (n4 === void 0) return void 0;
+  const raw = at.data.edges;
+  const items = Array.isArray(raw) ? raw : isObj(raw) ? Object.entries(raw).map(([k, v]) => ({ [k]: v })) : [];
+  let seen = 0;
+  for (const [i, item] of items.entries()) {
+    seen += edgeCount(item);
+    if (seen >= Number(n4)) return at.edges[i];
+  }
+  return void 0;
+}
+function whereHit(at, where) {
+  if (where === "the top level") return { hit: { value: at.root }, kind: "path" };
+  const entry = /^(node|group) "(.*)"(?: (\S+))?$/.exec(where);
+  if (entry) {
+    const kind = entry[1];
+    const hit = entryOf(at, kind === "node" ? "nodes" : "groups", entry[2] ?? "");
+    const field2 = entry[3] && hit ? fieldHit(hit.value, entry[3], kind) : void 0;
+    return { hit: field2 ?? hit, kind };
+  }
+  const edge3 = /^(edges\[\d+\])(?: (\S+))?$/.exec(where);
+  if (edge3) {
+    const hit = edgeHit(at, edge3[1] ?? "");
+    const field2 = edge3[2] && hit ? fieldHit(edgeFields(hit), edge3[2], "edge") : void 0;
+    return { hit: field2 ?? hit, kind: "edge" };
+  }
+  const tag = /^tag "(.*)"$/.exec(where);
+  return { hit: pathHit(at, tag ? ["tags", tag[1] ?? ""] : where.split(".")), kind: "path" };
+}
+function entryTarget(hit, kind) {
+  const first = hit.key ?? hit.value;
+  if (!first) return { start: 0, end: 0, kind: "entry" };
+  const last = kind === "edge" ? hit.value ?? first : first;
+  return { start: first.range[0], end: last.range[1], kind: "entry" };
+}
+function fieldTarget(hit) {
+  const v = hit.value;
+  if (v && v.range[1] > v.range[0] && ((0, import_yaml8.isScalar)(v) || !hit.key)) return scalarTarget(v, "value");
+  if (v && v.range[1] > v.range[0]) return { start: v.range[0], end: v.range[1], kind: "entry" };
+  return hit.key ? scalarTarget(hit.key, "key") : void 0;
+}
+function findScalar(n4, value, depth = 0) {
+  if (!n4 || depth > 3) return void 0;
+  if ((0, import_yaml8.isScalar)(n4)) return nameOf2(n4) === value ? n4 : void 0;
+  if ((0, import_yaml8.isSeq)(n4)) {
+    for (const item of n4.items) {
+      const hit = findScalar(item, value, depth + 1);
+      if (hit) return hit;
+    }
+  }
+  if ((0, import_yaml8.isMap)(n4)) {
+    for (const p of n4.items) {
+      const hit = findScalar(p.key, value, depth + 1) ?? findScalar(p.value, value, depth + 1);
+      if (hit) return hit;
+    }
+  }
+  return void 0;
+}
+function tokenIn(text5, within2, id) {
+  const idChar = (c) => !!c && /[A-Za-z0-9_.]/.test(c);
+  for (let i = text5.indexOf(id, within2.start); i >= 0; i = text5.indexOf(id, i + 1)) {
+    const end = i + id.length;
+    if (end > within2.end) return void 0;
+    const before = text5[i - 1];
+    const after = text5[end];
+    if (idChar(before) || idChar(after)) continue;
+    if (before === "-" && idChar(text5[i - 2]) || after === "-" && idChar(text5[end + 1]))
+      continue;
+    return { start: i, end, kind: "token", quote: "" };
+  }
+  return void 0;
+}
+function detail(at, hit, kind, key, value) {
+  const container = kind === "edge" ? edgeFields(hit) : hit.value;
+  if (key === "key") {
+    const p = pairOf2(container, [String(value)]);
+    return p ? scalarTarget(p.key, "key") : void 0;
+  }
+  if (key === "value") return hit.value ? fieldTarget({ value: hit.value }) : void 0;
+  if (key === "id" && kind === "edge")
+    return tokenIn(at.text, entryTarget(hit, kind), String(value));
+  if (key === "setting") {
+    const field3 = fieldHit(container, String(value).split(".").at(-1) ?? "", kind);
+    return field3 && fieldTarget(field3);
+  }
+  const short2 = kind === "node" && key === "icon" || kind === "group" && key === "type";
+  if (short2 && hit.value && (0, import_yaml8.isScalar)(hit.value)) return scalarTarget(hit.value, "value");
+  const field2 = fieldHit(container, key, kind);
+  if (field2) return fieldTarget(field2);
+  if (typeof value !== "string") return void 0;
+  const found = findScalar(container, value);
+  return found && scalarTarget(found, "value");
+}
+function subjectHit(at, s) {
+  const str4 = (v) => typeof v === "string" ? v : void 0;
+  const id = str4(s.id);
+  if (str4(s.where)) return { primary: "where", ...whereHit(at, s.where) };
+  if (str4(s.edge))
+    return { primary: "edge", hit: edgeHit(at, s.edge), kind: "edge" };
+  if (str4(s.node))
+    return { primary: "node", hit: entryOf(at, "nodes", s.node), kind: "node" };
+  if (str4(s.group))
+    return {
+      primary: "group",
+      hit: entryOf(at, "groups", s.group),
+      kind: "group"
+    };
+  if (str4(s.tag))
+    return { primary: "tag", hit: pathHit(at, ["tags", s.tag]), kind: "path" };
+  if (id) {
+    const node4 = entryOf(at, "nodes", id);
+    const hit = node4 ?? entryOf(at, "groups", id);
+    return { primary: "id", hit, kind: node4 ? "node" : "group" };
+  }
+  for (const coll of ["nodes", "groups"]) {
+    const v = s[coll];
+    const first = Array.isArray(v) ? str4(v[0]) : void 0;
+    if (first)
+      return {
+        primary: coll,
+        hit: entryOf(at, coll, first),
+        kind: coll === "nodes" ? "node" : "group"
+      };
+    const list = pairOf2(at.root, [coll])?.value;
+    if (typeof v === "number" && (0, import_yaml8.isSeq)(list)) {
+      const item = list.items[v];
+      return { primary: coll, hit: item ? { value: item } : void 0, kind: "path" };
+    }
+  }
+  if (Array.isArray(s.edges) && str4(s.edges[0]))
+    return { primary: "edges", hit: edgeHit(at, s.edges[0]), kind: "edge" };
+  if (s.lines !== void 0)
+    return { primary: "lines", hit: pathHit(at, ["edges"]), kind: "path" };
+  if (str4(s.layout)) {
+    const setting2 = str4(s.setting) ?? "layout";
+    return { primary: "setting", hit: pathHit(at, setting2.split(".")), kind: "path" };
+  }
+  for (const key of ["title", "subtitle"])
+    if (s[key] === true) return { primary: key, hit: pathHit(at, [key]), kind: "path" };
+  return void 0;
+}
+function syntaxTarget(at, d) {
+  const bad = at.doc.errors[0];
+  if (d.code !== "DG100" || !d.message.startsWith("cannot parse") || !bad) return void 0;
+  const start = Math.min(bad.pos[0], at.text.length);
+  return { start, end: Math.max(start, Math.min(bad.pos[1], at.text.length)), kind: "entry" };
+}
+function messageTarget(at, d) {
+  const edge3 = /^(edges\[\d+\])/.exec(d.message)?.[1];
+  const hit = edge3 ? edgeHit(at, edge3) : void 0;
+  if (hit) return entryTarget(hit, "edge");
+  const named2 = /\b(node|group) "([^"]+)"/.exec(d.message);
+  const entry = named2 && entryOf(at, named2[1] === "node" ? "nodes" : "groups", named2[2] ?? "");
+  return entry ? entryTarget(entry, "node") : void 0;
+}
+function locate(at, d) {
+  const syntax = syntaxTarget(at, d);
+  if (syntax) return syntax;
+  const found = d.subject ? subjectHit(at, d.subject) : void 0;
+  if (found?.hit) {
+    const layoutRule = d.code.startsWith("DG2");
+    for (const [key, value] of Object.entries(d.subject ?? {})) {
+      if (key === found.primary || layoutRule && key !== "setting") continue;
+      const t = detail(at, found.hit, found.kind, key, value);
+      if (t) return t;
+    }
+    return entryTarget(found.hit, found.kind);
+  }
+  const fromMessage = messageTarget(at, d);
+  if (fromMessage) return fromMessage;
+  const nodes = pairOf2(at.root, ["nodes"]);
+  if (nodes) return scalarTarget(nodes.key, "key");
+  const eol = at.text.indexOf("\n");
+  return { start: 0, end: eol < 0 ? at.text.length : eol, kind: "entry" };
+}
+
+// src/lsp/symbols.ts
+var import_yaml9 = __toESM(require_dist(), 1);
+
+// src/lsp/text.ts
+function lineStarts(text5) {
+  const starts = [0];
+  for (let i = text5.indexOf("\n"); i >= 0; i = text5.indexOf("\n", i + 1)) starts.push(i + 1);
+  return starts;
+}
+function positionAt(starts, offset) {
+  let lo = 0;
+  let hi = starts.length - 1;
+  while (lo < hi) {
+    const mid = lo + hi + 1 >> 1;
+    if ((starts[mid] ?? 0) <= offset) lo = mid;
+    else hi = mid - 1;
+  }
+  return { line: lo, character: offset - (starts[lo] ?? 0) };
+}
+function offsetAt(text5, starts, pos) {
+  const start = starts[pos.line];
+  if (start === void 0) return text5.length;
+  const next = starts[pos.line + 1];
+  let end = next === void 0 ? text5.length : next - 1;
+  if (end > start && text5[end - 1] === "\r") end -= 1;
+  return Math.min(start + Math.max(0, pos.character), end);
+}
+function rangeOf(starts, span) {
+  return { start: positionAt(starts, span.start), end: positionAt(starts, span.end) };
+}
+function applyChange(text5, change) {
+  if (!change.range) return change.text;
+  const starts = lineStarts(text5);
+  const a = offsetAt(text5, starts, change.range.start);
+  const b = offsetAt(text5, starts, change.range.end);
+  return text5.slice(0, a) + change.text + text5.slice(Math.max(a, b));
+}
+
+// src/lsp/symbols.ts
+var KIND2 = { module: 2, namespace: 3, object: 19 };
+var text3 = (n4) => n4 && (0, import_yaml9.isScalar)(n4) && n4.value !== null ? String(n4.value) : void 0;
+function detailOf(value, coll) {
+  if (!value || (0, import_yaml9.isScalar)(value)) return text3(value);
+  if (!(0, import_yaml9.isMap)(value)) return void 0;
+  const field2 = (k) => text3(value.items.find((p) => text3(p.key) === k)?.value);
+  return field2("label") ?? field2(coll === "nodes" ? "icon" : "type");
+}
+function entries2(section2) {
+  if ((0, import_yaml9.isMap)(section2))
+    return section2.items.map((p) => ({
+      id: p.key,
+      value: p.value,
+      start: p.key.range[0],
+      end: p.value ? contentEnd(p.value) : p.key.range[1]
+    }));
+  if (!(0, import_yaml9.isSeq)(section2)) return [];
+  return section2.items.flatMap((item) => {
+    if (!(0, import_yaml9.isMap)(item)) return [];
+    const pairs = item.items;
+    const idPair = pairs.find((p) => text3(p.key) === "id");
+    const span = { start: item.range[0], end: contentEnd(item) };
+    if (idPair?.value) return [{ id: idPair.value, value: item, ...span }];
+    const only = pairs.length === 1 ? pairs[0] : void 0;
+    return only ? [{ id: only.key, value: only.value, ...span }] : [];
+  });
+}
+function documentSymbols(at, starts) {
+  const root = at.root;
+  if (!(0, import_yaml9.isMap)(root)) return [];
+  const out = [];
+  for (const coll of ["groups", "nodes"]) {
+    const pair = root.items.find((p) => text3(p.key) === coll);
+    if (!pair) continue;
+    const children = entries2(pair.value).map(
+      ({ id, value, start, end: end2 }) => ({
+        name: text3(id) ?? "?",
+        ...detailOf(value, coll) ? { detail: detailOf(value, coll) } : {},
+        kind: coll === "groups" ? KIND2.namespace : KIND2.object,
+        range: rangeOf(starts, { start, end: Math.max(end2, id.range[1]) }),
+        selectionRange: rangeOf(starts, { start: id.range[0], end: id.range[1] })
+      })
+    );
+    const end = pair.value ? contentEnd(pair.value) : pair.key.range[1];
+    out.push({
+      name: coll,
+      detail: `${children.length} ${coll}`,
+      kind: KIND2.module,
+      range: rangeOf(starts, { start: pair.key.range[0], end: Math.max(end, pair.key.range[1]) }),
+      selectionRange: rangeOf(starts, { start: pair.key.range[0], end: pair.key.range[1] }),
+      children
+    });
+  }
+  return out;
+}
+
+// src/lsp/server.ts
+var LAYOUT_DELAY_MS = 300;
+var ORIGIN = { line: 0, character: 0 };
+var isSpec = (text5) => /^["']?nodes["']?\s*:/m.test(text5);
+function pathOf(uri) {
+  try {
+    if (uri.startsWith("file:")) return fileURLToPath3(uri);
+  } catch {
+  }
+  return "diagram.yaml";
+}
+function idsOf(data) {
+  const ids = (v) => Array.isArray(v) ? v.flatMap((x2) => {
+    if (!isObj(x2)) return [];
+    if (typeof x2.id === "string") return [x2.id];
+    const keys = Object.keys(x2);
+    return keys.length === 1 ? keys : [];
+  }) : isObj(v) ? Object.keys(v) : [];
+  return { nodes: ids(data.nodes), groups: ids(data.groups) };
+}
+function toLsp(d, t, starts) {
+  const fixes = (d.fixes ?? []).map((f) => `
+fix: ${f}`).join("");
+  return {
+    range: rangeOf(starts, t),
+    severity: d.severity === "error" ? 1 : 2,
+    code: d.code,
+    source: "orrery",
+    message: `${d.message}${fixes}`
+  };
+}
+function createServer(send, exit) {
+  const docs = /* @__PURE__ */ new Map();
+  let initialized = false;
+  let shutdown = false;
+  let closed = false;
+  const notify = (method, params) => {
+    if (!closed) send({ jsonrpc: "2.0", method, params });
+  };
+  function publish(doc) {
+    const at = locator(doc.text);
+    const ids = idsOf(at.data);
+    if (ids.nodes.length || ids.groups.length || !at.doc.errors.length) doc.ids = ids;
+    const starts = lineStarts(doc.text);
+    doc.placed = [...doc.parsed, ...doc.layout].map((d) => ({ d, t: locate(at, d) }));
+    notify("textDocument/publishDiagnostics", {
+      uri: doc.uri,
+      version: doc.version,
+      diagnostics: doc.placed.map(({ d, t }) => toLsp(d, t, starts))
+    });
+  }
+  async function runLayout2(doc, version) {
+    const model = doc.model;
+    if (!model) return;
+    let found;
+    try {
+      const name = basename6(doc.path).replace(/\.(ya?ml|json)$/i, "");
+      found = (await renderModel({ model, formats: [], themes: [model.theme], name })).diagnostics;
+    } catch (e) {
+      const failure = renderFailure(e);
+      if (!failure) {
+        process.stderr.write(`orrery lsp: layout failed: ${e?.stack ?? e}
+`);
+        return;
+      }
+      found = [failure];
+    }
+    if (closed || docs.get(doc.uri) !== doc || doc.version !== version) return;
+    doc.layout = found;
+    publish(doc);
+  }
+  function analyze(doc) {
+    clearTimeout(doc.timer);
+    doc.model = void 0;
+    doc.parsed = [];
+    if (isSpec(doc.text)) {
+      try {
+        const result2 = parseSpec(doc.text, doc.path);
+        doc.parsed = result2.diagnostics;
+        doc.model = result2.model;
+      } catch (e) {
+        process.stderr.write(`orrery lsp: parse failed: ${e?.stack ?? e}
+`);
+      }
+    }
+    if (!doc.model) doc.layout = [];
+    publish(doc);
+    const version = doc.version;
+    if (doc.model) doc.timer = setTimeout(() => void runLayout2(doc, version), LAYOUT_DELAY_MS);
+  }
+  const specDoc = (p) => {
+    const doc = docs.get(p.textDocument?.uri ?? "");
+    return doc && isSpec(doc.text) ? doc : void 0;
+  };
+  function codeActions(p) {
+    const doc = specDoc(p);
+    if (!doc) return [];
+    const only = p.context?.only;
+    if (only && !only.some((k) => k === "" || k === "quickfix")) return [];
+    const starts = lineStarts(doc.text);
+    const range2 = p.range ?? { start: ORIGIN, end: ORIGIN };
+    const a = offsetAt(doc.text, starts, range2.start);
+    const b = offsetAt(doc.text, starts, range2.end);
+    const actions = [];
+    for (const { d, t } of doc.placed) {
+      if (t.start > b || t.end < a) continue;
+      for (const [i, fix] of fixesFor(doc.text, d, t).entries())
+        actions.push({
+          title: fix.title,
+          kind: "quickfix",
+          diagnostics: [toLsp(d, t, starts)],
+          isPreferred: i === 0,
+          edit: {
+            changes: {
+              [doc.uri]: fix.edits.map((e) => ({ range: rangeOf(starts, e), newText: e.text }))
+            }
+          }
+        });
+    }
+    return actions;
+  }
+  const requests = {
+    initialize: () => {
+      initialized = true;
+      return {
+        capabilities: {
+          positionEncoding: "utf-16",
+          // Incremental: the editor sends only the changed ranges (a full text is read too).
+          textDocumentSync: { openClose: true, change: 2 },
+          completionProvider: { triggerCharacters: [":", " "] },
+          hoverProvider: true,
+          codeActionProvider: { codeActionKinds: ["quickfix"] },
+          documentSymbolProvider: true
+        },
+        serverInfo: { name: "orrery", version: VERSION }
+      };
+    },
+    shutdown: () => {
+      shutdown = true;
+      return null;
+    },
+    "textDocument/completion": (p) => {
+      const doc = specDoc(p);
+      if (!doc) return { isIncomplete: false, items: [] };
+      const present = [...doc.text.matchAll(/^([A-Za-z$][\w$-]*)\s*:/gm)].map((m) => m[1] ?? "");
+      return complete(doc.text, p.position ?? ORIGIN, doc.ids, present);
+    },
+    "textDocument/hover": (p) => {
+      const doc = specDoc(p);
+      return doc ? hover(doc.text, p.position ?? ORIGIN) : null;
+    },
+    "textDocument/codeAction": codeActions,
+    "textDocument/documentSymbol": (p) => {
+      const doc = specDoc(p);
+      return doc ? documentSymbols(locator(doc.text), lineStarts(doc.text)) : [];
+    }
+  };
+  const notifications = {
+    exit: () => exit(shutdown ? 0 : 1),
+    "textDocument/didOpen": (p) => {
+      const { uri, version = 0, text: text5 = "" } = p.textDocument ?? {};
+      if (!uri) return;
+      const old = docs.get(uri);
+      if (old) clearTimeout(old.timer);
+      const doc = {
+        uri,
+        version,
+        text: text5,
+        path: pathOf(uri),
+        parsed: [],
+        layout: [],
+        placed: [],
+        ids: { nodes: [], groups: [] }
+      };
+      docs.set(uri, doc);
+      analyze(doc);
+    },
+    "textDocument/didChange": (p) => {
+      const doc = docs.get(p.textDocument?.uri ?? "");
+      if (!doc) return;
+      for (const change of p.contentChanges ?? []) doc.text = applyChange(doc.text, change);
+      doc.version = p.textDocument?.version ?? doc.version + 1;
+      analyze(doc);
+    },
+    "textDocument/didClose": (p) => {
+      const doc = docs.get(p.textDocument?.uri ?? "");
+      if (!doc) return;
+      clearTimeout(doc.timer);
+      docs.delete(doc.uri);
+      notify("textDocument/publishDiagnostics", { uri: doc.uri, diagnostics: [] });
+    }
+  };
+  const reply = (id, body) => {
+    if (!closed) send({ jsonrpc: "2.0", id, ...body });
+  };
+  return {
+    handle(raw) {
+      if (!isObj(raw) || typeof raw.method !== "string") return;
+      const msg = raw;
+      const params = msg.params ?? {};
+      if (msg.id === void 0 || msg.id === null) {
+        if (!initialized && msg.method !== "exit") return;
+        try {
+          notifications[msg.method]?.(params);
+        } catch (e) {
+          process.stderr.write(`orrery lsp: ${msg.method}: ${e?.stack ?? e}
+`);
+        }
+        return;
+      }
+      if (shutdown)
+        return reply(msg.id, { error: { code: -32600, message: "the server is shutting down" } });
+      if (!initialized && msg.method !== "initialize")
+        return reply(msg.id, { error: { code: -32002, message: "initialize first" } });
+      const handler = requests[msg.method];
+      if (!handler)
+        return reply(msg.id, { error: { code: -32601, message: `no method ${msg.method}` } });
+      try {
+        reply(msg.id, { result: handler(params) ?? null });
+      } catch (e) {
+        process.stderr.write(`orrery lsp: ${msg.method}: ${e?.stack ?? e}
+`);
+        reply(msg.id, { error: { code: -32603, message: "Internal error" } });
+      }
+    },
+    exitCode: () => shutdown ? 0 : 1,
+    close() {
+      closed = true;
+      for (const doc of docs.values()) clearTimeout(doc.timer);
+      docs.clear();
+    }
+  };
+}
+
 // src/lsp/index.ts
-async function cmdLsp(_args) {
-  throw new Error("orrery lsp is not built yet");
+async function cmdLsp(args) {
+  if (args._.length) usage(`lsp takes no arguments (got ${args._.join(" ")})`);
+  const send = (msg) => process.stdout.write(frame(msg));
+  await new Promise((done) => {
+    let finished = false;
+    const finish = (code) => {
+      if (finished) return;
+      finished = true;
+      server.close();
+      process.stdin.off("data", read);
+      process.stdin.destroy();
+      process.exitCode = code;
+      done();
+    };
+    const server = createServer(send, finish);
+    const read = messageReader(
+      (msg) => server.handle(msg),
+      () => send({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } })
+    );
+    process.stdin.on("data", read);
+    process.stdin.on("end", () => finish(server.exitCode()));
+  });
 }
 
 // src/mcp/http.ts
-import { createServer } from "node:http";
+import { createServer as createServer2 } from "node:http";
 
 // src/mcp/kit.ts
-import { existsSync as existsSync10, statSync as statSync5 } from "node:fs";
-import { isAbsolute as isAbsolute3, resolve as resolve6 } from "node:path";
-var NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
+import { existsSync as existsSync11, statSync as statSync5 } from "node:fs";
+import { isAbsolute as isAbsolute3, resolve as resolve8 } from "node:path";
+var NAME2 = /^[a-z0-9][a-z0-9-]{0,62}$/;
 var ToolError = class extends Error {
 };
 var isObj2 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
-var text3 = (t) => ({ type: "text", text: t });
-var json = (v) => text3(JSON.stringify(v, null, 2));
+var text4 = (t) => ({ type: "text", text: t });
+var json = (v) => text4(JSON.stringify(v, null, 2));
 var png = (data) => ({
   type: "image",
   data: Buffer.from(data).toString("base64"),
   mimeType: "image/png"
 });
-function str2(input, key) {
+function str3(input, key) {
   const v = input[key];
   if (v === void 0 || v === null) return void 0;
   if (typeof v !== "string") throw new ToolError(`${key} must be a string`);
   return v;
 }
 function oneOf2(input, key, options) {
-  const v = str2(input, key);
+  const v = str3(input, key);
   if (v !== void 0 && !options.includes(v))
     throw new ToolError(`${key} must be one of ${options.join(", ")} (got "${v}")`);
   return v;
@@ -22824,31 +25183,31 @@ function num2(input, key, min, max, int = false) {
   return v;
 }
 function specInput(input, ctx) {
-  const path = str2(input, "spec_path");
-  const source = str2(input, "spec");
+  const path = str3(input, "spec_path");
+  const source = str3(input, "spec");
   if (ctx.http && path !== void 0)
     throw new ToolError(
       "spec_path is refused over HTTP, where the server may not see your files: pass the spec's text as spec"
     );
   if (path === void 0 === (source === void 0))
     throw new ToolError("pass exactly one of spec (the YAML text) or spec_path (an absolute path)");
-  const name = str2(input, "name");
-  if (name !== void 0 && !NAME.test(name))
+  const name = str3(input, "name");
+  if (name !== void 0 && !NAME2.test(name))
     throw new ToolError(
       "name must be lowercase letters, digits and -, starting with a letter or digit"
     );
   if (path !== void 0) {
     if (!isAbsolute3(path)) throw new ToolError(`spec_path must be an absolute path (got ${path})`);
-    if (!existsSync10(path) || !statSync5(path).isFile())
+    if (!existsSync11(path) || !statSync5(path).isFile())
       throw new ToolError(`spec_path not found: ${path}`);
     const spec = readSpec(path);
     return { text: spec.text, name: name ?? spec.name, path: spec.path };
   }
   if (!source?.trim()) throw new ToolError("spec is empty");
   const stem = name ?? "diagram";
-  return { text: source, name: stem, path: resolve6(`${stem}.yaml`) };
+  return { text: source, name: stem, path: resolve8(`${stem}.yaml`) };
 }
-function parse(spec, ctx) {
+function parse2(spec, ctx) {
   const parsed = parseSpec(spec.text, spec.path);
   const declares = !!parsed.model?.icons?.length || parsed.diagnostics.some((d) => d.subject?.where === "icons");
   if (ctx.http && declares)
@@ -22903,6 +25262,37 @@ var SKIN = {
   description: "classic (vendor deck look) or stage (dark product look). Default: the spec's skin."
 };
 
+// src/mcp/tools/describe.ts
+var FORMATS2 = ["text", "json"];
+var describeTool = {
+  name: "describe",
+  title: "Describe a diagram",
+  description: "Lay the spec out and tell what the picture shows in plain text: the title, each group and the nodes in it, each node's place in reading order (row from the top, then from the left) and its edges with their labels, and the numbered steps. Use it to check the drawing says what you meant without looking at an image, or as alt text. format json returns the same as data. A spec with errors returns its diagnostics instead.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      ...SPEC_PROPS,
+      format: { type: "string", enum: [...FORMATS2], description: "Default: text." }
+    },
+    additionalProperties: false
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true },
+  async run(input, ctx) {
+    const spec = specInput(input, ctx);
+    const format = oneOf2(input, "format", FORMATS2) ?? "text";
+    const parsed = parse2(spec, ctx);
+    const diagnostics = [...parsed.diagnostics];
+    const model = parsed.model;
+    if (!model || errors(diagnostics)) return [json(verdict(diagnostics))];
+    const r4 = await renderSafe({ model, formats: [], themes: [model.theme], name: spec.name });
+    const scene = r4.scenes[model.theme];
+    if (!scene) return [json(verdict([...diagnostics, ...r4.diagnostics]))];
+    return [
+      format === "json" ? json(describeData(scene, model)) : text4(describeScene(scene, model))
+    ];
+  }
+};
+
 // src/mcp/tools/drawio.ts
 import { deflateRawSync as deflateRawSync2 } from "node:zlib";
 var MAX_LINK_XML = 2 * 1024 * 1024;
@@ -22926,7 +25316,7 @@ var drawioLinkTool = {
     const spec = specInput(input, ctx);
     const theme = oneOf2(input, "theme", THEMES);
     const skin = oneOf2(input, "skin", SKINS);
-    const parsed = parse(spec, ctx);
+    const parsed = parse2(spec, ctx);
     const diagnostics = [...parsed.diagnostics];
     const model = parsed.model;
     if (!model || errors(diagnostics)) return [json(verdict(diagnostics))];
@@ -22943,12 +25333,12 @@ var drawioLinkTool = {
       throw new ToolError(
         "the draw.io file is over 2 MB, too long for a link: render it with formats [drawio] and open the file in draw.io"
       );
-    return [text3(diagramsNetLink(xml))];
+    return [text4(diagramsNetLink(xml))];
   }
 };
 
 // src/mcp/tools/guide.ts
-import { readFileSync as readFileSync10 } from "node:fs";
+import { readFileSync as readFileSync11 } from "node:fs";
 import { join as join8 } from "node:path";
 var authoringGuideTool = {
   name: "get_authoring_guide",
@@ -22966,9 +25356,9 @@ var authoringGuideTool = {
     const note = "Over MCP the commands this guide names are tools: render, validate, review, icons_search (icons search), list_templates and get_template (init), try_patches (patch) and drawio_link. Where it says to run a command, call the tool instead, passing the spec as spec or spec_path. Paths such as references/... are inside the skill folder; get_authoring_guide topic review returns the review loop.";
     const body = files.map(
       (f) => `===== ${f.replaceAll("\\", "/")} =====
-${readFileSync10(join8(skillRoot, f), "utf8")}`
+${readFileSync11(join8(skillRoot, f), "utf8")}`
     );
-    return [text3([note, ...body].join("\n\n"))];
+    return [text4([note, ...body].join("\n\n"))];
   }
 };
 
@@ -22994,7 +25384,7 @@ var iconsSearchTool = {
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
   async run(input) {
-    const words = str2(input, "words")?.trim();
+    const words = str3(input, "words")?.trim();
     if (!words) throw new ToolError("words is required, for example 'load balancer'");
     const results = searchIcons(words, {
       pack: oneOf2(input, "pack", PACK_ORDER),
@@ -23006,7 +25396,7 @@ var iconsSearchTool = {
 };
 
 // src/patch/candidates.ts
-import { basename as basename5 } from "node:path";
+import { basename as basename7 } from "node:path";
 
 // src/review/geometry.ts
 var EPS2 = 0.5;
@@ -23146,8 +25536,8 @@ function orthogonalRuns(points) {
 // src/review/names.ts
 var norm = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 var escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-var hasPhrase = (text4, phrase) => !!phrase && new RegExp(`(^| )${escapeRe(norm(phrase))}s?( |$)`).test(text4);
-var edgeName = (e) => `${e.from} -> ${e.to}`;
+var hasPhrase = (text5, phrase) => !!phrase && new RegExp(`(^| )${escapeRe(norm(phrase))}s?( |$)`).test(text5);
+var edgeName2 = (e) => `${e.from} -> ${e.to}`;
 var travel = (e) => e.arrow === "start" ? [e.to, e.from] : [e.from, e.to];
 
 // src/review/composition.ts
@@ -23227,8 +25617,8 @@ function zigZags(c) {
         "grid.zig-zag",
         "minor",
         [e.id, e.from, e.to],
-        { edge: edgeName(e), stepPx: r1(zig), runs: 3 },
-        `${edgeName(e)} steps ${r1(zig)}px ${m?.axis === "v" ? "up or down" : "sideways"} between two parallel runs, so its ends are out of line`,
+        { edge: edgeName2(e), stepPx: r1(zig), runs: 3 },
+        `${edgeName2(e)} steps ${r1(zig)}px ${m?.axis === "v" ? "up or down" : "sideways"} between two parallel runs, so its ends are out of line`,
         fixes,
         3,
         patches
@@ -23239,8 +25629,8 @@ function zigZags(c) {
         "grid.avoidable-bend",
         "minor",
         [e.id, e.from, e.to],
-        { edge: edgeName(e), legPx: r1(leg), runs: 2 },
-        `${edgeName(e)} turns once with a ${r1(leg)}px leg, so its ends are out of line`,
+        { edge: edgeName2(e), legPx: r1(leg), runs: 2 },
+        `${edgeName2(e)} turns once with a ${r1(leg)}px leg, so its ends are out of line`,
         fixes,
         3,
         patches
@@ -23512,7 +25902,7 @@ function bpmnGateways(c, { outOf }) {
       `the ${n4.bpmn} gateway "${n4.id}" splits the flow with ${lacks.join(" and ")}`,
       [
         ...n4.label ? [] : [`set label: <a question, for example Order valid?> on "${n4.id}"`],
-        ...bare.slice(0, 1).map((e) => `label each branch with its answer: - ${edgeName(e)}: "Yes"`)
+        ...bare.slice(0, 1).map((e) => `label each branch with its answer: - ${edgeName2(e)}: "Yes"`)
       ],
       bare.length ? 8 : 4
     );
@@ -23578,13 +25968,13 @@ function bpmnPools(c, { pools, poolOf, data }) {
     const message = e.flow === "message";
     if (message ? a !== b : !pools.size || a === b) continue;
     boundary++;
-    const named = (p) => p ? `pool "${p}"` : "no pool";
+    const named2 = (p) => p ? `pool "${p}"` : "no pool";
     add(
       "conventions.bpmn-pools",
       "major",
       [e.id],
-      { edge: edgeName(e), flow: e.flow ?? "sequence", from: a ?? "(none)", to: b ?? "(none)" },
-      message ? `the message flow ${edgeName(e)} stays inside ${named(a)}; message flows connect two pools` : `the sequence flow ${edgeName(e)} crosses from ${named(a)} to ${named(b)}; a process stays in its pool`,
+      { edge: edgeName2(e), flow: e.flow ?? "sequence", from: a ?? "(none)", to: b ?? "(none)" },
+      message ? `the message flow ${edgeName2(e)} stays inside ${named2(a)}; message flows connect two pools` : `the sequence flow ${edgeName2(e)} crosses from ${named2(a)} to ${named2(b)}; a process stays in its pool`,
       message ? [
         "put the other participant in its own group with type: pool",
         "drop flow: message so it is a sequence flow"
@@ -23602,26 +25992,26 @@ function measureFlowchart(c) {
   const outs = (id) => edges.filter((e) => travel(e)[0] === id);
   const pills = model.nodes.filter((n4) => n4.look === "shape" && n4.shape === "pill");
   const starts = pills.filter((n4) => !ins(n4.id).length && outs(n4.id).length);
-  const ends2 = pills.filter((n4) => !outs(n4.id).length && ins(n4.id).length);
+  const ends3 = pills.filter((n4) => !outs(n4.id).length && ins(n4.id).length);
   let terminals = 0;
-  if (starts.length !== 1 || !ends2.length) {
+  if (starts.length !== 1 || !ends3.length) {
     terminals++;
     const lacks = [
       ...starts.length ? [] : ["no start terminator"],
       ...starts.length > 1 ? [`${starts.length} start terminators`] : [],
-      ...ends2.length ? [] : ["no end terminator"]
+      ...ends3.length ? [] : ["no end terminator"]
     ];
     add(
       "conventions.flowchart-terminals",
-      starts.length && ends2.length ? "minor" : "major",
+      starts.length && ends3.length ? "minor" : "major",
       starts.length > 1 ? starts.map((n4) => n4.id) : [],
-      { starts: starts.length, ends: ends2.length },
+      { starts: starts.length, ends: ends3.length },
       `the flowchart has ${lacks.join(" and ")}, so its entry and exits are not marked`,
       [
         "draw where it starts as one shape: terminator with nothing leading into it",
         "end every path at a shape: terminator (Order approved, Order rejected)"
       ],
-      starts.length && ends2.length ? 4 : 8
+      starts.length && ends3.length ? 4 : 8
     );
   }
   let decisions = 0;
@@ -23638,11 +26028,11 @@ function measureFlowchart(c) {
       [n4.id, ...bare.map((e) => e.id)],
       { decision: n4.id, exits: exits.length, unlabelled: bare.length },
       one ? `the decision "${n4.id}" has ${exits.length} exit(s), so it decides nothing` : `the decision "${n4.id}" has ${bare.length} of ${exits.length} exits without the answer they stand for`,
-      one ? [`give "${n4.id}" an exit per answer (yes and no)`, `use shape: process for "${n4.id}"`] : bare.slice(0, 1).map((e) => `label each exit with its answer: - ${edgeName(e)}: "yes"`),
+      one ? [`give "${n4.id}" an exit per answer (yes and no)`, `use shape: process for "${n4.id}"`] : bare.slice(0, 1).map((e) => `label each exit with its answer: - ${edgeName2(e)}: "yes"`),
       one ? 4 : 8
     );
   }
-  return { startTerminators: starts.length, endTerminators: ends2.length, terminals, decisions };
+  return { startTerminators: starts.length, endTerminators: ends3.length, terminals, decisions };
 }
 function measureStateMachine(c) {
   const { model, add } = c;
@@ -23779,7 +26169,7 @@ function measureConventions(c) {
   const { shorts, longAws } = awsNames(c);
   const boundaries = awsBoundaryLabels(c) + vendorBoundaryLabels(c);
   const groupsOfOne = serviceGroups(c);
-  const named = serviceLabels(c);
+  const named2 = serviceLabels(c);
   const callouts = calloutSizes(c);
   const { c4Elements, c4Relations } = c4Notation(c, c4);
   const recolored = recoloredMarks(c);
@@ -23793,7 +26183,7 @@ function measureConventions(c) {
     longAwsLabels: longAws,
     boundaryLabels: boundaries,
     serviceGroups: groupsOfOne,
-    serviceLabels: named,
+    serviceLabels: named2,
     calloutSizes: callouts,
     c4Elements,
     c4Relations,
@@ -24171,8 +26561,8 @@ function serviceLabels(c) {
     if (aws2 ? info.type !== "service" || !/^(Amazon|AWS) /.test(info.name) : genericIcon(info))
       continue;
     const forms = aws2 ? [info.name, ...shortFormsOf(info)] : vendorFormsOf(info);
-    const text4 = norm(aws2 ? n4.label : `${n4.label} ${n4.note ?? ""}`);
-    if (aws2 && /^(Amazon|AWS)\s/.test(n4.label) || forms.some((f) => hasPhrase(text4, f))) continue;
+    const text5 = norm(aws2 ? n4.label : `${n4.label} ${n4.note ?? ""}`);
+    if (aws2 && /^(Amazon|AWS)\s/.test(n4.label) || forms.some((f) => hasPhrase(text5, f))) continue;
     if (partOfFrame(c, n4.parent, info, forms) || !aws2 && forms.some((f) => hasPhrase(about, f)))
       continue;
     count++;
@@ -24222,8 +26612,8 @@ function c4Notation(c, c4) {
   let c4Relations = 0;
   if (c4) {
     for (const n4 of model.nodes) {
-      const text4 = `${n4.label} ${n4.note ?? ""}`;
-      const tag = text4.match(C4_TYPE);
+      const text5 = `${n4.label} ${n4.note ?? ""}`;
+      const tag = text5.match(C4_TYPE);
       const lacks = [];
       if (!tag) lacks.push("type");
       const kind = tag?.[1]?.toLowerCase() ?? "";
@@ -24259,8 +26649,8 @@ function c4Notation(c, c4) {
           "conventions.c4-relationship",
           "minor",
           [e.id],
-          { edge: edgeName(e), label, lacks: lacks.join(",") },
-          `C4 relationship ${edgeName(e)} has no ${lacks.join(", ")}`,
+          { edge: edgeName2(e), label, lacks: lacks.join(",") },
+          `C4 relationship ${edgeName2(e)} has no ${lacks.join(", ")}`,
           [`label it with the intent and protocol, for example "Reads orders from [SQL]"`],
           3
         );
@@ -24810,7 +27200,7 @@ function measureFlow(c, diagnostics) {
   const { both, none } = arrowSemantics(c);
   const crossing = unlabelledCrossings(c);
   const unconnected = unconnectedNodes(c, diagnostics);
-  const { nodeCount: nodeCount3, edgeCount } = edgeBudget(c);
+  const { nodeCount: nodeCount3, edgeCount: edgeCount2 } = edgeBudget(c);
   const fanIn = crossCutting(c);
   Object.assign(m, {
     hiddenHeads: hidden,
@@ -24825,7 +27215,7 @@ function measureFlow(c, diagnostics) {
     undirected: none.length,
     unlabelledCrossings: crossing.length,
     unconnected: unconnected.length,
-    edgesPerNode: r22(edgeCount / Math.max(1, nodeCount3)),
+    edgesPerNode: r22(edgeCount2 / Math.max(1, nodeCount3)),
     crossCutting: fanIn.length
   });
   c.hard.overlaps += hidden;
@@ -24899,8 +27289,8 @@ function checkHead(c, e, h, chips, counts) {
       "flow.head-hidden",
       "major",
       [e.id, h.target],
-      { edge: edgeName(e), end: h.at, under: covers.join(", ") },
-      `the arrowhead of ${edgeName(e)} at "${h.target}" sits under the ${covers.join(", ")}`,
+      { edge: edgeName2(e), end: h.at, under: covers.join(", ") },
+      `the arrowhead of ${edgeName2(e)} at "${h.target}" sits under the ${covers.join(", ")}`,
       [
         `move "${h.target}" earlier or later in the nodes list`,
         "shorten the covering label or badge"
@@ -24928,8 +27318,8 @@ function shortEnds(c, e, first, last, counts) {
         "flow.arrow-short",
         "minor",
         [e.id, id],
-        { edge: edgeName(e), node: id, gapPx: r1(gap), aspect: r22(aspect) },
-        `${edgeName(e)} stops ${r1(gap)}px short of the "${n4.icon}" glyph`,
+        { edge: edgeName2(e), node: id, gapPx: r1(gap), aspect: r22(aspect) },
+        `${edgeName2(e)} stops ${r1(gap)}px short of the "${n4.icon}" glyph`,
         [`use a square icon for "${id}"`, "use look: card for that node"],
         2
       );
@@ -24970,8 +27360,8 @@ function sharedTrunks(c) {
           "flow.shared-trunk",
           olap > 40 ? "major" : "minor",
           [a.id, b.id],
-          { a: edgeName(a), b: edgeName(b), sharedPx: r1(olap) },
-          `${edgeName(a)} and ${edgeName(b)} share ${r1(olap)}px of line, so readers cannot tell them apart`,
+          { a: edgeName2(a), b: edgeName2(b), sharedPx: r1(olap) },
+          `${edgeName2(a)} and ${edgeName2(b)} share ${r1(olap)}px of line, so readers cannot tell them apart`,
           [
             "reorder nodes so the two edges take different channels",
             "use layout: { merge: false }",
@@ -25015,8 +27405,8 @@ function sideBySide(c, trunks) {
         "flow.side-by-side",
         "minor",
         [a.id, b.id],
-        { a: edgeName(a), b: edgeName(b), apartPx: r1(apart), sharedPx: r1(span) },
-        `${edgeName(a)} and ${edgeName(b)} run ${r1(apart)}px apart for ${r1(span)}px, so they read as one double line`,
+        { a: edgeName2(a), b: edgeName2(b), apartPx: r1(apart), sharedPx: r1(span) },
+        `${edgeName2(a)} and ${edgeName2(b)} run ${r1(apart)}px apart for ${r1(span)}px, so they read as one double line`,
         [
           "reorder nodes so the two edges take different channels",
           "use layout: { spacing: loose }"
@@ -25115,11 +27505,11 @@ function arrowSemantics(c) {
       "flow.bidirectional",
       "minor",
       [e.id],
-      { edge: edgeName(e) },
-      `${edgeName(e)} has two heads, so it does not say who initiates`,
+      { edge: edgeName2(e) },
+      `${edgeName2(e)} has two heads, so it does not say who initiates`,
       [
-        `split it into ${edgeName(e)} and ${e.to} -> ${e.from} with their own labels`,
-        `keep one direction (${edgeName(e)}) from the caller to the dependency`
+        `split it into ${edgeName2(e)} and ${e.to} -> ${e.from} with their own labels`,
+        `keep one direction (${edgeName2(e)}) from the caller to the dependency`
       ],
       3
     );
@@ -25128,21 +27518,21 @@ function arrowSemantics(c) {
       "flow.undirected",
       "minor",
       [e.id],
-      { edge: edgeName(e) },
-      `${edgeName(e)} has no arrowhead`,
-      [`give it a direction (${edgeName(e)}) or explain the plain line in the legend`],
+      { edge: edgeName2(e) },
+      `${edgeName2(e)} has no arrowhead`,
+      [`give it a direction (${edgeName2(e)}) or explain the plain line in the legend`],
       3
     );
   return { both, none };
 }
 function unlabelledCrossings(c) {
   const { model, add } = c;
-  const bands = new Set(
+  const bands2 = new Set(
     model.groups.filter((g) => g.type === "lane" || g.type === "pool").map((g) => g.id)
   );
   const chain = (id) => {
     const out = /* @__PURE__ */ new Set();
-    for (let p = c.parentOf(id); p; p = c.parentOf(p)) if (!bands.has(p)) out.add(p);
+    for (let p = c.parentOf(id); p; p = c.parentOf(p)) if (!bands2.has(p)) out.add(p);
     return out;
   };
   const crossing = model.edges.filter((e) => {
@@ -25157,7 +27547,7 @@ function unlabelledCrossings(c) {
       "flow.unlabelled-boundary",
       "minor",
       crossing.map((e) => e.id),
-      { count: crossing.length, edges: crossing.map(edgeName).slice(0, 6).join("; ") },
+      { count: crossing.length, edges: crossing.map(edgeName2).slice(0, 6).join("; ") },
       `${crossing.length} unlabelled edge(s) cross a group boundary; the mechanism is left to guess`,
       ["label the edge with the protocol or action (HTTPS, VPC peering, PrivateLink)"],
       Math.min(10, 2 * crossing.length)
@@ -25176,14 +27566,14 @@ function unconnectedNodes(c, diagnostics) {
 function edgeBudget(c) {
   const { model, add } = c;
   const nodeCount3 = model.nodes.length;
-  const edgeCount = model.edges.length;
-  if (model.kind === "architecture" && edgeCount > nodeCount3)
+  const edgeCount2 = model.edges.length;
+  if (model.kind === "architecture" && edgeCount2 > nodeCount3)
     add(
       "flow.edge-budget",
       "minor",
       [],
-      { edges: edgeCount, nodes: nodeCount3 },
-      `${edgeCount} edges for ${nodeCount3} nodes: more arrows than nodes reads as a call sequence`,
+      { edges: edgeCount2, nodes: nodeCount3 },
+      `${edgeCount2} edges for ${nodeCount3} nodes: more arrows than nodes reads as a call sequence`,
       [
         "draw one edge to a group instead of parallel edges to its members",
         "drop reply, echo and cross-cutting edges: the layout already says them",
@@ -25191,7 +27581,7 @@ function edgeBudget(c) {
       ],
       3
     );
-  return { nodeCount: nodeCount3, edgeCount };
+  return { nodeCount: nodeCount3, edgeCount: edgeCount2 };
 }
 function crossCutting(c) {
   const { model, add } = c;
@@ -25225,7 +27615,7 @@ function crossCutting(c) {
       },
       ...fanIn.map(({ n: n4 }) => ({ op: "set", path: `nodes.${n4.id}.in`, value: gid })),
       ...fanIn.flatMap(
-        ({ into }) => into.map((e) => ({ op: "edge", match: edgeName(e), value: null }))
+        ({ into }) => into.map((e) => ({ op: "edge", match: edgeName2(e), value: null }))
       )
     ];
     const names = fanIn.map(({ n: n4, into }) => `"${n4.id}" (${into.length} edges in)`).join(", ");
@@ -25314,8 +27704,8 @@ function measureGrid2(c) {
           "grid.jog",
           "minor",
           [e.id],
-          { edge: edgeName(e), jogPx: r22(len2), x: r1(a.x), y: r1(a.y) },
-          `${edgeName(e)} steps ${r22(len2)}px sideways where it could run straight`,
+          { edge: edgeName2(e), jogPx: r22(len2), x: r1(a.x), y: r1(a.y) },
+          `${edgeName2(e)} steps ${r22(len2)}px sideways where it could run straight`,
           [`give "${e.from}" and "${e.to}" the same look and size`, "use layout: { merge: false }"],
           3
         );
@@ -25382,7 +27772,7 @@ function frameGaps(c) {
   let wide = 0;
   let between = 0;
   if (model.kind === "journey") return { wide, between };
-  const layer = 64 * model.spacing;
+  const layer2 = 64 * model.spacing;
   const frames2 = scene.groups.filter((g) => !g.overlay);
   const runs2 = scene.edges.flatMap((e) => segments2(simplify2(e.points)));
   const marks2 = scene.edges.flatMap(
@@ -25402,20 +27792,20 @@ function frameGaps(c) {
       ["row", "y", "h", "x", "w"],
       ["column", "x", "w", "y", "h"]
     ]) {
-      const bands = [];
+      const bands2 = [];
       for (const b of [...items].sort((p, q) => p[at] - q[at])) {
         const lo = b[at];
         const hi = b[at] + b[size];
-        const band = bands.find((x2) => lo < x2.hi && x2.lo < hi);
+        const band = bands2.find((x2) => lo < x2.hi && x2.lo < hi);
         if (band) {
           band.lo = Math.min(band.lo, lo);
           band.hi = Math.max(band.hi, hi);
-        } else bands.push({ lo, hi });
+        } else bands2.push({ lo, hi });
       }
       const gaps = [];
-      for (let i = 1; i < bands.length; i++) {
-        const a0 = bands[i - 1]?.hi ?? 0;
-        const b0 = bands[i]?.lo ?? 0;
+      for (let i = 1; i < bands2.length; i++) {
+        const a0 = bands2[i - 1]?.hi ?? 0;
+        const b0 = bands2[i]?.lo ?? 0;
         if (b0 <= a0) continue;
         const inside3 = marks2.filter(
           ({ box: t }) => t[at] < b0 && t[at] + t[size] > a0 && t[across2] < area[across2] + area[acrossSize] && t[across2] + t[acrossSize] > area[across2]
@@ -25428,7 +27818,7 @@ function frameGaps(c) {
           ).map(([p]) => Math.round(p[at]))
         ).size;
         const channel = tracks ? (40 + 10 * (tracks - 1)) * model.spacing : 0;
-        const labels2 = inside3.length ? 2 * layer + Math.max(0, hi - lo) : layer;
+        const labels2 = inside3.length ? 2 * layer2 + Math.max(0, hi - lo) : layer2;
         gaps.push({
           d: b0 - a0,
           a0,
@@ -25507,7 +27897,7 @@ function measureLayout(c, diagnostics) {
   const edges = scene.edges;
   const { forward, against } = directionAgreement(c);
   const crossings2 = edgeCrossings(c);
-  const { lens, median, long } = edgeLengths(c);
+  const { lens, median: median2, long } = edgeLengths(c);
   const holePct = emptySpace(c);
   const spacing = nodeSpacing(c);
   const aspect = proportions(c);
@@ -25522,7 +27912,7 @@ function measureLayout(c, diagnostics) {
     nodePitchPx: Math.round(spacing.pitch),
     aspect: r22(aspect),
     longEdges: long.length,
-    edgeMedianPx: Math.round(median),
+    edgeMedianPx: Math.round(median2),
     edgeMaxPx: Math.round(Math.max(0, ...lens.map((l) => l.len))),
     specOrderPct: pairs ? r1(100 * inOrder / pairs) : 100,
     fallback: scene.layoutFallback ?? "none",
@@ -25552,7 +27942,7 @@ function directionAgreement(c) {
         count: against.length,
         sharePct: r1(100 * share),
         direction: dir,
-        edges: against.map(edgeName).slice(0, 6).join("; ")
+        edges: against.map(edgeName2).slice(0, 6).join("; ")
       },
       `${against.length} of ${edges.length} arrowheads point against direction: ${dir}`,
       [
@@ -25617,19 +28007,19 @@ function edgeLengths(c) {
   const lens = scene.edges.map((e) => ({ e, len: pathLen(e.points) }));
   const sorted = lens.map((l) => l.len).sort((a, b) => a - b);
   const mid = sorted.length >> 1;
-  const median = sorted.length ? sorted.length % 2 ? sorted[mid] ?? 0 : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2 : 0;
-  const long = lens.filter((l) => l.len > 2.5 * median && l.len > 300);
+  const median2 = sorted.length ? sorted.length % 2 ? sorted[mid] ?? 0 : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2 : 0;
+  const long = lens.filter((l) => l.len > 2.5 * median2 && l.len > 300);
   for (const l of long)
     add(
       "layout.long-edge",
       "minor",
       [l.e.id],
-      { edge: edgeName(l.e), lengthPx: Math.round(l.len), medianPx: Math.round(median) },
-      `${edgeName(l.e)} is ${Math.round(l.len)}px, ${r1(l.len / (median || 1))}x the median edge`,
+      { edge: edgeName2(l.e), lengthPx: Math.round(l.len), medianPx: Math.round(median2) },
+      `${edgeName2(l.e)} is ${Math.round(l.len)}px, ${r1(l.len / (median2 || 1))}x the median edge`,
       [`move "${l.e.from}" or "${l.e.to}" next to the other in the nodes list`],
       3
     );
-  return { lens, median, long };
+  return { lens, median: median2, long };
 }
 function largestHole(c) {
   const { scene } = c;
@@ -25851,14 +28241,14 @@ function layoutDiagnostics(c, diagnostics) {
   }
   const ignored = diagnostics.filter((x2) => x2.code === "DG219");
   for (const d of ignored) {
-    const setting = String(d.subject?.setting ?? "");
+    const setting2 = String(d.subject?.setting ?? "");
     const [kind, id] = ["node", "group", "edge", "layout"].map((k) => [k, d.subject?.[k]]).find(([, v]) => typeof v === "string") ?? ["layout", ""];
-    const path = kind === "node" ? `nodes.${id}.${setting}` : kind === "group" ? `groups.${id}.${setting}` : kind === "layout" ? setting : void 0;
+    const path = kind === "node" ? `nodes.${id}.${setting2}` : kind === "group" ? `groups.${id}.${setting2}` : kind === "layout" ? setting2 : void 0;
     add(
       "layout.ignored",
       "minor",
       kind === "layout" ? [] : [String(id)],
-      { setting, reason: String(d.evidence?.reason ?? "") },
+      { setting: setting2, reason: String(d.evidence?.reason ?? "") },
       d.message,
       d.fixes ?? [],
       3,
@@ -26089,8 +28479,8 @@ function edgesThroughGroupIcons(c, diagnostics) {
         "overlap.edge-through-header",
         "major",
         [e.id, g.id],
-        { edge: edgeName(e), group: g.id, lengthPx: r1(len2) },
-        `edge ${edgeName(e)} runs ${r1(len2)}px through the icon of group "${g.id}", so it looks broken`,
+        { edge: edgeName2(e), group: g.id, lengthPx: r1(len2) },
+        `edge ${edgeName2(e)} runs ${r1(len2)}px through the icon of group "${g.id}", so it looks broken`,
         [
           `reorder the nodes inside "${g.id}" so the edge enters away from the header`,
           `shorten the label of "${g.id}"`,
@@ -26113,11 +28503,11 @@ function edgesThroughStepsAndText(c) {
           "overlap.edge-through-label",
           "major",
           [e.id, o.id],
-          { edge: edgeName(e), other: edgeName(o), part: "step", lengthPx: r1(len2) },
-          `edge ${edgeName(e)} runs ${r1(len2)}px through the step of ${edgeName(o)}`,
+          { edge: edgeName2(e), other: edgeName2(o), part: "step", lengthPx: r1(len2) },
+          `edge ${edgeName2(e)} runs ${r1(len2)}px through the step of ${edgeName2(o)}`,
           [
             "move one endpoint earlier or later in the nodes list",
-            `shorten or drop the label on ${edgeName(o)}`,
+            `shorten or drop the label on ${edgeName2(o)}`,
             "use layout: { spacing: loose }"
           ],
           8
@@ -26139,8 +28529,8 @@ function edgesThroughStepsAndText(c) {
             "overlap.edge-through-label",
             "major",
             [e.id, n4.id],
-            { edge: edgeName(e), node: n4.id, part, lengthPx: r1(len2) },
-            `edge ${edgeName(e)} runs ${r1(len2)}px through the ${part} text of "${n4.id}"`,
+            { edge: edgeName2(e), node: n4.id, part, lengthPx: r1(len2) },
+            `edge ${edgeName2(e)} runs ${r1(len2)}px through the ${part} text of "${n4.id}"`,
             [`move "${n4.id}" earlier or later in the nodes list`, "change direction"],
             8
           );
@@ -26412,8 +28802,8 @@ function storySize(c) {
         ["shorten the label and move detail into note"],
         3
       );
-    const text4 = c.model.nodes.find((x2) => x2.id === node4.id)?.label ?? "";
-    const broken = midWordBreak(text4, node4.label.lines);
+    const text5 = c.model.nodes.find((x2) => x2.id === node4.id)?.label ?? "";
+    const broken = midWordBreak(text5, node4.label.lines);
     if (broken)
       add(
         "quality.mid-word-break",
@@ -26427,8 +28817,8 @@ function storySize(c) {
   }
   return n4;
 }
-function midWordBreak(text4, lines2) {
-  const flat = text4.replace(/\s+/g, " ").trim();
+function midWordBreak(text5, lines2) {
+  const flat = text5.replace(/\s+/g, " ").trim();
   let pos = 0;
   for (let i = 0; i < lines2.length - 1; i++) {
     const line = lines2[i] ?? "";
@@ -26611,7 +29001,7 @@ function reviewElements(scene, foot, s) {
       return {
         id: e.id,
         kind: "edge",
-        label: `${edgeName(e)}${e.label ? `: ${e.label.lines.join(" ")}` : ""}`,
+        label: `${edgeName2(e)}${e.label ? `: ${e.label.lines.join(" ")}` : ""}`,
         box: scaled({ x: x2, y, w: Math.max(...xs) - x2, h: Math.max(...ys) - y })
       };
     })
@@ -26658,523 +29048,6 @@ async function reviewModel(req) {
   };
 }
 
-// src/patch/apply.ts
-var import_yaml5 = __toESM(require_dist(), 1);
-
-// src/patch/edges.ts
-var import_yaml4 = __toESM(require_dist(), 1);
-
-// src/patch/ops.ts
-var import_yaml3 = __toESM(require_dist(), 1);
-
-// src/patch/text.ts
-var import_yaml2 = __toESM(require_dist(), 1);
-var isRecord = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
-var lineStart = (t, p) => t.lastIndexOf("\n", p - 1) + 1;
-var lineEnd = (t, p) => {
-  const n4 = t.indexOf("\n", p);
-  return n4 < 0 ? t.length : n4 + 1;
-};
-var isNull = (n4) => !n4 || (0, import_yaml2.isScalar)(n4) && n4.value === null;
-var firstNode = (item) => (0, import_yaml2.isPair)(item) ? item.key ?? item.value : item;
-var lastNode = (item) => (0, import_yaml2.isPair)(item) ? item.value ?? item.key : item;
-function contentEnd(n4) {
-  if (((0, import_yaml2.isMap)(n4) || (0, import_yaml2.isSeq)(n4)) && !n4.flow) {
-    const last = n4.items.at(-1);
-    if (last) return contentEnd(lastNode(last));
-  }
-  return n4.range[1];
-}
-function attachedStart(text4, start, floor) {
-  let s = start;
-  while (s > floor) {
-    const prev = lineStart(text4, s - 1);
-    if (prev < floor || !text4.slice(prev, s).trim().startsWith("#")) break;
-    s = prev;
-  }
-  return s;
-}
-function spansOf(text4, coll, comments) {
-  const out = [];
-  for (const item of coll.items) {
-    const s = firstNode(item).range[0];
-    const e = contentEnd(lastNode(item));
-    if (coll.flow) {
-      out.push({ start: s, end: e });
-      continue;
-    }
-    const start = lineStart(text4, s);
-    const floor = out.at(-1)?.end ?? 0;
-    out.push({
-      start: comments ? attachedStart(text4, start, floor) : start,
-      end: lineEnd(text4, e - 1)
-    });
-  }
-  return out;
-}
-function applyEdits(text4, edits) {
-  let out = text4;
-  for (const e of [...edits].sort((a, b) => b.start - a.start))
-    out = out.slice(0, e.start) + e.text + out.slice(e.end);
-  return out;
-}
-function scalarText(value, ctx) {
-  if (ctx === "json" || typeof value === "string" && /[\n\r\t]/.test(value))
-    return JSON.stringify(value ?? null);
-  if (ctx === "block") return (0, import_yaml2.stringify)(value, { lineWidth: 0 }).trimEnd();
-  const listed = (0, import_yaml2.stringify)([value], {
-    collectionStyle: "flow",
-    flowCollectionPadding: false,
-    lineWidth: 0
-  }).trim();
-  return listed.slice(1, -1).trim();
-}
-function inline2(value, ctx) {
-  const inner = ctx === "json" ? "json" : "flow";
-  if (Array.isArray(value)) return `[${value.map((x2) => inline2(x2, inner)).join(", ")}]`;
-  if (isRecord(value)) {
-    const parts = Object.entries(value).map(
-      ([k, x2]) => `${scalarText(k, inner)}: ${inline2(x2, inner)}`
-    );
-    return parts.length ? `{ ${parts.join(", ")} }` : "{}";
-  }
-  return scalarText(value, ctx);
-}
-var ctxOf = (v, coll) => v.json ? "json" : coll.flow ? "flow" : "block";
-var pairOf = (map, key) => map.items.find((p) => (0, import_yaml2.isScalar)(p.key) && String(p.key.value) === key);
-function removeItem(v, coll, i) {
-  const spans2 = spansOf(v.text, coll, false);
-  const span = spans2[i];
-  if (!coll.flow) return { ...span, text: "" };
-  if (spans2.length === 1)
-    return { start: coll.range[0], end: coll.range[1], text: (0, import_yaml2.isMap)(coll) ? "{}" : "[]" };
-  const next = spans2[i + 1];
-  if (next) return { start: span.start, end: next.start, text: "" };
-  return { start: spans2[i - 1].end, end: span.end, text: "" };
-}
-function insertItem(v, coll, item, before) {
-  const spans2 = spansOf(v.text, coll, true);
-  const last = spans2.at(-1);
-  if (coll.flow || !last) {
-    if (!last) {
-      const text4 = (0, import_yaml2.isMap)(coll) ? `{ ${item} }` : `[${item}]`;
-      return { start: coll.range[0], end: coll.range[1], text: text4 };
-    }
-    return { start: last.end, end: last.end, text: `, ${item}` };
-  }
-  const ref = coll.items[before ?? coll.items.length - 1];
-  const s = firstNode(ref).range[0];
-  const prefix = v.text.slice(lineStart(v.text, s), s);
-  const at = before === void 0 ? last.end : spans2[before].start;
-  return { start: at, end: at, text: `${prefix}${item}
-` };
-}
-function replaceValue(v, map, pair, value) {
-  const text4 = inline2(value, ctxOf(v, map));
-  const node4 = pair.value;
-  if (!node4) return { start: pair.key.range[1], end: pair.key.range[1], text: `: ${text4}` };
-  if ((0, import_yaml2.isScalar)(node4) && node4.range[0] === node4.range[1])
-    return { start: node4.range[0], end: node4.range[0], text: ` ${text4}` };
-  if (((0, import_yaml2.isMap)(node4) || (0, import_yaml2.isSeq)(node4)) && !node4.flow) {
-    const colon = v.text.indexOf(":", pair.key.range[1]);
-    return { start: colon, end: contentEnd(node4), text: `: ${text4}` };
-  }
-  return { start: node4.range[0], end: node4.range[1], text: text4 };
-}
-function insertPair(v, map, key, value, root = false) {
-  const ctx = ctxOf(v, map);
-  let text4 = `${scalarText(key, ctx)}: ${inline2(value, ctx)}`;
-  if (!root || ctx !== "block") return insertItem(v, map, text4);
-  if ((key === "nodes" || key === "groups") && isRecord(value) && Object.keys(value).length)
-    text4 = `${key}:
-${Object.entries(value).map(([k, x2]) => `  ${scalarText(k, "block")}: ${inline2(x2, "block")}`).join("\n")}`;
-  const before = map.items.findIndex(
-    (p) => (0, import_yaml2.isScalar)(p.key) && ["groups", "nodes", "edges"].includes(String(p.key.value))
-  );
-  return insertItem(v, map, text4, before < 0 ? void 0 : before);
-}
-function reorder(v, coll, from, to, after) {
-  const spans2 = spansOf(v.text, coll, !coll.flow);
-  const order = spans2.map((_, i) => i).filter((i) => i !== from);
-  order.splice(order.indexOf(to) + (after ? 1 : 0), 0, from);
-  let text4 = "";
-  for (const [k, i] of order.entries()) {
-    const span = spans2[i];
-    text4 += v.text.slice(span.start, span.end);
-    const next = spans2[k + 1];
-    if (next) text4 += v.text.slice(spans2[k].end, next.start);
-  }
-  return { start: spans2[0].start, end: spans2.at(-1).end, text: text4 };
-}
-
-// src/patch/types.ts
-var PatchError = class extends Error {
-};
-
-// src/patch/ops.ts
-var ICON_ID2 = /^(aws|azure|gcp|k8s|github|ibm|logos|si|tabler|ph|generic|local):[a-z0-9]/i;
-var nest = (keys, value) => keys.reduceRight((acc, k) => ({ [k]: acc }), value);
-function hint(word, options) {
-  let best;
-  let bestScore = Math.max(1, Math.floor(word.length / 3)) + 1;
-  for (const o of options) {
-    const d = distance(word.toLowerCase(), o.toLowerCase());
-    if (d < bestScore) {
-      bestScore = d;
-      best = o;
-    }
-  }
-  return best ? ` (did you mean "${best}"?)` : "";
-}
-var keysOf = (map) => (map?.items ?? []).flatMap((p) => (0, import_yaml3.isScalar)(p.key) ? [String(p.key.value)] : []);
-function editMap(v, map, keys, change, where) {
-  const [key, ...rest] = keys;
-  const here = where ? `${where}.${key}` : key;
-  const pair = pairOf(map, key);
-  const root = !where;
-  if (!rest.length) {
-    if (change.kind === "unset") {
-      if (!pair) throw new PatchError(`${here} is not set${hint(key, keysOf(map))}`);
-      return [removeItem(v, map, map.items.indexOf(pair))];
-    }
-    if (!pair) return [insertPair(v, map, key, change.value, root)];
-    if (change.kind === "add") throw new PatchError(`${here} is already set; use set to change it`);
-    return [replaceValue(v, map, pair, change.value)];
-  }
-  if (!pair || isNull(pair.value)) {
-    if (change.kind === "unset") throw new PatchError(`${here} is not set`);
-    const value = nest(rest, change.value);
-    return [pair ? replaceValue(v, map, pair, value) : insertPair(v, map, key, value, root)];
-  }
-  if ((0, import_yaml3.isMap)(pair.value)) return editMap(v, pair.value, rest, change, here);
-  throw new PatchError(`${here} is not a mapping, so it has no ${rest.join(".")}`);
-}
-function collectionOf(root, name) {
-  const value = pairOf(root, name)?.value ?? null;
-  if (isNull(value)) return void 0;
-  if ((0, import_yaml3.isMap)(value)) return value;
-  throw new PatchError(`${name} is a list; write it as a mapping keyed by id to patch it`);
-}
-function findEntry(map, segs) {
-  if (!map) return void 0;
-  for (let k = segs.length; k >= 1; k--) {
-    const id = segs.slice(0, k).join(".");
-    const pair = pairOf(map, id);
-    if (pair) return { pair, id, keys: segs.slice(k) };
-  }
-  return void 0;
-}
-function expand2(coll, value) {
-  if (value === null || value === void 0) return {};
-  if (coll === "groups") return typeof value === "string" ? { type: value } : {};
-  if (typeof value !== "string") return { label: String(value) };
-  return resolveIcon(value) || ICON_ID2.test(value.trim()) ? { icon: value } : { label: value };
-}
-function entryOp(v, root, coll, rest, change) {
-  const map = collectionOf(root, coll);
-  const what = coll === "nodes" ? "node" : "group";
-  const found = findEntry(map, rest);
-  if (!found) {
-    if (change.kind !== "add")
-      throw new PatchError(`no ${what} "${rest[0]}"${hint(rest[0] ?? "", keysOf(map))}`);
-    const id2 = rest.join(".");
-    const other = collectionOf(root, coll === "nodes" ? "groups" : "nodes");
-    if (other && pairOf(other, id2))
-      throw new PatchError(`"${id2}" is already a ${coll === "nodes" ? "group" : "node"}`);
-    if (!map)
-      return {
-        edits: editMap(v, root, [coll], { kind: "set", value: { [id2]: change.value } }, "")
-      };
-    return { edits: [insertPair(v, map, id2, change.value)] };
-  }
-  const { pair, id, keys } = found;
-  const m = map;
-  if (!keys.length) {
-    if (change.kind === "add")
-      throw new PatchError(`${what} "${id}" already exists; use set to change it`);
-    if (change.kind === "unset") return { edits: [removeItem(v, m, m.items.indexOf(pair))] };
-    return { edits: [replaceValue(v, m, pair, change.value)] };
-  }
-  if ((0, import_yaml3.isMap)(pair.value)) return { edits: editMap(v, pair.value, keys, change, `${coll}.${id}`) };
-  if ((0, import_yaml3.isSeq)(pair.value)) throw new PatchError(`${coll}.${id} is a list, not a mapping`);
-  const short2 = (0, import_yaml3.isScalar)(pair.value) ? pair.value.value : null;
-  return { edits: [replaceValue(v, m, pair, expand2(coll, short2))], again: true };
-}
-function pathOp(v, root, op) {
-  const segs = op.path.split(".");
-  if (segs.some((s) => !s.trim())) throw new PatchError(`path "${op.path}" has an empty part`);
-  const change = op.op === "unset" ? { kind: "unset" } : { kind: op.op, value: op.value };
-  const [head2, ...rest] = segs;
-  if (head2 === "edges") throw new PatchError("edges are list items; use the edge op");
-  if (head2 === "nodes" || head2 === "groups") {
-    if (!rest.length) throw new PatchError(`name one: ${head2}.<id>`);
-    return entryOp(v, root, head2, rest, change);
-  }
-  return { edits: editMap(v, root, segs, change, "") };
-}
-function moveOp(v, root, op) {
-  const [head2, ...rest] = op.path.split(".");
-  if (head2 !== "nodes" && head2 !== "groups" || !rest.length)
-    throw new PatchError("move takes a node or group path such as nodes.db");
-  const what = head2 === "nodes" ? "node" : "group";
-  const map = collectionOf(root, head2);
-  const found = findEntry(map, rest);
-  if (!map || !found)
-    throw new PatchError(`no ${what} "${rest.join(".")}"${hint(rest.join("."), keysOf(map))}`);
-  if (found.keys.length) throw new PatchError("move takes a node or group path such as nodes.db");
-  const after = op.after !== void 0;
-  const raw = String(op.after ?? op.before);
-  const target = raw.startsWith(`${head2}.`) ? raw.slice(head2.length + 1) : raw;
-  const to = pairOf(map, target);
-  if (!to)
-    throw new PatchError(
-      `no ${what} "${target}" to move ${after ? "after" : "before"}${hint(target, keysOf(map))}`
-    );
-  if (to === found.pair) throw new PatchError(`cannot move "${target}" next to itself`);
-  return {
-    edits: [reorder(v, map, map.items.indexOf(found.pair), map.items.indexOf(to), after)]
-  };
-}
-
-// src/patch/edges.ts
-function labelColon2(s) {
-  let depth = 0;
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (c === "[") depth += 1;
-    else if (c === "]") depth = Math.max(0, depth - 1);
-    else if (c === ":" && depth === 0 && (i + 1 === s.length || /\s/.test(s[i + 1] ?? "")))
-      return i;
-  }
-  return -1;
-}
-function hopKey(h) {
-  const [a, b, head2] = h.arrow === "start" ? [h.to, h.from, "end"] : [h.from, h.to, h.arrow];
-  const ends2 = head2 === "both" || head2 === "none" ? [a, b].sort() : [a, b];
-  return `${ends2[0]} ${h.line}-${head2} ${ends2[1]}`;
-}
-var signature = (hops) => [...new Set(hops.map(hopKey))].sort().join(" | ");
-var str3 = (v) => v === void 0 || v === null ? void 0 : String(v);
-function edgeShape(item) {
-  let expr;
-  let extra = {};
-  let label;
-  if (typeof item === "string") expr = item;
-  else if (isRecord(item)) {
-    const keys = Object.keys(item);
-    const only = keys.length === 1 ? keys[0] : void 0;
-    if (only !== void 0 && typeof parseEdgeExpression(only) !== "string") {
-      expr = only;
-      const v = item[only];
-      if (typeof v === "string" || typeof v === "number") label = String(v);
-      else if (isRecord(v)) {
-        extra = v;
-        label = str3(v.label ?? v.text);
-      }
-    } else {
-      extra = item;
-      label = str3(item.label ?? item.text);
-    }
-  } else return "an edge is a line such as api -> db or a mapping";
-  const flow = str3(extra.flow)?.toLowerCase();
-  const line = str3(extra.line ?? extra.style)?.toLowerCase();
-  const arrow = str3(extra.arrow)?.toLowerCase();
-  const flowLine = flow === "message" ? "dashed" : flow === "association" ? "dotted" : void 0;
-  const written = [];
-  const drawn = [];
-  const add = (from, to, opLine, opArrow) => {
-    written.push({ from, to, line: opLine, arrow: opArrow });
-    drawn.push({
-      from,
-      to,
-      line: line ?? flowLine ?? opLine,
-      arrow: arrow ?? (flow === "association" ? "none" : opArrow)
-    });
-  };
-  if (expr !== void 0) {
-    const parsed = parseEdgeExpression(expr);
-    if (typeof parsed === "string") return parsed;
-    const single = parsed.hops.length === 1;
-    label ??= single ? parsed.hops[0]?.op.label ?? parsed.label : parsed.label;
-    for (const hop of parsed.hops)
-      for (const f of hop.from)
-        for (const t of hop.to) {
-          const reverse = hop.op.arrow === "start";
-          add(reverse ? t : f, reverse ? f : t, hop.op.line, reverse ? "end" : hop.op.arrow);
-        }
-  } else {
-    const from = extra.from ?? extra.source;
-    const to = extra.to ?? extra.target;
-    if (from === void 0 || to === void 0) return 'an edge mapping needs "from" and "to"';
-    for (const f of (Array.isArray(from) ? from : [from]).map(String))
-      for (const t of (Array.isArray(to) ? to : [to]).map(String)) add(f, t, "solid", "end");
-  }
-  return {
-    written: signature(written),
-    drawn: signature(drawn),
-    ends: written.map((h) => [h.from, h.to].sort().join(" ~ ")),
-    ...label !== void 0 ? { label: label.trim() } : {}
-  };
-}
-function edgeText(value, ctx) {
-  if (typeof value === "string") {
-    const s = value.trim();
-    const colon = labelColon2(s);
-    const label = colon >= 0 ? s.slice(colon + 1).trim() : "";
-    if (ctx !== "block" || !label) return scalarText(s, ctx);
-    return `${scalarText(s.slice(0, colon).trim(), ctx)}: ${scalarText(label, ctx)}`;
-  }
-  const keys = Object.keys(value);
-  const only = keys.length === 1 ? keys[0] : void 0;
-  if (ctx === "block" && only !== void 0 && typeof parseEdgeExpression(only) !== "string")
-    return `${scalarText(only, ctx)}: ${inline2(value[only], ctx)}`;
-  return inline2(value, ctx);
-}
-function matchEdge(v, seq, list, match) {
-  const want = edgeShape(match);
-  if (typeof want === "string") throw new PatchError(`cannot read match "${match}": ${want}`);
-  const source = (i) => {
-    const node4 = seq.items[i];
-    return v.text.slice(node4.range[0], contentEnd(node4));
-  };
-  const hits5 = [];
-  const near = [];
-  for (const [i, item] of list.entries()) {
-    const have = edgeShape(item);
-    if (typeof have === "string") continue;
-    const same3 = want.written === have.written || want.written === have.drawn;
-    if (same3 && (want.label === void 0 || want.label === have.label)) hits5.push(i);
-    else if (have.ends.some((e) => want.ends.includes(e))) near.push(i);
-  }
-  const parsed = parseEdgeExpression(match);
-  const plain2 = typeof parsed !== "string" && parsed.hops.every((h) => h.op.line === "solid" && h.op.arrow === "end");
-  if (!hits5.length && plain2) {
-    const ends2 = new Set(want.ends);
-    const loose = near.filter((i) => {
-      const have = edgeShape(list[i]);
-      return typeof have !== "string" && have.ends.length === ends2.size && have.ends.every((e) => ends2.has(e)) && (want.label === void 0 || want.label === have.label);
-    });
-    if (loose.length === 1) return loose[0];
-  }
-  if (hits5.length === 1) return hits5[0];
-  const quote = (ids) => ids.slice(0, 3).map((i) => `"${source(i)}"`).join(", ");
-  if (hits5.length > 1)
-    throw new PatchError(
-      `"${match}" matches ${hits5.length} edges (${quote(hits5)}); add the label to pick one`
-    );
-  throw new PatchError(
-    `no edge matches "${match}"${near.length ? `; edges between the same nodes: ${quote(near)}` : ""}`
-  );
-}
-function edgeOp(v, root, list, op) {
-  const { match, value } = op;
-  if (value !== null) {
-    const shape = typeof value === "string" || isRecord(value) ? edgeShape(value) : "it is not a line or mapping";
-    if (typeof shape === "string")
-      throw new PatchError(`value must be an edge such as "api -> db: SQL" (${shape})`);
-  }
-  const edge3 = value;
-  const pair = pairOf(root, "edges");
-  const seq = pair?.value ?? null;
-  if (match === null) {
-    if (edge3 === null) throw new PatchError("give a match to change or remove, or a value to add");
-    if ((0, import_yaml4.isSeq)(seq)) return [insertItem(v, seq, edgeText(edge3, ctxOf(v, seq)))];
-    if (!isNull(seq)) throw new PatchError("edges must be a list to be patched");
-    if (ctxOf(v, root) !== "block")
-      return editMap(v, root, ["edges"], { kind: "set", value: [edge3] }, "");
-    const item = `
-  - ${edgeText(edge3, "block")}`;
-    if (seq) return [{ start: seq.range[0], end: seq.range[1], text: item }];
-    const end = v.text.length;
-    return [{ start: end, end, text: `edges:${item}
-` }];
-  }
-  if (!(0, import_yaml4.isSeq)(seq) || !Array.isArray(list)) throw new PatchError(`no edge matches "${match}"`);
-  const i = matchEdge(v, seq, list, match);
-  if (edge3 === null) return [removeItem(v, seq, i)];
-  const node4 = seq.items[i];
-  return [{ start: node4.range[0], end: contentEnd(node4), text: edgeText(edge3, ctxOf(v, seq)) }];
-}
-
-// src/patch/apply.ts
-var OPS2 = ["set", "unset", "add", "move", "edge"];
-function checkOp(op) {
-  if (!isRecord(op))
-    throw new PatchError("an op must be a mapping such as { op: set, path, value }");
-  if (!OPS2.includes(String(op.op)))
-    throw new PatchError(`unknown op "${String(op.op)}"; use ${OPS2.join(", ")}`);
-  if (op.op !== "edge" && (typeof op.path !== "string" || !op.path))
-    throw new PatchError(`${op.op} needs a path such as nodes.db.note`);
-  if ((op.op === "set" || op.op === "add") && op.value === void 0)
-    throw new PatchError(`${op.op} needs a value`);
-  if (op.op === "move" && op.after === void 0 === (op.before === void 0))
-    throw new PatchError("move needs one of after or before");
-  if (op.op === "edge") {
-    if (!("match" in op) || op.match !== null && typeof op.match !== "string")
-      throw new PatchError("edge needs match: an edge line such as api -> db, or null to add one");
-    if (!("value" in op))
-      throw new PatchError("edge needs value: the new edge, or null to remove it");
-  }
-}
-var short = (v) => {
-  const s = typeof v === "string" ? v : JSON.stringify(v) ?? String(v);
-  return s.length > 48 ? `${s.slice(0, 45)}...` : s;
-};
-function describeOp(op) {
-  if (!isRecord(op)) return short(op);
-  switch (op.op) {
-    case "set":
-    case "add":
-      return `${op.op} ${op.path} ${short(op.value)}`;
-    case "unset":
-      return `unset ${op.path}`;
-    case "move":
-      if (op.after !== void 0) return `move ${op.path} after ${op.after}`;
-      return op.before !== void 0 ? `move ${op.path} before ${op.before}` : `move ${op.path}`;
-    case "edge":
-      if (op.match === null) return `edge add ${short(op.value)}`;
-      if (op.value === null) return `edge remove ${op.match}`;
-      return `edge ${op.match} => ${short(op.value)}`;
-    default:
-      return short(op);
-  }
-}
-function applyOne(text4, op, depth = 0) {
-  const doc = (0, import_yaml5.parseDocument)(text4);
-  const bad = doc.errors[0];
-  if (bad) throw new PatchError(`the spec is not valid YAML: ${bad.message.split("\n")[0]}`);
-  const root = doc.contents;
-  if (!(0, import_yaml5.isMap)(root)) throw new PatchError("the spec must be a mapping");
-  const v = { text: text4, json: /^\s*\{/.test(text4) };
-  let step;
-  if (op.op === "move") step = moveOp(v, root, op);
-  else if (op.op === "edge") {
-    const js = doc.toJS();
-    step = { edits: edgeOp(v, root, isRecord(js) ? js.edges : void 0, op) };
-  } else step = pathOp(v, root, op);
-  const out = applyEdits(text4, step.edits);
-  const check = (0, import_yaml5.parseDocument)(out).errors[0];
-  if (check) throw new PatchError(`the edit made invalid YAML: ${check.message.split("\n")[0]}`);
-  return step.again && depth === 0 ? applyOne(out, op, 1) : out;
-}
-function applyPatches(source, ops) {
-  if (!ops.length) return source;
-  const crlf = source.includes("\r\n");
-  let text4 = crlf ? source.replace(/\r\n/g, "\n") : source;
-  if (!text4.endsWith("\n")) text4 += "\n";
-  for (const [i, op] of ops.entries()) {
-    try {
-      checkOp(op);
-      text4 = applyOne(text4, op);
-    } catch (e) {
-      if (e instanceof PatchError)
-        throw new PatchError(`op ${i + 1} (${describeOp(op)}): ${e.message}`);
-      throw e;
-    }
-  }
-  return crlf ? text4.replace(/\n/g, "\r\n") : text4;
-}
-
 // src/patch/candidates.ts
 var HARD = {
   overlaps: "overlaps",
@@ -27200,7 +29073,7 @@ function whyNot(before, after) {
 }
 var errorsOf = (list) => list.filter((d) => d.severity === "error").slice(0, 3).map((d) => `${d.code} ${d.message}`).join("; ");
 async function tryCandidates(req) {
-  const name = basename5(req.filename).replace(/\.(ya?ml|json)$/i, "");
+  const name = basename7(req.filename).replace(/\.(ya?ml|json)$/i, "");
   const base = parseSpec(req.source, req.filename);
   if (!base.model) throw new PatchError(`${name} has errors: ${errorsOf(base.diagnostics)}`);
   const theme = req.theme ?? base.model.theme;
@@ -27309,7 +29182,7 @@ var tryPatchesTool = {
     const width2 = num2(input, "width", 200, 4e3, true);
     const theme = oneOf2(input, "theme", THEMES);
     const skin = oneOf2(input, "skin", SKINS);
-    const parsed = parse(spec, ctx);
+    const parsed = parse2(spec, ctx);
     if (!parsed.model) return [json(verdict(parsed.diagnostics))];
     let run2;
     try {
@@ -27338,7 +29211,7 @@ var tryPatchesTool = {
       })),
       best: run2.best?.index ?? null
     };
-    return [json(summary), ...run2.best?.source ? [text3(run2.best.source)] : []];
+    return [json(summary), ...run2.best?.source ? [text4(run2.best.source)] : []];
   }
 };
 function candidatesOf2(v) {
@@ -27358,6 +29231,295 @@ function candidatesOf2(v) {
 
 // src/mcp/tools/render.ts
 import { isAbsolute as isAbsolute4, join as join9 } from "node:path";
+
+// src/mcp/viewer.ts
+var UI_EXTENSION = "io.modelcontextprotocol/ui";
+var VIEWER_URI = "ui://orrery/viewer";
+var VIEWER_MIME = "text/html;profile=mcp-app";
+var VIEWER_KEY = "orrery/viewer";
+var VIEWER_LINK = { ui: { resourceUri: VIEWER_URI }, "ui/resourceUri": VIEWER_URI };
+var RESOURCE_META = { ui: { prefersBorder: true } };
+var VIEWER_RESOURCE = {
+  uri: VIEWER_URI,
+  name: "orrery-viewer",
+  title: "orrery diagram viewer",
+  description: "Shows a render or review result: the animated SVG with a light and dark switch, zoom and pan, and the review score.",
+  mimeType: VIEWER_MIME,
+  _meta: RESOURCE_META
+};
+function supportsUi(capabilities) {
+  if (!isObj2(capabilities) || !isObj2(capabilities.extensions)) return false;
+  const ui = capabilities.extensions[UI_EXTENSION];
+  return isObj2(ui) && Array.isArray(ui.mimeTypes) && ui.mimeTypes.includes(VIEWER_MIME);
+}
+async function viewerMeta(req) {
+  const svgs = /* @__PURE__ */ new Map();
+  const keep = (list) => {
+    for (const a of list)
+      if (a.format === "svg" && a.theme && typeof a.data === "string") svgs.set(a.theme, a);
+  };
+  keep(req.have ?? []);
+  const missing = THEMES.filter((t) => !svgs.has(t));
+  if (missing.length) {
+    const { model, name, animate, skin } = req;
+    keep(
+      (await renderSafe({ model, formats: ["svg"], themes: missing, name, animate, skin })).artifacts
+    );
+  }
+  const first = svgs.get(req.theme) ?? [...svgs.values()][0];
+  if (!first) return void 0;
+  const svg = {};
+  for (const [theme, a] of svgs) svg[theme] = a.data;
+  const r4 = req.report;
+  const payload = {
+    title: req.model.title ?? req.name,
+    theme: req.theme,
+    svg,
+    width: first.width,
+    height: first.height,
+    ...r4 ? {
+      review: {
+        score: r4.score,
+        pass: r4.pass,
+        width: r4.width,
+        dimensions: Object.fromEntries(
+          Object.entries(r4.dimensions).map(([k, d]) => [k, d.score])
+        ),
+        findings: r4.findings.slice(0, 5).map((f) => ({ severity: f.severity, claim: f.claim }))
+      }
+    } : {}
+  };
+  return { [VIEWER_KEY]: payload };
+}
+function readViewer(uri) {
+  if (uri !== VIEWER_URI) return void 0;
+  return [{ uri: VIEWER_URI, mimeType: VIEWER_MIME, text: VIEWER_HTML, _meta: RESOURCE_META }];
+}
+var VIEWER_HTML = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="orrery">
+<title>orrery diagram</title>
+<style>
+:root{color-scheme:light dark;--bg:#f6f7f9;--panel:#ffffff;--ink:#1f2937;--muted:#5f6b7a;--line:#d8dde3;--accent:#2563eb;--good:#15803d;--bad:#b45309}
+body[data-theme=dark]{--bg:#090c10;--panel:#0d1117;--ink:#e6edf3;--muted:#9aa4b2;--line:#30363d;--accent:#58a6ff;--good:#3fb950;--bad:#d29922}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.4 Inter,"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;transition:background .25s ease,color .25s ease}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font-size:14px;font-weight:600;margin:0;flex:1 1 180px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer;min-height:36px;min-width:36px;display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s ease,transform .15s ease}
+button:hover{border-color:var(--accent)}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.45;cursor:default;border-color:var(--line)}
+#zoom{min-width:48px;text-align:center;font-size:12px;color:var(--muted)}
+#review{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer}
+#review[data-pass=true]{color:var(--good);border-color:var(--good)}
+#review[data-pass=false]{color:var(--bad);border-color:var(--bad)}
+#details{border-bottom:1px solid var(--line);background:var(--panel);padding:8px 12px;font-size:12px;color:var(--muted)}
+#details ul{margin:6px 0 0;padding-left:18px}
+#dims{display:flex;flex-wrap:wrap;gap:4px 14px}
+#dims b{color:var(--ink);font-weight:600}
+main{position:relative;overflow:hidden;touch-action:none;cursor:grab;height:360px}
+main.dragging{cursor:grabbing}
+#canvas{position:absolute;left:0;top:0;transform-origin:0 0}
+#canvas img{display:block;max-width:none;border-radius:8px}
+#empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--muted)}
+.hint{position:absolute;right:10px;bottom:8px;font-size:11px;color:var(--muted);pointer-events:none}
+@media (max-width:440px){header{padding:8px}.tools{gap:4px}button{padding:6px 8px}#zoom{min-width:36px}#review{padding:4px 8px}.hint{display:none}}
+</style>
+</head>
+<body data-theme="light">
+<header>
+<h1 id="title">orrery</h1>
+<div class="tools">
+<span id="review" role="button" tabindex="0" hidden></span>
+<button type="button" id="theme" aria-label="Switch light or dark" disabled>Dark</button>
+<button type="button" id="out" aria-label="Zoom out">-</button>
+<span id="zoom">100%</span>
+<button type="button" id="in" aria-label="Zoom in">+</button>
+<button type="button" id="fit">Fit</button>
+</div>
+</header>
+<div id="details" hidden><div id="dims"></div><ul id="findings"></ul></div>
+<main id="stage" aria-label="Diagram, drag to pan, scroll or pinch to zoom">
+<div id="canvas"><img id="diagram" alt=""></div>
+<div id="empty">Waiting for the diagram</div>
+<div class="hint">drag to pan, scroll or pinch to zoom</div>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const body = document.body, stage = $("stage"), canvas = $("canvas"), img = $("diagram");
+  const view = { title: "", svg: {}, png: "", width: 0, height: 0, theme: "light" };
+  let theme = "light", chosen = false, scale = 1, x = 0, y = 0, host = {};
+  // The reader's own pick, then the host's theme, then the spec's, among the themes on hand; a
+  // lone PNG keeps the page in the picture's theme.
+  const pick = () => [chosen && theme, host.theme, view.theme, "light", "dark"].find((t) => t && view.svg[t]) || (view.png ? view.theme : host.theme || view.theme);
+
+  // ---- the host bridge: JSON-RPC 2.0 over postMessage to the parent frame
+  let seq = 0;
+  const pending = new Map();
+  const post = (msg) => window.parent.postMessage({ jsonrpc: "2.0", ...msg }, "*");
+  const request = (method, params) => new Promise((done, fail) => { const id = ++seq; pending.set(id, { done, fail }); post({ id, method, params }); });
+  const notify = (method, params) => post({ method, params });
+  window.addEventListener("message", (e) => {
+    if (e.source !== window.parent) return;
+    const m = e.data;
+    if (!m || m.jsonrpc !== "2.0") return;
+    if (m.method === undefined) {
+      const p = pending.get(m.id);
+      if (!p) return;
+      pending.delete(m.id);
+      m.error ? p.fail(m.error) : p.done(m.result || {});
+      return;
+    }
+    if (m.method === "ui/notifications/tool-result") show(m.params || {});
+    else if (m.method === "ui/notifications/host-context-changed") context(m.params || {});
+    // Requests the page has nothing to add to (ui/resource-teardown, ping) get an empty result.
+    else if (m.id !== undefined) post({ id: m.id, result: {} });
+  });
+
+  // ---- reading a render or review result
+  const svgSize = (svg) => {
+    const m = /<svg\\b[^>]*?\\swidth="([\\d.]+)"[^>]*?\\sheight="([\\d.]+)"/.exec(svg || "");
+    return m ? [Number(m[1]), Number(m[2])] : [0, 0];
+  };
+  const parse = (t) => { try { return JSON.parse(t); } catch { return undefined; } };
+  function show(result) {
+    const content = Array.isArray(result.content) ? result.content : [];
+    const data = result._meta && result._meta["${VIEWER_KEY}"];
+    view.png = "";
+    if (data && data.svg) {
+      Object.assign(view, { title: data.title || "", svg: data.svg, width: data.width, height: data.height, theme: data.theme });
+      review(data.review);
+    } else {
+      // No viewer data (a host that did not declare the extension): read the content itself.
+      const head = parse(content[0] && content[0].text) || {};
+      view.svg = {};
+      for (const o of head.outputs || []) {
+        const c = content[o.content];
+        if (o.format === "svg" && c && c.type === "text") view.svg[o.theme === "dark" ? "dark" : "light"] = c.text;
+      }
+      const image = content.find((c) => c.type === "image");
+      if (!view.svg.light && !view.svg.dark && image) view.png = "data:" + image.mimeType + ";base64," + image.data;
+      review(head.dimensions ? { score: head.score, pass: head.pass, width: head.width, dimensions: Object.fromEntries(Object.entries(head.dimensions).map(([k, d]) => [k, d.score])), findings: (head.findings || []).slice(0, 5) } : undefined);
+      view.title = head.name || "";
+      view.theme = head.theme || "light";
+      const first = view.svg.light || view.svg.dark;
+      [view.width, view.height] = first ? svgSize(first) : [head.display ? head.display.width : 0, head.display ? head.display.height : 0];
+      if (!first && !view.png) return empty(result.isError ? "The call failed: " + ((content[0] && content[0].text) || "no message") : head.ok === false ? "No picture: the spec has " + head.errors + " error(s). Fix them and render again." : "No picture in this result.");
+    }
+    $("title").textContent = view.title || "orrery diagram";
+    img.alt = view.title || "Diagram";
+    theme = pick();
+    draw(true);
+  }
+  function review(r) {
+    const badge = $("review");
+    badge.hidden = !r;
+    if (!r) { $("details").hidden = true; return; }
+    badge.dataset.pass = String(!!r.pass);
+    badge.textContent = "Review " + r.score + (r.pass ? " pass" : " fail");
+    badge.title = "Measured at " + r.width + " px";
+    $("dims").replaceChildren(...Object.entries(r.dimensions || {}).map(([k, v]) => { const s = document.createElement("span"); s.append(k + " "); const b = document.createElement("b"); b.textContent = v; s.append(b); return s; }));
+    $("findings").replaceChildren(...(r.findings || []).map((f) => { const li = document.createElement("li"); li.textContent = f.severity + ": " + f.claim; return li; }));
+  }
+  function empty(message) {
+    $("empty").textContent = message;
+    $("empty").hidden = false;
+    img.hidden = true;
+    $("theme").disabled = true;
+    resize();
+  }
+
+  // ---- drawing, zoom and pan
+  const src = () => view.svg[theme] ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(view.svg[theme]) : view.png;
+  function draw(refit) {
+    body.dataset.theme = theme;
+    const both = !!(view.svg.light && view.svg.dark);
+    $("theme").disabled = !both;
+    $("theme").textContent = theme === "light" ? "Dark" : "Light";
+    $("empty").hidden = true;
+    img.hidden = false;
+    img.src = src();
+    img.width = view.width;
+    img.height = view.height;
+    if (refit) resize(); else apply();
+  }
+  const apply = () => { canvas.style.transform = "translate(" + x + "px," + y + "px) scale(" + scale + ")"; $("zoom").textContent = Math.round(scale * 100) + "%"; };
+  function fit() {
+    if (!view.width) return;
+    const r = stage.getBoundingClientRect();
+    scale = Math.min((r.width - 16) / view.width, (r.height - 16) / view.height, 2);
+    x = (r.width - view.width * scale) / 2;
+    y = (r.height - view.height * scale) / 2;
+    apply();
+  }
+  const zoomAt = (f, cx, cy) => { const ns = Math.max(0.1, Math.min(8, scale * f)); x = cx - (cx - x) * (ns / scale); y = cy - (cy - y) * (ns / scale); scale = ns; apply(); };
+  const centre = (f) => { const r = stage.getBoundingClientRect(); zoomAt(f, r.width / 2, r.height / 2); };
+  const pointers = new Map();
+  let pinch = 0;
+  stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.classList.add("dragging"); });
+  stage.addEventListener("pointermove", (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    const prev = pointers.get(e.pointerId);
+    pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), r = stage.getBoundingClientRect();
+      if (pinch) zoomAt(d / pinch, (a[0] + b[0]) / 2 - r.left, (a[1] + b[1]) / 2 - r.top);
+      pinch = d;
+    } else { x += e.clientX - prev[0]; y += e.clientY - prev[1]; apply(); }
+  });
+  const up = (e) => { pointers.delete(e.pointerId); if (pointers.size < 2) pinch = 0; if (!pointers.size) stage.classList.remove("dragging"); };
+  stage.addEventListener("pointerup", up);
+  stage.addEventListener("pointercancel", up);
+  stage.addEventListener("wheel", (e) => { e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  stage.addEventListener("dblclick", fit);
+  $("theme").onclick = () => { chosen = true; theme = theme === "light" ? "dark" : "light"; draw(false); };
+  $("in").onclick = () => centre(1.25);
+  $("out").onclick = () => centre(0.8);
+  $("fit").onclick = fit;
+  const toggle = () => { $("details").hidden = !$("details").hidden; resize(); };
+  $("review").onclick = toggle;
+  $("review").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } };
+  addEventListener("keydown", (e) => { if (e.target !== document.body) return; if (e.key === "+" || e.key === "=") centre(1.25); else if (e.key === "-") centre(0.8); else if (e.key === "0") fit(); });
+
+  // ---- sizing: the stage is as tall as the diagram at this width, within what the host allows
+  let sent = 0;
+  function resize() {
+    const dims = host.containerDimensions || {};
+    const chrome = document.querySelector("header").offsetHeight + ($("details").hidden ? 0 : $("details").offsetHeight);
+    const wanted = view.width ? (innerWidth - 16) * view.height / view.width + 16 : 200;
+    const room = dims.height ? dims.height - chrome : Math.min(dims.maxHeight ? dims.maxHeight - chrome : 640, Math.max(220, wanted));
+    stage.style.height = Math.max(160, Math.round(room)) + "px";
+    fit();
+    const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+    if (h !== sent) { sent = h; notify("ui/notifications/size-changed", { width: Math.ceil(document.documentElement.scrollWidth), height: h }); }
+  }
+  function context(c) {
+    host = { ...host, ...c, containerDimensions: c.containerDimensions || host.containerDimensions };
+    const next = pick();
+    if (next !== theme && (next === "light" || next === "dark")) { theme = next; if (view.width) draw(false); else body.dataset.theme = theme; }
+    resize();
+  }
+  let width = innerWidth;
+  addEventListener("resize", () => { if (innerWidth !== width) { width = innerWidth; resize(); } });
+
+  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "orrery-viewer", version: "1" }, appCapabilities: {} })
+    .then((r) => { context(r.hostContext || {}); notify("ui/notifications/initialized", {}); })
+    .catch(() => notify("ui/notifications/initialized", {}));
+})();
+</script>
+</body>
+</html>
+`;
+
+// src/mcp/tools/render.ts
 var renderTool = {
   name: "render",
   title: "Render a diagram",
@@ -27395,6 +29557,7 @@ var renderTool = {
     },
     additionalProperties: false
   },
+  _meta: VIEWER_LINK,
   async run(input, ctx) {
     const spec = specInput(input, ctx);
     const raw = input.formats;
@@ -27402,7 +29565,7 @@ var renderTool = {
     const themeArg = oneOf2(input, "theme", [...THEMES, "both"]);
     const skin = oneOf2(input, "skin", SKINS);
     const animate = oneOf2(input, "animate", ANIMATE_MODES);
-    const outDir = str2(input, "out_dir");
+    const outDir = str3(input, "out_dir");
     if (outDir !== void 0 && ctx.http)
       throw new ToolError(
         "out_dir is refused over HTTP: leave it out and the outputs come back in the result"
@@ -27410,7 +29573,7 @@ var renderTool = {
     if (outDir !== void 0 && !isAbsolute4(outDir))
       throw new ToolError(`out_dir must be an absolute path (got ${outDir})`);
     const scale = num2(input, "scale", 0.1, 8) ?? (outDir ? 3 : 2);
-    const parsed = parse(spec, ctx);
+    const parsed = parse2(spec, ctx);
     const diagnostics = [...parsed.diagnostics];
     const model = parsed.model;
     if (!model || errors(diagnostics)) return [json(verdict(diagnostics, { outputs: [] }))];
@@ -27423,7 +29586,8 @@ var renderTool = {
       name: spec.name,
       scale,
       animate,
-      skin
+      skin,
+      source: spec.text
     });
     diagnostics.push(...r4.diagnostics);
     const content = [];
@@ -27442,11 +29606,23 @@ var renderTool = {
         writeAtomic(path, a.data);
         return { path, ...meta };
       }
-      content.push(typeof a.data === "string" ? text3(a.data) : png(a.data));
+      content.push(typeof a.data === "string" ? text4(a.data) : png(a.data));
       return { file, content: content.length, ...meta };
     });
     const scene = r4.scenes[themes[0] ?? model.theme];
-    return [json(verdict(diagnostics, { stats: stats(model, scene), outputs })), ...content];
+    const result2 = [
+      json(verdict(diagnostics, { stats: stats(model, scene), outputs })),
+      ...content
+    ];
+    const view = ctx.ui && r4.artifacts.length ? await viewerMeta({
+      model,
+      name: spec.name,
+      theme: themes[0] ?? model.theme,
+      animate,
+      skin,
+      have: r4.artifacts
+    }) : void 0;
+    return view ? { content: result2, _meta: view } : result2;
   }
 };
 function formatList(v) {
@@ -27477,12 +29653,13 @@ var reviewTool = {
     additionalProperties: false
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
+  _meta: VIEWER_LINK,
   async run(input, ctx) {
     const spec = specInput(input, ctx);
     const width2 = num2(input, "width", 200, 4e3, true) ?? DEFAULT_REVIEW_WIDTH;
     const theme = oneOf2(input, "theme", THEMES);
     const skin = oneOf2(input, "skin", SKINS);
-    const parsed = parse(spec, ctx);
+    const parsed = parse2(spec, ctx);
     const model = parsed.model;
     if (!model) return [json(verdict(parsed.diagnostics))];
     let run2;
@@ -27500,15 +29677,23 @@ var reviewTool = {
       return [json(verdict([...parsed.diagnostics, failure]))];
     }
     const look = "look" in run2 && run2.look instanceof Uint8Array ? run2.look : run2.png;
-    return [json(run2.report), ...look ? [png(look)] : []];
+    const content = [json(run2.report), ...look ? [png(look)] : []];
+    const view = ctx.ui ? await viewerMeta({
+      model,
+      name: spec.name,
+      theme: theme ?? model.theme,
+      skin,
+      report: run2.report
+    }) : void 0;
+    return view ? { content, _meta: view } : content;
   }
 };
 
 // src/mcp/tools/templates.ts
-import { existsSync as existsSync11, readdirSync, readFileSync as readFileSync11 } from "node:fs";
-import { join as join10, relative as relative2 } from "node:path";
+import { existsSync as existsSync12, readdirSync, readFileSync as readFileSync12 } from "node:fs";
+import { join as join10, relative as relative3 } from "node:path";
 function templates() {
-  if (!existsSync11(examplesDir)) return [];
+  if (!existsSync12(examplesDir)) return [];
   return readdirSync(examplesDir).filter((f) => /\.ya?ml$/.test(f)).map((f) => f.replace(/\.ya?ml$/, "")).sort();
 }
 var field = (yaml, key) => yaml.match(new RegExp(`^${key}:\\s*(.+)$`, "m"))?.[1]?.trim().replace(/^(["'])(.*)\1$/, "$2");
@@ -27522,7 +29707,7 @@ var listTemplatesTool = {
     return [
       json(
         templates().map((name) => {
-          const yaml = readFileSync11(join10(examplesDir, `${name}.yaml`), "utf8");
+          const yaml = readFileSync12(join10(examplesDir, `${name}.yaml`), "utf8");
           return { name, title: field(yaml, "title"), subtitle: field(yaml, "subtitle") };
         })
       )
@@ -27541,18 +29726,18 @@ var getTemplateTool = {
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
   async run(input, ctx) {
-    const name = str2(input, "name");
+    const name = str3(input, "name");
     const list = templates();
     if (!name || !list.includes(name))
       throw new ToolError(`no template "${name ?? ""}"; templates: ${list.join(", ")}`);
     const file = join10(examplesDir, `${name}.yaml`);
-    const yaml = readFileSync11(file, "utf8");
+    const yaml = readFileSync12(file, "utf8");
     const icons = parseSpec(yaml, file).model?.icons ?? [];
-    if (!icons.length) return [text3(yaml)];
-    const files = icons.map((i) => relative2(examplesDir, i.path).replaceAll("\\", "/"));
+    if (!icons.length) return [text4(yaml)];
+    const files = icons.map((i) => relative3(examplesDir, i.path).replaceAll("\\", "/"));
     return [
-      text3(yaml),
-      text3(
+      text4(yaml),
+      text4(
         `This template draws local icons from SVG files beside it (${files.join(", ")}). ` + (ctx.http ? "Over HTTP, swap them for icon ids from icons_search before rendering." : `To render it as is, pass spec_path ${file}.`)
       )
     ];
@@ -27568,7 +29753,7 @@ var validateTool = {
   annotations: { readOnlyHint: true, idempotentHint: true },
   async run(input, ctx) {
     const spec = specInput(input, ctx);
-    const parsed = parse(spec, ctx);
+    const parsed = parse2(spec, ctx);
     const diagnostics = [...parsed.diagnostics];
     const model = parsed.model;
     if (!model || errors(diagnostics)) return [json(verdict(diagnostics))];
@@ -27584,6 +29769,7 @@ var TOOLS = [
   validateTool,
   renderTool,
   reviewTool,
+  describeTool,
   iconsSearchTool,
   listTemplatesTool,
   getTemplateTool,
@@ -27602,7 +29788,11 @@ var LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 var LATEST_LEGACY = "2025-11-25";
 var VERSIONS = [...MODERN, ...LEGACY];
 var META = "io.modelcontextprotocol/";
-var CAPABILITIES = { tools: { listChanged: false } };
+var CAPABILITIES = {
+  tools: { listChanged: false },
+  resources: { listChanged: false },
+  extensions: { [UI_EXTENSION]: {} }
+};
 var INSTRUCTIONS = "orrery draws architecture, system design and business flow diagrams from a small YAML spec, with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons. Call get_authoring_guide before writing a spec, find icon ids with icons_search, run validate until it reports no errors, then render, and review the diagram at the width readers see it. Every spec tool takes the spec as spec (its YAML text) or spec_path (an absolute path, stdio only), never both. A result with ok false, diagnostics or a failing review is a verdict on the diagram: change the spec and call again. isError means the call itself failed.";
 var RpcError = class extends Error {
   code;
@@ -27649,19 +29839,19 @@ async function callTool(params, ctx) {
       throw new ToolError(
         `unknown argument ${unknown.join(", ")}; ${tool.name} takes ${Object.keys(tool.inputSchema.properties).join(", ") || "none"}`
       );
-    const content = await tool.run(args, ctx);
+    const out = await tool.run(args, ctx);
     logCall(tool.name, started);
-    return { content };
+    return Array.isArray(out) ? { content: out } : { ...out };
   } catch (e) {
     if (e instanceof ToolError) {
       logCall(tool.name, started, "refused");
-      return { content: [text3(e.message)], isError: true };
+      return { content: [text4(e.message)], isError: true };
     }
     process.stderr.write(`orrery mcp: ${tool.name} crashed: ${e?.stack ?? e}
 `);
     logCall(tool.name, started, "crashed");
     return {
-      content: [text3(`orrery ${tool.name} failed: ${e?.message ?? e}`)],
+      content: [text4(`orrery ${tool.name} failed: ${e?.message ?? e}`)],
       isError: true
     };
   }
@@ -27679,9 +29869,15 @@ async function result(method, params, ctx) {
     if (!isObj2(meta[`${META}clientCapabilities`]))
       throw new RpcError(-32602, `Invalid params: _meta needs ${META}clientCapabilities`, 400);
   }
-  const done = (r4) => modern ? { resultType: "complete", ...r4, _meta: SERVER_META } : r4;
+  const call = modern ? { ...ctx, ui: supportsUi(params._meta[`${META}clientCapabilities`]) } : ctx;
+  const done = (r4) => modern ? {
+    resultType: "complete",
+    ...r4,
+    _meta: { ...isObj2(r4._meta) ? r4._meta : {}, ...SERVER_META }
+  } : r4;
   switch (method) {
     case "initialize": {
+      ctx.ui = supportsUi(params.capabilities);
       const asked = params.protocolVersion;
       return {
         protocolVersion: typeof asked === "string" && LEGACY.includes(asked) ? asked : LATEST_LEGACY,
@@ -27703,7 +29899,19 @@ async function result(method, params, ctx) {
     case "tools/list":
       return done({ tools: TOOLS.map(({ run: run2, ...t }) => t) });
     case "tools/call":
-      return done(await serial(() => callTool(params, ctx)));
+      return done(await serial(() => callTool(params, call)));
+    case "resources/list":
+      return done({ resources: [VIEWER_RESOURCE] });
+    case "resources/templates/list":
+      return done({ resourceTemplates: [] });
+    case "resources/read": {
+      const contents = readViewer(params.uri);
+      if (!contents)
+        throw new RpcError(modern ? -32602 : -32002, "Resource not found", 200, {
+          uri: params.uri
+        });
+      return done({ contents });
+    }
     default:
       throw new RpcError(-32601, `Method not found: ${method}`, modern ? 404 : 200);
   }
@@ -27746,15 +29954,15 @@ var TooLarge = class extends Error {
 };
 function readBody(req) {
   return new Promise((done, fail) => {
-    const chunks = [];
+    const chunks2 = [];
     let size = 0;
     req.on("data", (c) => {
       size += c.length;
-      if (size <= MAX_BODY) chunks.push(c);
+      if (size <= MAX_BODY) chunks2.push(c);
     });
     req.on(
       "end",
-      () => size > MAX_BODY ? fail(new TooLarge()) : done(Buffer.concat(chunks).toString("utf8"))
+      () => size > MAX_BODY ? fail(new TooLarge()) : done(Buffer.concat(chunks2).toString("utf8"))
     );
     req.on("error", fail);
   });
@@ -27838,7 +30046,7 @@ async function handleHttp(req, res) {
 }
 function serveHttp(port) {
   return new Promise((done) => {
-    const server = createServer((req, res) => {
+    const server = createServer2((req, res) => {
       handleHttp(req, res).catch((e) => {
         process.stderr.write(`orrery mcp: ${e?.stack ?? e}
 `);
@@ -27862,8 +30070,260 @@ function serveHttp(port) {
 }
 
 // src/mcp/install.ts
-async function cmdMcpInstall(_args) {
-  throw new Error("orrery mcp install is not built yet");
+import { existsSync as existsSync13, readFileSync as readFileSync13 } from "node:fs";
+import { homedir as homedir2 } from "node:os";
+import { join as join11 } from "node:path";
+var PACKAGE = "@sagargupta1610/orrery";
+var SERVER2 = "orrery";
+var RUN2 = { command: "npx", args: ["-y", PACKAGE, "mcp"] };
+var BOM = "\uFEFF";
+var SCOPES = ["project", "user"];
+function appDir(p, app) {
+  if (p.platform === "win32") return join11(p.env.APPDATA ?? join11(p.home, "AppData", "Roaming"), app);
+  if (p.platform === "darwin") return join11(p.home, "Library", "Application Support", app);
+  return join11(p.env.XDG_CONFIG_HOME ?? join11(p.home, ".config"), app);
+}
+var CLIENTS = {
+  // https://code.claude.com/docs/en/mcp: .mcp.json at the project root; user scope is the
+  // top-level mcpServers of ~/.claude.json.
+  "claude-code": {
+    title: "Claude Code",
+    scope: "project",
+    files: (p) => ({ project: join11(p.cwd, ".mcp.json"), user: join11(p.home, ".claude.json") }),
+    key: "mcpServers",
+    entry: { type: "stdio", ...RUN2 }
+  },
+  // https://modelcontextprotocol.io/docs/develop/connect-local-servers
+  "claude-desktop": {
+    title: "Claude Desktop",
+    scope: "user",
+    files: (p) => ({ user: join11(appDir(p, "Claude"), "claude_desktop_config.json") }),
+    key: "mcpServers",
+    entry: RUN2
+  },
+  // https://cursor.com/docs/context/mcp
+  cursor: {
+    title: "Cursor",
+    scope: "project",
+    files: (p) => ({
+      project: join11(p.cwd, ".cursor", "mcp.json"),
+      user: join11(p.home, ".cursor", "mcp.json")
+    }),
+    key: "mcpServers",
+    entry: { type: "stdio", ...RUN2 }
+  },
+  // https://code.visualstudio.com/docs/copilot/reference/mcp-configuration: the user file sits
+  // beside settings.json in the default profile.
+  vscode: {
+    title: "VS Code",
+    scope: "project",
+    files: (p) => ({
+      project: join11(p.cwd, ".vscode", "mcp.json"),
+      user: join11(appDir(p, "Code"), "User", "mcp.json")
+    }),
+    key: "servers",
+    entry: { type: "stdio", ...RUN2 }
+  },
+  // https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md
+  gemini: {
+    title: "Gemini CLI",
+    scope: "project",
+    files: (p) => ({
+      project: join11(p.cwd, ".gemini", "settings.json"),
+      user: join11(p.home, ".gemini", "settings.json")
+    }),
+    key: "mcpServers",
+    entry: RUN2
+  },
+  // https://developers.openai.com/codex/mcp: a project .codex/config.toml is read only in
+  // trusted projects, so the user file is the default. The first npx run downloads the package,
+  // which can take longer than the 10 second default start timeout.
+  codex: {
+    title: "Codex",
+    scope: "user",
+    files: (p) => ({
+      project: join11(p.cwd, ".codex", "config.toml"),
+      user: join11(p.home, ".codex", "config.toml")
+    }),
+    key: "mcp_servers",
+    entry: { ...RUN2, startup_timeout_sec: 60 },
+    toml: true
+  },
+  // https://kiro.dev/docs/mcp/configuration/
+  kiro: {
+    title: "Kiro",
+    scope: "project",
+    files: (p) => ({
+      project: join11(p.cwd, ".kiro", "settings", "mcp.json"),
+      user: join11(p.home, ".kiro", "settings", "mcp.json")
+    }),
+    key: "mcpServers",
+    entry: RUN2
+  }
+};
+var InstallError = class extends Error {
+};
+var isObj3 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+function client(name) {
+  const c = CLIENTS[name];
+  if (!c) throw new InstallError(`unknown client "${name}"`);
+  return c;
+}
+function pasteable(c) {
+  return c.toml ? tomlTable(c) : JSON.stringify({ [c.key]: { [SERVER2]: c.entry } }, null, 2);
+}
+function install(name, scope, place, force = false) {
+  const c = client(name);
+  const path = c.files(place)[scope];
+  if (!path) throw new InstallError(`${c.title} has no ${scope} config; it reads only ${c.scope}`);
+  const text5 = existsSync13(path) ? readFileSync13(path, "utf8") : "";
+  const merged = c.toml ? mergeToml(c, text5, path, force) : mergeJson(c, text5, path, force);
+  if (merged.action !== "unchanged") writeAtomic(path, merged.text);
+  return { client: name, title: c.title, scope, path, action: merged.action };
+}
+function mergeJson(c, raw, path, force) {
+  const bom = raw.startsWith(BOM) ? BOM : "";
+  const text5 = raw.slice(bom.length);
+  let doc = {};
+  if (text5.trim()) {
+    try {
+      doc = JSON.parse(text5);
+    } catch {
+      throw new InstallError(
+        `${path} is not plain JSON (comments or a syntax error), so it was left as it is; add this by hand:
+${pasteable(c)}`
+      );
+    }
+  }
+  if (!isObj3(doc)) throw new InstallError(`${path} does not hold a JSON object; left as it is`);
+  const servers = doc[c.key] ?? {};
+  if (!isObj3(servers))
+    throw new InstallError(`"${c.key}" in ${path} is not an object; left as it is`);
+  const before = servers[SERVER2];
+  let action = "added";
+  if (before !== void 0) {
+    if (JSON.stringify(before) === JSON.stringify(c.entry))
+      return { text: raw, action: "unchanged" };
+    if (!force)
+      throw new InstallError(
+        `${path} already has a different "${SERVER2}" server: ${JSON.stringify(before)}; --force replaces it`
+      );
+    action = "replaced";
+  }
+  doc[c.key] = { ...servers, [SERVER2]: c.entry };
+  const indent = text5.match(/^\{[^\S\r\n]*\r?\n([ \t]+)\S/)?.[1] ?? 2;
+  const eol = text5.includes("\r\n") ? "\r\n" : "\n";
+  const out = `${JSON.stringify(doc, null, indent)}
+`.replaceAll("\n", eol);
+  return { text: bom + out, action };
+}
+var tomlValue = (v) => Array.isArray(v) ? `[${v.map(tomlValue).join(", ")}]` : JSON.stringify(v);
+function tomlTable(c) {
+  const lines2 = Object.entries(c.entry).map(([k, v]) => `${k} = ${tomlValue(v)}`);
+  return [`[${c.key}.${SERVER2}]`, ...lines2].join("\n");
+}
+var HEADER3 = /^\s*\[\[?\s*([^\]#]+?)\s*\]\]?\s*(?:#.*)?$/;
+var bareKey = (key) => key.replace(/\s*\.\s*/g, ".").replace(/["']/g, "");
+var startsKey = (key) => new RegExp(`^\\s*["']?${key}["']?\\s*[.=]`);
+function mergeToml(c, raw, path, force) {
+  const ours = `${c.key}.${SERVER2}`;
+  const byHand = `; add this by hand:
+${tomlTable(c)}`;
+  const keep = [];
+  const found = [];
+  let table2 = "";
+  for (const line of raw.split(/\r?\n/)) {
+    const header2 = line.match(HEADER3)?.[1];
+    if (header2 !== void 0) table2 = bareKey(header2);
+    else if (!table2 && startsKey(c.key).test(line))
+      throw new InstallError(`${path} sets ${c.key} with an inline or dotted key${byHand}`);
+    else if (table2 === c.key && startsKey(SERVER2).test(line))
+      throw new InstallError(`${path} sets ${ours} with an inline or dotted key${byHand}`);
+    (table2 === ours || table2.startsWith(`${ours}.`) ? found : keep).push(line);
+  }
+  const want = tomlTable(c);
+  if (found.length) {
+    const had = found.map((l) => l.trim()).filter((l) => l && !l.startsWith("#")).join("\n");
+    if (had === want) return { text: raw, action: "unchanged" };
+    if (!force)
+      throw new InstallError(
+        `${path} already has a different [${ours}] table; --force replaces it:
+${had}`
+      );
+  }
+  while (keep.length && !keep.at(-1)?.trim()) keep.pop();
+  const eol = raw.includes("\r\n") ? "\r\n" : "\n";
+  const text5 = [...keep, ...keep.length ? [""] : [], ...want.split("\n"), ""].join(eol);
+  return { text: text5, action: found.length ? "replaced" : "added" };
+}
+function here() {
+  return { home: homedir2(), cwd: process.cwd(), platform: process.platform, env: process.env };
+}
+function listClients(place) {
+  return Object.entries(CLIENTS).map(([name, c]) => {
+    const files = c.files(place);
+    const order = [c.scope, ...SCOPES.filter((s) => s !== c.scope)];
+    return {
+      client: name,
+      title: c.title,
+      default: c.scope,
+      files: Object.fromEntries(order.flatMap((s) => files[s] ? [[s, files[s]]] : []))
+    };
+  });
+}
+async function cmdMcpInstall(args) {
+  const json2 = args.flags.json === true;
+  const place = here();
+  const names = Object.keys(CLIENTS);
+  if (args.flags.list === true) {
+    const list = listClients(place);
+    if (json2) return void process.stdout.write(`${JSON.stringify(list, null, 2)}
+`);
+    for (const c2 of list) {
+      let first = true;
+      for (const [scope2, file] of Object.entries(c2.files)) {
+        const label = first ? `${scope2} (default)` : scope2;
+        process.stdout.write(`${(first ? c2.client : "").padEnd(16)}${label.padEnd(19)}${file}
+`);
+        first = false;
+      }
+    }
+    return;
+  }
+  const [name, scopeArg, ...extra] = args._;
+  if (!name) usage(`mcp install needs a client: ${names.join(", ")} (or --list)`);
+  const c = CLIENTS[name];
+  if (!c) usage(`unknown client "${name}"; one of ${names.join(", ")}`);
+  if (extra.length) usage(`mcp install takes a client and a scope (got ${args._.join(" ")})`);
+  if (scopeArg !== void 0 && !SCOPES.includes(scopeArg))
+    usage(`the scope must be project or user (got "${scopeArg}")`);
+  const scope = scopeArg ?? c.scope;
+  const path = c.files(place)[scope];
+  if (!path) usage(`${c.title} has no ${scope} config; it reads only ${c.scope}`);
+  try {
+    const r4 = install(name, scope, place, args.flags.force === true);
+    if (json2) return void process.stdout.write(`${JSON.stringify({ ok: true, ...r4 }, null, 2)}
+`);
+    const said = {
+      added: `added ${SERVER2} to`,
+      replaced: `replaced ${SERVER2} in`,
+      unchanged: `${SERVER2} is already in`
+    }[r4.action];
+    process.stdout.write(`${said} ${r4.path} (${r4.title}, ${scope} config)
+`);
+    if (r4.action !== "unchanged")
+      process.stdout.write(`next: restart ${r4.title} or reload its MCP servers
+`);
+  } catch (e) {
+    if (!(e instanceof InstallError)) throw e;
+    if (json2) {
+      const receipt = { ok: false, client: name, scope, path, error: e.message };
+      process.stdout.write(`${JSON.stringify(receipt, null, 2)}
+`);
+    } else process.stderr.write(`orrery: ${e.message}
+`);
+    process.exitCode = 1;
+  }
 }
 
 // src/mcp/stdio.ts
@@ -27912,13 +30372,13 @@ async function cmdMcp(args) {
 }
 
 // src/patch/index.ts
-import { existsSync as existsSync12, readFileSync as readFileSync12 } from "node:fs";
-import { resolve as resolve7 } from "node:path";
+import { existsSync as existsSync14, readFileSync as readFileSync14 } from "node:fs";
+import { resolve as resolve9 } from "node:path";
 function readCandidates(path) {
-  if (path !== "-" && !existsSync12(path)) usage(`no such candidates file: ${path}`);
+  if (path !== "-" && !existsSync14(path)) usage(`no such candidates file: ${path}`);
   let data;
   try {
-    data = JSON.parse(readFileSync12(path === "-" ? 0 : path, "utf8"));
+    data = JSON.parse(readFileSync14(path === "-" ? 0 : path, "utf8"));
   } catch (e) {
     usage(`cannot read ${path === "-" ? "stdin" : path} as JSON: ${e.message}`);
   }
@@ -27985,8 +30445,8 @@ async function cmdPatch(args) {
   const theme = args.flags.theme ?? parsed.model.theme;
   if (theme !== "light" && theme !== "dark") usage("--theme must be light or dark");
   const fonts2 = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
-  for (const f of fonts2) if (!existsSync12(f)) usage(`no such file: ${f} (from --font)`);
-  const out = typeof args.flags.out === "string" ? resolve7(args.flags.out) : void 0;
+  for (const f of fonts2) if (!existsSync14(f)) usage(`no such file: ${f} (from --font)`);
+  const out = typeof args.flags.out === "string" ? resolve9(args.flags.out) : void 0;
   let run2;
   try {
     run2 = await tryCandidates({
@@ -28021,13 +30481,443 @@ ${wrote}
 }
 
 // src/verify.ts
-async function cmdVerify(_args) {
-  throw new Error("orrery verify is not built yet");
+var import_yaml10 = __toESM(require_dist(), 1);
+import { execFileSync as execFileSync2 } from "node:child_process";
+import { existsSync as existsSync15, readdirSync as readdirSync2, readFileSync as readFileSync15, statSync as statSync6 } from "node:fs";
+import { basename as basename8, dirname as dirname7, extname as extname4, isAbsolute as isAbsolute5, join as join12, relative as relative4, resolve as resolve10, sep } from "node:path";
+var LINES = /^(.+):(\d+)(?:-(\d+))?(?:#(.*))?$/;
+var TF_RESOURCE = /^(?:module\.[\w-]+(?:\[[^\]]*\])?\.)*(?:(data)\.)?([a-z][a-z0-9]*_[a-z0-9_]+)\.([\w-]+)(?:\[[^\]]*\])?$/;
+var TF_MODULE = /^(?:module\.[\w-]+(?:\[[^\]]*\])?\.)*module\.([\w-]+)(?:\[[^\]]*\])?$/;
+var K8S = /^(?:[a-z0-9][a-z0-9-]*\/)?([A-Z][A-Za-z0-9]*)\/([a-z0-9][a-z0-9.-]*)$/;
+var ADDRESS_FILES = /\.(tf|ya?ml|json)$/i;
+function parseEvidence(raw) {
+  const m = LINES.exec(raw);
+  if (m)
+    return {
+      form: "lines",
+      path: m[1] ?? "",
+      line: Number(m[2]),
+      ...m[3] ? { end: Number(m[3]) } : {},
+      ...m[4] !== void 0 ? { id: m[4] } : {}
+    };
+  const hash = raw.lastIndexOf("#");
+  if (hash > 0) return { form: "name", path: raw.slice(0, hash), id: raw.slice(hash + 1) };
+  return { form: "bare", text: raw };
+}
+function git(cwd, args) {
+  try {
+    return execFileSync2("git", args, {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      maxBuffer: 256 * 1024 * 1024
+    }).trim();
+  } catch {
+    return void 0;
+  }
+}
+function openRepo(specPath) {
+  const specDir = dirname7(specPath);
+  const root = git(specDir, ["rev-parse", "--show-toplevel"]);
+  return { spec: specPath, specDir, ...root ? { root: resolve10(root) } : {}, lines: /* @__PURE__ */ new Map() };
+}
+var SKIP_DIRS = /* @__PURE__ */ new Set(["node_modules", ".git", "dist", "out", "build", "vendor"]);
+function repoFiles(repo) {
+  if (repo.files) return repo.files;
+  const root = repo.root;
+  const listed = root ? git(root, ["ls-files", "-z", "--cached", "--others", "--exclude-standard"]) : void 0;
+  if (root && listed !== void 0)
+    repo.files = listed.split("\0").filter(Boolean).map((f) => join12(root, f));
+  else {
+    const found = [];
+    const walk = (dir, depth) => {
+      if (depth > 12 || found.length > 2e4) return;
+      for (const d of readdirSync2(dir, { withFileTypes: true })) {
+        if (d.isDirectory() && !d.name.startsWith(".") && !SKIP_DIRS.has(d.name))
+          walk(join12(dir, d.name), depth + 1);
+        else if (d.isFile()) found.push(join12(dir, d.name));
+      }
+    };
+    walk(repo.specDir, 0);
+    repo.files = found;
+  }
+  return repo.files;
+}
+function linesOf(repo, file, maxBytes = Number.POSITIVE_INFINITY) {
+  if (repo.lines.has(file)) return repo.lines.get(file) ?? null;
+  let lines2 = null;
+  try {
+    const st = statSync6(file);
+    if (st.isFile() && st.size <= maxBytes) {
+      const text5 = readFileSync15(file, "utf8");
+      lines2 = text5.split(/\r?\n/);
+      if (text5.endsWith("\n")) lines2.pop();
+    }
+  } catch {
+    lines2 = null;
+  }
+  if (maxBytes === Number.POSITIVE_INFINITY || lines2) repo.lines.set(file, lines2);
+  return lines2;
+}
+function display(repo, file) {
+  const base = repo.root ?? repo.specDir;
+  const rel2 = relative4(base, file);
+  return rel2 && !rel2.startsWith("..") && !isAbsolute5(rel2) ? rel2.split(sep).join("/") : file;
+}
+function locate2(repo, path) {
+  const candidates = isAbsolute5(path) ? [path] : [resolve10(repo.specDir, path), ...repo.root ? [resolve10(repo.root, path)] : []];
+  for (const file of candidates) {
+    if (!existsSync15(file)) continue;
+    return { file, dir: statSync6(file).isDirectory() };
+  }
+  return void 0;
+}
+function wordPattern(id) {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pre = /^[\w$]/.test(id) ? "(?<![\\w$])" : "";
+  const post = /[\w$]$/.test(id) ? "(?![\\w$])" : "";
+  return new RegExp(`${pre}${escaped}${post}`);
+}
+var hitsIn = (lines2, re) => lines2.flatMap((l, i) => re.test(l) ? [i + 1] : []);
+var SEARCH_LIMIT = 2 * 1024 * 1024;
+function elsewhere(repo, id, ext, skip2) {
+  const re = wordPattern(id);
+  for (const f of repoFiles(repo)) {
+    if (f === skip2 || extname4(f).toLowerCase() !== ext) continue;
+    const lines2 = linesOf(repo, f, SEARCH_LIMIT);
+    const hit = lines2 ? hitsIn(lines2, re)[0] : void 0;
+    if (hit) return `${display(repo, f)}:${hit}`;
+  }
+  return void 0;
+}
+function missingFile(repo, path, rest) {
+  const name = basename8(path);
+  const moved = repoFiles(repo).find((f) => basename8(f) === name && existsSync15(f));
+  return {
+    ok: false,
+    problem: `no such file ${path} (looked in the spec's folder${repo.root ? " and the repo root" : ""})`,
+    fix: moved ? `it may have moved: write ${display(repo, moved)}${rest}` : "fix the path (read from the spec's folder, then the repo root), or remove this evidence"
+  };
+}
+function checkLines(repo, ref, raw) {
+  const { path, line } = ref;
+  const rest = raw.slice(path.length);
+  const at = locate2(repo, path);
+  if (!at) return missingFile(repo, path, rest);
+  if (at.dir)
+    return { ok: false, problem: `${path} is a folder`, fix: `point at a file inside ${path}` };
+  const lines2 = linesOf(repo, at.file) ?? [];
+  const n4 = lines2.length;
+  const end = ref.end ?? line;
+  const id = ref.id;
+  const found = id ? hitsIn(lines2, wordPattern(id)) : [];
+  const moveTo2 = (hit) => `it is on line ${hit}: write ${path}:${hit}#${id}`;
+  if (line < 1) return { ok: false, problem: "line numbers start at 1", fix: `write ${path}:1` };
+  if (end < line)
+    return {
+      ok: false,
+      problem: `the range ${line}-${end} runs backwards`,
+      fix: `write ${path}:${end}-${line}${id !== void 0 ? `#${id}` : ""}`
+    };
+  if (end > n4)
+    return {
+      ok: false,
+      problem: `line ${end} is past the end of ${path} (${n4} line${n4 === 1 ? "" : "s"})`,
+      fix: found[0] ? moveTo2(found[0]) : `point at a line from 1 to ${n4}`
+    };
+  const ok = { ok: true, file: display(repo, at.file), line, ...ref.end ? { end } : {} };
+  if (id === void 0) return ok;
+  if (!id)
+    return { ok: false, problem: "nothing follows the #", fix: `write ${path}:${line}#<name>` };
+  if (found.some((h) => h >= line && h <= end)) return ok;
+  const where = ref.end ? `in lines ${line}-${end}` : `on line ${line}`;
+  if (found[0])
+    return { ok: false, problem: `"${id}" is not ${where} of ${path}`, fix: moveTo2(found[0]) };
+  const other = elsewhere(repo, id, extname4(at.file).toLowerCase(), at.file);
+  return {
+    ok: false,
+    problem: `"${id}" is not in ${path} at all`,
+    fix: other ? `it is in ${other}: write ${other}#${id}` : "point at the code that replaced it, or remove this evidence"
+  };
+}
+function checkName(repo, ref) {
+  const { path, id } = ref;
+  const at = locate2(repo, path);
+  if (!at) return missingFile(repo, path, `#${id}`);
+  if (at.dir)
+    return { ok: false, problem: `${path} is a folder`, fix: `point at a file inside ${path}` };
+  if (!id) return { ok: false, problem: "nothing follows the #", fix: `write ${path}#<name>` };
+  const hit = hitsIn(linesOf(repo, at.file) ?? [], wordPattern(id))[0];
+  if (hit) return { ok: true, file: display(repo, at.file), line: hit };
+  const other = elsewhere(repo, id, extname4(at.file).toLowerCase(), at.file);
+  return {
+    ok: false,
+    problem: `"${id}" does not appear in ${path}`,
+    fix: other ? `it is in ${other}: write ${other.replace(/:\d+$/, "")}#${id}` : "point at the code that replaced it, or remove this evidence"
+  };
+}
+function* addressFiles(repo, test) {
+  for (const f of repoFiles(repo)) {
+    if (!ADDRESS_FILES.test(f) || !test(f) || resolve10(f) === resolve10(repo.spec)) continue;
+    const lines2 = linesOf(repo, f, SEARCH_LIMIT);
+    if (lines2 && !(/\.ya?ml$/i.test(f) && lines2.some((l) => /^nodes\s*:/.test(l))))
+      yield { file: f, lines: lines2 };
+  }
+}
+function checkTerraform(repo, address) {
+  const mod = TF_MODULE.exec(address);
+  const res = mod ? void 0 : TF_RESOURCE.exec(address);
+  const [kw, type, name] = mod ? ["module", void 0, mod[1] ?? ""] : [res?.[1] ? "data" : "resource", res?.[2] ?? "", res?.[3] ?? ""];
+  const head2 = type ? new RegExp(`^\\s*${kw}\\s+"${type}"\\s+"${name}"`) : new RegExp(`^\\s*module\\s+"${name}"`);
+  const sameType = /* @__PURE__ */ new Set();
+  const any = type ? new RegExp(`^\\s*${kw}\\s+"${type}"\\s+"([\\w-]+)"`) : /^\s*module\s+"([\w-]+)"/;
+  for (const { file, lines: lines2 } of addressFiles(repo, (f) => /\.tf$/i.test(f))) {
+    const hit = hitsIn(lines2, head2)[0];
+    if (hit) return { ok: true, file: display(repo, file), line: hit };
+    for (const l of lines2) {
+      const m = any.exec(l);
+      if (m?.[1]) sameType.add(m[1]);
+    }
+  }
+  const prefix = type ? `${kw === "data" ? "data." : ""}${type}.` : "module.";
+  const near = [...sameType].slice(0, 3).map((n4) => `${prefix}${n4}`);
+  return {
+    ok: false,
+    problem: `no ${type ? `${kw} "${type}" "${name}"` : `module "${name}"`} block in the repo's .tf files`,
+    fix: near.length ? `did you mean ${near.join(" or ")}?` : "fix the address, or remove this evidence"
+  };
+}
+function checkKubernetes(repo, kind, name) {
+  const q = (v) => `["']?${v.replace(/\./g, "\\.")}["']?`;
+  const kindRe = new RegExp(`^\\s*-?\\s*kind:\\s*${q(kind)}\\s*(#.*)?$`);
+  const nameRe = new RegExp(`^\\s+name:\\s*${q(name)}\\s*(#.*)?$`);
+  const jsonKind = new RegExp(`"kind"\\s*:\\s*"${kind}"`);
+  const jsonName = new RegExp(`"name"\\s*:\\s*"${name.replace(/\./g, "\\.")}"`);
+  const others = /* @__PURE__ */ new Set();
+  for (const { file, lines: lines2 } of addressFiles(repo, (f) => !/\.tf$/i.test(f))) {
+    if (/\.json$/i.test(file)) {
+      if (!lines2.some((l) => jsonKind.test(l))) continue;
+      const hit = hitsIn(lines2, jsonName)[0];
+      if (hit) return { ok: true, file: display(repo, file), line: hit };
+      continue;
+    }
+    let start = 0;
+    for (let i = 0; i <= lines2.length; i++) {
+      if (i < lines2.length && !/^---/.test(lines2[i] ?? "")) continue;
+      const doc = lines2.slice(start, i);
+      if (doc.some((l) => kindRe.test(l))) {
+        const at = doc.findIndex((l) => nameRe.test(l));
+        if (at >= 0) return { ok: true, file: display(repo, file), line: start + at + 1 };
+        const named2 = doc.map((l) => /^\s{2}name:\s*["']?([\w.-]+)/.exec(l)?.[1]).find(Boolean);
+        if (named2) others.add(named2);
+      }
+      start = i + 1;
+    }
+  }
+  const near = [...others].slice(0, 3).map((n4) => `${kind}/${n4}`);
+  return {
+    ok: false,
+    problem: `no ${kind} named "${name}" in the repo's YAML or JSON manifests`,
+    fix: near.length ? `did you mean ${near.join(" or ")}?` : "fix the name, or remove this evidence"
+  };
+}
+function checkBare(repo, text5) {
+  const at = locate2(repo, text5);
+  if (at) return { ok: true, file: display(repo, at.file) };
+  if (TF_MODULE.test(text5) || TF_RESOURCE.test(text5)) return checkTerraform(repo, text5);
+  const k8s = K8S.exec(text5);
+  if (k8s) return checkKubernetes(repo, k8s[1] ?? "", k8s[2] ?? "");
+  if (/[\\/]/.test(text5) || /\.[A-Za-z0-9]{1,6}$/.test(text5)) return missingFile(repo, text5, "");
+  const id = text5.replace(/\[[^\]]*\]/g, "").split(/[./]/).pop() ?? text5;
+  const re = wordPattern(id);
+  for (const { file, lines: lines2 } of addressFiles(repo, () => true)) {
+    const hit = hitsIn(lines2, re)[0];
+    if (hit) return { ok: true, file: display(repo, file), line: hit };
+  }
+  return {
+    ok: false,
+    problem: `"${id}" is not in the repo's .tf, .yaml, .yml or .json files`,
+    fix: "write a file and line (infra/main.tf:40) or fix the address"
+  };
+}
+function checkEvidence(repo, raw) {
+  const ref = parseEvidence(raw);
+  if (ref.form === "lines") return checkLines(repo, ref, raw);
+  if (ref.form === "name") return checkName(repo, ref);
+  return checkBare(repo, ref.text);
+}
+function evidenceOf(model) {
+  return [
+    ...model.nodes.flatMap(
+      (n4) => (n4.evidence ?? []).map((evidence) => ({
+        subject: { kind: "node", id: n4.id },
+        evidence
+      }))
+    ),
+    ...model.groups.flatMap(
+      (g) => (g.evidence ?? []).map((evidence) => ({
+        subject: { kind: "group", id: g.id },
+        evidence
+      }))
+    ),
+    ...model.edges.flatMap(
+      (e) => (e.evidence ?? []).map((evidence) => ({
+        subject: { kind: "edge", id: edgeName(e) },
+        evidence
+      }))
+    )
+  ];
+}
+function parseRemote(url) {
+  const m = /^[\w.-]+@([^:/]+):([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(url) ?? /^(?:https?|ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(url);
+  return m?.[1] && m[2] && m[3] ? { host: m[1], owner: m[2], repo: m[3] } : void 0;
+}
+function permalink(remote, commit, result2) {
+  const path = (result2.file ?? "").split("/").map(encodeURIComponent).join("/");
+  const lines2 = result2.line ? `#L${result2.line}${result2.end && result2.end !== result2.line ? `-L${result2.end}` : ""}` : "";
+  return `https://${remote.host}/${remote.owner}/${remote.repo}/blob/${commit}/${path}${lines2}`;
+}
+function commitOf(root, flag2) {
+  if (typeof flag2 === "string") {
+    const full = git(root, ["rev-parse", "--verify", "--quiet", `${flag2}^{commit}`]);
+    if (full) return full;
+    if (/^[0-9a-f]{7,64}$/i.test(flag2)) return flag2;
+    usage(`--commit ${flag2} is not a commit in this repository`);
+  }
+  const head2 = git(root, ["rev-parse", "HEAD"]);
+  if (!head2) usage("--link needs a commit: commit first, or pass --commit <sha>");
+  return head2;
+}
+function setUrlsInDocument(text5, links2) {
+  const doc = (0, import_yaml10.parseDocument)(text5);
+  const nodes = doc.get("nodes", true);
+  if (!(0, import_yaml10.isSeq)(nodes)) throw new PatchError("nodes must be a mapping or a list");
+  for (const link of links2) {
+    for (const item of nodes.items) {
+      if (!(0, import_yaml10.isMap)(item)) continue;
+      if (item.get("id") === link.node) item.set("url", link.url);
+      else if (item.items.length === 1 && (0, import_yaml10.isScalar)(item.items[0]?.key)) {
+        const value = item.get(link.node, true);
+        if ((0, import_yaml10.isMap)(value)) value.set("url", link.url);
+        else if (value !== void 0)
+          throw new PatchError(`node "${link.node}" is a short form; write it as a mapping`);
+      }
+    }
+  }
+  return doc.toString();
+}
+function linkText(text5, links2) {
+  const changed = links2.filter((l) => !l.kept);
+  const ops = changed.map((l) => ({
+    op: "set",
+    path: `nodes.${l.node}.url`,
+    value: l.url
+  }));
+  try {
+    return applyPatches(text5, ops);
+  } catch (e) {
+    if (!(e instanceof PatchError) || !/is a list/.test(e.message)) throw e;
+    return setUrlsInDocument(text5, changed);
+  }
+}
+function verifyModel(model, specPath, opts = {}) {
+  const repo = openRepo(specPath);
+  const results = evidenceOf(model).map(({ subject, evidence }) => ({
+    subject,
+    evidence,
+    ...checkEvidence(repo, evidence)
+  }));
+  const problems = results.filter((r4) => !r4.ok);
+  const report = {
+    ok: !problems.length,
+    spec: specPath,
+    checked: results.length,
+    problems,
+    results
+  };
+  if (!opts.link) return report;
+  const root = repo.root;
+  const origin = root ? git(root, ["remote", "get-url", "origin"]) : void 0;
+  const remote = origin ? parseRemote(origin) : void 0;
+  if (!root || !remote) usage("--link needs a git repository whose origin is a GitHub remote");
+  const commit = commitOf(root, opts.commit);
+  const base = `https://${remote.host}/${remote.owner}/${remote.repo}/blob/`;
+  report.commit = commit;
+  report.links = [];
+  for (const n4 of model.nodes) {
+    const first = results.find(
+      (r4) => r4.subject.kind === "node" && r4.subject.id === n4.id && r4.ok && r4.file && !isAbsolute5(r4.file)
+    );
+    if (!first) continue;
+    const url = permalink(remote, commit, first);
+    const kept = !!n4.url && !n4.url.startsWith(base);
+    report.links.push({
+      node: n4.id,
+      evidence: first.evidence,
+      url: kept ? n4.url ?? url : url,
+      ...kept ? { kept } : {}
+    });
+  }
+  return report;
+}
+var subjectText = (s) => `${s.kind} ${s.id}`;
+function formatReport(report, name) {
+  const n4 = report.checked;
+  const lines2 = [
+    n4 ? `verify ${name}: ${n4} evidence entr${n4 === 1 ? "y" : "ies"}, ${report.problems.length ? `${report.problems.length} problem(s)` : "all found"}` : `verify ${name}: no evidence entries (add evidence: path:line to nodes, groups or edges)`
+  ];
+  for (const p of report.problems) {
+    lines2.push(`${subjectText(p.subject)}: ${p.evidence}: ${p.problem}`);
+    if (p.fix) lines2.push(`      fix: ${p.fix}`);
+  }
+  if (report.links) {
+    const set = report.links.filter((l) => !l.kept);
+    const kept = report.links.filter((l) => l.kept);
+    lines2.push(
+      `linked ${set.length} node(s) at ${report.commit?.slice(0, 12)}${report.wrote ? `; wrote ${name}` : set.length ? "" : "; nothing to write"}`
+    );
+    for (const l of set) lines2.push(`  ${l.node}: ${l.url}`);
+    for (const l of kept) lines2.push(`  ${l.node}: kept its own url ${l.url}`);
+  }
+  return lines2.join("\n");
+}
+async function cmdVerify(args) {
+  const [specPath] = args._;
+  if (!specPath) usage("verify needs a spec file");
+  if (specPath === "-") usage("verify reads paths relative to the spec, so it needs a spec file");
+  if (args.flags.commit !== void 0 && args.flags.link !== true)
+    usage("--commit goes with --link");
+  const spec = readSpec(specPath);
+  const parsed = parseSpec(spec.text, spec.path);
+  const json2 = args.flags.json === true;
+  if (!parsed.model) {
+    printDiagnostics(parsed.diagnostics, false);
+    process.exitCode = 1;
+    return;
+  }
+  const link = args.flags.link === true;
+  const report = verifyModel(parsed.model, spec.path, {
+    link,
+    ...typeof args.flags.commit === "string" ? { commit: args.flags.commit } : {}
+  });
+  if (report.links?.some((l) => !l.kept)) {
+    const next = linkText(spec.text, report.links);
+    if (next !== spec.text) {
+      writeAtomic(spec.path, next);
+      report.wrote = true;
+    }
+  }
+  if (json2) process.stdout.write(`${JSON.stringify(report, null, 2)}
+`);
+  else process.stdout.write(`${formatReport(report, specPath)}
+`);
+  process.exitCode = report.ok ? 0 : 1;
 }
 
 // src/watch.ts
-import { existsSync as existsSync13, readFileSync as readFileSync13, statSync as statSync6, watch } from "node:fs";
-import { join as join11, resolve as resolve8 } from "node:path";
+var import_yaml11 = __toESM(require_dist(), 1);
+import { existsSync as existsSync16, readFileSync as readFileSync16, statSync as statSync7, watch } from "node:fs";
+import { join as join13, resolve as resolve11 } from "node:path";
 var DEBOUNCE_MS = 120;
 var REARM_MS = 50;
 var RETRIES = 20;
@@ -28040,7 +30930,7 @@ function watchOptions(args) {
   if (themeFlag !== void 0 && !["light", "dark", "both"].includes(themeFlag))
     usage("--theme must be light, dark or both");
   const fonts2 = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
-  for (const f of fonts2) if (!existsSync13(f)) usage(`no such file: ${f} (from --font)`);
+  for (const f of fonts2) if (!existsSync16(f)) usage(`no such file: ${f} (from --font)`);
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
   const fmtFlag = typeof args.flags.format === "string" ? args.flags.format : void 0;
   const outFormat = outFlag ? formatOf(outFlag) : void 0;
@@ -28052,9 +30942,9 @@ function watchOptions(args) {
   }
   let base;
   if (!outFlag) base = spec.path.replace(/\.(ya?ml|json)$/i, "");
-  else if (/[/\\]$/.test(outFlag) || existsSync13(outFlag) && statSync6(outFlag).isDirectory())
-    base = join11(resolve8(outFlag), spec.name);
-  else base = resolve8(outFormat ? outFlag.slice(0, -(outFormat.length + 1)) : outFlag);
+  else if (/[/\\]$/.test(outFlag) || existsSync16(outFlag) && statSync7(outFlag).isDirectory())
+    base = join13(resolve11(outFlag), spec.name);
+  else base = resolve11(outFormat ? outFlag.slice(0, -(outFormat.length + 1)) : outFlag);
   const scale = args.flags.scale !== void 0 ? Number(args.flags.scale) : 3;
   if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
   const animate = args.flags.static === true ? "none" : args.flags.animate === true ? "packets" : args.flags.animate;
@@ -28066,10 +30956,13 @@ function watchOptions(args) {
 }
 async function renderSpec(opts, run2, written, follow) {
   const { spec, formats, base, scale, fonts: fonts2, animate, skin, width: width2 } = opts;
-  const parsed = parseSpec(readFileSync13(spec.path, "utf8"), spec.path);
+  const text5 = readFileSync16(spec.path, "utf8");
+  const parsed = parseSpec(text5, spec.path);
   run2.diagnostics.push(...parsed.diagnostics);
   if (!parsed.model || run2.diagnostics.some((d) => d.severity === "error")) return;
-  follow([spec.path, ...(parsed.model.icons ?? []).map((i) => i.path)]);
+  const raw = /\.json$/i.test(spec.path) ? JSON.parse(text5) : (0, import_yaml11.parse)(text5);
+  const included = raw && typeof raw === "object" ? includedFiles(raw, spec.path) : [];
+  follow([spec.path, ...(parsed.model.icons ?? []).map((i) => i.path), ...included]);
   const theme = opts.theme ?? parsed.model.theme;
   const themes = theme === "both" ? ["light", "dark"] : [theme];
   const result2 = await renderModel({
@@ -28080,7 +30973,8 @@ async function renderSpec(opts, run2, written, follow) {
     scale,
     fonts: fonts2,
     animate,
-    skin
+    skin,
+    source: text5
   });
   run2.diagnostics.push(...result2.diagnostics);
   for (const a of result2.artifacts) {
@@ -28234,7 +31128,9 @@ var BOOL = /* @__PURE__ */ new Set([
   "help",
   "version",
   "review",
-  "link"
+  "link",
+  // Language clients start servers with --stdio; orrery lsp only speaks stdio, so it is a no-op.
+  "stdio"
 ]);
 var KNOWN_FLAGS = /* @__PURE__ */ new Set([
   ...BOOL,
@@ -28327,12 +31223,12 @@ function parseArgs(argv) {
 }
 
 // src/cli/doctor.ts
-import { existsSync as existsSync15, readFileSync as readFileSync15 } from "node:fs";
-import { join as join13, resolve as resolve10 } from "node:path";
+import { existsSync as existsSync18, readFileSync as readFileSync19 } from "node:fs";
+import { join as join15, resolve as resolve14 } from "node:path";
 
 // src/cli/templates.ts
-import { existsSync as existsSync14, readdirSync as readdirSync2, readFileSync as readFileSync14 } from "node:fs";
-import { basename as basename6, dirname as dirname6, join as join12, relative as relative3, resolve as resolve9 } from "node:path";
+import { existsSync as existsSync17, readdirSync as readdirSync3, readFileSync as readFileSync18 } from "node:fs";
+import { basename as basename9, dirname as dirname8, join as join14, relative as relative5, resolve as resolve13 } from "node:path";
 
 // src/import/cloudformation.ts
 async function importCloudFormation(_path) {
@@ -28350,7 +31246,7 @@ async function importKubernetes(_path) {
 }
 
 // src/import/mermaid.ts
-var import_yaml6 = __toESM(require_dist(), 1);
+var import_yaml12 = __toESM(require_dist(), 1);
 var DIRECTIONS2 = {
   LR: "right",
   RL: "left",
@@ -28379,13 +31275,13 @@ var FRONTMATTER = /^\s*---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;
 function splitStatements(line) {
   const out = [];
   let depth = 0;
-  let quoted = false;
+  let quoted2 = false;
   let piped = false;
   let start = 0;
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
-    if (c === '"') quoted = !quoted;
-    else if (!quoted) {
+    if (c === '"') quoted2 = !quoted2;
+    else if (!quoted2) {
       if (piped) piped = c !== "|";
       else if (c === "|" && depth === 0) piped = true;
       else if (c === "[" || c === "(" || c === "{") depth += 1;
@@ -28406,19 +31302,19 @@ function unquote(s) {
   return t;
 }
 function cleanLabel(s) {
-  let text4 = unquote(s).replace(/<br\s*\/?>/gi, " ");
-  for (let prev = ""; prev !== text4; ) {
-    prev = text4;
-    text4 = text4.replace(/<[^<>]*>/g, "");
+  let text5 = unquote(s).replace(/<br\s*\/?>/gi, " ");
+  for (let prev = ""; prev !== text5; ) {
+    prev = text5;
+    text5 = text5.replace(/<[^<>]*>/g, "");
   }
-  return text4.replace(/[<>]/g, "").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  return text5.replace(/[<>]/g, "").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 }
-function readNodes(chunk, nodes, parent) {
+function readNodes(chunk2, nodes, parent) {
   const ids = [];
-  for (const part of chunk.split(/\s+&\s+/)) {
-    const text4 = part.trim();
-    if (!text4) continue;
-    const m = text4.match(new RegExp(`^(${ID})(.*)$`));
+  for (const part of chunk2.split(/\s+&\s+/)) {
+    const text5 = part.trim();
+    if (!text5) continue;
+    const m = text5.match(new RegExp(`^(${ID})(.*)$`));
     if (!m) continue;
     const id = m[1] ?? "";
     const rest = (m[2] ?? "").trim().replace(/:::\w+$/, "");
@@ -28496,7 +31392,7 @@ function importMermaid(source) {
     for (const m of line.matchAll(EDGE_RE)) {
       parts.push(line.slice(last, m.index));
       const [, l1, l2, l3, lt, body = "", head22, pipeLabel] = m;
-      const text4 = pipeLabel ?? l1 ?? l2 ?? l3;
+      const text5 = pipeLabel ?? l1 ?? l2 ?? l3;
       let lineStyle2 = "solid";
       if (l2 !== void 0 || body.startsWith("=")) lineStyle2 = "thick";
       else if (l3 !== void 0 || body.includes(".")) lineStyle2 = "dotted";
@@ -28504,7 +31400,7 @@ function importMermaid(source) {
       parts.push({
         from: "",
         to: "",
-        label: text4 ? cleanLabel(text4) : void 0,
+        label: text5 ? cleanLabel(text5) : void 0,
         line: lineStyle2,
         arrow: lt && hasHead ? "both" : hasHead ? "end" : "none"
       });
@@ -28571,7 +31467,7 @@ function importMermaid(source) {
     );
   }
   return { yaml: `${header2.join("\n")}
-${(0, import_yaml6.stringify)(doc, { lineWidth: 0 })}`, warnings, guessed };
+${(0, import_yaml12.stringify)(doc, { lineWidth: 0 })}`, warnings, guessed };
 }
 function guessIcon(label) {
   const collapsed = label.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -28590,8 +31486,15 @@ function guessIcon(label) {
 }
 
 // src/import/picture.ts
-async function importPicture(_path) {
-  throw new Error("orrery import picture is not built yet");
+import { readFileSync as readFileSync17 } from "node:fs";
+import { resolve as resolve12 } from "node:path";
+async function importPicture(path) {
+  const yaml = extractSpec(readFileSync17(resolve12(path)));
+  if (yaml === void 0)
+    usage(
+      `${path} carries no orrery spec (another tool drew it, its spec says embed: false, or an optimizer stripped it); read it as any other picture (references/importing.md)`
+    );
+  return { yaml, warnings: [] };
 }
 
 // src/import/terraform.ts
@@ -28619,8 +31522,8 @@ Node shapes (nodes: { id: { shape: ... } }): ${SHAPES.join(", ")}
   );
 }
 function templates2() {
-  if (!existsSync14(examplesDir)) return [];
-  return readdirSync2(examplesDir).filter((f) => /\.ya?ml$/.test(f)).map((f) => f.replace(/\.ya?ml$/, "")).sort();
+  if (!existsSync17(examplesDir)) return [];
+  return readdirSync3(examplesDir).filter((f) => /\.ya?ml$/.test(f)).map((f) => f.replace(/\.ya?ml$/, "")).sort();
 }
 function cmdInit(args) {
   const list = templates2();
@@ -28630,34 +31533,34 @@ function cmdInit(args) {
     return;
   }
   const name = args._[0] ?? "starter";
-  const file = join12(examplesDir, `${name}.yaml`);
-  if (!existsSync14(file)) usage(`no template "${name}" (templates: ${list.join(", ")})`);
-  const out = resolve9(typeof args.flags.out === "string" ? args.flags.out : "diagram.yaml");
-  if (existsSync14(out) && args.flags.force !== true) {
+  const file = join14(examplesDir, `${name}.yaml`);
+  if (!existsSync17(file)) usage(`no template "${name}" (templates: ${list.join(", ")})`);
+  const out = resolve13(typeof args.flags.out === "string" ? args.flags.out : "diagram.yaml");
+  if (existsSync17(out) && args.flags.force !== true) {
     process.stderr.write(`${out} exists; pass --force to overwrite
 `);
     process.exitCode = 1;
     return;
   }
-  const text4 = readFileSync14(file, "utf8");
-  writeAtomic(out, text4);
+  const text5 = readFileSync18(file, "utf8");
+  writeAtomic(out, text5);
   process.stdout.write(`wrote ${out} from template ${name}
 `);
-  for (const icon2 of parseSpec(text4, file).model?.icons ?? []) {
-    const rel2 = relative3(examplesDir, icon2.path);
-    const dest = join12(dirname6(out), rel2);
-    if (rel2.startsWith("..") || existsSync14(dest) && args.flags.force !== true) continue;
-    writeAtomic(dest, readFileSync14(icon2.path));
+  for (const icon2 of parseSpec(text5, file).model?.icons ?? []) {
+    const rel2 = relative5(examplesDir, icon2.path);
+    const dest = join14(dirname8(out), rel2);
+    if (rel2.startsWith("..") || existsSync17(dest) && args.flags.force !== true) continue;
+    writeAtomic(dest, readFileSync18(icon2.path));
     process.stdout.write(`wrote ${dest}
 `);
   }
-  process.stdout.write(`next: orrery render ${basename6(out)}
+  process.stdout.write(`next: orrery render ${basename9(out)}
 `);
 }
 var IMPORTERS = {
   mermaid: (file) => {
-    const text4 = file === "-" ? readFileSync14(0, "utf8") : readFileSync14(resolve9(file), "utf8");
-    return importMermaid(text4.replace(/^```mermaid\s*|```\s*$/gm, ""));
+    const text5 = file === "-" ? readFileSync18(0, "utf8") : readFileSync18(resolve13(file), "utf8");
+    return importMermaid(text5.replace(/^```mermaid\s*|```\s*$/gm, ""));
   },
   terraform: importTerraform,
   cloudformation: importCloudFormation,
@@ -28672,13 +31575,13 @@ async function cmdImport(args) {
   const importer = kind ? IMPORTERS[kind] : void 0;
   if (!importer) usage(`import supports ${Object.keys(IMPORTERS).join(", ")}`);
   if (!file) usage(`import ${kind} needs a file${kind === "mermaid" ? ", or - for stdin" : ""}`);
-  if (file !== "-" && !existsSync14(resolve9(file))) usage(`no such file: ${file}`);
+  if (file !== "-" && !existsSync17(resolve13(file))) usage(`no such file: ${file}`);
   const result2 = await importer(file);
   for (const w of result2.warnings) process.stderr.write(`warn  ${w}
 `);
-  const out = typeof args.flags.out === "string" ? resolve9(args.flags.out) : void 0;
+  const out = typeof args.flags.out === "string" ? resolve13(args.flags.out) : void 0;
   if (!out) return void process.stdout.write(result2.yaml);
-  if (existsSync14(out) && args.flags.force !== true) {
+  if (existsSync17(out) && args.flags.force !== true) {
     process.stderr.write(`${out} exists; pass --force to overwrite
 `);
     process.exitCode = 1;
@@ -28688,7 +31591,7 @@ async function cmdImport(args) {
   const guessed = Object.keys(result2.guessed ?? {}).length;
   process.stdout.write(
     `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}
-next: add icons, then orrery validate ${basename6(out)}
+next: add icons, then orrery validate ${basename9(out)}
 `
   );
 }
@@ -28706,7 +31609,7 @@ async function cmdDoctor() {
     `${total} icons in ${Object.keys(packs2).length} packs`
   ]);
   const missing = Object.keys(packs2).filter(
-    (p) => !packs2[p]?.lib && !existsSync15(join13(skillRoot, "assets", "icons", `${p}.json`))
+    (p) => !packs2[p]?.lib && !existsSync18(join15(skillRoot, "assets", "icons", `${p}.json`))
   );
   checks.push([
     "bundled icon packs",
@@ -28742,18 +31645,18 @@ async function cmdDoctor() {
   } catch (e) {
     checks.push(["render", false, e.message]);
   }
-  for (const [name, pass, detail] of checks)
-    process.stdout.write(`${pass ? "ok  " : "FAIL"} ${name.padEnd(26)} ${detail}
+  for (const [name, pass, detail2] of checks)
+    process.stdout.write(`${pass ? "ok  " : "FAIL"} ${name.padEnd(26)} ${detail2}
 `);
   process.exitCode = checks.every(([, p]) => p) ? 0 : 1;
 }
 async function cmdDemo(args) {
-  const dir = resolve10(args._[0] ?? "orrery-demo");
+  const dir = resolve14(args._[0] ?? "orrery-demo");
   let failed = 0;
   let libraryFixes;
   for (const t of templates2()) {
-    const file = join13(examplesDir, `${t}.yaml`);
-    const parsed = parseSpec(readFileSync15(file, "utf8"), file);
+    const file = join15(examplesDir, `${t}.yaml`);
+    const parsed = parseSpec(readFileSync19(file, "utf8"), file);
     if (!parsed.model) {
       failed += 1;
       process.stderr.write(`${t}: ${parsed.diagnostics.map((d) => d.message).join("; ")}
@@ -28777,7 +31680,7 @@ async function cmdDemo(args) {
 `);
       continue;
     }
-    for (const a of r4.artifacts) writeAtomic(join13(dir, `${t}.${a.format}`), a.data);
+    for (const a of r4.artifacts) writeAtomic(join15(dir, `${t}.${a.format}`), a.data);
     const scene = r4.scenes[parsed.model.theme];
     process.stdout.write(`${t}: ${scene?.width}x${scene?.height}
 `);
@@ -28790,8 +31693,8 @@ async function cmdDemo(args) {
 }
 
 // src/cli/icons.ts
-import { existsSync as existsSync16, readFileSync as readFileSync16 } from "node:fs";
-import { basename as basename7, dirname as dirname7, extname as extname4, join as join14, resolve as resolve11 } from "node:path";
+import { existsSync as existsSync19, readFileSync as readFileSync20 } from "node:fs";
+import { basename as basename10, dirname as dirname9, extname as extname5, join as join16, resolve as resolve15 } from "node:path";
 async function cmdIcons(args) {
   const [sub, ...rest] = args._;
   const json2 = args.flags.json === true;
@@ -28915,19 +31818,19 @@ async function iconShow(args, rest) {
 `;
   const out = typeof args.flags.out === "string" ? args.flags.out : void 0;
   if (out) {
-    writeAtomic(resolve11(out), out.endsWith(".png") ? await renderPng(svg, { scale: 4 }) : svg);
-    process.stdout.write(`wrote ${resolve11(out)}
+    writeAtomic(resolve15(out), out.endsWith(".png") ? await renderPng(svg, { scale: 4 }) : svg);
+    process.stdout.write(`wrote ${resolve15(out)}
 `);
   }
   process.stdout.write(`${JSON.stringify(info, null, 2)}
 `);
 }
 function iconTarget(args, name) {
-  const file = join14(
-    resolve11(typeof args.flags.dir === "string" ? args.flags.dir : "icons"),
+  const file = join16(
+    resolve15(typeof args.flags.dir === "string" ? args.flags.dir : "icons"),
     `${name}.svg`
   );
-  if (existsSync16(file) && args.flags.force !== true) {
+  if (existsSync19(file) && args.flags.force !== true) {
     process.stderr.write(`${shownPath(file)} exists; pass --force to overwrite
 `);
     process.exitCode = 1;
@@ -28963,9 +31866,9 @@ next:
 async function iconCheck(args, rest) {
   const [file] = rest;
   if (!file) usage("icons check needs an .svg file");
-  if (!existsSync16(file)) usage(`no such file: ${file}`);
-  const out = typeof args.flags.out === "string" ? resolve11(args.flags.out) : void 0;
-  process.exitCode = await checkIconFile(resolve11(file), out) ? 0 : 1;
+  if (!existsSync19(file)) usage(`no such file: ${file}`);
+  const out = typeof args.flags.out === "string" ? resolve15(args.flags.out) : void 0;
+  process.exitCode = await checkIconFile(resolve15(file), out) ? 0 : 1;
 }
 async function iconAdopt(args, rest) {
   const [src2] = rest;
@@ -28973,19 +31876,19 @@ async function iconAdopt(args, rest) {
   if (!src2) usage("icons adopt needs an .svg file");
   if (typeof name !== "string" || !ICON_NAME2.test(name))
     usage("icons adopt needs --name <name> of lowercase letters, digits and -");
-  if (!existsSync16(src2)) usage(`no such file: ${src2}`);
+  if (!existsSync19(src2)) usage(`no such file: ${src2}`);
   const file = iconTarget(args, name);
   if (!file) return;
-  const from = shownPath(resolve11(src2));
+  const from = shownPath(resolve15(src2));
   let ok = false;
   try {
-    const adopted = adoptIcon(readFileSync16(resolve11(src2), "utf8"), from);
+    const adopted = adoptIcon(readFileSync20(resolve15(src2), "utf8"), from);
     writeAtomic(file, adopted.svg);
     process.stdout.write(`wrote ${shownPath(file)} from ${from}
 `);
     for (const note of adopted.notes) process.stdout.write(`  ${note}
 `);
-    const out = typeof args.flags.out === "string" ? resolve11(args.flags.out) : void 0;
+    const out = typeof args.flags.out === "string" ? resolve15(args.flags.out) : void 0;
     ok = await checkIconFile(file, out);
   } catch (e) {
     if (!(e instanceof LocalIconError)) throw e;
@@ -29001,7 +31904,7 @@ async function checkIconFile(path, out) {
   const shown = shownPath(path);
   let check;
   try {
-    check = checkIcon(readFileSync16(path, "utf8"), shown);
+    check = checkIcon(readFileSync20(path, "utf8"), shown);
   } catch (e) {
     if (!(e instanceof LocalIconError)) throw e;
     process.stderr.write(`error ${shown} ${e.problem}
@@ -29024,7 +31927,7 @@ async function checkIconFile(path, out) {
 `
       );
   }
-  const sheet = out ? extname4(out) ? out : `${out}.png` : join14(dirname7(path), `${basename7(path, extname4(path))}.sheet.png`);
+  const sheet = out ? extname5(out) ? out : `${out}.png` : join16(dirname9(path), `${basename10(path, extname5(path))}.sheet.png`);
   let png2;
   try {
     png2 = await iconSheet(path);
@@ -29047,7 +31950,7 @@ ${failing ? `failed: ${failing} rule(s)` : "ok: every rule passes"}
   return !failing;
 }
 async function iconSheet(path) {
-  const name = basename7(path, extname4(path)).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "icon";
+  const name = basename10(path, extname5(path)).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "icon";
   const file = path.replaceAll("\\", "/").replaceAll("'", "''");
   const tiles = [];
   for (const skin of SKINS) {
@@ -29059,7 +31962,7 @@ async function iconSheet(path) {
       `  large: { icon: "local:${name}", label: 48 px, size: 48 }`,
       `  small: { icon: "local:${name}", label: 24 px, size: 24 }`
     ].join("\n");
-    const parsed = parseSpec(spec, join14(dirname7(path), "sheet.yaml"));
+    const parsed = parseSpec(spec, join16(dirname9(path), "sheet.yaml"));
     if (!parsed.model) throw new Error(parsed.diagnostics.map((d) => d.message).join("; "));
     const r4 = await renderModel({
       model: parsed.model,
@@ -29088,13 +31991,191 @@ async function iconSheet(path) {
 }
 
 // src/cli/render.ts
-import { existsSync as existsSync17, statSync as statSync7 } from "node:fs";
-import { extname as extname5, join as join15, resolve as resolve12 } from "node:path";
+import { existsSync as existsSync20, statSync as statSync8 } from "node:fs";
+import { extname as extname6, join as join17, resolve as resolve16 } from "node:path";
 
 // src/views.ts
-function viewsOf(model, _flag) {
-  return [{ model }];
+function viewsOf(model, flag2) {
+  if (flag2 === void 0 || flag2 === false) return [{ model }];
+  const views = model.views ?? [];
+  const drawn = (v) => ({ name: v.name, model: viewModel(model, v) });
+  if (flag2 === "all") return [{ model }, ...views.map(drawn)];
+  const view = views.find((v) => v.name === flag2);
+  if (view) return [drawn(view)];
+  const names = [...views.map((v) => v.name), "all"].join(", ");
+  return usage(
+    !views.length ? "--view: the spec has no views; add views: { name: { include: [id, group:<id>, tag:<name>] } }" : flag2 === true ? `--view needs a view name: ${names}` : `--view "${flag2}" is not a view of this spec; use ${names}`
+  );
 }
+function viewModel(model, view) {
+  const t = new Tree(model);
+  const kept = t.select(view);
+  const fold = view.depth === void 0 ? /* @__PURE__ */ new Map() : t.fold(kept, view.depth);
+  const at = (id) => fold.get(id) ?? id;
+  const groups = model.groups.flatMap((g) => {
+    if (!kept.has(g.id) || fold.has(g.id)) return [];
+    if (!g.around) return [g];
+    const around = g.around.filter((id) => kept.has(id) && at(id) === id);
+    return around.length ? [{ ...g, around }] : [];
+  });
+  const groupIds = new Set(groups.map((g) => g.id));
+  const nodeOf = (n4) => {
+    const out = { ...n4 };
+    if (n4.on && !groupIds.has(n4.on)) delete out.on;
+    if (n4.align && !(kept.has(n4.align) && !fold.has(n4.align))) delete out.align;
+    return out;
+  };
+  const nodes = model.nodes.flatMap((n4) => kept.has(n4.id) && !fold.has(n4.id) ? [nodeOf(n4)] : []);
+  nodes.push(...model.groups.filter((g) => fold.get(g.id) === g.id).map(groupNode));
+  const drawn = /* @__PURE__ */ new Set([...nodes.map((n4) => n4.id), ...groupIds]);
+  const edges = edgesOf(t, kept, view, at, drawn);
+  const story = (model.story ?? []).filter((id) => kept.has(id)).map(at).filter((id, i, all) => id !== all[i - 1]);
+  const tags = new Set([...nodes, ...groups, ...edges].flatMap((x2) => x2.tags ?? []));
+  const lines2 = new Set(edges.map((e) => e.line));
+  const legend4 = (model.legend ?? []).filter((l) => l.tag ? tags.has(l.tag) : lines2.has(l.line));
+  const { views: _, story: __, legend: ___, ...rest } = model;
+  return {
+    ...rest,
+    title: view.title ?? (model.title ? `${model.title}: ${view.name}` : view.name),
+    subtitle: view.subtitle ?? model.subtitle,
+    ...legend4.length ? { legend: legend4 } : {},
+    nodes,
+    groups,
+    edges,
+    ...story.length >= 2 ? { story } : {}
+  };
+}
+function edgesOf(t, kept, view, at, drawn) {
+  const dropped = new Set(t.tagged(view.exclude ?? []));
+  const byEnds = /* @__PURE__ */ new Map();
+  for (const e of t.model.edges) {
+    if (!kept.has(e.from) || !kept.has(e.to) || dropped.has(e.id)) continue;
+    const from = at(e.from);
+    const to = at(e.to);
+    if (from === to || !drawn.has(from) || !drawn.has(to)) continue;
+    const key = `${from}
+${to}`;
+    const seen = byEnds.get(key);
+    if (seen) seen.labels.add(e.label);
+    else byEnds.set(key, { edge: { ...e, from, to }, labels: /* @__PURE__ */ new Set([e.label]) });
+  }
+  return [...byEnds.values()].map(
+    ({ edge: edge3, labels: labels2 }) => labels2.size > 1 ? { ...edge3, label: void 0 } : edge3
+  );
+}
+function groupNode(g) {
+  const icon2 = g.icon === null ? void 0 : g.icon ?? resolveGroupStyle(g.type)?.icon;
+  return {
+    id: g.id,
+    label: g.label || g.id,
+    icon: icon2,
+    look: icon2 ? "icon" : "shape",
+    shape: "rounded",
+    parent: g.parent,
+    color: g.color,
+    iconSize: 48,
+    ...g.tags ? { tags: g.tags } : {},
+    ...g.evidence ? { evidence: g.evidence } : {}
+  };
+}
+var Tree = class {
+  children = /* @__PURE__ */ new Map();
+  parent = /* @__PURE__ */ new Map();
+  groups;
+  model;
+  constructor(model) {
+    this.model = model;
+    this.groups = new Map(model.groups.map((g) => [g.id, g]));
+    for (const x2 of [...model.groups, ...model.nodes]) {
+      if (!x2.parent) continue;
+      this.parent.set(x2.id, x2.parent);
+      this.children.set(x2.parent, [...this.children.get(x2.parent) ?? [], x2.id]);
+    }
+  }
+  /** The group and everything nested in it; for an overlay, the ids it is drawn around. */
+  within(id, seen = /* @__PURE__ */ new Set()) {
+    if (seen.has(id)) return [];
+    const around = seen.size ? void 0 : this.groups.get(id)?.around;
+    seen.add(id);
+    return [id, ...(around ?? this.children.get(id) ?? []).flatMap((c) => this.within(c, seen))];
+  }
+  /** The node and group ids an include or exclude list names, groups with their contents. */
+  named(entries3) {
+    return entries3.flatMap((entry) => {
+      const [kind, rest = ""] = entry.includes(":") ? entry.split(/:(.*)/s) : ["", entry];
+      if (kind === "tag") {
+        const items = [...this.model.nodes, ...this.model.groups].filter(
+          (x2) => x2.tags?.includes(rest)
+        );
+        return items.flatMap((x2) => this.within(x2.id));
+      }
+      const id = kind === "group" ? rest : entry;
+      return this.groups.has(id) || this.model.nodes.some((n4) => n4.id === id) ? this.within(id) : [];
+    });
+  }
+  /** The edge ids carrying one of the `tag:` entries. */
+  tagged(entries3) {
+    const tags = entries3.filter((e) => e.startsWith("tag:")).map((e) => e.slice(4));
+    return this.model.edges.filter((e) => e.tags?.some((t) => tags.includes(t))).map((e) => e.id);
+  }
+  /**
+   * What the view keeps: its includes (everything when it has none, plus both ends of a tagged
+   * edge), less its excludes, plus the groups around what is left (its parents, the group a node
+   * sits on the border of, overlays drawn around it). A group the view empties goes too.
+   */
+  select(view) {
+    const all = [...this.model.groups, ...this.model.nodes].map((x2) => x2.id);
+    const include = view.include;
+    const tagged2 = new Set(this.tagged(include ?? []));
+    const ends3 = this.model.edges.filter((e) => tagged2.has(e.id)).flatMap((e) => [...this.within(e.from), ...this.within(e.to)]);
+    const picked = new Set(include ? [...this.named(include), ...ends3] : all);
+    const out = new Set(this.named(view.exclude ?? []));
+    for (const id of out) picked.delete(id);
+    const keep = /* @__PURE__ */ new Set();
+    const up = (id) => {
+      for (let p = id; p && !keep.has(p); p = this.parent.get(p)) keep.add(p);
+    };
+    for (const id of picked) {
+      if (this.groups.get(id)?.around) continue;
+      up(id);
+      const on = this.model.nodes.find((n4) => n4.id === id)?.on;
+      if (on && !out.has(on)) up(on);
+    }
+    const byLevel = this.model.groups.filter((g) => !g.around);
+    byLevel.sort((a, b) => this.level(b.id) - this.level(a.id));
+    for (const g of byLevel) {
+      const inside3 = [
+        ...this.children.get(g.id) ?? [],
+        ...this.model.nodes.filter((n4) => n4.on === g.id).map((n4) => n4.id)
+      ];
+      if (keep.has(g.id) && inside3.length && !inside3.some((c) => keep.has(c))) keep.delete(g.id);
+    }
+    for (const g of this.model.groups)
+      if (g.around && !out.has(g.id) && g.around.some((m) => keep.has(m))) keep.add(g.id);
+    return keep;
+  }
+  /** How deep a group sits: 1 at the top level. */
+  level(id) {
+    let n4 = 0;
+    for (let p = id; p; p = this.parent.get(p)) n4 += 1;
+    return n4;
+  }
+  /**
+   * `depth`: groups below that level fold. A kept group one level deeper becomes the node that
+   * stands for it (it maps to itself), everything in it maps to that node, and overlays below
+   * the depth are dropped.
+   */
+  fold(kept, depth) {
+    const map = /* @__PURE__ */ new Map();
+    for (const g of this.model.groups) {
+      if (!kept.has(g.id) || this.level(g.id) <= depth) continue;
+      if (g.around) kept.delete(g.id);
+      else if (this.level(g.id) === depth + 1)
+        for (const id of this.within(g.id)) map.set(id, g.id);
+    }
+    return map;
+  }
+};
 
 // src/cli/render.ts
 async function cmdRender(args, validateOnly) {
@@ -29157,7 +32238,7 @@ function outputTarget(args, spec) {
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
   let formats;
   const fmtFlag = typeof args.flags.format === "string" ? args.flags.format : void 0;
-  const outExt = outFlag ? formatOf(outFlag) ?? extname5(outFlag).slice(1).toLowerCase() : "";
+  const outExt = outFlag ? formatOf(outFlag) ?? extname6(outFlag).slice(1).toLowerCase() : "";
   if (fmtFlag) {
     formats = fmtFlag === "all" ? [...FORMATS] : fmtFlag.split(",").map((f) => f.trim());
     for (const f of formats)
@@ -29166,11 +32247,11 @@ function outputTarget(args, spec) {
   else formats = ["svg", "png"];
   let base;
   if (!outFlag)
-    base = spec.path === "stdin.yaml" ? resolve12("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
-  else if (outFlag.endsWith("/") || outFlag.endsWith("\\") || existsSync17(outFlag) && statSync7(outFlag).isDirectory())
-    base = join15(resolve12(outFlag), spec.name);
+    base = spec.path === "stdin.yaml" ? resolve16("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
+  else if (outFlag.endsWith("/") || outFlag.endsWith("\\") || existsSync20(outFlag) && statSync8(outFlag).isDirectory())
+    base = join17(resolve16(outFlag), spec.name);
   else
-    base = resolve12(
+    base = resolve16(
       FORMATS.includes(outExt) ? outFlag.slice(0, -(outExt.length + 1)) : outFlag
     );
   return { formats, base };
@@ -29238,7 +32319,7 @@ function printReceipt(receipt, json2) {
 }
 
 // src/cli/review.ts
-import { resolve as resolve13 } from "node:path";
+import { resolve as resolve17 } from "node:path";
 async function cmdReview(args) {
   const [specPath] = args._;
   if (!specPath) usage("review needs a spec file");
@@ -29255,7 +32336,7 @@ async function cmdReview(args) {
   if (theme !== "light" && theme !== "dark") usage("--theme must be light or dark");
   const fonts2 = fontFiles(args);
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
-  const base = outFlag ? resolve13(outFlag) : spec.path === "stdin.yaml" ? resolve13("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
+  const base = outFlag ? resolve17(outFlag) : spec.path === "stdin.yaml" ? resolve17("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
   const skin = args.flags.skin;
   let run2;
   try {

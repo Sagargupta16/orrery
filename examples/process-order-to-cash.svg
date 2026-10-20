@@ -1,4 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="856" height="1527" viewBox="0 0 856 1527" role="img" aria-labelledby="process-order-to-cash-dark-sdw-title process-order-to-cash-dark-sdw-desc" font-family="&#39;Geist Mono&#39;, ui-monospace, SFMono-Regular, Menlo, Consolas, &#39;Liberation Mono&#39;, monospace">
+<metadata><orrery:spec xmlns:orrery="https://sagargupta.online/orrery/spec" version="1"># yaml-language-server: $schema=../references/diagram.schema.json
+title: Order to cash
+subtitle: A customer order through sales, the warehouse and finance in BPMN 2.0, with message flows between the two participants
+kind: process
+# Pools run top to bottom here, so the collaboration reads on a phone; direction: right lays the
+# same spec out as horizontal bands.
+direction: down
+layout: { spacing: compact }
+
+groups:
+  customer: { type: pool, label: Customer }
+  supplier: { type: pool, label: Supplier }
+  sales: { type: lane, in: supplier, label: Sales }
+  warehouse: { type: lane, in: supplier, label: Warehouse }
+  finance: { type: lane, in: supplier, label: Finance }
+
+nodes:
+  need: { bpmn: start, label: Goods needed, in: customer }
+  place: { bpmn: user-task, label: Place order, in: customer }
+  pay: { bpmn: user-task, label: Pay invoice, in: customer }
+  receive: { bpmn: receive-task, label: Receive goods, in: customer }
+  done: { bpmn: end, label: Order fulfilled, in: customer }
+
+  received: { bpmn: start-message, label: Order received, in: sales }
+  valid: { bpmn: exclusive, label: Stock and credit OK?, in: sales }
+  reject: { bpmn: send-task, label: Reject order, in: sales }
+  rejected: { bpmn: end, label: Order rejected, in: sales }
+  split: { bpmn: parallel, in: sales }
+  join: { bpmn: parallel, in: sales }
+  closed: { bpmn: end, label: Order closed, in: sales }
+
+  pick: { bpmn: manual-task, label: Pick and pack, in: warehouse }
+  ship: { bpmn: send-task, label: Ship goods, in: warehouse }
+
+  invoice: { bpmn: service-task, label: Send invoice, in: finance }
+  payment: { bpmn: receive-task, label: Record payment, in: finance }
+
+edges:
+  - need -> place -> pay -> receive -> done
+  - received -> valid
+  - valid -> split: "Yes"
+  - valid -> reject: "No"
+  - reject -> rejected
+  - split -> pick -> ship -> join
+  - split -> invoice -> payment -> join
+  - join -> closed
+  - place -> received: { flow: message, label: Order }
+  - invoice -> pay: { flow: message, label: Invoice }
+  - pay -> payment: { flow: message, label: Payment }
+  - ship -> receive: { flow: message, label: Goods }
+</orrery:spec></metadata>
 <title id="process-order-to-cash-dark-sdw-title">Order to cash</title>
 <desc id="process-order-to-cash-dark-sdw-desc">Order to cash. 16 components in 5 groups. Connections: Goods needed to Place order; Place order to Pay invoice; Pay invoice to Receive goods; Receive goods to Order fulfilled; Order received to Stock and credit OK?; Stock and credit OK? to (Yes); Stock and credit OK? to Reject order (No); Reject order to Order rejected; to Pick and pack; Pick and pack to Ship goods; Ship goods to ; to Send invoice; Send invoice to Record payment; Record payment to ; to Order closed; Place order to Order received (Order); Send invoice to Pay invoice (Invoice); Pay invoice to Record payment (Payment); Ship goods to Receive goods (Goods).</desc>
 <defs><linearGradient id="process-order-to-cash-dark-bg" x1="0" y1="0" x2="0.34" y2="0.94"><stop offset="0" stop-color="#0e1a24"/><stop offset="0.6" stop-color="#0b1012"/></linearGradient><pattern id="process-order-to-cash-dark-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 0.5H20M0.5 0V20" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1"/></pattern><radialGradient id="process-order-to-cash-dark-wash" gradientUnits="userSpaceOnUse" cx="425.25" cy="827.5" r="559.74"><stop offset="0" stop-color="#60a5fa" stop-opacity="0.12"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></radialGradient><mask id="process-order-to-cash-dark-m-e16" maskUnits="userSpaceOnUse" x="0" y="0" width="856" height="1527"><path d="M162.5 331 L219 331 Q227 331 227 339 L227 429 Q227 437 235 437 L352 437" fill="none" stroke="#ffffff" stroke-width="7.2" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"><animate attributeName="stroke-dashoffset" values="1;1;0;0" keyTimes="0;0.1605;0.2391;1" calcMode="spline" keySplines="0 0 1 1;0.65 0 0.35 1;0 0 1 1" dur="11.774s" repeatCount="indefinite"/></path></mask><mask id="process-order-to-cash-dark-m-e17" maskUnits="userSpaceOnUse" x="0" y="0" width="856" height="1527"><path d="M683 833 L644 833 Q636 833 636 841 L636 1061 Q636 1069 628 1069 L163.5 1069" fill="none" stroke="#ffffff" stroke-width="7.2" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"><animate attributeName="stroke-dashoffset" values="1;1;0;0" keyTimes="0;0.4736;0.5586;1" calcMode="spline" keySplines="0 0 1 1;0.65 0 0.35 1;0 0 1 1" dur="11.774s" repeatCount="indefinite"/></path></mask><mask id="process-order-to-cash-dark-m-e18" maskUnits="userSpaceOnUse" x="0" y="0" width="856" height="1527"><path d="M163 1089 L219 1089 Q227 1089 227 1097 L227 1209 Q227 1217 235 1217 L671.5 1217" fill="none" stroke="#ffffff" stroke-width="7.2" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"><animate attributeName="stroke-dashoffset" values="1;1;0;0" keyTimes="0;0.579;0.6639;1" calcMode="spline" keySplines="0 0 1 1;0.65 0 0.35 1;0 0 1 1" dur="11.774s" repeatCount="indefinite"/></path></mask><mask id="process-order-to-cash-dark-m-e19" maskUnits="userSpaceOnUse" x="0" y="0" width="856" height="1527"><path d="M516 961 L223 961 Q215 961 215 969 L215 1209 Q215 1217 207 1217 L173.5 1217" fill="none" stroke="#ffffff" stroke-width="7.2" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"><animate attributeName="stroke-dashoffset" values="1;1;0;0" keyTimes="0;0.4946;0.5795;1" calcMode="spline" keySplines="0 0 1 1;0.65 0 0.35 1;0 0 1 1" dur="11.774s" repeatCount="indefinite"/></path></mask></defs>

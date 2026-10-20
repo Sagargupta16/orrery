@@ -1,4 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="921" height="640" viewBox="0 0 921 640" role="img" aria-labelledby="mindmap-product-launch-dark-sdw-title mindmap-product-launch-dark-sdw-desc" font-family="&#39;Geist Mono&#39;, ui-monospace, SFMono-Regular, Menlo, Consolas, &#39;Liberation Mono&#39;, monospace">
+<metadata><orrery:spec xmlns:orrery="https://sagargupta.online/orrery/spec" version="1"># yaml-language-server: $schema=../references/diagram.schema.json
+title: Product launch
+subtitle: Everything the launch needs, by workstream, as a two-sided mind map
+kind: mindmap
+
+nodes:
+  launch: { label: Product launch }
+  market: { label: Market }
+  personas: { label: Personas }
+  competitors: { label: Competitors }
+  pricing: { label: Pricing tiers }
+  product: { label: Product }
+  beta: { label: Beta feedback }
+  docs: { label: Docs and guides }
+  notes: { label: Release notes }
+  flags: { label: Feature flags }
+  sales: { label: Sales }
+  demo: { label: Demo script }
+  partners: { label: Partner deals }
+  training: { label: Sales training }
+  comms: { label: Comms }
+  press: { label: Press kit }
+  blog: { label: Launch blog post }
+  video: { label: Launch video }
+  support: { label: Support }
+  faq: { label: FAQ }
+  oncall: { label: On-call rota }
+
+edges:
+  - launch -> market, product, sales, comms, support
+  - market -> personas, competitors, pricing
+  - product -> beta, docs, notes, flags
+  - sales -> demo, partners, training
+  - comms -> press, blog, video
+  - support -> faq, oncall
+</orrery:spec></metadata>
 <title id="mindmap-product-launch-dark-sdw-title">Product launch</title>
 <desc id="mindmap-product-launch-dark-sdw-desc">Product launch. 21 components. Connections: Product launch to Market; Product launch to Product; Product launch to Sales; Product launch to Comms; Product launch to Support; Market to Personas; Market to Competitors; Market to Pricing tiers; Product to Beta feedback; Product to Docs and guides; Product to Release notes; Product to Feature flags; Sales to Demo script; Sales to Partner deals; Sales to Sales training; Comms to Press kit; Comms to Launch blog post; Comms to Launch video; Support to FAQ; Support to On-call rota.</desc>
 <defs><linearGradient id="mindmap-product-launch-dark-bg" x1="0" y1="0" x2="0.34" y2="0.94"><stop offset="0" stop-color="#0e1a24"/><stop offset="0.6" stop-color="#0b1012"/></linearGradient><pattern id="mindmap-product-launch-dark-grid" width="20.93" height="20.93" patternUnits="userSpaceOnUse"><path d="M0 0.52H20.93M0.52 0V20.93" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1.05"/></pattern><radialGradient id="mindmap-product-launch-dark-wash" gradientUnits="userSpaceOnUse" cx="471.64" cy="354" r="353.82"><stop offset="0" stop-color="#60a5fa" stop-opacity="0.12"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></radialGradient></defs>

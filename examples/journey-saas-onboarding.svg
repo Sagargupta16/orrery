@@ -1,4 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1354" height="870" viewBox="0 0 1354 870" role="img" aria-labelledby="journey-saas-onboarding-dark-sdw-title journey-saas-onboarding-dark-sdw-desc" font-family="&#39;Geist Mono&#39;, ui-monospace, SFMono-Regular, Menlo, Consolas, &#39;Liberation Mono&#39;, monospace">
+<metadata><orrery:spec xmlns:orrery="https://sagargupta.online/orrery/spec" version="1"># yaml-language-server: $schema=../references/diagram.schema.json
+title: SaaS onboarding journey
+subtitle: A new customer's path from first search to the first renewal, with what hurts and what to fix
+kind: journey
+stages: [Discover, Sign up, Set up, First value, Renew]
+
+legend:
+  solid: The customer's path
+  dotted: Where it happens, what fixes it
+
+# Each lane is a row; every step names its stage (the column) and the customer's steps carry a
+# score from -2 to 2, which the emotion curve averages per stage.
+groups:
+  actions: { type: lane, label: Customer actions }
+  touchpoints: { type: lane, label: Touchpoints }
+  pains: { type: lane, label: Pain points, color: "#cf222e" }
+  ideas: { type: lane, label: Opportunities, color: "#1a7f37" }
+
+nodes:
+  search: { in: actions, stage: Discover, icon: generic:search, label: Compares tools, note: Reads reviews and a comparison post, score: 1 }
+  trial: { in: actions, stage: Sign up, icon: generic:user, label: Starts a free trial, note: Work email and password, score: -1 }
+  import: { in: actions, stage: Set up, icon: generic:files, label: Imports their data, note: Uploads a CSV export, score: -2 }
+  report: { in: actions, stage: First value, icon: generic:dashboard, label: Shares a first report, note: The moment it clicks, score: 2 }
+  invite: { in: actions, stage: First value, icon: generic:users, label: Invites the team, note: Three more seats, score: 1 }
+  upgrade: { in: actions, stage: Renew, icon: generic:payment, label: Upgrades to a paid plan, note: Before the trial ends, score: 1 }
+
+  review: { in: touchpoints, stage: Discover, icon: generic:browser, label: Review site, note: G2 and a blog post }
+  form: { in: touchpoints, stage: Sign up, icon: generic:email, label: Sign-up form, note: Verify by email }
+  wizard: { in: touchpoints, stage: Set up, icon: generic:etl, label: Import wizard, note: Column mapping }
+  dash: { in: touchpoints, stage: First value, icon: generic:analytics, label: Dashboard, note: Sharing and seat invites }
+  billing: { in: touchpoints, stage: Renew, icon: generic:notification, label: Trial-end email, note: Links to billing }
+
+  spam: { in: pains, stage: Sign up, label: Verification lands in spam, note: A third never confirms }
+  mapping: { in: pains, stage: Set up, label: Columns do not map, note: Dates and currencies fail }
+  pricing: { in: pains, stage: Renew, label: Plans are hard to compare, note: Seats or usage? }
+
+  magic: { in: ideas, stage: Sign up, label: Magic-link sign-in, note: "No password, no wait" }
+  sample: { in: ideas, stage: Set up, label: Start with sample data, note: Map columns later }
+  preview: { in: ideas, stage: Renew, label: Plan preview in the app, note: Cost at current usage }
+
+edges:
+  - search -> trial -> import -> report -> invite -> upgrade
+  - search ... review
+  - trial ... form
+  - import ... wizard
+  - invite ... dash
+  - upgrade ... billing
+  - spam ... magic
+  - mapping ... sample
+  - pricing ... preview
+</orrery:spec></metadata>
 <title id="journey-saas-onboarding-dark-sdw-title">SaaS onboarding journey</title>
 <desc id="journey-saas-onboarding-dark-sdw-desc">SaaS onboarding journey. Customer journey in 5 stages (Discover, Sign up, Set up, First value, Renew) and 4 rows (Customer actions, Touchpoints, Pain points, Opportunities), 17 steps. Emotion from -2 to 2 by stage: Discover +1, Sign up -1, Set up -2, First value +1.5, Renew +1. Connections: Compares tools to Starts a free trial; Starts a free trial to Imports their data; Imports their data to Shares a first report; Shares a first report to Invites the team; Invites the team to Upgrades to a paid plan; Compares tools to Review site; Starts a free trial to Sign-up form; Imports their data to Import wizard; Invites the team to Dashboard; Upgrades to a paid plan to Trial-end email; Verification lands in spam to Magic-link sign-in; Columns do not map to Start with sample data; Plans are hard to compare to Plan preview in the app.</desc>
 <defs><linearGradient id="journey-saas-onboarding-dark-bg" x1="0" y1="0" x2="0.34" y2="0.94"><stop offset="0" stop-color="#0e1a24"/><stop offset="0.6" stop-color="#0b1012"/></linearGradient><pattern id="journey-saas-onboarding-dark-grid" width="30.77" height="30.77" patternUnits="userSpaceOnUse"><path d="M0 0.77H30.77M0.77 0V30.77" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1.54"/></pattern><radialGradient id="journey-saas-onboarding-dark-wash" gradientUnits="userSpaceOnUse" cx="733.5" cy="246" r="577.81"><stop offset="0" stop-color="#60a5fa" stop-opacity="0.12"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></radialGradient><symbol id="journey-saas-onboarding-dark-s1" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0-14 0m18 11l-6-6"/></symbol><symbol id="journey-saas-onboarding-dark-s2" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0-8 0M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></symbol><symbol id="journey-saas-onboarding-dark-s3" viewBox="0 0 24 24" overflow="visible"><g fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M15 3v4a1 1 0 0 0 1 1h4"/><path d="M18 17h-7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l5 5v7a2 2 0 0 1-2 2"/><path d="M16 17v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"/></g></symbol><symbol id="journey-saas-onboarding-dark-s4" viewBox="0 0 24 24" overflow="visible"><g fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M10 13a2 2 0 1 0 4 0a2 2 0 1 0-4 0m3.45-1.45L15.5 9.5"/><path d="M6.4 20a9 9 0 1 1 11.2 0z"/></g></symbol><symbol id="journey-saas-onboarding-dark-s5" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2m1-17.87a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.85"/></symbol><symbol id="journey-saas-onboarding-dark-s6" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm0 2h18M7 15h.01M11 15h2"/></symbol><symbol id="journey-saas-onboarding-dark-s7" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm4-2v4"/></symbol><symbol id="journey-saas-onboarding-dark-s8" viewBox="0 0 24 24" overflow="visible"><g fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="m3 7l9 6l9-6"/></g></symbol><symbol id="journey-saas-onboarding-dark-s9" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6a3 3 0 1 0 6 0a3 3 0 0 0-6 0m18 5V8a2 2 0 0 0-2-2h-6l3 3m0-6l-3 3M3 13v3a2 2 0 0 0 2 2h6l-3-3m0 6l3-3m4 0a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/></symbol><symbol id="journey-saas-onboarding-dark-s10" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zm12-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1zM9 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1zM4 20h14"/></symbol><symbol id="journey-saas-onboarding-dark-s11" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6M9 17v1a3 3 0 0 0 6 0v-1"/></symbol></defs>

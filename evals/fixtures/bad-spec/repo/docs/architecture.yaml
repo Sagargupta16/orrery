@@ -1,0 +1,38 @@
+direction: right
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+
+nodes:
+  logs: { icon: aws:cloudwatch, in: region }
+  keys: { icon: aws:key-management-service, in: region }
+  bucket: { icon: aws:simple-storage-service-bucket, label: Amazon Simple Storage Service bucket for receipts, in: region }
+  receipt: { icon: aws:lambda-lambda-function, label: AWS Lambda function that sends receipts, in: region }
+  queue: { icon: aws:simple-queue-service, label: Amazon Simple Queue Service order events queue, in: region }
+  table: { icon: aws:dynamodb-table, label: Amazon DynamoDB orders table, in: region }
+  orders: { icon: aws:lambda-lambda-function, label: AWS Lambda function that creates orders, in: region }
+  api: { icon: aws:api-gateway, label: Amazon API Gateway HTTP API, in: region }
+  users: { icon: aws:users, label: Customers, in: region }
+
+edges:
+  - users -> api: HTTPS request
+  - api -> users: HTTPS response
+  - api -> orders: invoke
+  - orders -> api: response
+  - orders -> table: PutItem
+  - table -> orders: result
+  - orders -> queue: SendMessage
+  - queue -> receipt: poll
+  - receipt -> bucket: PutObject
+  - api -> logs: logs
+  - orders -> logs: logs
+  - receipt -> logs: logs
+  - queue -> logs: metrics
+  - table -> logs: metrics
+  - bucket -> logs: metrics
+  - orders -> keys: decrypt
+  - receipt -> keys: decrypt
+  - table -> keys: encrypt
+  - bucket -> keys: encrypt
+  - queue -> keys: encrypt

@@ -1,7 +1,7 @@
 // Fields any node, group or edge may carry besides its drawing: `tags:` (for views and tag
 // styles) and `evidence:` (where it comes from, checked by `orrery verify`); plus the top-level
 // `tags:` styles and `views:`.
-import type { ModelView, TagStyle } from "../types.ts";
+import type { EdgeLine, LegendEntry, ModelView, TagStyle } from "../types.ts";
 import { EDGE_LINES } from "../types.ts";
 import type { Ctx } from "./context.ts";
 import { hexColor, isObj, type Obj, str } from "./values.ts";
@@ -77,7 +77,40 @@ export function parseTagStyles(ctx: Ctx): Record<string, TagStyle> {
     if (label) style.label = label;
     styles[name] = style;
   }
+  ctx.tagStyles = styles;
   return styles;
+}
+
+/** The color and the line an item's tags give it: each from the first tag whose style sets it. */
+export function tagged(ctx: Ctx, tags: string[] | undefined): { color?: string; line?: EdgeLine } {
+  const out: { color?: string; line?: EdgeLine } = {};
+  for (const t of tags ?? []) {
+    out.color ??= ctx.tagStyles[t]?.color;
+    out.line ??= ctx.tagStyles[t]?.line;
+  }
+  return out;
+}
+
+/**
+ * A legend row per labeled tag style that something carries, in `tags:` order: a sample of its
+ * line in its color, or a color chip when it sets no line. A tag nothing carries explains nothing
+ * (a shared `include:` file may define more tags than this diagram uses).
+ */
+export function tagLegend(ctx: Ctx): LegendEntry[] {
+  const used = new Set([...ctx.nodes, ...ctx.groups, ...ctx.edges].flatMap((x) => x.tags ?? []));
+  return Object.entries(ctx.tagStyles).flatMap(([tag, s]): LegendEntry[] =>
+    s.label && used.has(tag)
+      ? [
+          {
+            line: s.line ?? "solid",
+            label: s.label,
+            ...(s.color ? { color: s.color } : {}),
+            ...(s.line ? {} : { chip: true }),
+            tag,
+          },
+        ]
+      : [],
+  );
 }
 
 /** Top-level `views:`: named subsets of the diagram, drawn as their own figures. */
@@ -94,6 +127,13 @@ export function parseViews(ctx: Ctx): ModelView[] {
   const views: ModelView[] = [];
   for (const [name, value] of Object.entries(raw)) {
     const v: Obj = isObj(value) ? value : {};
+    if (name === "all") {
+      ctx.err("DG118", 'view name "all" is taken: --view all draws every view', {
+        subject: { where: "views", view: name },
+        fixes: ["rename the view, e.g. everything"],
+      });
+      continue;
+    }
     if (!TAG.test(name) || !isObj(value)) {
       ctx.err("DG118", `view "${name}" needs a mapping with include, exclude, depth or title`, {
         subject: { where: "views", view: name },

@@ -5,12 +5,14 @@
 // watched file and kill its handle, so a rename re-arms the watch.
 import { existsSync, type FSWatcher, readFileSync, statSync, watch } from "node:fs";
 import { join, resolve } from "node:path";
+import { parse as parseYaml } from "yaml";
 import type { Args } from "./cli/args.ts";
 import { printDiagnostics, readSpec, renderFailure, usage, writeAtomic } from "./cli/io.ts";
 import { shownPath } from "./icons/local/index.ts";
 import { FORMATS, type Format, formatOf, renderModel } from "./render/index.ts";
 import { DEFAULT_REVIEW_WIDTH, formatReview, reviewModel } from "./review/index.ts";
 import { parseSpec } from "./spec/index.ts";
+import { includedFiles } from "./spec/reuse.ts";
 import type { AnimateMode, Diagnostic, Skin, ThemeName } from "./types.ts";
 
 const DEBOUNCE_MS = 120;
@@ -94,10 +96,15 @@ async function renderSpec(
   follow: (files: string[]) => void,
 ): Promise<void> {
   const { spec, formats, base, scale, fonts, animate, skin, width } = opts;
-  const parsed = parseSpec(readFileSync(spec.path, "utf8"), spec.path);
+  const text = readFileSync(spec.path, "utf8");
+  const parsed = parseSpec(text, spec.path);
   run.diagnostics.push(...parsed.diagnostics);
   if (!parsed.model || run.diagnostics.some((d) => d.severity === "error")) return;
-  follow([spec.path, ...(parsed.model.icons ?? []).map((i) => i.path)]);
+  // The spec, its local icons and every spec it includes: a save to any of them re-renders.
+  const raw: unknown = /\.json$/i.test(spec.path) ? JSON.parse(text) : parseYaml(text);
+  const included =
+    raw && typeof raw === "object" ? includedFiles(raw as Record<string, unknown>, spec.path) : [];
+  follow([spec.path, ...(parsed.model.icons ?? []).map((i) => i.path), ...included]);
   const theme = opts.theme ?? parsed.model.theme;
   const themes: ThemeName[] = theme === "both" ? ["light", "dark"] : [theme as ThemeName];
   const result = await renderModel({
@@ -109,6 +116,7 @@ async function renderSpec(
     fonts,
     animate,
     skin,
+    source: text,
   });
   run.diagnostics.push(...result.diagnostics);
   for (const a of result.artifacts) {

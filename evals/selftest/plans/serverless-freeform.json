@@ -1,0 +1,31 @@
+{
+  "brief": "Orders API on AWS for the README, with ids the planner chose itself",
+  "evidence": ["infra/main.tf", "src/create_order.mjs", "src/send_receipt.mjs"],
+  "figures": [
+    {
+      "name": "overview",
+      "aspect": "overview",
+      "title": "Orders platform",
+      "kind": "architecture",
+      "groups": [{ "id": "region", "type": "aws:region", "evidence": "infra/main.tf:1" }],
+      "nodes": [
+        { "id": "gw", "label": "HTTP API", "icon": "aws:api-gateway", "in": "region", "evidence": "infra/main.tf:14" },
+        { "id": "api", "label": "Orders API", "icon": "aws:lambda", "in": "region", "evidence": "infra/main.tf:46" },
+        { "id": "table", "label": "Orders", "icon": "aws:dynamodb", "in": "region", "evidence": "infra/main.tf:61-70" },
+        { "id": "queue", "label": "Events", "icon": "aws:sqs", "in": "region", "evidence": "aws_sqs_queue.order_events" },
+        { "id": "worker", "label": "Receipt worker", "icon": "aws:lambda", "in": "region", "evidence": "./infra/main.tf:80" },
+        { "id": "bucket", "label": "Receipts", "icon": "aws:s3", "in": "region", "evidence": "repo/infra/main.tf:100" }
+      ],
+      "edges": [
+        { "from": "gw", "to": "api", "source": "declared", "evidence": "infra/main.tf:19" },
+        { "from": "api", "to": "table", "label": "put", "source": "inferred", "evidence": "src/create_order.mjs:12" },
+        { "from": "api", "to": "queue", "label": "enqueue", "source": "inferred", "evidence": "src/create_order.mjs:22" },
+        { "from": "queue", "to": "worker", "label": "polls", "source": "declared", "evidence": "infra/main.tf:93" },
+        { "from": "worker", "to": "bucket", "label": "put", "source": "inferred", "evidence": "src/send_receipt.mjs:9" }
+      ],
+      "leftOut": [{ "what": "IAM, logs, routes", "why": "glue" }]
+    }
+  ],
+  "standIns": [],
+  "questions": []
+}

@@ -1,0 +1,31 @@
+{
+  "brief": "Shop app on Docker Compose: a plan with the usual mistakes",
+  "evidence": ["docker-compose.yaml"],
+  "figures": [
+    {
+      "name": "shop-overview",
+      "aspect": "overview",
+      "title": "Shop",
+      "kind": "architecture",
+      "groups": [],
+      "nodes": [
+        { "id": "proxy", "label": "nginx", "icon": "logos:nginx", "evidence": "docker-compose.yaml:4" },
+        { "id": "api", "label": "API", "icon": "logos:nodejs-icon", "evidence": "docker-compose.yaml:14" },
+        { "id": "worker", "label": "Worker", "icon": "logos:nodejs-icon", "evidence": "docker-compose.yaml:23" },
+        { "id": "db", "label": "PostgreSQL", "icon": "logos:postgresql", "evidence": "docker-compose.yaml:31" },
+        { "id": "cache", "label": "Redis", "icon": "logos:redis", "evidence": "docker-compose.yaml:41" },
+        { "id": "broker", "label": "RabbitMQ", "icon": "logos:rabbitmq-icon", "evidence": "brief" }
+      ],
+      "edges": [
+        { "from": "proxy", "to": "api", "source": "declared", "evidence": "nginx/nginx.conf:10" },
+        { "from": "api", "to": "db", "source": "inferred", "evidence": "docker-compose.yaml:18" },
+        { "from": "api", "to": "cache", "source": "inferred", "evidence": "docker-compose.yaml:19" },
+        { "from": "api", "to": "broker", "source": "inferred", "evidence": "brief" },
+        { "from": "worker", "to": "api", "label": "depends on", "source": "declared", "evidence": "docker-compose.yaml:29 (depends_on)" }
+      ],
+      "leftOut": []
+    }
+  ],
+  "standIns": [],
+  "questions": []
+}

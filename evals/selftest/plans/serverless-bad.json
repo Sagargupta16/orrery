@@ -1,0 +1,36 @@
+{
+  "brief": "Orders API on AWS for the README: a plan with the usual mistakes",
+  "evidence": ["infra/main.tf", "infra/iam.tf"],
+  "figures": [
+    {
+      "name": "orders-overview",
+      "aspect": "overview",
+      "title": "Orders API on AWS",
+      "kind": "architecture",
+      "groups": [
+        { "id": "region", "type": "aws:region", "evidence": "infra/main.tf:1" },
+        { "id": "vpc", "type": "aws:vpc", "in": "region", "evidence": "brief" }
+      ],
+      "nodes": [
+        { "id": "orders_api", "label": "Orders HTTP API", "icon": "aws:api-gateway", "in": "region", "evidence": "infra/main.tf:14" },
+        { "id": "create_order", "label": "Create order", "icon": "aws:lambda", "in": "vpc", "evidence": "infra/main.tf:46" },
+        { "id": "create_order_role", "label": "Create order role", "icon": "aws:identity-and-access-management", "in": "region", "evidence": "infra/iam.tf:12" },
+        { "id": "orders", "label": "Orders table", "icon": "aws:dynamodb", "in": "region", "evidence": "infra/main.tf:61" },
+        { "id": "orders_db", "label": "Orders database", "icon": "aws:rds", "in": "vpc", "evidence": "brief" },
+        { "id": "order_events", "label": "Order events", "icon": "aws:sqs", "in": "region", "evidence": "infra/main.tf:72" },
+        { "id": "send_receipt", "label": "Send receipt", "icon": "aws:lambda", "in": "region", "evidence": "infra/main.tf:77" }
+      ],
+      "edges": [
+        { "from": "orders_api", "to": "create_order", "source": "declared", "evidence": "infra/main.tf:19" },
+        { "from": "create_order", "to": "orders", "source": "inferred", "evidence": "infra/iam.tf:22" },
+        { "from": "create_order", "to": "orders_db", "source": "inferred", "evidence": "brief" },
+        { "from": "create_order", "to": "order_events", "source": "inferred", "evidence": "infra/iam.tf:23" },
+        { "from": "send_receipt", "to": "order_events", "label": "polls", "source": "declared", "evidence": "infra/main.tf:93" },
+        { "from": "send_receipt", "to": "orders", "label": "depends on", "source": "declared", "evidence": "infra/main.tf:90 (depends_on)" }
+      ],
+      "leftOut": []
+    }
+  ],
+  "standIns": [],
+  "questions": []
+}

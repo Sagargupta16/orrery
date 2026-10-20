@@ -1,0 +1,7 @@
+title: Orders API on AWS
+nodes:
+  api: { icon: aws:api-gatewayy, label: Amazon API Gateway }
+  fn: { icon: aws:lambda, label: Create order }
+edges:
+  - api -> fn
+  - fn -> table: PutItem

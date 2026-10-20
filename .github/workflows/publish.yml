@@ -7,6 +7,11 @@ name: Publish
 # - npm gets the CLI as @sagargupta1610/orrery, staged from the skill folder by
 #   scripts/pack-npm.mjs. A version already on npm (the first one is published by hand, before
 #   trusted publishing can be configured) is skipped.
+# - The MCP Bundle out/orrery-<version>.mcpb (one-click install in Claude Desktop) is attached to
+#   the release, built by scripts/pack-mcpb.mjs.
+# - The MCP Registry gets out/server.json, server.json plus the bundle as a second package, after
+#   npm has the version (the registry checks the package's mcpName). A version already listed is
+#   skipped.
 on:
   release:
     types: [published]
@@ -15,8 +20,8 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # attach the Gemini CLI archive to the release
-      id-token: write # npm trusted publishing (OIDC) + provenance
+      contents: write # attach the Gemini CLI archive and the MCP Bundle to the release
+      id-token: write # npm trusted publishing (OIDC) + provenance, MCP Registry login (OIDC)
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -59,4 +64,25 @@ jobs:
           else
             # ./ makes it a folder: npm reads a bare out/npm as the GitHub repository out/npm.
             npm publish ./out/npm --access public
+          fi
+
+      - run: node scripts/pack-mcpb.mjs
+      - run: npx -y @anthropic-ai/mcpb@2.1.2 validate out/mcpb/manifest.json
+      - name: Attach the MCP Bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" "out/orrery-${GITHUB_REF_NAME#v}.mcpb" --clobber
+
+      # No token: mcp-publisher logs in with this job's GitHub OIDC token, which grants the
+      # io.github.Sagargupta16/* namespace. The registry refuses to list a version twice.
+      - name: Publish to the MCP Registry
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          LISTED="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.Sagargupta16%2Forrery/versions/$VERSION"
+          if curl -fs -o /dev/null "$LISTED"; then
+            echo "io.github.Sagargupta16/orrery $VERSION is already in the MCP Registry"
+          else
+            curl -fsSL https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz | tar xz mcp-publisher
+            ./mcp-publisher login github-oidc
+            ./mcp-publisher publish out/server.json
           fi

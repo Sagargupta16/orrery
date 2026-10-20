@@ -1,4 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="474" height="1185" viewBox="0 0 474 1185" role="img" aria-labelledby="state-order-lifecycle-dark-sdw-title state-order-lifecycle-dark-sdw-desc" font-family="&#39;Geist Mono&#39;, ui-monospace, SFMono-Regular, Menlo, Consolas, &#39;Liberation Mono&#39;, monospace">
+<metadata><orrery:spec xmlns:orrery="https://sagargupta.online/orrery/spec" version="1"># yaml-language-server: $schema=../references/diagram.schema.json
+title: Order lifecycle
+subtitle: "UML state machine: transitions read event [guard] / action"
+kind: state
+# Top to bottom: left to right, seven states with long transition labels make a strip.
+direction: down
+# One port per transition, as UML draws them; a self-transition then keeps the top of its state.
+layout: { merge: false, spacing: compact }
+
+nodes:
+  start: { shape: initial }
+  created: { shape: state, label: Created }
+  paid: { shape: state, label: Paid }
+  packed: { shape: state, label: Packed }
+  shipped: { shape: state, label: Shipped }
+  delivered: { shape: state, label: Delivered }
+  cancelled: { shape: state, label: Cancelled }
+  refunded: { shape: state, label: Refunded }
+  end: { shape: final }
+  closed: { shape: final }
+
+edges:
+  - start -> created
+  - created -> paid: "pay [card ok] / charge"
+  - created -> created: "edit / recalc total"
+  - created -> cancelled: "cancel / release stock"
+  - paid -> packed: "pick / print label"
+  - paid -> refunded: "cancel [not packed] / refund"
+  - packed -> shipped: "hand over / send tracking"
+  - shipped -> delivered: "deliver / notify buyer"
+  - delivered -> refunded: "return [within 30 days] / refund"
+  - delivered -> end
+  - cancelled -> closed
+  - refunded -> end
+</orrery:spec></metadata>
 <title id="state-order-lifecycle-dark-sdw-title">Order lifecycle</title>
 <desc id="state-order-lifecycle-dark-sdw-desc">Order lifecycle. 10 components. Connections: to Created; Created to Paid (pay [card ok] / charge); Created to Created (edit / recalc total); Created to Cancelled (cancel / release stock); Paid to Packed (pick / print label); Paid to Refunded (cancel [not packed] / refund); Packed to Shipped (hand over / send tracking); Shipped to Delivered (deliver / notify buyer); Delivered to Refunded (return [within 30 days] / refund); Delivered to ; Cancelled to ; Refunded to .</desc>
 <defs><linearGradient id="state-order-lifecycle-dark-bg" x1="0" y1="0" x2="0.34" y2="0.94"><stop offset="0" stop-color="#0e1a24"/><stop offset="0.6" stop-color="#0b1012"/></linearGradient><pattern id="state-order-lifecycle-dark-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 0.5H20M0.5 0V20" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1"/></pattern><radialGradient id="state-order-lifecycle-dark-wash" gradientUnits="userSpaceOnUse" cx="167.5" cy="624.82" r="417.57"><stop offset="0" stop-color="#60a5fa" stop-opacity="0.12"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></radialGradient></defs>

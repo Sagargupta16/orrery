@@ -1,0 +1,35 @@
+schema_version: "1.1"
+name: review-raises-score
+context:
+  scaffold_script: scaffold.sh
+# The fixture (../../fixtures/bad-spec/repo/docs/architecture.yaml) measures 74.1 at 880 px with
+# every hard count at 0, so score-raised accepts 74.2 to 100 from the final review JSON, which the
+# bundled CLI writes. evals/scripts/selftest.mjs fails if that baseline moves; for the exact ratchet
+# check run evals/scripts/review-delta.mjs on the fixture and the --keep-temp workspace's spec.
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"orrery(?::[\w-]+)?"'
+  - name: measured
+    type: tool_used
+    tool: Bash
+    input_match: 'orrery(?:\\.|[^"\\])*?\sreview\b'
+  - name: patch-tried
+    type: tool_used
+    tool: Bash
+    input_match: 'orrery(?:\\.|[^"\\])*?\spatch\b'
+  - name: score-raised
+    type: regex
+    weight: 3
+    target: { source: file, path: out/final.review.json }
+    pattern: '"width"\s*:\s*880\s*,\s*"scale"[\s\S]*?"score"\s*:\s*(?:74\.[2-9]\d*|7[5-9](?:\.\d+)?|[89]\d(?:\.\d+)?|100(?:\.0+)?)\s*,\s*"pass"'
+  - name: no-hard-count-up
+    type: regex
+    target: { source: file, path: out/final.review.json }
+    pattern: '"hard"\s*:\s*\{\s*"overlaps"\s*:\s*0\s*,\s*"edgesThroughNodes"\s*:\s*0\s*,\s*"edgesThroughHeaders"\s*:\s*0\s*,\s*"edgesThroughLabels"\s*:\s*0\s*,\s*"offCanvas"\s*:\s*0\s*,\s*"contrastFailures"\s*:\s*0\s*\}'
+  - name: nodes-kept
+    type: regex
+    flags: m
+    target: { source: file, path: docs/architecture.yaml }
+    pattern: '^(?=[\s\S]*^ {2}logs\s*:)(?=[\s\S]*^ {2}keys\s*:)(?=[\s\S]*^ {2}bucket\s*:)(?=[\s\S]*^ {2}receipt\s*:)(?=[\s\S]*^ {2}queue\s*:)(?=[\s\S]*^ {2}table\s*:)(?=[\s\S]*^ {2}orders\s*:)(?=[\s\S]*^ {2}api\s*:)(?=[\s\S]*^ {2}users\s*:)'

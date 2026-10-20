@@ -1,0 +1,3 @@
+# Its own pnpm project, apart from the repo root. vsce packages node_modules the way npm lays it
+# out, so dependencies install flat.
+nodeLinker: hoisted

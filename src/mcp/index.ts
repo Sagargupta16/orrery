@@ -11,7 +11,8 @@
 // fixes and calls again; isError means the call itself failed (bad arguments, a crash).
 //
 // mcp/protocol.ts answers the JSON-RPC methods, mcp/stdio.ts and mcp/http.ts carry them,
-// mcp/tools/ holds one file per tool and mcp/kit.ts what the tools share.
+// mcp/tools/ holds one file per tool, mcp/kit.ts what the tools share and mcp/viewer.ts the
+// MCP Apps view (ui://orrery/viewer) that render and review results open in.
 import type { Args } from "../cli/args.ts";
 import { usage } from "../cli/io.ts";
 import { serveHttp } from "./http.ts";

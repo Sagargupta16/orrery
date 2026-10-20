@@ -1,0 +1,78 @@
+schema_version: "1.1"
+name: plan-compose-app
+context:
+  scaffold_script: scaffold.sh
+# One regex grader per required service and per required flow, so the run score is a weighted node
+# and edge recall. The answer key is ../../fixtures/compose-app/expected.json; for the exact recall
+# run evals/scripts/plan-recall.mjs on the plan.json of a --keep-temp workspace.
+graders:
+  - name: planner-ran
+    type: tool_used
+    tool: Agent
+    input_match: '"subagent_type"\s*:\s*"orrery:planner"'
+    arm: with-only
+  - name: plan-saved
+    type: file_exists
+    path: plan.json
+  - name: confirm-list-shown
+    type: regex
+    flags: i
+    pattern: 'services[\s\S]*boundaries[\s\S]*flows[\s\S]*left out'
+
+  - name: node-proxy
+    type: regex
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"id"\s*:\s*"proxy"|"(?:icon|label)"\s*:\s*"[^"]*nginx'
+  - name: node-api
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"id"\s*:\s*"api"'
+  - name: node-worker
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"id"\s*:\s*"worker"'
+  - name: node-db
+    type: regex
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"id"\s*:\s*"db"|"(?:icon|label)"\s*:\s*"[^"]*postgres'
+  - name: node-cache
+    type: regex
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"id"\s*:\s*"cache"|"(?:icon|label)"\s*:\s*"[^"]*redis'
+
+  - name: edge-proxy-to-api
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"proxy"\s*,\s*"to"\s*:\s*"api"|"to"\s*:\s*"api"\s*,\s*"from"\s*:\s*"proxy"'
+  - name: edge-api-to-db
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"api"\s*,\s*"to"\s*:\s*"db"|"to"\s*:\s*"db"\s*,\s*"from"\s*:\s*"api"'
+  - name: edge-api-to-cache
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"api"\s*,\s*"to"\s*:\s*"cache"|"to"\s*:\s*"cache"\s*,\s*"from"\s*:\s*"api"'
+  - name: edge-cache-and-worker
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"(?:cache|worker)"\s*,\s*"to"\s*:\s*"(?:cache|worker)"'
+  - name: edge-worker-to-db
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"worker"\s*,\s*"to"\s*:\s*"db"|"to"\s*:\s*"db"\s*,\s*"from"\s*:\s*"worker"'
+
+  - name: no-invented-services
+    type: regex
+    weight: 2
+    match: not_contains
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"(?:icon|label|type)"\s*:\s*"(?:(?:aws|azure|gcp|k8s):|[^"]*(?:kafka|rabbit|mongo|mysql|elastic|memcache|minio))'
+  - name: no-flow-from-depends-on
+    type: regex
+    match: not_contains
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"worker"\s*,\s*"to"\s*:\s*"api"|"from"\s*:\s*"api"\s*,\s*"to"\s*:\s*"worker"'

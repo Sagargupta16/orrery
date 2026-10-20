@@ -1,6 +1,7 @@
 // JSON-RPC 2.0 for MCP: protocol versions, the methods the server answers, and tool calls.
 import { type Context, isObj, type Obj, ToolError, text } from "./kit.ts";
 import { TOOLS } from "./tools/index.ts";
+import { readViewer, supportsUi, UI_EXTENSION, VIEWER_RESOURCE } from "./viewer.ts";
 
 declare const __VERSION__: string;
 const SERVER = {
@@ -15,7 +16,12 @@ const LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 const LATEST_LEGACY = "2025-11-25";
 export const VERSIONS = [...MODERN, ...LEGACY];
 const META = "io.modelcontextprotocol/";
-const CAPABILITIES = { tools: { listChanged: false } };
+// The one resource is the MCP Apps viewer; the extension entry tells Apps hosts to look for it.
+const CAPABILITIES = {
+  tools: { listChanged: false },
+  resources: { listChanged: false },
+  extensions: { [UI_EXTENSION]: {} },
+};
 
 const INSTRUCTIONS =
   "orrery draws architecture, system design and business flow diagrams from a small YAML spec, with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons. " +
@@ -77,9 +83,9 @@ async function callTool(params: Obj, ctx: Context): Promise<Obj> {
       throw new ToolError(
         `unknown argument ${unknown.join(", ")}; ${tool.name} takes ${Object.keys(tool.inputSchema.properties).join(", ") || "none"}`,
       );
-    const content = await tool.run(args, ctx);
+    const out = await tool.run(args, ctx);
     logCall(tool.name, started);
-    return { content };
+    return Array.isArray(out) ? { content: out } : { ...out };
   } catch (e) {
     if (e instanceof ToolError) {
       logCall(tool.name, started, "refused");
@@ -108,9 +114,22 @@ async function result(method: string, params: Obj, ctx: Context): Promise<Obj> {
     if (!isObj(meta[`${META}clientCapabilities`]))
       throw new RpcError(-32602, `Invalid params: _meta needs ${META}clientCapabilities`, 400);
   }
-  const done = (r: Obj): Obj => (modern ? { resultType: "complete", ...r, _meta: SERVER_META } : r);
+  // A modern request carries the client's capabilities itself; a legacy one had them at initialize.
+  const call: Context = modern
+    ? { ...ctx, ui: supportsUi((params._meta as Obj)[`${META}clientCapabilities`]) }
+    : ctx;
+  const done = (r: Obj): Obj =>
+    modern
+      ? {
+          resultType: "complete",
+          ...r,
+          _meta: { ...(isObj(r._meta) ? r._meta : {}), ...SERVER_META },
+        }
+      : r;
   switch (method) {
     case "initialize": {
+      // Kept for the connection (stdio); over HTTP each request has its own context.
+      ctx.ui = supportsUi(params.capabilities);
       const asked = params.protocolVersion;
       return {
         protocolVersion:
@@ -133,7 +152,20 @@ async function result(method: string, params: Obj, ctx: Context): Promise<Obj> {
     case "tools/list":
       return done({ tools: TOOLS.map(({ run, ...t }) => t) });
     case "tools/call":
-      return done(await serial(() => callTool(params, ctx)));
+      return done(await serial(() => callTool(params, call)));
+    case "resources/list":
+      return done({ resources: [VIEWER_RESOURCE] });
+    case "resources/templates/list":
+      return done({ resourceTemplates: [] });
+    case "resources/read": {
+      const contents = readViewer(params.uri);
+      // -32602 from 2026-07-28 on; earlier revisions said -32002.
+      if (!contents)
+        throw new RpcError(modern ? -32602 : -32002, "Resource not found", 200, {
+          uri: params.uri,
+        });
+      return done({ contents });
+    }
     default:
       throw new RpcError(-32601, `Method not found: ${method}`, modern ? 404 : 200);
   }

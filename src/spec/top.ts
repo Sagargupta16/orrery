@@ -74,6 +74,12 @@ export function parseSettings(ctx: Ctx): Settings {
   const background = hexColor(ctx, raw.background, "background", "", { where: "background" }, [
     "transparent",
   ]);
+  // Read from the spec text by the renderer that embeds the spec; only its type is checked here.
+  if (raw.embed !== undefined && raw.embed !== null && typeof raw.embed !== "boolean")
+    ctx.err("DG107", "embed must be true or false", {
+      subject: { where: "embed", value: raw.embed },
+      fixes: ["use embed: false to keep the spec out of the rendered SVG and PNG"],
+    });
   return { kind, direction, theme, defaultLook, ...layout, arrowhead, animate, skin, background };
 }
 

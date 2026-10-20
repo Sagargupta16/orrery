@@ -2,5 +2,12 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": "The shared preset's one monthly pull request covers the icon libraries too: .github/workflows/icons.yml re-pins their checksums and rebuilds the generated files on every Renovate branch, committing as github-actions[bot].",
   "extends": ["github>Sagargupta16/shared-workflows"],
-  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"]
+  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
+  "packageRules": [
+    {
+      "description": "The eval fixtures pin images and providers on purpose: they are test inputs, not dependencies.",
+      "matchFileNames": ["evals/**"],
+      "enabled": false
+    }
+  ]
 }

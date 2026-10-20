@@ -22,6 +22,7 @@ import {
   text,
   verdict,
 } from "../kit.ts";
+import { VIEWER_LINK, viewerMeta } from "../viewer.ts";
 
 export const renderTool: Tool = {
   name: "render",
@@ -64,6 +65,7 @@ export const renderTool: Tool = {
     },
     additionalProperties: false,
   },
+  _meta: VIEWER_LINK,
   async run(input, ctx) {
     const spec = specInput(input, ctx);
     const raw = input.formats;
@@ -98,6 +100,7 @@ export const renderTool: Tool = {
       scale,
       animate,
       skin,
+      source: spec.text,
     });
     diagnostics.push(...r.diagnostics);
     const content: Content[] = [];
@@ -121,7 +124,22 @@ export const renderTool: Tool = {
       return { file, content: content.length, ...meta };
     });
     const scene = r.scenes[themes[0] ?? model.theme];
-    return [json(verdict(diagnostics, { stats: stats(model, scene), outputs })), ...content];
+    const result = [
+      json(verdict(diagnostics, { stats: stats(model, scene), outputs })),
+      ...content,
+    ];
+    const view =
+      ctx.ui && r.artifacts.length
+        ? await viewerMeta({
+            model,
+            name: spec.name,
+            theme: themes[0] ?? model.theme,
+            animate,
+            skin,
+            have: r.artifacts,
+          })
+        : undefined;
+    return view ? { content: result, _meta: view } : result;
   },
 };
 

@@ -48,7 +48,8 @@ export async function renderFigure(
     });
     return undefined;
   }
-  const parsed = parseSpec(readFileSync(path, "utf8"), path);
+  const text = readFileSync(path, "utf8");
+  const parsed = parseSpec(text, path);
   diagnostics.push(...parsed.diagnostics.map(tag));
   if (!parsed.model || parsed.diagnostics.some(isError)) return undefined;
   const name = basename(path).replace(/\.(ya?ml|json)$/i, "");
@@ -62,6 +63,8 @@ export async function renderFigure(
       name: `fig${m.n}-${name}`,
       scale: 2,
       skin: opts.skin,
+      // Figures carry their spec, so one picked out of the document reopens as its source.
+      source: text,
     });
   } catch (e) {
     const failure = renderFailure(e);

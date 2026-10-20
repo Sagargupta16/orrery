@@ -1,0 +1,24 @@
+title: Orders API on AWS
+subtitle: HTTP API and Lambda write orders to DynamoDB; receipts go out through SQS
+direction: down
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+
+nodes:
+  users: { icon: aws:users, label: Customers }
+  api: { icon: aws:api-gateway, label: Amazon API Gateway, note: HTTP API, in: region }
+  orders: { icon: aws:lambda-lambda-function, label: Create order, note: AWS Lambda, in: region }
+  table: { icon: aws:dynamodb-table, label: Orders table, note: Amazon DynamoDB, in: region }
+  queue: { icon: aws:simple-queue-service, label: Order events, note: Amazon SQS, in: region }
+  receipt: { icon: aws:lambda-lambda-function, label: Send receipt, note: AWS Lambda, in: region }
+  bucket: { icon: aws:simple-storage-service-bucket, label: Receipts bucket, note: Amazon S3, in: region }
+
+edges:
+  - users -> api: POST /orders
+  - api -> orders
+  - orders -> table: PutItem
+  - orders -> queue: SendMessage
+  - queue -> receipt: polls
+  - receipt -> bucket: PutObject
