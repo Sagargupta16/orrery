@@ -8857,11 +8857,6 @@ function allIcons() {
   return [...infos().values()];
 }
 
-// src/layout.ts
-import { existsSync as existsSync3 } from "node:fs";
-import { createRequire } from "node:module";
-import { join as join5 } from "node:path";
-
 // src/text.ts
 import { readFileSync as readFileSync3 } from "node:fs";
 import { join as join4 } from "node:path";
@@ -8944,790 +8939,6 @@ function textBlock(text4, size, maxWidth, weight = 400, lineHeight = 1.3) {
   return { lines: lines2, size, weight, lead, width: width2, height: lines2.length ? lines2.length * lead : 0 };
 }
 
-// src/layout-kinds/journey-grid.ts
-var GUTTER = 14;
-var CELL_PAD = 10;
-var STACK = 10;
-var TEXT_MAX = 150;
-var ICON_MAX = 32;
-var ROW_LABEL = 12.5;
-var ROW_LABEL_MAX = 116;
-var STAGE_LABEL = 13;
-var DIGIT = 22;
-var EMOTION_H = 136;
-var EMOTION_PAD = 22;
-var END_LABEL = 11;
-var ARROW = 12;
-var round = (v) => Math.round(v * 100) / 100;
-function measureGrid(model, stages) {
-  const s = model.spacing;
-  const G = round(GUTTER * s);
-  const pad = round(CELL_PAD * s);
-  const stack = round(STACK * s);
-  const P2 = SIZES.pad;
-  const rows = cardRows(model, stages, pad, stack);
-  const headers = headersOf(model, stages, rows, pad);
-  const title = titleOf(model, P2);
-  const gutters = guttersOf(model, stages, rows.byId, G, pad);
-  const grid = { model, stages, G, pad, stack, P: P2, ...rows, ...headers, ...title, ...gutters };
-  return { ...grid, ...placeGrid(grid) };
-}
-function cardRows(model, stages, pad, stack) {
-  const groupIds = new Set(model.groups.map((g) => g.id));
-  const rowOf = (n4) => n4.parent && groupIds.has(n4.parent) ? n4.parent : "";
-  const rowIds = [];
-  if (model.nodes.some((n4) => rowOf(n4) === "")) rowIds.push("");
-  for (const g of model.groups) if (model.nodes.some((n4) => n4.parent === g.id)) rowIds.push(g.id);
-  const stageIx = new Map(stages.map((name, i) => [name, i]));
-  const cards = [];
-  const cells = /* @__PURE__ */ new Map();
-  for (const n4 of model.nodes) {
-    const row = rowIds.indexOf(rowOf(n4));
-    const col = stageIx.get(n4.stage ?? "") ?? 0;
-    const S = n4.icon ? Math.min(n4.iconSize, ICON_MAX) : 0;
-    const label = textBlock(n4.label, SIZES.nodeLabel, TEXT_MAX, 600);
-    const note = n4.note ? textBlock(n4.note, SIZES.note, TEXT_MAX) : void 0;
-    const textW = Math.max(label.width, note?.width ?? 0);
-    const textH = label.height + (note ? note.height + 2 : 0);
-    const key = `${row}:${col}`;
-    const list = cells.get(key) ?? [];
-    const card = {
-      node: n4,
-      row,
-      col,
-      k: list.length,
-      S,
-      label,
-      note,
-      w: Math.ceil(Math.max(128, 12 + (S ? S + 10 : 0) + textW + 14)),
-      h: Math.ceil(Math.max(48, Math.max(textH, S) + 22)),
-      box: { x: 0, y: 0, w: 0, h: 0 }
-    };
-    list.push(card);
-    cells.set(key, list);
-    cards.push(card);
-  }
-  const cardH = rowIds.map(
-    (_, r3) => Math.max(0, ...cards.filter((c) => c.row === r3).map((c) => c.h))
-  );
-  const depth = rowIds.map(
-    (_, r3) => Math.max(1, ...cards.filter((c) => c.row === r3).map((c) => c.k + 1))
-  );
-  const byId = new Map(cards.map((c) => [c.node.id, c]));
-  const gap = rowIds.map(
-    (_, r3) => model.edges.some((e) => {
-      const a = byId.get(e.from);
-      const b = byId.get(e.to);
-      return a?.row === r3 && b?.row === r3 && a.col === b.col && a !== b && e.arrow !== "none";
-    }) ? Math.max(stack, ARROW + 14) : stack
-  );
-  const rowH = rowIds.map((_, r3) => {
-    const d = depth[r3] ?? 1;
-    return round(2 * pad + d * (cardH[r3] ?? 0) + (d - 1) * (gap[r3] ?? stack));
-  });
-  return { rowIds, cards, cells, byId, cardH, gap, rowH };
-}
-function headersOf(model, stages, rows, pad) {
-  const { rowIds, cards } = rows;
-  const stageText = stages.map((name) => textBlock(name, STAGE_LABEL, 180, 600));
-  const colW = stages.map(
-    (_, c) => Math.ceil(
-      Math.max(
-        ...cards.filter((x2) => x2.col === c).map((x2) => x2.w + 2 * pad),
-        10 + DIGIT + 8 + (stageText[c]?.width ?? 0) + 12,
-        96
-      )
-    )
-  );
-  const rowText = rowIds.map((id) => {
-    const g = model.groups.find((x2) => x2.id === id);
-    return textBlock(id ? g?.label || id : "Steps", ROW_LABEL, ROW_LABEL_MAX, 600);
-  });
-  const scored = cards.filter((c) => c.node.score !== void 0);
-  const emotionText = scored.length ? textBlock("Emotion", ROW_LABEL, ROW_LABEL_MAX, 600) : void 0;
-  const endText = scored.length ? [
-    { label: textBlock("Delighted", END_LABEL, 200), score: 2 },
-    { label: textBlock("Frustrated", END_LABEL, 200), score: -2 }
-  ] : [];
-  const headerW = Math.ceil(
-    Math.max(
-      96,
-      ...rowText.map((b) => b.width + 28),
-      (emotionText?.width ?? 0) + 28,
-      ...endText.map((x2) => x2.label.width + 28)
-    )
-  );
-  const stageH = Math.ceil(Math.max(DIGIT, ...stageText.map((b) => b.height)) + 20);
-  return { stageText, colW, rowText, scored, emotionText, endText, headerW, stageH };
-}
-function titleOf(model, P2) {
-  const titleBlock = model.title ? textBlock(model.title, SIZES.title, 1400, 600, 1.25) : void 0;
-  const subtitleBlock = model.subtitle ? textBlock(model.subtitle, SIZES.subtitle, 1400, 400) : void 0;
-  const top = titleBlock ? Math.ceil(P2 + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6) : 0;
-  const gridX = P2;
-  const gridY = top + P2;
-  return { titleBlock, subtitleBlock, gridX, gridY };
-}
-function guttersOf(model, stages, byId, G, pad) {
-  const gut = stages.slice(1).map(() => G);
-  const unit = /* @__PURE__ */ new Map();
-  for (const e of model.edges) {
-    if (!e.label && e.step === void 0) continue;
-    const block3 = e.label ? textBlock(e.label, SIZES.edgeLabel, SIZES.edgeLabelMax) : void 0;
-    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
-    const w = Math.ceil((block3 ? block3.width + 12 : 0) + stepW + (block3 && stepW ? 2 : 0));
-    const h = Math.ceil(Math.max(block3 ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
-    unit.set(e.id, { block: block3, w, h, stepW });
-    const a = byId.get(e.from);
-    const b = byId.get(e.to);
-    if (!a || !b || Math.abs(a.col - b.col) !== 1) continue;
-    const i = Math.min(a.col, b.col);
-    gut[i] = Math.max(gut[i] ?? G, Math.ceil(w + 8 + ARROW - 2 * pad));
-  }
-  return { gut, unit };
-}
-function placeGrid(grid) {
-  const { stages, rowIds, cards, G, pad, stack, cardH, gap, rowH, colW, gut } = grid;
-  const { gridX, gridY, headerW, stageH } = grid;
-  const colX = [];
-  let x2 = gridX + headerW + G;
-  for (let c = 0; c < stages.length; c++) {
-    colX.push(round(x2));
-    x2 += (colW[c] ?? 0) + (gut[c] ?? 0);
-  }
-  const lastCol = stages.length - 1;
-  const gridRight = round((colX[lastCol] ?? 0) + (colW[lastCol] ?? 0));
-  const rowY = [];
-  let y = gridY + stageH + G;
-  for (let r3 = 0; r3 < rowIds.length; r3++) {
-    rowY.push(round(y));
-    y += (rowH[r3] ?? 0) + G;
-  }
-  const rowsBottom = round(y - G);
-  for (const c of cards) {
-    c.box = {
-      x: round((colX[c.col] ?? 0) + pad),
-      y: round((rowY[c.row] ?? 0) + pad + c.k * ((cardH[c.row] ?? 0) + (gap[c.row] ?? stack))),
-      w: round((colW[c.col] ?? 0) - 2 * pad),
-      h: round(cardH[c.row] ?? 0)
-    };
-  }
-  return { colX, lastCol, gridRight, rowY, rowsBottom };
-}
-function stageHeaders(grid) {
-  const { stages, colX, colW, gridY, stageH, stageText } = grid;
-  return stages.map((_, c) => {
-    const box = { x: colX[c] ?? 0, y: gridY, w: colW[c] ?? 0, h: stageH };
-    const label = stageText[c] ?? textBlock("", STAGE_LABEL, 180, 600);
-    const numberBox = {
-      x: round(box.x + 10),
-      y: round(box.y + (stageH - DIGIT) / 2),
-      w: DIGIT,
-      h: DIGIT
-    };
-    return {
-      label,
-      box,
-      labelBox: {
-        x: round(numberBox.x + DIGIT + 8),
-        y: round(box.y + (stageH - label.height) / 2),
-        w: round(label.width),
-        h: round(label.height)
-      },
-      number: String(c + 1),
-      numberBox
-    };
-  });
-}
-function rowBands(grid) {
-  const { model, stages, rowIds, rowY, rowH, rowText, gridX, gridRight, headerW, colX, colW } = grid;
-  return rowIds.map((id, r3) => {
-    const yy = rowY[r3] ?? 0;
-    const h = rowH[r3] ?? 0;
-    const header2 = { x: gridX, y: yy, w: headerW, h };
-    const label = rowText[r3] ?? textBlock("", ROW_LABEL, ROW_LABEL_MAX, 600);
-    const color = model.groups.find((g) => g.id === id)?.color;
-    return {
-      id,
-      label,
-      box: { x: gridX, y: yy, w: round(gridRight - gridX), h },
-      labelBox: {
-        x: round(gridX + 14),
-        y: round(yy + (h - label.height) / 2),
-        w: round(label.width),
-        h: round(label.height)
-      },
-      header: header2,
-      cells: stages.map((_, c) => ({ x: colX[c] ?? 0, y: yy, w: colW[c] ?? 0, h })),
-      ...color ? { color } : {}
-    };
-  });
-}
-function emotionCurve(grid) {
-  const { stages, colX, colW, gridX, gridRight, rowsBottom, G, headerW, scored } = grid;
-  const { emotionText, endText } = grid;
-  let curve;
-  if (emotionText) {
-    const by = round(rowsBottom + G);
-    const band = {
-      x: colX[0] ?? 0,
-      y: by,
-      w: round(gridRight - (colX[0] ?? 0)),
-      h: EMOTION_H
-    };
-    const zero = round(by + EMOTION_H / 2);
-    const per = (EMOTION_H / 2 - EMOTION_PAD) / 2;
-    const points = [];
-    const scores = [];
-    stages.forEach((_, c) => {
-      const here = scored.filter((x2) => x2.col === c).map((x2) => x2.node.score ?? 0);
-      if (!here.length) return;
-      const avg = here.reduce((a, b) => a + b, 0) / here.length;
-      scores.push(round(avg));
-      points.push({ x: round((colX[c] ?? 0) + (colW[c] ?? 0) / 2), y: round(zero - avg * per) });
-    });
-    const header2 = { x: gridX, y: by, w: headerW, h: EMOTION_H };
-    curve = {
-      band,
-      points,
-      scores,
-      header: header2,
-      label: emotionText,
-      labelBox: {
-        x: round(gridX + 14),
-        y: round(zero - emotionText.height / 2),
-        w: round(emotionText.width),
-        h: round(emotionText.height)
-      },
-      zero,
-      unit: round(per),
-      ends: endText.map(({ label, score }) => ({
-        label,
-        score,
-        box: {
-          x: round(gridX + 14),
-          y: round(zero - score * per - label.height / 2),
-          w: round(label.width),
-          h: round(label.height)
-        }
-      }))
-    };
-  }
-  return curve;
-}
-
-// src/layout-kinds/journey-canvas.ts
-function canvasOf(grid, gridBottom) {
-  const { model, gridRight, P: P2, titleBlock, subtitleBlock } = grid;
-  let width2 = Math.ceil(gridRight + P2);
-  let height = Math.ceil(gridBottom + P2);
-  let titleBox;
-  let subtitleBox;
-  if (titleBlock) {
-    titleBox = { x: P2, y: P2 - 4, w: round(titleBlock.width), h: round(titleBlock.height) };
-    width2 = Math.max(width2, Math.ceil(titleBlock.width + P2 * 2));
-    if (subtitleBlock) {
-      subtitleBox = {
-        x: P2,
-        y: round(titleBox.y + titleBlock.height + 4),
-        w: round(subtitleBlock.width),
-        h: round(subtitleBlock.height)
-      };
-      width2 = Math.max(width2, Math.ceil(subtitleBlock.width + P2 * 2));
-    }
-  }
-  let legend4;
-  if (model.legend?.length) {
-    legend4 = placeLegend(model.legend, width2, height);
-    width2 = Math.max(width2, Math.ceil(legend4.box.w + P2 * 2));
-    height = Math.ceil(legend4.box.y + legend4.box.h + P2);
-  }
-  return { width: width2, height, titleBox, subtitleBox, legend: legend4 };
-}
-function placeLegend(entries2, width2, height) {
-  const P2 = 10;
-  const rows = entries2.map((e) => ({
-    line: e.line,
-    label: textBlock(e.label, SIZES.edgeLabel, 240)
-  }));
-  const w = Math.ceil(P2 + 28 + 8 + Math.max(...rows.map((r3) => r3.label.width)) + P2);
-  const pitch = rows.map((r3) => Math.max(18, r3.label.height + 3));
-  const last = rows[rows.length - 1]?.label.height ?? 0;
-  const h = Math.ceil(P2 + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P2);
-  const box = { x: Math.max(SIZES.pad, width2 - SIZES.pad - w), y: height - SIZES.pad + 12, w, h };
-  let y = box.y + P2;
-  const items = rows.map((r3, i) => {
-    const swatch = { x: box.x + P2, y: round(y + (r3.label.lead - 12) / 2), w: 28, h: 12 };
-    const labelBox = {
-      x: box.x + P2 + 36,
-      y: round(y),
-      w: round(r3.label.width),
-      h: round(r3.label.height)
-    };
-    y += pitch[i] ?? 18;
-    return { line: r3.line, swatch, label: r3.label, labelBox };
-  });
-  return { box, items };
-}
-function describe(model, rows, curve) {
-  const name = (id) => model.nodes.find((n4) => n4.id === id)?.label ?? id;
-  const stages = model.stages ?? [];
-  const parts = [];
-  if (model.title) parts.push(`${model.title}.`);
-  parts.push(
-    `Customer journey in ${stages.length} stages (${stages.join(", ")}) and ${rows.length} rows (${rows.map((r3) => r3.lines.join(" ")).join(", ")}), ${model.nodes.length} steps.`
-  );
-  if (curve?.scores.length) {
-    const scored = stages.filter(
-      (st) => model.nodes.some((n4) => n4.stage === st && n4.score !== void 0)
-    );
-    const sign = (v) => v > 0 ? `+${v}` : String(v);
-    parts.push(
-      `Emotion from -2 to 2 by stage: ${scored.map((st, i) => `${st} ${sign(curve.scores[i] ?? 0)}`).join(", ")}.`
-    );
-  }
-  const flows = model.edges.slice(0, 24).map((e) => `${name(e.from)} to ${name(e.to)}${e.label ? ` (${e.label})` : ""}`);
-  if (flows.length)
-    parts.push(`Connections: ${flows.join("; ")}${model.edges.length > 24 ? "; and more" : ""}.`);
-  return parts.join(" ").replace(/\s+/g, " ").trim();
-}
-
-// src/layout-kinds/journey-edges.ts
-var center = (b) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
-var across = (s) => s === "left" || s === "right";
-function journeyEdges(grid) {
-  const paths = pathsOf(grid);
-  const plans = planEdges(grid, paths);
-  spreadPorts(plans);
-  const { routes, movable } = routePlans(paths, plans);
-  separateTracks(grid, routes, movable);
-  return sceneEdges(plans, routes);
-}
-function pathsOf(grid) {
-  const { G, colX, colW, gut, lastCol, gridRight, rowY, rowsBottom, cards, cells } = grid;
-  return {
-    gutterX: (c) => c < 0 ? round((colX[0] ?? 0) - G / 2) : c >= lastCol ? round(gridRight + G / 2) : round((colX[c] ?? 0) + (colW[c] ?? 0) + (gut[c] ?? G) / 2),
-    corridors: [...rowY.map((ry) => round(ry - G / 2)), round(rowsBottom + G / 2)],
-    between: (a, b) => cards.some((c) => {
-      if (c === a || c === b || c.col !== a.col) return false;
-      const lo = Math.min(a.box.y, b.box.y);
-      const hi = Math.max(a.box.y + a.box.h, b.box.y + b.box.h);
-      return c.box.y > lo && c.box.y < hi;
-    }),
-    clearH: (yy, x0, x1, skip2) => !cards.some(
-      (c) => !skip2.includes(c) && c.box.y - 4 < yy && yy < c.box.y + c.box.h + 4 && c.box.x < Math.max(x0, x1) && Math.min(x0, x1) < c.box.x + c.box.w
-    ),
-    stackOf: (c) => cells.get(`${c.row}:${c.col}`)?.length ?? 1
-  };
-}
-function planEdges(grid, paths) {
-  const { model, byId } = grid;
-  const { gutterX, corridors, between, clearH, stackOf } = paths;
-  const plans = [];
-  const sides = [];
-  for (const e of model.edges) {
-    const a = byId.get(e.from);
-    const b = byId.get(e.to);
-    if (!a || !b || a === b) continue;
-    const base = { e, a, b, ps: { x: 0, y: 0 }, pt: { x: 0, y: 0 } };
-    if (a.col === b.col) {
-      if (between(a, b)) sides.push({ e, a, b });
-      else {
-        const down = a.box.y < b.box.y;
-        plans.push({
-          ...base,
-          from: down ? "bottom" : "top",
-          to: down ? "top" : "bottom",
-          kind: "v",
-          g1: a.col,
-          g2: a.col
-        });
-      }
-      continue;
-    }
-    const forward = a.col < b.col;
-    const [from, to] = forward ? ["right", "left"] : ["left", "right"];
-    const g1 = forward ? a.col : a.col - 1;
-    const g2 = forward ? b.col - 1 : b.col;
-    const sx = forward ? a.box.x + a.box.w : a.box.x;
-    const tx = forward ? b.box.x : b.box.x + b.box.w;
-    const ys = center(a.box).y;
-    const yt = center(b.box).y;
-    const elbow2 = Math.abs(ys - yt) < 0.5 && clearH(ys, sx, tx, [a, b]) ? "none" : clearH(ys, sx, gutterX(g2), [a, b]) ? "late" : clearH(yt, gutterX(g1), tx, [a, b]) ? "early" : void 0;
-    if (elbow2) {
-      plans.push({ ...base, from, to, kind: "h", elbow: elbow2, g1, g2 });
-      continue;
-    }
-    const mid = (ys + yt) / 2;
-    const cy = [...corridors].sort((m, q) => Math.abs(m - mid) - Math.abs(q - mid))[0] ?? mid;
-    const upright = (c) => cy === corridors[c.row] && c.k === 0 ? "top" : cy === corridors[c.row + 1] && c.k === stackOf(c) - 1 ? "bottom" : void 0;
-    plans.push({
-      ...base,
-      from: upright(a) ?? from,
-      to: upright(b) ?? to,
-      kind: "bridge",
-      g1,
-      g2,
-      cy
-    });
-  }
-  detours(plans, sides);
-  const order = new Map(model.edges.map((e, i) => [e.id, i]));
-  plans.sort((m, q) => (order.get(m.e.id) ?? 0) - (order.get(q.e.id) ?? 0));
-  return plans;
-}
-function detours(plans, sides) {
-  const load3 = /* @__PURE__ */ new Map();
-  const use = (g) => load3.set(g, (load3.get(g) ?? 0) + 1);
-  for (const p of plans) {
-    if (p.kind === "h" && p.elbow === "late") use(p.g2);
-    if (p.kind === "h" && p.elbow === "early") use(p.g1);
-    if (p.kind === "bridge" && across(p.from)) use(p.g1);
-    if (p.kind === "bridge" && across(p.to)) use(p.g2);
-  }
-  for (const { e, a, b } of sides) {
-    const left = a.col > 0 && (load3.get(a.col - 1) ?? 0) < (load3.get(a.col) ?? 0);
-    const g = left ? a.col - 1 : a.col;
-    use(g);
-    const side = left ? "left" : "right";
-    plans.push({
-      e,
-      a,
-      b,
-      from: side,
-      to: side,
-      kind: "side",
-      g1: g,
-      g2: g,
-      ps: { x: 0, y: 0 },
-      pt: { x: 0, y: 0 }
-    });
-  }
-}
-function spreadPorts(plans) {
-  const sideOf = (p, end) => end === "from" ? p.from : p.to;
-  const ports = /* @__PURE__ */ new Map();
-  for (const p of plans)
-    for (const end of ["from", "to"]) {
-      const c = end === "from" ? p.a : p.b;
-      const key = `${c.node.id}|${sideOf(p, end)}`;
-      ports.set(key, [...ports.get(key) ?? [], { p, end }]);
-    }
-  for (const list of ports.values()) {
-    const first = list[0];
-    if (!first) continue;
-    const side = sideOf(first.p, first.end);
-    const own = first.end === "from" ? first.p.a : first.p.b;
-    const b = own.box;
-    const other = (x2) => center((x2.end === "from" ? x2.p.b : x2.p.a).box);
-    list.sort((m, q) => across(side) ? other(m).y - other(q).y : other(m).x - other(q).x);
-    const span = across(side) ? b.h : b.w;
-    const step = list.length > 1 ? Math.min(12, (span - 16) / (list.length - 1)) : 0;
-    list.forEach((x2, i) => {
-      const off = (i - (list.length - 1) / 2) * step;
-      const c = center(b);
-      const pt = side === "left" ? { x: b.x, y: c.y + off } : side === "right" ? { x: b.x + b.w, y: c.y + off } : side === "top" ? { x: c.x + off, y: b.y } : { x: c.x + off, y: b.y + b.h };
-      const r3 = { x: round(pt.x), y: round(pt.y) };
-      if (x2.end === "from") x2.p.ps = r3;
-      else x2.p.pt = r3;
-    });
-  }
-  const alone = (c, side) => (ports.get(`${c.node.id}|${side}`)?.length ?? 0) <= 1;
-  for (const p of plans) {
-    const k = p.kind === "h" && p.elbow === "none" ? "y" : p.kind === "v" ? "x" : void 0;
-    if (!k || Math.abs(p.ps[k] - p.pt[k]) < 0.01 || Math.abs(p.ps[k] - p.pt[k]) > 8) continue;
-    if (alone(p.b, p.to)) p.pt = { ...p.pt, [k]: p.ps[k] };
-    else if (alone(p.a, p.from)) p.ps = { ...p.ps, [k]: p.pt[k] };
-  }
-}
-function routePlans(paths, plans) {
-  const { gutterX } = paths;
-  const routes = /* @__PURE__ */ new Map();
-  const movable = [];
-  for (const p of plans) {
-    const { ps, pt } = p;
-    const id = p.e.id;
-    let pts;
-    if (p.kind === "v") {
-      const my = round((ps.y + pt.y) / 2);
-      pts = Math.abs(ps.x - pt.x) < 0.01 ? [ps, pt] : [ps, { x: ps.x, y: my }, { x: pt.x, y: my }, pt];
-    } else if (p.kind === "h" && p.elbow === "none" && Math.abs(ps.y - pt.y) < 0.01) {
-      pts = [ps, pt];
-    } else if (p.kind === "h" || p.kind === "side") {
-      const g = gutterX(p.elbow === "early" ? p.g1 : p.g2);
-      pts = [ps, { x: g, y: ps.y }, { x: g, y: pt.y }, pt];
-      movable.push({ id, i: 1, vertical: true, at: g });
-    } else {
-      const cy = p.cy ?? 0;
-      pts = [ps];
-      if (across(p.from)) {
-        const g = gutterX(p.g1);
-        pts.push({ x: g, y: ps.y }, { x: g, y: cy });
-        movable.push({ id, i: 1, vertical: true, at: g });
-      } else pts.push({ x: ps.x, y: cy });
-      movable.push({ id, i: pts.length - 1, vertical: false, at: cy });
-      if (across(p.to)) {
-        const g = gutterX(p.g2);
-        movable.push({ id, i: pts.length, vertical: true, at: g });
-        pts.push({ x: g, y: cy }, { x: g, y: pt.y });
-      } else pts.push({ x: pt.x, y: cy });
-      pts.push(pt);
-    }
-    routes.set(id, pts);
-  }
-  return { routes, movable };
-}
-function separateTracks(grid, routes, movable) {
-  const { G, pad } = grid;
-  const groupsOf = /* @__PURE__ */ new Map();
-  for (const m of movable) {
-    const key = `${m.vertical ? "v" : "h"}${m.at}`;
-    groupsOf.set(key, [...groupsOf.get(key) ?? [], m]);
-  }
-  for (const list of groupsOf.values()) {
-    if (list.length < 2) continue;
-    const span = (m) => {
-      const pts = routes.get(m.id) ?? [];
-      const p = pts[m.i];
-      const q = pts[m.i + 1];
-      if (!p || !q) return [0, 0];
-      return m.vertical ? [Math.min(p.y, q.y), Math.max(p.y, q.y)] : [Math.min(p.x, q.x), Math.max(p.x, q.x)];
-    };
-    const sorted = [...list].sort((m, q) => (span(m)[0] ?? 0) - (span(q)[0] ?? 0));
-    const ends2 = [];
-    const track = /* @__PURE__ */ new Map();
-    for (const m of sorted) {
-      const [lo, hi] = span(m);
-      let t = ends2.findIndex((end) => end < lo - 6);
-      if (t < 0) {
-        t = ends2.length;
-        ends2.push(hi);
-      } else ends2[t] = hi;
-      track.set(m, t);
-    }
-    if (ends2.length < 2) continue;
-    const room2 = (m) => m.vertical ? G - 4 : G + 2 * pad - 12;
-    for (const m of list) {
-      const t = track.get(m) ?? 0;
-      const gap = Math.min(6, room2(m) / (ends2.length - 1));
-      const d = round((t - (ends2.length - 1) / 2) * gap);
-      const pts = routes.get(m.id);
-      const p = pts?.[m.i];
-      const q = pts?.[m.i + 1];
-      if (!pts || !p || !q) continue;
-      const k = m.vertical ? "x" : "y";
-      pts[m.i] = { ...p, [k]: round(p[k] + d) };
-      pts[m.i + 1] = { ...q, [k]: round(q[k] + d) };
-    }
-  }
-}
-function sceneEdges(plans, routes) {
-  const edges = [];
-  for (const p of plans) {
-    const points = routes.get(p.e.id);
-    if (!points || points.length < 2) continue;
-    edges.push({
-      id: p.e.id,
-      from: p.e.from,
-      to: p.e.to,
-      points,
-      line: p.e.line,
-      arrow: p.e.arrow,
-      color: p.e.color,
-      step: p.e.step,
-      ...p.e.flow ? { flow: p.e.flow } : {}
-    });
-  }
-  return edges;
-}
-
-// src/layout-kinds/journey-labels.ts
-var len = (p, q) => Math.hypot(q.x - p.x, q.y - p.y);
-var hits2 = (a, b, m = 0) => a.x < b.x + b.w + m && b.x < a.x + a.w + m && a.y < b.y + b.h + m && b.y < a.y + a.h + m;
-var crossesBox = (p, q, b) => {
-  const x0 = Math.min(p.x, q.x);
-  const x1 = Math.max(p.x, q.x);
-  const y0 = Math.min(p.y, q.y);
-  const y1 = Math.max(p.y, q.y);
-  return x0 < b.x + b.w && b.x < x1 + 0.01 && y0 < b.y + b.h && b.y < y1 + 0.01;
-};
-function journeyNodes(grid) {
-  return grid.cards.map((c) => {
-    const n4 = c.node;
-    const b = c.box;
-    const textH = c.label.height + (c.note ? c.note.height + 2 : 0);
-    const tx = b.x + 12 + (c.S ? c.S + 10 : 0);
-    const ty = b.y + (b.h - textH) / 2;
-    const node4 = {
-      id: n4.id,
-      // Every step is a card: icon on the left, label and note beside it.
-      look: "card",
-      shape: n4.shape,
-      box: b,
-      icon: n4.icon,
-      label: c.label,
-      labelBox: {
-        x: round(tx),
-        y: round(ty),
-        w: round(c.label.width),
-        h: round(c.label.height)
-      },
-      note: c.note,
-      color: n4.color,
-      badge: n4.badge,
-      url: n4.url,
-      parent: n4.parent,
-      ...n4.stage !== void 0 ? { stage: n4.stage } : {},
-      ...n4.score !== void 0 ? { score: n4.score } : {}
-    };
-    if (c.S) node4.iconBox = { x: round(b.x + 12), y: round(b.y + (b.h - c.S) / 2), w: c.S, h: c.S };
-    if (c.note)
-      node4.noteBox = {
-        x: round(tx),
-        y: round(ty + c.label.height + 2),
-        w: round(c.note.width),
-        h: round(c.note.height)
-      };
-    if (n4.badge) {
-      const w = round(Math.max(18, measure(n4.badge, 10, 600) + 10));
-      node4.badgeBox = {
-        x: round(Math.max(b.x + b.w - w / 2 - 2, b.x + b.w / 2 + 6)),
-        y: round(b.y - 7),
-        w,
-        h: 16
-      };
-    }
-    return node4;
-  });
-}
-function placeEdgeLabels(grid, edges, blocked, gridBottom) {
-  const clear = { grid, gridBottom, edges, blocked, taken: [] };
-  for (const edge3 of edges) {
-    const u = grid.unit.get(edge3.id);
-    if (!u) continue;
-    const { w, h } = u;
-    const candidates = candidatesOf(edge3.points, w, h);
-    const chosen = candidates.find((c) => fits(clear, edge3, c)) ?? candidates[0];
-    if (!chosen) continue;
-    const box = {
-      x: round(chosen.box.x),
-      y: round(chosen.box.y),
-      w: chosen.box.w,
-      h: chosen.box.h
-    };
-    clear.taken.push(box);
-    if (edge3.step !== void 0)
-      edge3.stepBox = {
-        x: box.x,
-        y: round(box.y + (box.h - SIZES.step) / 2),
-        w: SIZES.step,
-        h: SIZES.step
-      };
-    if (u.block) {
-      edge3.label = u.block;
-      edge3.labelBox = {
-        x: round(box.x + u.stepW + (u.stepW ? 2 : 0)),
-        y: box.y,
-        w: round(w - u.stepW - (u.stepW ? 2 : 0)),
-        h
-      };
-    }
-  }
-}
-function candidatesOf(pts, w, h) {
-  const segs = pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q, last: i === pts.length - 2, first: i === 0 })).sort((m, o) => len(o.p, o.q) - len(m.p, m.q));
-  const candidates = [];
-  for (const sg of segs) {
-    const flat = Math.abs(sg.p.y - sg.q.y) < 0.5;
-    for (const f of [0.5, 0.35, 0.65]) {
-      const mx = sg.p.x + (sg.q.x - sg.p.x) * f;
-      const my = sg.p.y + (sg.q.y - sg.p.y) * f;
-      const on = { x: mx - w / 2, y: my - h / 2, w, h };
-      if (flat) candidates.push({ box: { ...on, y: my - h - 3 } }, { box: { ...on, y: my + 3 } });
-      else candidates.push({ box: { ...on, x: mx + 4 } }, { box: { ...on, x: mx - 4 - w } });
-      candidates.push({ box: on, on: sg });
-    }
-  }
-  return candidates;
-}
-function fits(k, edge3, c) {
-  const { gridX, gridY, G, gridRight } = k.grid;
-  const { gridBottom, blocked, taken, edges } = k;
-  const b = c.box;
-  if (b.x < gridX || b.y < gridY - G || b.x + b.w > gridRight + G || b.y + b.h > gridBottom + G)
-    return false;
-  if (blocked.some((o) => hits2(b, o, 3))) return false;
-  if (taken.some((o) => hits2(b, o, 2))) return false;
-  const room2 = { x: b.x - 2, y: b.y - 2, w: b.w + 4, h: b.h + 4 };
-  for (const other of edges) {
-    const op = other.points;
-    for (let i = 1; i < op.length; i++) {
-      const p = op[i - 1];
-      const q = op[i];
-      if (!p || !q || other === edge3 && c.on && p === c.on.p && q === c.on.q) continue;
-      if (crossesBox(p, q, room2)) return false;
-    }
-  }
-  if (c.on) {
-    const { p, q, last, first } = c.on;
-    const flat = Math.abs(p.y - q.y) < 0.5;
-    const [lo, hi] = flat ? [Math.min(p.x, q.x), Math.max(p.x, q.x)] : [Math.min(p.y, q.y), Math.max(p.y, q.y)];
-    const [b0, b1] = flat ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
-    const toward = (end) => flat ? end.x : end.y;
-    const headAt = (end) => last && end === q && (edge3.arrow === "end" || edge3.arrow === "both") || first && end === p && (edge3.arrow === "start" || edge3.arrow === "both");
-    const need = (end) => headAt(end) ? ARROW + 4 : 4;
-    const ends2 = [p, q].map((end) => ({ v: toward(end), need: need(end) }));
-    const loEnd = ends2.find((x2) => Math.abs(x2.v - lo) < 0.01) ?? { need: 4 };
-    const hiEnd = ends2.find((x2) => Math.abs(x2.v - hi) < 0.01) ?? { need: 4 };
-    if (b0 < lo + loEnd.need || b1 > hi - hiEnd.need) return false;
-  }
-  return true;
-}
-
-// src/journey.ts
-async function journeyLayout(model, theme) {
-  const stages = model.stages ?? [];
-  if (!stages.length) return void 0;
-  const grid = measureGrid(model, stages);
-  const journeyStages = stageHeaders(grid);
-  const rows = rowBands(grid);
-  const curve = emotionCurve(grid);
-  const gridBottom = curve ? curve.band.y + curve.band.h : grid.rowsBottom;
-  const edges = journeyEdges(grid);
-  const nodes = journeyNodes(grid);
-  const blocked = [
-    ...nodes.flatMap((nd) => [nd.box, nd.badgeBox].filter((x2) => !!x2)),
-    ...journeyStages.map((st) => st.box),
-    ...rows.map((r3) => r3.header),
-    ...curve ? [curve.band, curve.header] : []
-  ];
-  placeEdgeLabels(grid, edges, blocked, gridBottom);
-  const { width: width2, height, titleBox, subtitleBox, legend: legend4 } = canvasOf(grid, gridBottom);
-  return {
-    width: width2,
-    height,
-    theme,
-    direction: model.direction,
-    routing: model.routing,
-    arrowhead: model.arrowhead,
-    animate: animateOf(model),
-    skin: model.skin,
-    background: model.background,
-    title: grid.titleBlock,
-    titleBox,
-    subtitle: grid.subtitleBlock,
-    subtitleBox,
-    nodes,
-    groups: [],
-    edges,
-    legend: legend4,
-    description: describe(model, grid.rowText, curve),
-    kind: model.kind,
-    ...model.story ? { story: model.story } : {},
-    journey: { stages: journeyStages, rows, ...curve ? { curve } : {} }
-  };
-}
-
 // src/layout-kinds/kind-shared.ts
 var PAD = 28;
 var EDGE_TEXT = 11.5;
@@ -9746,7 +8957,7 @@ function union(boxes) {
 }
 var bodyOf = (n4) => union([n4.box, n4.iconBox, n4.labelBox, n4.noteBox]) ?? n4.box;
 var footOf = (n4) => union([bodyOf(n4), n4.badgeBox]) ?? n4.box;
-var hits3 = (a, b, pad = 0) => a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
+var hits2 = (a, b, pad = 0) => a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
 function crosses(p, q, b, inset) {
   const box = { x: b.x + inset, y: b.y + inset, w: b.w - inset * 2, h: b.h - inset * 2 };
   if (box.w <= 0 || box.h <= 0) return false;
@@ -9991,7 +9202,7 @@ function clearHeaders(ctx) {
     if (g.lane || !g.label.lines.length) continue;
     const corner = g.iconBox !== void 0 && Math.abs(g.iconBox.x - g.box.x) < 0.5 && Math.abs(g.iconBox.y - g.box.y) < 0.5;
     const icon2 = g.iconBox && !corner ? g.iconBox : void 0;
-    for (let round5 = 0; round5 < 4; round5++) {
+    for (let round4 = 0; round4 < 4; round4++) {
       const u = union([g.labelBox, icon2]) ?? g.labelBox;
       const chip = { x: u.x - 6, y: u.y - 1, w: u.w + 12, h: u.h + 2 };
       const cut = ctx.edges.flatMap((e) => segments(e.points)).find(([p, q]) => crosses(p, q, chip, 0.5));
@@ -10072,7 +9283,7 @@ function selfLoops(ctx, fresh) {
     const loopClear = (pts) => segments(pts).every(
       ([p, q]) => !feet.some((f) => crosses(p, q, f, 3)) && !labels2.some((l) => crosses(p, q, l, 0.5))
     );
-    const spotClear = (b, pts) => !hits3(b, own, 2) && !feet.some((f) => hits3(b, f, 2)) && !labels2.some((l) => hits3(b, l, 2)) && ![...lines2, ...segments(pts)].some(([p, q]) => crosses(p, q, b, -2));
+    const spotClear = (b, pts) => !hits2(b, own, 2) && !feet.some((f) => hits2(b, f, 2)) && !labels2.some((l) => hits2(b, l, 2)) && ![...lines2, ...segments(pts)].some(([p, q]) => crosses(p, q, b, -2));
     const elk2 = fresh ? void 0 : union([e.labelBox, e.stepBox]);
     let chosen;
     for (const c of corners) {
@@ -10985,10 +10196,10 @@ function outlineOf(nd, shapes) {
     }
     case "delay": {
       const rx = Math.min(b.h / 2, b.w / 2);
-      const round5 = ellipse({ x: b.x + b.w - 2 * rx, y: b.y, w: 2 * rx, h: b.h });
+      const round4 = ellipse({ x: b.x + b.w - 2 * rx, y: b.y, w: 2 * rx, h: b.h });
       return {
         box: b,
-        inside: (x2, y) => y >= b.y && y <= b.y + b.h && x2 >= b.x && (x2 <= b.x + b.w - rx || round5(x2, y))
+        inside: (x2, y) => y >= b.y && y <= b.y + b.h && x2 >= b.x && (x2 <= b.x + b.w - rx || round4(x2, y))
       };
     }
     default:
@@ -11654,7 +10865,7 @@ var EDGE_LABEL_MAX = 150;
 var STEP2 = 28;
 var STRIP = 30;
 var PAD2 = 24;
-var STACK2 = 24;
+var STACK = 24;
 var MIN_BAND = 96;
 var BLACK_BOX = 64;
 var POOL_GAP = 60;
@@ -11662,7 +10873,7 @@ var RUN = 28;
 var CHANNEL = 12;
 var CLEAR = 6;
 var BEND = 28;
-var round2 = (v) => Math.round(v * 100) / 100;
+var round = (v) => Math.round(v * 100) / 100;
 function union2(boxes) {
   const list = boxes.filter((b) => !!b && (b.w > 0 || b.h > 0));
   const x2 = Math.min(...list.map((b) => b.x));
@@ -11680,7 +10891,7 @@ var grow2 = (b, d) => ({
   w: b.w + 2 * d,
   h: b.h + 2 * d
 });
-var hits4 = (a, b, pad = 0) => a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
+var hits3 = (a, b, pad = 0) => a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
 function cuts(p, q, b) {
   if (Math.abs(p.y - q.y) < 0.01) {
     const [a2, c2] = p.x < q.x ? [p.x, q.x] : [q.x, p.x];
@@ -11964,7 +11175,7 @@ function placeLabels(r3, edges) {
       const astride = borders.some((v) => v > c0 - 3 && v < c1 + 3) || m0 < r3.endM + 3 && m1 > r3.endM - 3;
       const score = base + (astride ? 30 : 0);
       if (best && best.score <= score) return;
-      if (blocks.some((b) => hits4(box2, b))) return;
+      if (blocks.some((b) => hits3(box2, b))) return;
       if (segments3.some((s) => cuts(s.p, s.q, grow2(box2, 1)))) return;
       best = { box: box2, score };
     };
@@ -12027,16 +11238,16 @@ function placeLabels(r3, edges) {
         score: 0
       };
     }
-    const box = { x: round2(best.box.x), y: round2(best.box.y), w, h };
+    const box = { x: round(best.box.x), y: round(best.box.y), w, h };
     blocks.push(grow2(box, 2));
     if (me.step !== void 0)
-      e.stepBox = { x: box.x, y: round2(box.y + (h - STEP2) / 2), w: STEP2, h: STEP2 };
+      e.stepBox = { x: box.x, y: round(box.y + (h - STEP2) / 2), w: STEP2, h: STEP2 };
     if (me.label) {
       e.label = block3;
       e.labelBox = {
-        x: round2(box.x + stepW + (stepW ? 2 : 0)),
+        x: round(box.x + stepW + (stepW ? 2 : 0)),
         y: box.y,
-        w: round2(w - stepW - (stepW ? 2 : 0)),
+        w: round(w - stepW - (stepW ? 2 : 0)),
         h
       };
     }
@@ -12217,7 +11428,7 @@ function routeEdges(r3) {
       if (prior) result2.set(me.id, prior);
       continue;
     }
-    edge3.points = dropStraight(points.map((p) => ({ x: round2(p.x), y: round2(p.y) })));
+    edge3.points = dropStraight(points.map((p) => ({ x: round(p.x), y: round(p.y) })));
     ports.claim(me, edge3.points[0], edge3.points[edge3.points.length - 1], msg);
     for (let k = 1; k < edge3.points.length; k++) {
       const p = edge3.points[k - 1];
@@ -12254,26 +11465,26 @@ function gridLines(r3) {
   gaps.push([prevEnd, r3.endM]);
   for (const [s, e] of gaps) {
     const mid = (s + e) / 2;
-    if (e - s > 2) mLines.add(round2(mid));
+    if (e - s > 2) mLines.add(round(mid));
     for (let k = 1; k <= 3; k++)
       for (const v of [mid + 12 * k, mid - 12 * k])
-        if (v > s + 8 && v < e - 8) mLines.add(round2(v));
+        if (v > s + 8 && v < e - 8) mLines.add(round(v));
   }
   for (const it of r3.items) {
-    mLines.add(round2(it.attach[A2.m] + it.attach[A2.mw] / 2));
-    cLines.add(round2(it.attach[A2.c] + it.attach[A2.cw] / 2));
+    mLines.add(round(it.attach[A2.m] + it.attach[A2.mw] / 2));
+    cLines.add(round(it.attach[A2.c] + it.attach[A2.cw] / 2));
   }
   const drawn = r3.all.filter((b) => b.group || b.items.length);
   for (const b of drawn) {
-    cLines.add(round2(b.c0 + b.size / 2));
-    cLines.add(round2(b.c0 + CHANNEL));
-    cLines.add(round2(b.c0 + b.size - CHANNEL));
+    cLines.add(round(b.c0 + b.size / 2));
+    cLines.add(round(b.c0 + CHANNEL));
+    cLines.add(round(b.c0 + b.size - CHANNEL));
   }
   const tops = r3.all.filter((b) => b.depth === 0 && (b.group || b.items.length));
   const outer0 = Math.min(...tops.map((b) => b.c0));
   const outer1 = Math.max(...tops.map((b) => b.c0 + b.size));
-  cLines.add(round2(outer0 - 16));
-  cLines.add(round2(outer1 + 16));
+  cLines.add(round(outer0 - 16));
+  cLines.add(round(outer1 + 16));
   const sortedTops = [...tops].sort((a, b) => a.c0 - b.c0);
   const poolGaps = [];
   for (let i = 1; i < sortedTops.length; i++) {
@@ -12284,14 +11495,14 @@ function gridLines(r3) {
     if (b.c0 - s <= 16) continue;
     poolGaps.push([s, b.c0]);
     for (const v of [(s + b.c0) / 2, (s + b.c0) / 2 - 12, (s + b.c0) / 2 + 12])
-      cLines.add(round2(v));
+      cLines.add(round(v));
   }
   for (const cols of r3.layers.values())
     for (const col of cols)
       for (let i = 1; i < col.length; i++) {
         const a = col[i - 1];
         const b = col[i];
-        if (a && b) cLines.add(round2((a.foot[A2.c] + a.foot[A2.cw] + b.foot[A2.c]) / 2));
+        if (a && b) cLines.add(round((a.foot[A2.c] + a.foot[A2.cw] + b.foot[A2.c]) / 2));
       }
   return { mLines, cLines, drawn, poolGaps };
 }
@@ -12317,8 +11528,8 @@ function routeOne(rt, me, edge3, a, b, msg) {
   const horizontal = rt.r.ctx.horizontal;
   const xsOf = () => [...horizontal ? mLines : cLines];
   const ysOf = () => [...horizontal ? cLines : mLines];
-  const addX = (v) => (horizontal ? mLines : cLines).add(round2(v));
-  const addY = (v) => (horizontal ? cLines : mLines).add(round2(v));
+  const addX = (v) => (horizontal ? mLines : cLines).add(round(v));
+  const addY = (v) => (horizontal ? cLines : mLines).add(round(v));
   const { starts, ends: ends2 } = portsFor(rt.r, rt.ports, me, a, b, msg);
   const obstacles = obstaclesFor(rt, me, a, b, starts, ends2);
   for (const port of [...starts, ...ends2]) {
@@ -12414,7 +11625,7 @@ function penaltyOf(rt, me, edge3, prefM) {
 // src/layout-kinds/lane-bands.ts
 var cspan = (A2, b) => [b[A2.c], b[A2.c] + b[A2.cw]];
 var mspan = (A2, b) => [b[A2.m], b[A2.m] + b[A2.mw]];
-var center2 = (b, k, w) => b[k] + b[w] / 2;
+var center = (b, k, w) => b[k] + b[w] / 2;
 function bandLayout(ctx, ids) {
   const { model, nodes, groups, edges, horizontal } = ctx;
   const A2 = horizontal ? { m: "x", mw: "w", c: "y", cw: "h" } : { m: "y", mw: "h", c: "x", cw: "w" };
@@ -12601,11 +11812,11 @@ function sizeBands(sc, tree, elkCross) {
     for (const col of cols) {
       const first = col[0];
       if (col.length === 1 && first) {
-        const mid = center2(first.attach, A2.c, A2.cw);
+        const mid = center(first.attach, A2.c, A2.cw);
         const [f0, f1] = cspan(A2, first.foot);
         need = Math.max(need, 2 * Math.max(mid - f0, f1 - mid));
       } else {
-        const depth = col.reduce((s, it) => s + it.foot[A2.cw], 0) + STACK2 * (col.length - 1);
+        const depth = col.reduce((s, it) => s + it.foot[A2.cw], 0) + STACK * (col.length - 1);
         need = Math.max(need, depth);
       }
     }
@@ -12725,8 +11936,8 @@ function moveItems(sc, tree, all, layers, along3, m0) {
   const shiftBox = (b, dm, dc) => {
     if (!b || moved.has(b)) return;
     moved.add(b);
-    b[A2.m] = round2(b[A2.m] + dm);
-    b[A2.c] = round2(b[A2.c] + dc);
+    b[A2.m] = round(b[A2.m] + dm);
+    b[A2.c] = round(b[A2.c] + dc);
   };
   const move = (it, dc) => {
     const dm = m0 + (along3.get(it) ?? 0);
@@ -12734,7 +11945,7 @@ function moveItems(sc, tree, all, layers, along3, m0) {
     it.foot = { ...it.foot, [A2.m]: it.foot[A2.m] + dm, [A2.c]: it.foot[A2.c] + dc };
     for (const e of it.inner) {
       const d = horizontal ? { x: dm, y: dc } : { x: dc, y: dm };
-      e.points = e.points.map((p) => ({ x: round2(p.x + d.x), y: round2(p.y + d.y) }));
+      e.points = e.points.map((p) => ({ x: round(p.x + d.x), y: round(p.y + d.y) }));
       shiftBox(e.labelBox, dm, dc);
       shiftBox(e.stepBox, dm, dc);
     }
@@ -12745,14 +11956,14 @@ function moveItems(sc, tree, all, layers, along3, m0) {
     for (const col of layers.get(b) ?? []) {
       const only = col[0];
       if (col.length === 1 && only) {
-        move(only, mid - center2(only.attach, A2.c, A2.cw));
+        move(only, mid - center(only.attach, A2.c, A2.cw));
         continue;
       }
-      const depth = col.reduce((s, it) => s + it.foot[A2.cw], 0) + STACK2 * (col.length - 1);
+      const depth = col.reduce((s, it) => s + it.foot[A2.cw], 0) + STACK * (col.length - 1);
       let at = mid - depth / 2;
       for (const it of col) {
         move(it, at - it.foot[A2.c]);
-        at += it.foot[A2.cw] + STACK2;
+        at += it.foot[A2.cw] + STACK;
       }
     }
   }
@@ -12768,15 +11979,15 @@ function followOverlays(sc, overlays) {
     const right = b.x + b.w - (o.before.x + o.before.w);
     const bottom = b.y + b.h - (o.before.y + o.before.h);
     g.box = {
-      x: round2(b.x + dx),
-      y: round2(b.y + dy),
-      w: round2(now.x + now.w + right - (b.x + dx)),
-      h: round2(now.y + now.h + bottom - (b.y + dy))
+      x: round(b.x + dx),
+      y: round(b.y + dy),
+      w: round(now.x + now.w + right - (b.x + dx)),
+      h: round(now.y + now.h + bottom - (b.y + dy))
     };
     for (const x2 of [g.labelBox, g.iconBox]) {
       if (!x2) continue;
-      x2.x = round2(x2.x + dx);
-      x2.y = round2(x2.y + dy);
+      x2.x = round(x2.x + dx);
+      x2.y = round(x2.y + dy);
     }
   }
 }
@@ -12784,7 +11995,7 @@ function paintBands(ctx, all, run2) {
   const { groups, horizontal } = ctx;
   const { startM, endM } = run2;
   const t = THEME_TOKENS[ctx.theme];
-  const boxOf2 = (m, mlen, c0, clen) => horizontal ? { x: round2(m), y: round2(c0), w: round2(mlen), h: round2(clen) } : { x: round2(c0), y: round2(m), w: round2(clen), h: round2(mlen) };
+  const boxOf2 = (m, mlen, c0, clen) => horizontal ? { x: round(m), y: round(c0), w: round(mlen), h: round(clen) } : { x: round(c0), y: round(m), w: round(clen), h: round(mlen) };
   const painted = [];
   for (const b of all) {
     const g = b.group;
@@ -12814,10 +12025,10 @@ function paintBands(ctx, all, run2) {
       depth: b.depth,
       label,
       labelBox: {
-        x: round2(header2.x + (header2.w - lw) / 2),
-        y: round2(header2.y + (header2.h - lh) / 2),
-        w: round2(lw),
-        h: round2(lh)
+        x: round(header2.x + (header2.w - lw) / 2),
+        y: round(header2.y + (header2.h - lh) / 2),
+        w: round(lw),
+        h: round(lh)
       },
       stroke: stroke3,
       fill: fill2,
@@ -12902,8 +12113,250 @@ var laneHooks = {
   }
 };
 
-// src/placement.ts
-var round3 = (v) => Math.round(v * 100) / 100;
+// src/layout/elk.ts
+import { existsSync as existsSync3 } from "node:fs";
+import { createRequire } from "node:module";
+import { join as join5 } from "node:path";
+
+// src/layout/geometry.ts
+var round2 = (v) => Math.round(v * 100) / 100;
+var segmentBox = (p, q) => ({
+  x: Math.min(p.x, q.x),
+  y: Math.min(p.y, q.y),
+  w: Math.abs(q.x - p.x),
+  h: Math.abs(q.y - p.y)
+});
+var contains = (outer, b) => b.x >= outer.x - 0.01 && b.y >= outer.y - 0.01 && b.x + b.w <= outer.x + outer.w + 0.01 && b.y + b.h <= outer.y + outer.h + 0.01;
+function union3(boxes) {
+  const list = boxes.filter((b) => !!b);
+  const x2 = Math.min(...list.map((b) => b.x));
+  const y = Math.min(...list.map((b) => b.y));
+  const w = Math.max(...list.map((b) => b.x + b.w)) - x2;
+  const h = Math.max(...list.map((b) => b.y + b.h)) - y;
+  return { x: x2, y, w, h };
+}
+function dropStraightPoints(points) {
+  const out = [];
+  for (const p of points) {
+    const last = out[out.length - 1];
+    const prev = out[out.length - 2];
+    if (last && Math.abs(last.x - p.x) < 0.01 && Math.abs(last.y - p.y) < 0.01) continue;
+    if (prev && last) {
+      const cross = (last.x - prev.x) * (p.y - prev.y) - (last.y - prev.y) * (p.x - prev.x);
+      const ahead = (last.x - prev.x) * (p.x - last.x) + (last.y - prev.y) * (p.y - last.y) >= 0;
+      if (Math.abs(cross) < 0.01 && ahead) out.pop();
+    }
+    out.push(p);
+  }
+  return out.length >= 2 ? out : points;
+}
+function headRoom(points, heads) {
+  const run2 = (p, q) => p && q ? Math.abs(p.x - q.x) + Math.abs(p.y - q.y) : 0;
+  const n4 = points.length;
+  return n4 < 3 || (!heads.start || run2(points[0], points[1]) >= 16) && (!heads.end || run2(points[n4 - 2], points[n4 - 1]) >= 16);
+}
+function collinear(points, p, q) {
+  const v = Math.abs(p.x - q.x) < 0.5;
+  if (!v && Math.abs(p.y - q.y) >= 0.5) return false;
+  const at = v ? p.x : p.y;
+  const [b0, b1] = (v ? [p.y, q.y] : [p.x, q.x]).sort((m, n4) => m - n4);
+  return points.slice(1).some((s, i) => {
+    const r3 = points[i] ?? s;
+    if (Math.abs(r3.x - s.x) < 0.5 !== v || !v && Math.abs(r3.y - s.y) >= 0.5) return false;
+    if (Math.abs((v ? r3.x : r3.y) - at) >= 6) return false;
+    const [a0, a1] = (v ? [r3.y, s.y] : [r3.x, s.x]).sort((m, n4) => m - n4);
+    return Math.min(a1 ?? 0, b1 ?? 0) - Math.max(a0 ?? 0, b0 ?? 0) > 0.5;
+  });
+}
+function midpoint(points) {
+  const i = Math.max(0, Math.floor((points.length - 1) / 2));
+  const a = points[i] ?? { x: 0, y: 0 };
+  const b = points[i + 1] ?? a;
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+var overlaps2 = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+var meet = (a, b, pad = 0) => a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
+var segmentsOf = (points) => points.slice(1).map((q, i) => [points[i] ?? q, q]);
+function segmentHits(p, q, b, inset = 1) {
+  const c = clip(p, q, b, inset);
+  return !!c && c[1] - c[0] > 1e-6;
+}
+function clip(p, q, b, inset) {
+  const x0 = b.x + inset;
+  const y0 = b.y + inset;
+  const x1 = b.x + b.w - inset;
+  const y1 = b.y + b.h - inset;
+  if (x1 <= x0 || y1 <= y0) return void 0;
+  let t0 = 0;
+  let t1 = 1;
+  const dx = q.x - p.x;
+  const dy = q.y - p.y;
+  for (const [pp, qq] of [
+    [-dx, p.x - x0],
+    [dx, x1 - p.x],
+    [-dy, p.y - y0],
+    [dy, y1 - p.y]
+  ]) {
+    if (pp === 0) {
+      if (qq <= 0) return void 0;
+    } else {
+      const r3 = qq / pp;
+      if (pp < 0) {
+        if (r3 > t1) return void 0;
+        if (r3 > t0) t0 = r3;
+      } else {
+        if (r3 < t0) return void 0;
+        if (r3 < t1) t1 = r3;
+      }
+    }
+  }
+  return t1 > t0 ? [t0, t1] : void 0;
+}
+
+// src/layout/elk.ts
+var elkInstance;
+function elk() {
+  if (elkInstance) return elkInstance;
+  const require2 = createRequire(import.meta.url);
+  const vendored = join5(vendorDir, "elk.bundled.cjs");
+  const ELK = require2(
+    existsSync3(vendored) ? vendored : "elkjs/lib/elk.bundled.js"
+  );
+  elkInstance = new ELK();
+  return elkInstance;
+}
+var ELK_DIRECTION = {
+  right: "RIGHT",
+  down: "DOWN",
+  left: "LEFT",
+  up: "UP"
+};
+var ELK_ROUTING = {
+  orthogonal: "ORTHOGONAL",
+  polyline: "POLYLINE",
+  spline: "SPLINES"
+};
+var LAYER_CONSTRAINT = "elk.layered.layering.layerConstraint";
+function findNode(n4, id) {
+  if (n4.id === id) return n4;
+  for (const c of n4.children ?? []) {
+    const f = findNode(c, id);
+    if (f) return f;
+  }
+  return void 0;
+}
+function moveElk(n4, dx, dy) {
+  const at = (p) => ({
+    ...p,
+    x: round2((p.x ?? 0) + dx),
+    y: round2((p.y ?? 0) + dy)
+  });
+  const pt = (p) => ({ x: round2(p.x + dx), y: round2(p.y + dy) });
+  return {
+    ...at(n4),
+    labels: n4.labels?.map(at),
+    ports: n4.ports?.map(at),
+    children: n4.children?.map((c) => moveElk(c, dx, dy)),
+    edges: n4.edges?.map((e) => ({
+      ...e,
+      labels: e.labels?.map(at),
+      sections: e.sections?.map((s) => ({
+        startPoint: pt(s.startPoint),
+        endPoint: pt(s.endPoint),
+        bendPoints: s.bendPoints?.map(pt)
+      }))
+    }))
+  };
+}
+function findEdge(n4, id) {
+  for (const e of n4.edges ?? []) if (e.id === id) return e;
+  for (const c of n4.children ?? []) {
+    const f = findEdge(c, id);
+    if (f) return f;
+  }
+  return void 0;
+}
+var elkRuns = /* @__PURE__ */ new Map();
+async function runElk(root) {
+  const key = JSON.stringify(root);
+  let run2 = elkRuns.get(key);
+  if (!run2) {
+    run2 = runElkUncached(root);
+    elkRuns.set(key, run2);
+    run2.catch(() => elkRuns.delete(key));
+    if (elkRuns.size > 64) {
+      const oldest = elkRuns.keys().next().value;
+      if (oldest !== void 0) elkRuns.delete(oldest);
+    }
+  }
+  const { graph, fallback } = await run2;
+  return { graph: structuredClone(graph), fallback };
+}
+function crossings(graph) {
+  const nodeOf = (ref) => (ref ?? "").split("::")[0];
+  const lines2 = (graph.edges ?? []).flatMap((e) => {
+    const s = e.sections?.[0];
+    if (!s) return [];
+    const pts = [s.startPoint, ...s.bendPoints ?? [], s.endPoint];
+    const ends2 = [nodeOf(e.sources[0]), nodeOf(e.targets[0])];
+    return [{ ends: ends2, segs: pts.slice(1).map((q, i) => [pts[i] ?? q, q]) }];
+  });
+  const cross = (a, b, c, d) => {
+    const o = (p, q, r3) => (q.x - p.x) * (r3.y - p.y) - (q.y - p.y) * (r3.x - p.x);
+    return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+  };
+  let count = 0;
+  const nodes = /* @__PURE__ */ new Set();
+  for (let i = 0; i < lines2.length; i++)
+    for (let j = i + 1; j < lines2.length; j++) {
+      const a = lines2[i];
+      const b = lines2[j];
+      if (!a || !b || a.ends.some((x2) => b.ends.includes(x2))) continue;
+      for (const [p, q] of a.segs)
+        for (const [r3, t] of b.segs)
+          if (cross(p, q, r3, t)) {
+            count++;
+            for (const x2 of [...a.ends, ...b.ends]) if (x2) nodes.add(x2);
+          }
+    }
+  return { count, nodes };
+}
+async function runElkUncached(root) {
+  const fallbacks = [
+    [void 0, {}],
+    [
+      "brandes-koepf placement",
+      {
+        "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+        "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED"
+      }
+    ],
+    [
+      "network-simplex layering, simple placement",
+      {
+        "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
+        "elk.layered.nodePlacement.strategy": "SIMPLE"
+      }
+    ]
+  ];
+  let lastError;
+  for (const [fallback, extra] of fallbacks) {
+    const graph = applyOptions(structuredClone(root), extra);
+    try {
+      return { graph: await elk().layout(graph), fallback };
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw new Error(`layout failed: ${lastError?.message ?? lastError}`);
+}
+function applyOptions(n4, extra) {
+  if (n4.layoutOptions && "elk.algorithm" in n4.layoutOptions) Object.assign(n4.layoutOptions, extra);
+  for (const c of n4.children ?? []) applyOptions(c, extra);
+  return n4;
+}
+
+// src/layout/plan.ts
 var SELF_PLACED = {
   tree: "a tree places every node itself",
   mindmap: "a mind map places every node itself",
@@ -13028,8 +12481,8 @@ function gridCells(cells, cols, gap) {
   const lift = (x2) => (band - x2.box.h) / 2 - x2.box.y;
   const pitch = Math.max(0, ...cells.map((x2) => lift(x2) + x2.h));
   const at = cells.map((x2, i) => ({
-    x: round3(i % c * (cellW + gap) + (cellW - x2.w) / 2),
-    y: round3(Math.floor(i / c) * (pitch + gap) + lift(x2))
+    x: round2(i % c * (cellW + gap) + (cellW - x2.w) / 2),
+    y: round2(Math.floor(i / c) * (pitch + gap) + lift(x2))
   }));
   return {
     w: Math.ceil(c * cellW + (c - 1) * gap),
@@ -13056,7 +12509,55 @@ function layersOf(items, direction) {
   }
   return out;
 }
-var segmentsOf = (points) => points.slice(1).map((q, i) => [points[i] ?? q, q]);
+
+// src/layout/context.ts
+var HOOKS = [laneHooks, kindHooks, notationHooks];
+var hiddenOf = (model) => new Set(HOOKS.flatMap((h) => [...h.hiddenGroups?.(model) ?? []]));
+var withIgnored = (scene, more) => more.length ? { ...scene, ignored: [...scene.ignored ?? [], ...more] } : scene;
+function prepare(model, opts, theme) {
+  const tokens2 = THEME_TOKENS[theme];
+  const horizontal = model.direction === "right" || model.direction === "left";
+  const s = model.spacing;
+  const base = {
+    "elk.algorithm": "layered",
+    "elk.direction": ELK_DIRECTION[model.direction],
+    "elk.hierarchyHandling": "INCLUDE_CHILDREN",
+    "elk.edgeRouting": ELK_ROUTING[model.routing],
+    "elk.layered.layering.strategy": model.layering === "simplex" ? "NETWORK_SIMPLEX" : "LONGEST_PATH_SOURCE",
+    "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+    "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+    // Orders each layer by the elk.position hints below, so siblings keep spec order (AZ A left
+    // of AZ B). considerModelOrder would do the same but crashes elkjs 0.12 on nested graphs.
+    "elk.layered.crossingMinimization.semiInteractive": "true",
+    "elk.spacing.nodeNode": String(Math.round(40 * s)),
+    "elk.layered.spacing.nodeNodeBetweenLayers": String(Math.round(64 * s)),
+    "elk.spacing.edgeNode": String(Math.round(18 * s)),
+    "elk.spacing.edgeEdge": String(Math.round(10 * s)),
+    "elk.layered.spacing.edgeNodeBetweenLayers": String(Math.round(20 * s)),
+    "elk.layered.spacing.edgeEdgeBetweenLayers": String(Math.round(10 * s)),
+    "elk.spacing.edgeLabel": "4",
+    "elk.spacing.labelNode": "6",
+    "elk.edgeLabels.placement": "CENTER",
+    // One side for every label (and its step badge); ELK's default picks per edge.
+    "elk.layered.edgeLabels.sideSelection": "ALWAYS_UP",
+    "elk.json.shapeCoords": "ROOT",
+    "elk.json.edgeCoords": "ROOT",
+    "elk.layered.mergeEdges": model.merge ? "true" : "false",
+    "elk.layered.unnecessaryBendpoints": "true",
+    "elk.layered.thoroughness": "12",
+    ...Object.assign({}, ...HOOKS.map((h) => h.elkOptions?.(model) ?? {})),
+    ...opts.wrap ? {
+      "elk.layered.wrapping.strategy": opts.wrap,
+      "elk.aspectRatio": String(opts.ratio ?? 1)
+    } : {}
+  };
+  const hidden = hiddenOf(model);
+  const order = new Map(HOOKS.flatMap((h) => [...h.order?.(model) ?? []]));
+  const plan = planPlacement(model, hidden);
+  return { model, opts, theme, tokens: tokens2, horizontal, spacing: s, base, hidden, order, plan };
+}
+
+// src/layout/defects.ts
 function properCross(a, b, c, d) {
   const o = (p, q, r3) => (q.x - p.x) * (r3.y - p.y) - (q.y - p.y) * (r3.x - p.x);
   return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
@@ -13083,37 +12584,1254 @@ function edgesThroughNodes(scene) {
     }
   return count;
 }
-function segmentHits(p, q, b, inset = 1) {
-  const x0 = b.x + inset;
-  const y0 = b.y + inset;
-  const x1 = b.x + b.w - inset;
-  const y1 = b.y + b.h - inset;
-  if (x1 <= x0 || y1 <= y0) return false;
-  let t0 = 0;
-  let t1 = 1;
-  const dx = q.x - p.x;
-  const dy = q.y - p.y;
-  for (const [pp, qq] of [
-    [-dx, p.x - x0],
-    [dx, x1 - p.x],
-    [-dy, p.y - y0],
-    [dy, y1 - p.y]
-  ]) {
-    if (pp === 0) {
-      if (qq <= 0) return false;
-    } else {
-      const r3 = qq / pp;
-      if (pp < 0) {
-        if (r3 > t1) return false;
-        if (r3 > t0) t0 = r3;
-      } else {
-        if (r3 < t0) return false;
-        if (r3 < t1) t1 = r3;
-      }
+var real = (b) => !!b && b.w > 0 && b.h > 0;
+var unionOf = (list) => {
+  const x2 = Math.min(...list.map((b) => b.x));
+  const y = Math.min(...list.map((b) => b.y));
+  return {
+    x: x2,
+    y,
+    w: Math.max(...list.map((b) => b.x + b.w)) - x2,
+    h: Math.max(...list.map((b) => b.y + b.h)) - y
+  };
+};
+var inLength = (segs, b, inset) => segs.reduce((t, [p, q]) => {
+  const c = clip(p, q, b, inset);
+  return t + (c ? (c[1] - c[0]) * Math.hypot(q.x - p.x, q.y - p.y) : 0);
+}, 0);
+function sceneDefects(scene) {
+  const across2 = horizontalFlow(scene.direction);
+  const tags = scene.edges.flatMap(
+    (e) => [e.labelBox, e.stepBox].filter(real).map((box) => ({ id: e.id, box }))
+  );
+  const chips = scene.groups.flatMap((g) => {
+    if (!g.label.lines.length) return g.iconBox ? [g.iconBox] : [];
+    const icon2 = g.overlay ? g.iconBox : void 0;
+    const b = g.labelBox;
+    const u = unionOf(icon2 && icon2.y < b.y + b.h && b.y < icon2.y + icon2.h ? [b, icon2] : [b]);
+    return [{ x: u.x - 4, y: u.y - 1, w: u.w + 8, h: u.h + 2 }, ...g.iconBox ? [g.iconBox] : []];
+  });
+  const feet = scene.nodes.map(
+    (n4) => unionOf([n4.box, n4.iconBox, n4.labelBox, n4.noteBox].filter(real))
+  );
+  let count = 0;
+  for (const e of scene.edges) {
+    const segs = segmentsOf(e.points);
+    for (const n4 of scene.nodes) {
+      const own = n4.id === e.from || n4.id === e.to;
+      if (!own && segs.some(([p, q]) => segmentHits(p, q, n4.box, 3))) count++;
+      if (own && (n4.look !== "icon" || !across2)) continue;
+      for (const b of [n4.labelBox, n4.noteBox]) if (real(b) && inLength(segs, b, 1) > 1) count++;
+    }
+    for (const t of tags) if (t.id !== e.id && inLength(segs, t.box, 0.5) > 1) count++;
+    for (const c of chips) if (inLength(segs, c, 0.5) > 1) count++;
+    const ends2 = [];
+    if (e.arrow === "end" || e.arrow === "both")
+      ends2.push([e.points.at(-1), e.points.at(-2), e.to]);
+    if (e.arrow === "start" || e.arrow === "both") ends2.push([e.points[0], e.points[1], e.from]);
+    for (const [tip, prev, target] of ends2) {
+      if (!tip || !prev) continue;
+      const L = Math.hypot(tip.x - prev.x, tip.y - prev.y) || 1;
+      const [ux, uy] = [(tip.x - prev.x) / L, (tip.y - prev.y) / L];
+      const [bx, by] = [tip.x - ux * 9, tip.y - uy * 9];
+      const head2 = unionOf([
+        { x: tip.x, y: tip.y, w: 0, h: 0 },
+        { x: bx - uy * 4.5, y: by + ux * 4.5, w: 0, h: 0 },
+        { x: bx + uy * 4.5, y: by - ux * 4.5, w: 0, h: 0 }
+      ]);
+      const under = (b) => {
+        if (!real(b)) return false;
+        const w = Math.min(head2.x + head2.w, b.x + b.w - 0.5) - Math.max(head2.x, b.x + 0.5);
+        const h = Math.min(head2.y + head2.h, b.y + b.h - 0.5) - Math.max(head2.y, b.y + 0.5);
+        return w > 0 && h > 0 && w * h > 0.5;
+      };
+      const covers = [
+        ...tags.map((t) => t.box),
+        ...chips,
+        ...scene.nodes.flatMap((n4) => [
+          n4.labelBox,
+          n4.noteBox,
+          n4.badgeBox,
+          n4.id === target ? void 0 : n4.iconBox ?? n4.box
+        ])
+      ];
+      if (covers.some(under)) count++;
     }
   }
-  return t1 - t0 > 1e-6;
+  for (const t of tags) for (const f of feet) if (meet(t.box, f, -1)) count++;
+  for (let i = 0; i < tags.length; i++)
+    for (let j = i + 1; j < tags.length; j++) {
+      const [a, b] = [tags[i], tags[j]];
+      if (a && b && a.id !== b.id && meet(a.box, b.box, -1)) count++;
+    }
+  return count;
 }
+
+// src/layout-kinds/journey-grid.ts
+var GUTTER = 14;
+var CELL_PAD = 10;
+var STACK2 = 10;
+var TEXT_MAX = 150;
+var ICON_MAX = 32;
+var ROW_LABEL = 12.5;
+var ROW_LABEL_MAX = 116;
+var STAGE_LABEL = 13;
+var DIGIT = 22;
+var EMOTION_H = 136;
+var EMOTION_PAD = 22;
+var END_LABEL = 11;
+var ARROW = 12;
+var round3 = (v) => Math.round(v * 100) / 100;
+function measureGrid(model, stages) {
+  const s = model.spacing;
+  const G = round3(GUTTER * s);
+  const pad = round3(CELL_PAD * s);
+  const stack = round3(STACK2 * s);
+  const P2 = SIZES.pad;
+  const rows = cardRows(model, stages, pad, stack);
+  const headers = headersOf(model, stages, rows, pad);
+  const title = titleOf(model, P2);
+  const gutters = guttersOf(model, stages, rows.byId, G, pad);
+  const grid = { model, stages, G, pad, stack, P: P2, ...rows, ...headers, ...title, ...gutters };
+  return { ...grid, ...placeGrid(grid) };
+}
+function cardRows(model, stages, pad, stack) {
+  const groupIds = new Set(model.groups.map((g) => g.id));
+  const rowOf = (n4) => n4.parent && groupIds.has(n4.parent) ? n4.parent : "";
+  const rowIds = [];
+  if (model.nodes.some((n4) => rowOf(n4) === "")) rowIds.push("");
+  for (const g of model.groups) if (model.nodes.some((n4) => n4.parent === g.id)) rowIds.push(g.id);
+  const stageIx = new Map(stages.map((name, i) => [name, i]));
+  const cards = [];
+  const cells = /* @__PURE__ */ new Map();
+  for (const n4 of model.nodes) {
+    const row = rowIds.indexOf(rowOf(n4));
+    const col = stageIx.get(n4.stage ?? "") ?? 0;
+    const S = n4.icon ? Math.min(n4.iconSize, ICON_MAX) : 0;
+    const label = textBlock(n4.label, SIZES.nodeLabel, TEXT_MAX, 600);
+    const note = n4.note ? textBlock(n4.note, SIZES.note, TEXT_MAX) : void 0;
+    const textW = Math.max(label.width, note?.width ?? 0);
+    const textH = label.height + (note ? note.height + 2 : 0);
+    const key = `${row}:${col}`;
+    const list = cells.get(key) ?? [];
+    const card = {
+      node: n4,
+      row,
+      col,
+      k: list.length,
+      S,
+      label,
+      note,
+      w: Math.ceil(Math.max(128, 12 + (S ? S + 10 : 0) + textW + 14)),
+      h: Math.ceil(Math.max(48, Math.max(textH, S) + 22)),
+      box: { x: 0, y: 0, w: 0, h: 0 }
+    };
+    list.push(card);
+    cells.set(key, list);
+    cards.push(card);
+  }
+  const cardH = rowIds.map(
+    (_, r3) => Math.max(0, ...cards.filter((c) => c.row === r3).map((c) => c.h))
+  );
+  const depth = rowIds.map(
+    (_, r3) => Math.max(1, ...cards.filter((c) => c.row === r3).map((c) => c.k + 1))
+  );
+  const byId = new Map(cards.map((c) => [c.node.id, c]));
+  const gap = rowIds.map(
+    (_, r3) => model.edges.some((e) => {
+      const a = byId.get(e.from);
+      const b = byId.get(e.to);
+      return a?.row === r3 && b?.row === r3 && a.col === b.col && a !== b && e.arrow !== "none";
+    }) ? Math.max(stack, ARROW + 14) : stack
+  );
+  const rowH = rowIds.map((_, r3) => {
+    const d = depth[r3] ?? 1;
+    return round3(2 * pad + d * (cardH[r3] ?? 0) + (d - 1) * (gap[r3] ?? stack));
+  });
+  return { rowIds, cards, cells, byId, cardH, gap, rowH };
+}
+function headersOf(model, stages, rows, pad) {
+  const { rowIds, cards } = rows;
+  const stageText = stages.map((name) => textBlock(name, STAGE_LABEL, 180, 600));
+  const colW = stages.map(
+    (_, c) => Math.ceil(
+      Math.max(
+        ...cards.filter((x2) => x2.col === c).map((x2) => x2.w + 2 * pad),
+        10 + DIGIT + 8 + (stageText[c]?.width ?? 0) + 12,
+        96
+      )
+    )
+  );
+  const rowText = rowIds.map((id) => {
+    const g = model.groups.find((x2) => x2.id === id);
+    return textBlock(id ? g?.label || id : "Steps", ROW_LABEL, ROW_LABEL_MAX, 600);
+  });
+  const scored = cards.filter((c) => c.node.score !== void 0);
+  const emotionText = scored.length ? textBlock("Emotion", ROW_LABEL, ROW_LABEL_MAX, 600) : void 0;
+  const endText = scored.length ? [
+    { label: textBlock("Delighted", END_LABEL, 200), score: 2 },
+    { label: textBlock("Frustrated", END_LABEL, 200), score: -2 }
+  ] : [];
+  const headerW = Math.ceil(
+    Math.max(
+      96,
+      ...rowText.map((b) => b.width + 28),
+      (emotionText?.width ?? 0) + 28,
+      ...endText.map((x2) => x2.label.width + 28)
+    )
+  );
+  const stageH = Math.ceil(Math.max(DIGIT, ...stageText.map((b) => b.height)) + 20);
+  return { stageText, colW, rowText, scored, emotionText, endText, headerW, stageH };
+}
+function titleOf(model, P2) {
+  const titleBlock = model.title ? textBlock(model.title, SIZES.title, 1400, 600, 1.25) : void 0;
+  const subtitleBlock = model.subtitle ? textBlock(model.subtitle, SIZES.subtitle, 1400, 400) : void 0;
+  const top = titleBlock ? Math.ceil(P2 + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6) : 0;
+  const gridX = P2;
+  const gridY = top + P2;
+  return { titleBlock, subtitleBlock, gridX, gridY };
+}
+function guttersOf(model, stages, byId, G, pad) {
+  const gut = stages.slice(1).map(() => G);
+  const unit = /* @__PURE__ */ new Map();
+  for (const e of model.edges) {
+    if (!e.label && e.step === void 0) continue;
+    const block3 = e.label ? textBlock(e.label, SIZES.edgeLabel, SIZES.edgeLabelMax) : void 0;
+    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
+    const w = Math.ceil((block3 ? block3.width + 12 : 0) + stepW + (block3 && stepW ? 2 : 0));
+    const h = Math.ceil(Math.max(block3 ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
+    unit.set(e.id, { block: block3, w, h, stepW });
+    const a = byId.get(e.from);
+    const b = byId.get(e.to);
+    if (!a || !b || Math.abs(a.col - b.col) !== 1) continue;
+    const i = Math.min(a.col, b.col);
+    gut[i] = Math.max(gut[i] ?? G, Math.ceil(w + 8 + ARROW - 2 * pad));
+  }
+  return { gut, unit };
+}
+function placeGrid(grid) {
+  const { stages, rowIds, cards, G, pad, stack, cardH, gap, rowH, colW, gut } = grid;
+  const { gridX, gridY, headerW, stageH } = grid;
+  const colX = [];
+  let x2 = gridX + headerW + G;
+  for (let c = 0; c < stages.length; c++) {
+    colX.push(round3(x2));
+    x2 += (colW[c] ?? 0) + (gut[c] ?? 0);
+  }
+  const lastCol = stages.length - 1;
+  const gridRight = round3((colX[lastCol] ?? 0) + (colW[lastCol] ?? 0));
+  const rowY = [];
+  let y = gridY + stageH + G;
+  for (let r3 = 0; r3 < rowIds.length; r3++) {
+    rowY.push(round3(y));
+    y += (rowH[r3] ?? 0) + G;
+  }
+  const rowsBottom = round3(y - G);
+  for (const c of cards) {
+    c.box = {
+      x: round3((colX[c.col] ?? 0) + pad),
+      y: round3((rowY[c.row] ?? 0) + pad + c.k * ((cardH[c.row] ?? 0) + (gap[c.row] ?? stack))),
+      w: round3((colW[c.col] ?? 0) - 2 * pad),
+      h: round3(cardH[c.row] ?? 0)
+    };
+  }
+  return { colX, lastCol, gridRight, rowY, rowsBottom };
+}
+function stageHeaders(grid) {
+  const { stages, colX, colW, gridY, stageH, stageText } = grid;
+  return stages.map((_, c) => {
+    const box = { x: colX[c] ?? 0, y: gridY, w: colW[c] ?? 0, h: stageH };
+    const label = stageText[c] ?? textBlock("", STAGE_LABEL, 180, 600);
+    const numberBox = {
+      x: round3(box.x + 10),
+      y: round3(box.y + (stageH - DIGIT) / 2),
+      w: DIGIT,
+      h: DIGIT
+    };
+    return {
+      label,
+      box,
+      labelBox: {
+        x: round3(numberBox.x + DIGIT + 8),
+        y: round3(box.y + (stageH - label.height) / 2),
+        w: round3(label.width),
+        h: round3(label.height)
+      },
+      number: String(c + 1),
+      numberBox
+    };
+  });
+}
+function rowBands(grid) {
+  const { model, stages, rowIds, rowY, rowH, rowText, gridX, gridRight, headerW, colX, colW } = grid;
+  return rowIds.map((id, r3) => {
+    const yy = rowY[r3] ?? 0;
+    const h = rowH[r3] ?? 0;
+    const header2 = { x: gridX, y: yy, w: headerW, h };
+    const label = rowText[r3] ?? textBlock("", ROW_LABEL, ROW_LABEL_MAX, 600);
+    const color = model.groups.find((g) => g.id === id)?.color;
+    return {
+      id,
+      label,
+      box: { x: gridX, y: yy, w: round3(gridRight - gridX), h },
+      labelBox: {
+        x: round3(gridX + 14),
+        y: round3(yy + (h - label.height) / 2),
+        w: round3(label.width),
+        h: round3(label.height)
+      },
+      header: header2,
+      cells: stages.map((_, c) => ({ x: colX[c] ?? 0, y: yy, w: colW[c] ?? 0, h })),
+      ...color ? { color } : {}
+    };
+  });
+}
+function emotionCurve(grid) {
+  const { stages, colX, colW, gridX, gridRight, rowsBottom, G, headerW, scored } = grid;
+  const { emotionText, endText } = grid;
+  let curve;
+  if (emotionText) {
+    const by = round3(rowsBottom + G);
+    const band = {
+      x: colX[0] ?? 0,
+      y: by,
+      w: round3(gridRight - (colX[0] ?? 0)),
+      h: EMOTION_H
+    };
+    const zero = round3(by + EMOTION_H / 2);
+    const per = (EMOTION_H / 2 - EMOTION_PAD) / 2;
+    const points = [];
+    const scores = [];
+    stages.forEach((_, c) => {
+      const here = scored.filter((x2) => x2.col === c).map((x2) => x2.node.score ?? 0);
+      if (!here.length) return;
+      const avg = here.reduce((a, b) => a + b, 0) / here.length;
+      scores.push(round3(avg));
+      points.push({ x: round3((colX[c] ?? 0) + (colW[c] ?? 0) / 2), y: round3(zero - avg * per) });
+    });
+    const header2 = { x: gridX, y: by, w: headerW, h: EMOTION_H };
+    curve = {
+      band,
+      points,
+      scores,
+      header: header2,
+      label: emotionText,
+      labelBox: {
+        x: round3(gridX + 14),
+        y: round3(zero - emotionText.height / 2),
+        w: round3(emotionText.width),
+        h: round3(emotionText.height)
+      },
+      zero,
+      unit: round3(per),
+      ends: endText.map(({ label, score }) => ({
+        label,
+        score,
+        box: {
+          x: round3(gridX + 14),
+          y: round3(zero - score * per - label.height / 2),
+          w: round3(label.width),
+          h: round3(label.height)
+        }
+      }))
+    };
+  }
+  return curve;
+}
+
+// src/layout-kinds/journey-canvas.ts
+function canvasOf(grid, gridBottom) {
+  const { model, gridRight, P: P2, titleBlock, subtitleBlock } = grid;
+  let width2 = Math.ceil(gridRight + P2);
+  let height = Math.ceil(gridBottom + P2);
+  let titleBox;
+  let subtitleBox;
+  if (titleBlock) {
+    titleBox = { x: P2, y: P2 - 4, w: round3(titleBlock.width), h: round3(titleBlock.height) };
+    width2 = Math.max(width2, Math.ceil(titleBlock.width + P2 * 2));
+    if (subtitleBlock) {
+      subtitleBox = {
+        x: P2,
+        y: round3(titleBox.y + titleBlock.height + 4),
+        w: round3(subtitleBlock.width),
+        h: round3(subtitleBlock.height)
+      };
+      width2 = Math.max(width2, Math.ceil(subtitleBlock.width + P2 * 2));
+    }
+  }
+  let legend4;
+  if (model.legend?.length) {
+    legend4 = placeLegend(model.legend, width2, height);
+    width2 = Math.max(width2, Math.ceil(legend4.box.w + P2 * 2));
+    height = Math.ceil(legend4.box.y + legend4.box.h + P2);
+  }
+  return { width: width2, height, titleBox, subtitleBox, legend: legend4 };
+}
+function placeLegend(entries2, width2, height) {
+  const P2 = 10;
+  const rows = entries2.map((e) => ({
+    line: e.line,
+    label: textBlock(e.label, SIZES.edgeLabel, 240)
+  }));
+  const w = Math.ceil(P2 + 28 + 8 + Math.max(...rows.map((r3) => r3.label.width)) + P2);
+  const pitch = rows.map((r3) => Math.max(18, r3.label.height + 3));
+  const last = rows[rows.length - 1]?.label.height ?? 0;
+  const h = Math.ceil(P2 + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P2);
+  const box = { x: Math.max(SIZES.pad, width2 - SIZES.pad - w), y: height - SIZES.pad + 12, w, h };
+  let y = box.y + P2;
+  const items = rows.map((r3, i) => {
+    const swatch = { x: box.x + P2, y: round3(y + (r3.label.lead - 12) / 2), w: 28, h: 12 };
+    const labelBox = {
+      x: box.x + P2 + 36,
+      y: round3(y),
+      w: round3(r3.label.width),
+      h: round3(r3.label.height)
+    };
+    y += pitch[i] ?? 18;
+    return { line: r3.line, swatch, label: r3.label, labelBox };
+  });
+  return { box, items };
+}
+function describe(model, rows, curve) {
+  const name = (id) => model.nodes.find((n4) => n4.id === id)?.label ?? id;
+  const stages = model.stages ?? [];
+  const parts = [];
+  if (model.title) parts.push(`${model.title}.`);
+  parts.push(
+    `Customer journey in ${stages.length} stages (${stages.join(", ")}) and ${rows.length} rows (${rows.map((r3) => r3.lines.join(" ")).join(", ")}), ${model.nodes.length} steps.`
+  );
+  if (curve?.scores.length) {
+    const scored = stages.filter(
+      (st) => model.nodes.some((n4) => n4.stage === st && n4.score !== void 0)
+    );
+    const sign = (v) => v > 0 ? `+${v}` : String(v);
+    parts.push(
+      `Emotion from -2 to 2 by stage: ${scored.map((st, i) => `${st} ${sign(curve.scores[i] ?? 0)}`).join(", ")}.`
+    );
+  }
+  const flows = model.edges.slice(0, 24).map((e) => `${name(e.from)} to ${name(e.to)}${e.label ? ` (${e.label})` : ""}`);
+  if (flows.length)
+    parts.push(`Connections: ${flows.join("; ")}${model.edges.length > 24 ? "; and more" : ""}.`);
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
+// src/layout-kinds/journey-edges.ts
+var center2 = (b) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+var across = (s) => s === "left" || s === "right";
+function journeyEdges(grid) {
+  const paths = pathsOf(grid);
+  const plans = planEdges(grid, paths);
+  spreadPorts(plans);
+  const { routes, movable } = routePlans(paths, plans);
+  separateTracks(grid, routes, movable);
+  return sceneEdges(plans, routes);
+}
+function pathsOf(grid) {
+  const { G, colX, colW, gut, lastCol, gridRight, rowY, rowsBottom, cards, cells } = grid;
+  return {
+    gutterX: (c) => c < 0 ? round3((colX[0] ?? 0) - G / 2) : c >= lastCol ? round3(gridRight + G / 2) : round3((colX[c] ?? 0) + (colW[c] ?? 0) + (gut[c] ?? G) / 2),
+    corridors: [...rowY.map((ry) => round3(ry - G / 2)), round3(rowsBottom + G / 2)],
+    between: (a, b) => cards.some((c) => {
+      if (c === a || c === b || c.col !== a.col) return false;
+      const lo = Math.min(a.box.y, b.box.y);
+      const hi = Math.max(a.box.y + a.box.h, b.box.y + b.box.h);
+      return c.box.y > lo && c.box.y < hi;
+    }),
+    clearH: (yy, x0, x1, skip2) => !cards.some(
+      (c) => !skip2.includes(c) && c.box.y - 4 < yy && yy < c.box.y + c.box.h + 4 && c.box.x < Math.max(x0, x1) && Math.min(x0, x1) < c.box.x + c.box.w
+    ),
+    stackOf: (c) => cells.get(`${c.row}:${c.col}`)?.length ?? 1
+  };
+}
+function planEdges(grid, paths) {
+  const { model, byId } = grid;
+  const { gutterX, corridors, between, clearH, stackOf } = paths;
+  const plans = [];
+  const sides = [];
+  for (const e of model.edges) {
+    const a = byId.get(e.from);
+    const b = byId.get(e.to);
+    if (!a || !b || a === b) continue;
+    const base = { e, a, b, ps: { x: 0, y: 0 }, pt: { x: 0, y: 0 } };
+    if (a.col === b.col) {
+      if (between(a, b)) sides.push({ e, a, b });
+      else {
+        const down = a.box.y < b.box.y;
+        plans.push({
+          ...base,
+          from: down ? "bottom" : "top",
+          to: down ? "top" : "bottom",
+          kind: "v",
+          g1: a.col,
+          g2: a.col
+        });
+      }
+      continue;
+    }
+    const forward = a.col < b.col;
+    const [from, to] = forward ? ["right", "left"] : ["left", "right"];
+    const g1 = forward ? a.col : a.col - 1;
+    const g2 = forward ? b.col - 1 : b.col;
+    const sx = forward ? a.box.x + a.box.w : a.box.x;
+    const tx = forward ? b.box.x : b.box.x + b.box.w;
+    const ys = center2(a.box).y;
+    const yt = center2(b.box).y;
+    const elbow2 = Math.abs(ys - yt) < 0.5 && clearH(ys, sx, tx, [a, b]) ? "none" : clearH(ys, sx, gutterX(g2), [a, b]) ? "late" : clearH(yt, gutterX(g1), tx, [a, b]) ? "early" : void 0;
+    if (elbow2) {
+      plans.push({ ...base, from, to, kind: "h", elbow: elbow2, g1, g2 });
+      continue;
+    }
+    const mid = (ys + yt) / 2;
+    const cy = [...corridors].sort((m, q) => Math.abs(m - mid) - Math.abs(q - mid))[0] ?? mid;
+    const upright = (c) => cy === corridors[c.row] && c.k === 0 ? "top" : cy === corridors[c.row + 1] && c.k === stackOf(c) - 1 ? "bottom" : void 0;
+    plans.push({
+      ...base,
+      from: upright(a) ?? from,
+      to: upright(b) ?? to,
+      kind: "bridge",
+      g1,
+      g2,
+      cy
+    });
+  }
+  detours(plans, sides);
+  const order = new Map(model.edges.map((e, i) => [e.id, i]));
+  plans.sort((m, q) => (order.get(m.e.id) ?? 0) - (order.get(q.e.id) ?? 0));
+  return plans;
+}
+function detours(plans, sides) {
+  const load3 = /* @__PURE__ */ new Map();
+  const use = (g) => load3.set(g, (load3.get(g) ?? 0) + 1);
+  for (const p of plans) {
+    if (p.kind === "h" && p.elbow === "late") use(p.g2);
+    if (p.kind === "h" && p.elbow === "early") use(p.g1);
+    if (p.kind === "bridge" && across(p.from)) use(p.g1);
+    if (p.kind === "bridge" && across(p.to)) use(p.g2);
+  }
+  for (const { e, a, b } of sides) {
+    const left = a.col > 0 && (load3.get(a.col - 1) ?? 0) < (load3.get(a.col) ?? 0);
+    const g = left ? a.col - 1 : a.col;
+    use(g);
+    const side = left ? "left" : "right";
+    plans.push({
+      e,
+      a,
+      b,
+      from: side,
+      to: side,
+      kind: "side",
+      g1: g,
+      g2: g,
+      ps: { x: 0, y: 0 },
+      pt: { x: 0, y: 0 }
+    });
+  }
+}
+function spreadPorts(plans) {
+  const sideOf = (p, end) => end === "from" ? p.from : p.to;
+  const ports = /* @__PURE__ */ new Map();
+  for (const p of plans)
+    for (const end of ["from", "to"]) {
+      const c = end === "from" ? p.a : p.b;
+      const key = `${c.node.id}|${sideOf(p, end)}`;
+      ports.set(key, [...ports.get(key) ?? [], { p, end }]);
+    }
+  for (const list of ports.values()) {
+    const first = list[0];
+    if (!first) continue;
+    const side = sideOf(first.p, first.end);
+    const own = first.end === "from" ? first.p.a : first.p.b;
+    const b = own.box;
+    const other = (x2) => center2((x2.end === "from" ? x2.p.b : x2.p.a).box);
+    list.sort((m, q) => across(side) ? other(m).y - other(q).y : other(m).x - other(q).x);
+    const span = across(side) ? b.h : b.w;
+    const step = list.length > 1 ? Math.min(12, (span - 16) / (list.length - 1)) : 0;
+    list.forEach((x2, i) => {
+      const off = (i - (list.length - 1) / 2) * step;
+      const c = center2(b);
+      const pt = side === "left" ? { x: b.x, y: c.y + off } : side === "right" ? { x: b.x + b.w, y: c.y + off } : side === "top" ? { x: c.x + off, y: b.y } : { x: c.x + off, y: b.y + b.h };
+      const r3 = { x: round3(pt.x), y: round3(pt.y) };
+      if (x2.end === "from") x2.p.ps = r3;
+      else x2.p.pt = r3;
+    });
+  }
+  const alone = (c, side) => (ports.get(`${c.node.id}|${side}`)?.length ?? 0) <= 1;
+  for (const p of plans) {
+    const k = p.kind === "h" && p.elbow === "none" ? "y" : p.kind === "v" ? "x" : void 0;
+    if (!k || Math.abs(p.ps[k] - p.pt[k]) < 0.01 || Math.abs(p.ps[k] - p.pt[k]) > 8) continue;
+    if (alone(p.b, p.to)) p.pt = { ...p.pt, [k]: p.ps[k] };
+    else if (alone(p.a, p.from)) p.ps = { ...p.ps, [k]: p.pt[k] };
+  }
+}
+function routePlans(paths, plans) {
+  const { gutterX } = paths;
+  const routes = /* @__PURE__ */ new Map();
+  const movable = [];
+  for (const p of plans) {
+    const { ps, pt } = p;
+    const id = p.e.id;
+    let pts;
+    if (p.kind === "v") {
+      const my = round3((ps.y + pt.y) / 2);
+      pts = Math.abs(ps.x - pt.x) < 0.01 ? [ps, pt] : [ps, { x: ps.x, y: my }, { x: pt.x, y: my }, pt];
+    } else if (p.kind === "h" && p.elbow === "none" && Math.abs(ps.y - pt.y) < 0.01) {
+      pts = [ps, pt];
+    } else if (p.kind === "h" || p.kind === "side") {
+      const g = gutterX(p.elbow === "early" ? p.g1 : p.g2);
+      pts = [ps, { x: g, y: ps.y }, { x: g, y: pt.y }, pt];
+      movable.push({ id, i: 1, vertical: true, at: g });
+    } else {
+      const cy = p.cy ?? 0;
+      pts = [ps];
+      if (across(p.from)) {
+        const g = gutterX(p.g1);
+        pts.push({ x: g, y: ps.y }, { x: g, y: cy });
+        movable.push({ id, i: 1, vertical: true, at: g });
+      } else pts.push({ x: ps.x, y: cy });
+      movable.push({ id, i: pts.length - 1, vertical: false, at: cy });
+      if (across(p.to)) {
+        const g = gutterX(p.g2);
+        movable.push({ id, i: pts.length, vertical: true, at: g });
+        pts.push({ x: g, y: cy }, { x: g, y: pt.y });
+      } else pts.push({ x: pt.x, y: cy });
+      pts.push(pt);
+    }
+    routes.set(id, pts);
+  }
+  return { routes, movable };
+}
+function separateTracks(grid, routes, movable) {
+  const { G, pad } = grid;
+  const groupsOf = /* @__PURE__ */ new Map();
+  for (const m of movable) {
+    const key = `${m.vertical ? "v" : "h"}${m.at}`;
+    groupsOf.set(key, [...groupsOf.get(key) ?? [], m]);
+  }
+  for (const list of groupsOf.values()) {
+    if (list.length < 2) continue;
+    const span = (m) => {
+      const pts = routes.get(m.id) ?? [];
+      const p = pts[m.i];
+      const q = pts[m.i + 1];
+      if (!p || !q) return [0, 0];
+      return m.vertical ? [Math.min(p.y, q.y), Math.max(p.y, q.y)] : [Math.min(p.x, q.x), Math.max(p.x, q.x)];
+    };
+    const sorted = [...list].sort((m, q) => (span(m)[0] ?? 0) - (span(q)[0] ?? 0));
+    const ends2 = [];
+    const track = /* @__PURE__ */ new Map();
+    for (const m of sorted) {
+      const [lo, hi] = span(m);
+      let t = ends2.findIndex((end) => end < lo - 6);
+      if (t < 0) {
+        t = ends2.length;
+        ends2.push(hi);
+      } else ends2[t] = hi;
+      track.set(m, t);
+    }
+    if (ends2.length < 2) continue;
+    const room2 = (m) => m.vertical ? G - 4 : G + 2 * pad - 12;
+    for (const m of list) {
+      const t = track.get(m) ?? 0;
+      const gap = Math.min(6, room2(m) / (ends2.length - 1));
+      const d = round3((t - (ends2.length - 1) / 2) * gap);
+      const pts = routes.get(m.id);
+      const p = pts?.[m.i];
+      const q = pts?.[m.i + 1];
+      if (!pts || !p || !q) continue;
+      const k = m.vertical ? "x" : "y";
+      pts[m.i] = { ...p, [k]: round3(p[k] + d) };
+      pts[m.i + 1] = { ...q, [k]: round3(q[k] + d) };
+    }
+  }
+}
+function sceneEdges(plans, routes) {
+  const edges = [];
+  for (const p of plans) {
+    const points = routes.get(p.e.id);
+    if (!points || points.length < 2) continue;
+    edges.push({
+      id: p.e.id,
+      from: p.e.from,
+      to: p.e.to,
+      points,
+      line: p.e.line,
+      arrow: p.e.arrow,
+      color: p.e.color,
+      step: p.e.step,
+      ...p.e.flow ? { flow: p.e.flow } : {}
+    });
+  }
+  return edges;
+}
+
+// src/layout-kinds/journey-labels.ts
+var len = (p, q) => Math.hypot(q.x - p.x, q.y - p.y);
+var hits4 = (a, b, m = 0) => a.x < b.x + b.w + m && b.x < a.x + a.w + m && a.y < b.y + b.h + m && b.y < a.y + a.h + m;
+var crossesBox = (p, q, b) => {
+  const x0 = Math.min(p.x, q.x);
+  const x1 = Math.max(p.x, q.x);
+  const y0 = Math.min(p.y, q.y);
+  const y1 = Math.max(p.y, q.y);
+  return x0 < b.x + b.w && b.x < x1 + 0.01 && y0 < b.y + b.h && b.y < y1 + 0.01;
+};
+function journeyNodes(grid) {
+  return grid.cards.map((c) => {
+    const n4 = c.node;
+    const b = c.box;
+    const textH = c.label.height + (c.note ? c.note.height + 2 : 0);
+    const tx = b.x + 12 + (c.S ? c.S + 10 : 0);
+    const ty = b.y + (b.h - textH) / 2;
+    const node4 = {
+      id: n4.id,
+      // Every step is a card: icon on the left, label and note beside it.
+      look: "card",
+      shape: n4.shape,
+      box: b,
+      icon: n4.icon,
+      label: c.label,
+      labelBox: {
+        x: round3(tx),
+        y: round3(ty),
+        w: round3(c.label.width),
+        h: round3(c.label.height)
+      },
+      note: c.note,
+      color: n4.color,
+      badge: n4.badge,
+      url: n4.url,
+      parent: n4.parent,
+      ...n4.stage !== void 0 ? { stage: n4.stage } : {},
+      ...n4.score !== void 0 ? { score: n4.score } : {}
+    };
+    if (c.S) node4.iconBox = { x: round3(b.x + 12), y: round3(b.y + (b.h - c.S) / 2), w: c.S, h: c.S };
+    if (c.note)
+      node4.noteBox = {
+        x: round3(tx),
+        y: round3(ty + c.label.height + 2),
+        w: round3(c.note.width),
+        h: round3(c.note.height)
+      };
+    if (n4.badge) {
+      const w = round3(Math.max(18, measure(n4.badge, 10, 600) + 10));
+      node4.badgeBox = {
+        x: round3(Math.max(b.x + b.w - w / 2 - 2, b.x + b.w / 2 + 6)),
+        y: round3(b.y - 7),
+        w,
+        h: 16
+      };
+    }
+    return node4;
+  });
+}
+function placeEdgeLabels(grid, edges, blocked, gridBottom) {
+  const clear = { grid, gridBottom, edges, blocked, taken: [] };
+  for (const edge3 of edges) {
+    const u = grid.unit.get(edge3.id);
+    if (!u) continue;
+    const { w, h } = u;
+    const candidates = candidatesOf(edge3.points, w, h);
+    const chosen = candidates.find((c) => fits(clear, edge3, c)) ?? candidates[0];
+    if (!chosen) continue;
+    const box = {
+      x: round3(chosen.box.x),
+      y: round3(chosen.box.y),
+      w: chosen.box.w,
+      h: chosen.box.h
+    };
+    clear.taken.push(box);
+    if (edge3.step !== void 0)
+      edge3.stepBox = {
+        x: box.x,
+        y: round3(box.y + (box.h - SIZES.step) / 2),
+        w: SIZES.step,
+        h: SIZES.step
+      };
+    if (u.block) {
+      edge3.label = u.block;
+      edge3.labelBox = {
+        x: round3(box.x + u.stepW + (u.stepW ? 2 : 0)),
+        y: box.y,
+        w: round3(w - u.stepW - (u.stepW ? 2 : 0)),
+        h
+      };
+    }
+  }
+}
+function candidatesOf(pts, w, h) {
+  const segs = pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q, last: i === pts.length - 2, first: i === 0 })).sort((m, o) => len(o.p, o.q) - len(m.p, m.q));
+  const candidates = [];
+  for (const sg of segs) {
+    const flat = Math.abs(sg.p.y - sg.q.y) < 0.5;
+    for (const f of [0.5, 0.35, 0.65]) {
+      const mx = sg.p.x + (sg.q.x - sg.p.x) * f;
+      const my = sg.p.y + (sg.q.y - sg.p.y) * f;
+      const on = { x: mx - w / 2, y: my - h / 2, w, h };
+      if (flat) candidates.push({ box: { ...on, y: my - h - 3 } }, { box: { ...on, y: my + 3 } });
+      else candidates.push({ box: { ...on, x: mx + 4 } }, { box: { ...on, x: mx - 4 - w } });
+      candidates.push({ box: on, on: sg });
+    }
+  }
+  return candidates;
+}
+function fits(k, edge3, c) {
+  const { gridX, gridY, G, gridRight } = k.grid;
+  const { gridBottom, blocked, taken, edges } = k;
+  const b = c.box;
+  if (b.x < gridX || b.y < gridY - G || b.x + b.w > gridRight + G || b.y + b.h > gridBottom + G)
+    return false;
+  if (blocked.some((o) => hits4(b, o, 3))) return false;
+  if (taken.some((o) => hits4(b, o, 2))) return false;
+  const room2 = { x: b.x - 2, y: b.y - 2, w: b.w + 4, h: b.h + 4 };
+  for (const other of edges) {
+    const op = other.points;
+    for (let i = 1; i < op.length; i++) {
+      const p = op[i - 1];
+      const q = op[i];
+      if (!p || !q || other === edge3 && c.on && p === c.on.p && q === c.on.q) continue;
+      if (crossesBox(p, q, room2)) return false;
+    }
+  }
+  if (c.on) {
+    const { p, q, last, first } = c.on;
+    const flat = Math.abs(p.y - q.y) < 0.5;
+    const [lo, hi] = flat ? [Math.min(p.x, q.x), Math.max(p.x, q.x)] : [Math.min(p.y, q.y), Math.max(p.y, q.y)];
+    const [b0, b1] = flat ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+    const toward = (end) => flat ? end.x : end.y;
+    const headAt = (end) => last && end === q && (edge3.arrow === "end" || edge3.arrow === "both") || first && end === p && (edge3.arrow === "start" || edge3.arrow === "both");
+    const need = (end) => headAt(end) ? ARROW + 4 : 4;
+    const ends2 = [p, q].map((end) => ({ v: toward(end), need: need(end) }));
+    const loEnd = ends2.find((x2) => Math.abs(x2.v - lo) < 0.01) ?? { need: 4 };
+    const hiEnd = ends2.find((x2) => Math.abs(x2.v - hi) < 0.01) ?? { need: 4 };
+    if (b0 < lo + loEnd.need || b1 > hi - hiEnd.need) return false;
+  }
+  return true;
+}
+
+// src/journey.ts
+async function journeyLayout(model, theme) {
+  const stages = model.stages ?? [];
+  if (!stages.length) return void 0;
+  const grid = measureGrid(model, stages);
+  const journeyStages = stageHeaders(grid);
+  const rows = rowBands(grid);
+  const curve = emotionCurve(grid);
+  const gridBottom = curve ? curve.band.y + curve.band.h : grid.rowsBottom;
+  const edges = journeyEdges(grid);
+  const nodes = journeyNodes(grid);
+  const blocked = [
+    ...nodes.flatMap((nd) => [nd.box, nd.badgeBox].filter((x2) => !!x2)),
+    ...journeyStages.map((st) => st.box),
+    ...rows.map((r3) => r3.header),
+    ...curve ? [curve.band, curve.header] : []
+  ];
+  placeEdgeLabels(grid, edges, blocked, gridBottom);
+  const { width: width2, height, titleBox, subtitleBox, legend: legend4 } = canvasOf(grid, gridBottom);
+  return {
+    width: width2,
+    height,
+    theme,
+    direction: model.direction,
+    routing: model.routing,
+    arrowhead: model.arrowhead,
+    animate: animateOf(model),
+    skin: model.skin,
+    background: model.background,
+    title: grid.titleBlock,
+    titleBox,
+    subtitle: grid.subtitleBlock,
+    subtitleBox,
+    nodes,
+    groups: [],
+    edges,
+    legend: legend4,
+    description: describe(model, grid.rowText, curve),
+    kind: model.kind,
+    ...model.story ? { story: model.story } : {},
+    journey: { stages: journeyStages, rows, ...curve ? { curve } : {} }
+  };
+}
+
+// src/skins.ts
+function stageColors(scene) {
+  const t = tokensFor(scene);
+  const s = t.stage;
+  if (!s) return scene;
+  const canvas2 = scene.background && scene.background !== "transparent" ? scene.background : t.background;
+  const panel = mixHex(s.line, canvas2, s.panel);
+  for (const g of scene.groups) {
+    g.fill = g.dash || g.overlay ? "none" : panel;
+    g.stroke = mixHex(s.line, canvas2, s.frame);
+    if (g.inner) g.inner.fill = panel;
+    g.labelColor = ensureContrast(g.depth === 0 ? s.header : t.text, panel);
+  }
+  for (const nd of scene.nodes) {
+    nd.ink = void 0;
+    nd.inkMuted = void 0;
+    if (nd.look !== "shape" || !nd.color) continue;
+    const lit2 = mixHex(nd.color, s.tile, 0.15);
+    const fill2 = mixHex(nd.color, canvas2, scene.theme === "dark" ? 0.16 : 0.1);
+    nd.ink = ensureContrast(ensureContrast(t.text, lit2), fill2);
+    nd.inkMuted = ensureContrast(ensureContrast(t.muted, lit2), fill2);
+  }
+  return scene;
+}
+
+// src/layout/sizes.ts
+var SIZES = {
+  pad: 28,
+  nodeLabel: 13,
+  note: 11.5,
+  groupLabel: 13,
+  edgeLabel: 11.5,
+  title: 20,
+  subtitle: 13,
+  iconLabelMax: 132,
+  // Step badges: official AWS, Azure and Google badges are 0.54 to 0.75 of the icon size.
+  step: 28,
+  cardLabelMax: 168,
+  shapeLabelMax: 156,
+  edgeLabelMax: 150,
+  // AWS group tiles are 40x40 next to 48px service icons in the deck ("DON'T: Resize group icons").
+  tile: 40,
+  inlineIcon: 20
+};
+var animateOf = (model) => model.animate ?? (model.skin === "stage" ? "relay" : "packets");
+
+// src/layout/canvas.ts
+function sizeCanvas(ctx) {
+  const { model, hidden, result: result2, top, titleBlock, subtitleBlock, nodes, groups, edges } = ctx;
+  const { dx, dy } = moveClear(ctx);
+  let width2 = hidden.size ? 0 : round2((result2.width ?? 0) + dx);
+  let height = hidden.size ? 0 : round2((result2.height ?? 0) + top + dy);
+  const relocated = model.kind !== "architecture" || hidden.size > 0 ? nodes.flatMap((n4) => [n4.box, n4.labelBox, n4.noteBox, n4.badgeBox]) : [];
+  for (const b of [
+    ...groups.map((g) => g.box),
+    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
+    ...relocated
+  ]) {
+    if (!b) continue;
+    width2 = Math.max(width2, round2(b.x + b.w + SIZES.pad));
+    height = Math.max(height, round2(b.y + b.h + SIZES.pad));
+  }
+  let titleBox;
+  let subtitleBox;
+  if (titleBlock) {
+    titleBox = {
+      x: SIZES.pad,
+      y: SIZES.pad - 4,
+      w: round2(titleBlock.width),
+      h: round2(titleBlock.height)
+    };
+    width2 = Math.max(width2, round2(titleBlock.width + SIZES.pad * 2));
+    if (subtitleBlock) {
+      subtitleBox = {
+        x: SIZES.pad,
+        y: round2(titleBox.y + titleBlock.height + 4),
+        w: round2(subtitleBlock.width),
+        h: round2(subtitleBlock.height)
+      };
+      width2 = Math.max(width2, round2(subtitleBlock.width + SIZES.pad * 2));
+    }
+  }
+  width2 = Math.ceil(width2);
+  height = Math.ceil(height);
+  let legend4;
+  if (model.legend?.length) {
+    legend4 = placeLegend2(model.legend, width2, height);
+    width2 = Math.max(width2, Math.ceil(legend4.box.w + SIZES.pad * 2));
+    height = Math.ceil(legend4.box.y + legend4.box.h + SIZES.pad);
+  }
+  return { width: width2, height, titleBox, subtitleBox, legend: legend4 };
+}
+function moveClear(ctx) {
+  const { top, titleBlock, nodes, groups, edges } = ctx;
+  const drawn = [
+    ...groups.flatMap((g) => [g.box, g.labelBox, g.iconBox]),
+    ...nodes.flatMap((n4) => [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox]),
+    ...edges.flatMap((e) => [
+      e.labelBox,
+      e.stepBox,
+      ...e.points.map((p) => ({ ...p, w: 0, h: 0 }))
+    ])
+  ].filter((b) => !!b);
+  const dx = Math.max(0, Math.ceil(4 - Math.min(...drawn.map((b) => b.x))));
+  const dy = Math.max(
+    0,
+    Math.ceil(top + (titleBlock ? 8 : 4) - Math.min(...drawn.map((b) => b.y)))
+  );
+  if (dx || dy) {
+    const moved = /* @__PURE__ */ new Set();
+    const move = (b) => {
+      if (!b || moved.has(b)) return;
+      moved.add(b);
+      b.x = round2(b.x + dx);
+      b.y = round2(b.y + dy);
+    };
+    for (const g of groups) [g.box, g.labelBox, g.iconBox, g.inner?.box].forEach(move);
+    for (const n4 of nodes) [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox].forEach(move);
+    for (const e of edges) {
+      [e.labelBox, e.stepBox].forEach(move);
+      e.points = e.points.map((p) => ({
+        x: round2(p.x + dx),
+        y: round2(p.y + dy)
+      }));
+    }
+  }
+  return { dx, dy };
+}
+function placeLegend2(entries2, width2, height) {
+  const P2 = 10;
+  const rows = entries2.map((e) => ({
+    line: e.line,
+    label: textBlock(e.label, SIZES.edgeLabel, 240)
+  }));
+  const w = Math.ceil(P2 + 28 + 8 + Math.max(...rows.map((r3) => r3.label.width)) + P2);
+  const pitch = rows.map((r3) => Math.max(18, r3.label.height + 3));
+  const last = rows[rows.length - 1]?.label.height ?? 0;
+  const h = Math.ceil(P2 + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P2);
+  const box = {
+    x: Math.max(SIZES.pad, width2 - SIZES.pad - w),
+    y: height - SIZES.pad + 12,
+    w,
+    h
+  };
+  let y = box.y + P2;
+  const items = rows.map((r3, i) => {
+    const swatch = {
+      x: box.x + P2,
+      y: round2(y + (r3.label.lead - 12) / 2),
+      w: 28,
+      h: 12
+    };
+    const labelBox = {
+      x: box.x + P2 + 36,
+      y: round2(y),
+      w: round2(r3.label.width),
+      h: round2(r3.label.height)
+    };
+    y += pitch[i] ?? 18;
+    return { line: r3.line, swatch, label: r3.label, labelBox };
+  });
+  return { box, items };
+}
+
+// src/layout/steer.ts
+function attachBox(ctx, id) {
+  const { nodes, groups, horizontal } = ctx;
+  const nd = nodes.find((x2) => x2.id === id);
+  if (nd) {
+    const side = nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
+    const parts = [nd.box, nd.iconBox, nd.labelBox, nd.noteBox].filter((b) => !!b);
+    return { side, full: union3(parts), parts };
+  }
+  const g = groups.find((x2) => x2.id === id);
+  if (!g) return void 0;
+  const head2 = g.overlay ? [g.iconBox, g.labelBox].filter((b) => !!b && b.w > 0) : [];
+  return { side: g.box, full: g.box, avoid: head2.length ? union3(head2) : void 0 };
+}
+function steer(points, end, avoid, border) {
+  if (!avoid) return points;
+  const pts = (end === "to" ? [...points].reverse() : [...points]).map((q) => ({ ...q }));
+  const [e, p] = pts;
+  const far = pts.at(-1);
+  if (!e || !p || !far || pts.length < 2) return points;
+  const gap = 12;
+  const under = e.x >= avoid.x - gap && e.x <= avoid.x + avoid.w + gap && e.y >= avoid.y - gap && e.y <= avoid.y + avoid.h + gap;
+  if (!under) return points;
+  const vertical = Math.abs(p.x - e.x) < 0.5;
+  const k = vertical ? "x" : "y";
+  const j = vertical ? "y" : "x";
+  const clear = 20;
+  const lo = (vertical ? avoid.x : avoid.y) - clear;
+  const hi = (vertical ? avoid.x + avoid.w : avoid.y + avoid.h) + clear;
+  const min = (vertical ? border.x : border.y) + gap;
+  const max = (vertical ? border.x + border.w : border.y + border.h) - gap;
+  const to = (far[k] <= (lo + hi) / 2 ? [lo, hi] : [hi, lo]).map(round2).find((v) => v >= min && v <= max);
+  if (to === void 0) return points;
+  let out = pts;
+  if (pts.length === 2) {
+    const mid = round2((e[j] + far[j]) / 2);
+    const at = (a, b) => vertical ? { x: a, y: b } : { x: b, y: a };
+    out = [at(to, e[j]), at(to, mid), at(far[k], mid), far];
+  } else {
+    e[k] = to;
+    p[k] = to;
+  }
+  return end === "to" ? out.reverse() : out;
+}
+function freeRoute(from, to, shift) {
+  const sideBySide = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
+  const a = sideBySide ? from.side : from.full;
+  const b = sideBySide ? to.side : to.full;
+  const ac = { x: from.side.x + from.side.w / 2, y: a.y + a.h / 2 };
+  const bc = { x: to.side.x + to.side.w / 2, y: b.y + b.h / 2 };
+  if (sideBySide) {
+    const right = a.x + a.w <= b.x;
+    const sx = right ? a.x + a.w : a.x;
+    const ex = right ? b.x : b.x + b.w;
+    if (Math.abs(ac.y - bc.y) < 1)
+      return [
+        { x: sx, y: ac.y },
+        { x: ex, y: ac.y }
+      ];
+    const mx = round2((sx + ex) / 2 + shift);
+    return [
+      { x: sx, y: ac.y },
+      { x: mx, y: ac.y },
+      { x: mx, y: bc.y },
+      { x: ex, y: bc.y }
+    ];
+  }
+  const down = a.y + a.h <= b.y;
+  const sy = down ? a.y + a.h : a.y;
+  const ey = down ? b.y : b.y + b.h;
+  if (Math.abs(ac.x - bc.x) < 1)
+    return [
+      { x: ac.x, y: sy },
+      { x: ac.x, y: ey }
+    ];
+  const my = round2((sy + ey) / 2 + shift);
+  return [
+    { x: ac.x, y: sy },
+    { x: ac.x, y: my },
+    { x: bc.x, y: my },
+    { x: bc.x, y: ey }
+  ];
+}
+function straightenEnd(e, end, sides, edges) {
+  const n4 = e.points.length;
+  const at = (i) => e.points[end === "to" ? n4 - 1 - i : i];
+  const E = at(0);
+  const P2 = at(1);
+  const Q = at(2);
+  if (!E || !P2 || !sides) return;
+  const vertical = Math.abs(P2.y - E.y) > Math.abs(P2.x - E.x);
+  const k = vertical ? "x" : "y";
+  const a = vertical ? "y" : "x";
+  let target = P2[k];
+  let moveP = false;
+  if (Q) {
+    const lateral = Math.abs(Q[k] - P2[k]);
+    const along3 = Math.abs(Q[a] - P2[a]);
+    const jog = along3 < 0.01 && lateral > 0.01 && lateral < 6 && n4 >= 4;
+    const skew = lateral > 0.01 && lateral <= 1 && along3 > lateral;
+    if (jog || skew) [target, moveP] = [Q[k], true];
+  }
+  if (Math.abs(target - E[k]) < 0.01 || Math.abs(target - E[k]) > 6) return;
+  const side = sides.find((b) => {
+    const edge3 = vertical ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
+    const [lo2, hi2] = vertical ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+    return edge3.some((v) => Math.abs(v - E[a]) < 0.5) && E[k] >= lo2 - 0.5 && E[k] <= hi2 + 0.5;
+  });
+  if (!side) return;
+  const [lo, hi] = vertical ? [side.x, side.x + side.w] : [side.y, side.y + side.h];
+  if (target < lo + 2 || target > hi - 2) return;
+  const others = edges.flatMap(
+    (o) => o === e ? [] : [o.points[0], o.points[o.points.length - 1]]
+  );
+  const near = (p, q, d) => !!p && Math.abs(p.x - q.x) < d && Math.abs(p.y - q.y) < d;
+  const moved = { ...E, [k]: target };
+  if (others.some((p) => near(p, E, 0.5) || near(p, moved, 4))) return;
+  const iE = end === "to" ? n4 - 1 : 0;
+  e.points[iE] = moved;
+  if (moveP) e.points[end === "to" ? n4 - 2 : 1] = { ...P2, [k]: target };
+}
+
+// src/layout/edges.ts
+var sectionPoints = (ctx, e, sec) => {
+  const pts = [sec.startPoint, ...sec.bendPoints ?? [], sec.endPoint].map(ctx.shift);
+  return ctx.opts.flip?.has(e.id) ? pts.reverse() : pts;
+};
+var elkRoute = (ctx, e) => {
+  const sec = ctx.rel.free(e) ? void 0 : findEdge(ctx.result, e.id)?.sections?.[0];
+  return sec ? dropStraightPoints(sectionPoints(ctx, e, sec)) : void 0;
+};
+function sceneEdges2(ctx, freeRoutes, rerouted) {
+  const { model, result: result2, top, edgeLabels, rel: rel2 } = ctx;
+  const edges = [];
+  for (const e of model.edges) {
+    if (rel2.free(e) || rerouted.has(e.id)) {
+      const points2 = freeRoutes.get(e.id);
+      if (points2)
+        edges.push({
+          id: e.id,
+          from: e.from,
+          to: e.to,
+          points: points2,
+          line: e.line,
+          arrow: e.arrow,
+          color: e.color,
+          step: e.step,
+          ...e.flow ? { flow: e.flow } : {}
+        });
+      continue;
+    }
+    const el = result2.edges?.find((x2) => x2.id === e.id) ?? findEdge(result2, e.id);
+    const section = el?.sections?.[0];
+    if (!el || !section) continue;
+    const points = sectionPoints(ctx, e, section);
+    const edge3 = {
+      id: e.id,
+      from: e.from,
+      to: e.to,
+      points,
+      line: e.line,
+      arrow: e.arrow,
+      color: e.color,
+      step: e.step,
+      ...e.flow ? { flow: e.flow } : {}
+    };
+    const lab = edgeLabels.get(e.id);
+    const elkLabel = el.labels?.[0];
+    if (lab && elkLabel?.x !== void 0 && elkLabel.y !== void 0) {
+      const box = {
+        x: round2(elkLabel.x),
+        y: round2(elkLabel.y + top),
+        w: lab.w,
+        h: lab.h
+      };
+      if (e.step !== void 0) {
+        edge3.stepBox = {
+          x: box.x,
+          y: round2(box.y + (box.h - SIZES.step) / 2),
+          w: SIZES.step,
+          h: SIZES.step
+        };
+      }
+      if (e.label) {
+        edge3.label = lab.block;
+        edge3.labelBox = {
+          x: round2(box.x + lab.stepW + (lab.stepW ? 2 : 0)),
+          y: box.y,
+          w: round2(lab.w - lab.stepW - (lab.stepW ? 2 : 0)),
+          h: lab.h
+        };
+      }
+    }
+    edges.push(edge3);
+  }
+  return edges;
+}
+function tidyEdges(ctx, edges) {
+  const { model, groups, nodes } = ctx;
+  if (model.routing !== "spline") for (const e of edges) e.points = dropStraightPoints(e.points);
+  if (model.routing === "orthogonal") {
+    const sides = new Map([
+      ...groups.filter((g) => !g.overlay).map((g) => [g.id, [g.box]]),
+      ...nodes.map((n4) => [
+        n4.id,
+        n4.look === "icon" && n4.iconBox ? [n4.iconBox, n4.box] : [n4.box]
+      ])
+    ]);
+    for (const e of edges) {
+      straightenEnd(e, "to", sides.get(e.to), edges);
+      straightenEnd(e, "from", sides.get(e.from), edges);
+      e.points = dropStraightPoints(e.points);
+    }
+  }
+}
+
+// src/layout/elbows.ts
 var runsThrough = (points, boxes) => segmentsOf(points).some(([p, q]) => boxes.some((b) => segmentHits(p, q, b)));
 var HEAD_ROOM = 16;
 var RISER = 0.45;
@@ -13157,7 +13875,7 @@ function lanesFor(a, b, heads, borders, h) {
   const dir = forward ? 1 : -1;
   const s0 = h ? cy(a.side) : cx(a.side);
   const t0 = h ? cy(b.side) : cx(b.side);
-  const pt = (u, v) => h ? { x: round3(u), y: round3(v) } : { x: round3(v), y: round3(u) };
+  const pt = (u, v) => h ? { x: round2(u), y: round2(v) } : { x: round2(v), y: round2(u) };
   if (Math.abs(s0 - t0) >= 1) {
     const ok = (u) => (u - s) * dir >= (heads.start ? HEAD_ROOM : 8) && (t - u) * dir >= (heads.end ? HEAD_ROOM : 8);
     const mid = s + (t - s) * RISER;
@@ -13184,7 +13902,7 @@ function lanesFor(a, b, heads, borders, h) {
       s + HEAD_ROOM * dir,
       t - HEAD_ROOM * dir
     ];
-    for (const u of new Set(lanes.map(round3)))
+    for (const u of new Set(lanes.map(round2)))
       if (ok(u)) out.push([pt(s, s0), pt(u, s0), pt(u, t0), pt(t, t0)]);
   }
   const cross = (r3) => h ? [r3.y, r3.y + r3.h] : [r3.x, r3.x + r3.w];
@@ -13204,6 +13922,8 @@ function lanesFor(a, b, heads, borders, h) {
   }
   return out;
 }
+
+// src/layout/detour.ts
 function faces(end, room2, used) {
   const { side, full } = end;
   const cx = side.x + side.w / 2;
@@ -13212,10 +13932,10 @@ function faces(end, room2, used) {
   const along3 = (len2) => len2 >= 36 ? [0, -12, 12] : [0];
   const out = [];
   const add = (at, dx, dy, off) => {
-    const p = { x: round3(at.x), y: round3(at.y) };
+    const p = { x: round2(at.x), y: round2(at.y) };
     out.push({
       at: p,
-      stub: { x: round3(p.x + dx * room2), y: round3(p.y + dy * room2) },
+      stub: { x: round2(p.x + dx * room2), y: round2(p.y + dy * room2) },
       cost: (off ? 8 : 0) + (taken(p) ? 300 : 0)
     });
   };
@@ -13253,7 +13973,11 @@ function detour(a, b, obstacles, borders = [], used = []) {
     (f) => !walls.some((w) => segmentHits(f.stub, f.at, w) || inside2(f.stub, w))
   );
   if (!starts.length || !goals.length) return void 0;
-  const all = [a.full, b.full, ...obstacles];
+  const lines2 = routeLines([a.full, b.full, ...obstacles], walls, borders, [...starts, ...goals]);
+  const found = shortest(lines2, walls, borders, starts, goals);
+  return found && simplify([found.start.at, ...found.path, found.goal.at]);
+}
+function routeLines(all, walls, borders, ends2) {
   const x0 = Math.min(...all.map((r3) => r3.x)) - 40;
   const y0 = Math.min(...all.map((r3) => r3.y)) - 40;
   const x1 = Math.max(...all.map((r3) => r3.x + r3.w)) + 40;
@@ -13263,14 +13987,14 @@ function detour(a, b, obstacles, borders = [], used = []) {
       [
         min,
         max,
-        ...[...starts, ...goals].map((f) => pick2(f.stub)),
+        ...ends2.map((f) => pick2(f.stub)),
         ...walls.flatMap((r3) => [lo(r3) - 12, hi(r3) + 12]),
         ...borders.flatMap((r3) => [lo(r3) - 16, lo(r3) + 16, hi(r3) - 16, hi(r3) + 16])
-      ].map(round3)
+      ].map(round2)
     )
   ].filter((v) => v >= min && v <= max).sort((m, n4) => m - n4).flatMap((v, i, all2) => {
     const next = all2[i + 1];
-    return next !== void 0 && next - v > 4 ? [v, round3((v + next) / 2)] : [v];
+    return next !== void 0 && next - v > 4 ? [v, round2((v + next) / 2)] : [v];
   });
   const xs = coords(
     (p) => p.x,
@@ -13286,6 +14010,39 @@ function detour(a, b, obstacles, borders = [], used = []) {
     y0,
     y1
   );
+  return { xs, ys };
+}
+function heapPush(heap, cost, state) {
+  heap.push([cost, state]);
+  let c = heap.length - 1;
+  while (c > 0) {
+    const p = c - 1 >> 1;
+    if ((heap[p]?.[0] ?? 0) <= cost) break;
+    [heap[p], heap[c]] = [heap[c], heap[p]];
+    c = p;
+  }
+}
+function heapPop(heap) {
+  const top = heap[0];
+  const last = heap.pop();
+  if (!top || !last || !heap.length) return top;
+  heap[0] = last;
+  let c = 0;
+  for (; ; ) {
+    const l = 2 * c + 1;
+    const r3 = l + 1;
+    let m = c;
+    if ((heap[l]?.[0] ?? Infinity) < (heap[m]?.[0] ?? Infinity)) m = l;
+    if ((heap[r3]?.[0] ?? Infinity) < (heap[m]?.[0] ?? Infinity)) m = r3;
+    if (m === c) break;
+    [heap[m], heap[c]] = [heap[c], heap[m]];
+    c = m;
+  }
+  return top;
+}
+var headingOf = (f) => f.stub.x > f.at.x ? 0 : f.stub.x < f.at.x ? 1 : f.stub.y > f.at.y ? 2 : 3;
+function shortest(lines2, walls, borders, starts, goals) {
+  const { xs, ys } = lines2;
   const W2 = xs.length;
   const key = (i, j) => j * W2 + i;
   const free = (i, j) => {
@@ -13299,45 +14056,16 @@ function detour(a, b, obstacles, borders = [], used = []) {
   const dist = /* @__PURE__ */ new Map();
   const from = /* @__PURE__ */ new Map();
   const heap = [];
-  const push3 = (cost, state) => {
-    heap.push([cost, state]);
-    let c = heap.length - 1;
-    while (c > 0) {
-      const p = c - 1 >> 1;
-      if ((heap[p]?.[0] ?? 0) <= cost) break;
-      [heap[p], heap[c]] = [heap[c], heap[p]];
-      c = p;
-    }
-  };
-  const pop2 = () => {
-    const top = heap[0];
-    const last = heap.pop();
-    if (!top || !last || !heap.length) return top;
-    heap[0] = last;
-    let c = 0;
-    for (; ; ) {
-      const l = 2 * c + 1;
-      const r3 = l + 1;
-      let m = c;
-      if ((heap[l]?.[0] ?? Infinity) < (heap[m]?.[0] ?? Infinity)) m = l;
-      if ((heap[r3]?.[0] ?? Infinity) < (heap[m]?.[0] ?? Infinity)) m = r3;
-      if (m === c) break;
-      [heap[m], heap[c]] = [heap[c], heap[m]];
-      c = m;
-    }
-    return top;
-  };
-  const index2 = (p) => [xs.indexOf(round3(p.x)), ys.indexOf(round3(p.y))];
-  const heading2 = (f) => f.stub.x > f.at.x ? 0 : f.stub.x < f.at.x ? 1 : f.stub.y > f.at.y ? 2 : 3;
+  const index2 = (p) => [xs.indexOf(round2(p.x)), ys.indexOf(round2(p.y))];
   const startAt = /* @__PURE__ */ new Map();
   for (const f of starts) {
     const [i, j] = index2(f.stub);
     if (i < 0 || j < 0) continue;
-    const s = key(i, j) * 4 + heading2(f);
+    const s = key(i, j) * 4 + headingOf(f);
     if (f.cost >= (dist.get(s) ?? Infinity)) continue;
     dist.set(s, f.cost);
     startAt.set(s, f);
-    push3(f.cost, s);
+    heapPush(heap, f.cost, s);
   }
   const goalAt = /* @__PURE__ */ new Map();
   for (const f of goals) {
@@ -13351,7 +14079,7 @@ function detour(a, b, obstacles, borders = [], used = []) {
     [0, -1]
   ];
   let best;
-  for (let next = pop2(); next; next = pop2()) {
+  for (let next = heapPop(heap); next; next = heapPop(heap)) {
     const [cost, state] = next;
     if (cost > (dist.get(state) ?? Infinity)) continue;
     if (best && cost >= best.cost) break;
@@ -13359,7 +14087,7 @@ function detour(a, b, obstacles, borders = [], used = []) {
     const dirNow = state & 3;
     const goal2 = goalAt.get(cellKey);
     if (goal2) {
-      const into = heading2(goal2) ^ 1;
+      const into = headingOf(goal2) ^ 1;
       const total = cost + (into === dirNow ? 0 : BEND2) + goal2.cost;
       if (!best || total < best.cost) best = { state, cost: total };
     }
@@ -13379,95 +14107,217 @@ function detour(a, b, obstacles, borders = [], used = []) {
       if (c < (dist.get(s) ?? Infinity)) {
         dist.set(s, c);
         from.set(s, state);
-        push3(c, s);
+        heapPush(heap, c, s);
       }
     });
   }
   if (!best) return void 0;
+  const { path, origin } = trace2(lines2, from, best.state);
+  const start = startAt.get(origin);
+  const goal = goalAt.get(best.state >> 2);
+  if (!start || !goal) return void 0;
+  return { start, goal, path };
+}
+function trace2(lines2, from, last) {
+  const { xs, ys } = lines2;
+  const W2 = xs.length;
   const path = [];
-  let origin = best.state;
-  for (let s = best.state; s !== void 0; s = from.get(s)) {
+  let origin = last;
+  for (let s = last; s !== void 0; s = from.get(s)) {
     const c = s >> 2;
     path.push({ x: xs[c % W2] ?? 0, y: ys[Math.floor(c / W2)] ?? 0 });
     origin = s;
   }
   path.reverse();
-  const start = startAt.get(origin);
-  const goal = goalAt.get(best.state >> 2);
-  if (!start || !goal) return void 0;
-  return simplify([start.at, ...path, goal.at]);
+  return { path, origin };
 }
 var inside2 = (p, b) => p.x > b.x + 1 && p.x < b.x + b.w - 1 && p.y > b.y + 1 && p.y < b.y + b.h - 1;
 
-// src/skins.ts
-function stageColors(scene) {
-  const t = tokensFor(scene);
-  const s = t.stage;
-  if (!s) return scene;
-  const canvas2 = scene.background && scene.background !== "transparent" ? scene.background : t.background;
-  const panel = mixHex(s.line, canvas2, s.panel);
-  for (const g of scene.groups) {
-    g.fill = g.dash || g.overlay ? "none" : panel;
-    g.stroke = mixHex(s.line, canvas2, s.frame);
-    if (g.inner) g.inner.fill = panel;
-    g.labelColor = ensureContrast(g.depth === 0 ? s.header : t.text, panel);
+// src/layout/free-edges.ts
+function routeFree(ctx, w) {
+  const { model, opts, plan, horizontal, rel: rel2 } = ctx;
+  const { borders } = w;
+  const freeRoutes = /* @__PURE__ */ new Map();
+  const claimed = [];
+  const related2 = (a, b) => [a.from, a.to].some((id) => id === b.from || id === b.to);
+  const fits2 = (points, e) => {
+    const [s, p, q, t] = points;
+    if (!s || !p || !q || !t) return true;
+    const v = Math.abs(p.x - q.x) < 0.5;
+    const at = v ? p.x : p.y;
+    const [lo, hi] = v ? [s.x, t.x].sort((m, n4) => m - n4) : [s.y, t.y].sort((m, n4) => m - n4);
+    if (at < (lo ?? at) + 8 || at > (hi ?? at) - 8) return false;
+    const span = (a, b) => (v ? [a.y, b.y] : [a.x, b.x]).sort((m, n4) => m - n4);
+    const [a0 = 0, a1 = 0] = span(p, q);
+    return !claimed.some((c) => {
+      if (related2(c.e, e) || Math.abs(c.p.x - c.q.x) < 0.5 !== v) return false;
+      if (Math.abs((v ? c.p.x : c.p.y) - at) >= 6) return false;
+      const [b0 = 0, b1 = 0] = span(c.p, c.q);
+      return Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
+    });
+  };
+  const unclaimed = (points, e, strict = false) => points.slice(1).every((q, i) => {
+    const p = points[i] ?? q;
+    const v = Math.abs(p.x - q.x) < 0.5;
+    const at = v ? p.x : p.y;
+    const [a0 = 0, a1 = 0] = (v ? [p.y, q.y] : [p.x, q.x]).sort((m, n4) => m - n4);
+    return !claimed.some((c) => {
+      if (related2(c.e, e) && !strict || c.e === e || Math.abs(c.p.x - c.q.x) < 0.5 !== v)
+        return false;
+      if (Math.abs((v ? c.p.x : c.p.y) - at) >= 6) return false;
+      const [b0 = 0, b1 = 0] = (v ? [c.p.y, c.q.y] : [c.p.x, c.q.x]).sort((m, n4) => m - n4);
+      return Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
+    });
+  });
+  const elkLines = plan.blocks.size || plan.grids.size || opts.loose || opts.flip ? model.edges.flatMap((o) => {
+    const pts = elkRoute(ctx, o);
+    return pts ? pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q })) : [];
+  }) : [];
+  for (const straight of [true, false]) {
+    for (const e of model.edges) {
+      const a = attachBox(ctx, e.from);
+      const b = attachBox(ctx, e.to);
+      if (!rel2.free(e) || !a || !b) continue;
+      const steered = (p) => steer(steer(p, "to", b.avoid, b.full), "from", a.avoid, a.full);
+      const route = (d) => steered(freeRoute(a, b, d));
+      let points = route(0);
+      if (points.length === 2 !== straight) continue;
+      const shifts = [0, 12, -12, 24, -24, 36, -36].map(route);
+      if (!straight) points = shifts.find((p) => fits2(p, e)) ?? points;
+      const walls = w.walls(e);
+      const known2 = !rel2.inBlock(e) && !rel2.gridBetween(e) && !opts.loose?.has(e.id);
+      if (!known2 || runsThrough(points, walls)) {
+        const roomy = w.roomyWalls(e);
+        const heads = {
+          start: e.arrow === "start" || e.arrow === "both",
+          end: e.arrow !== "none" && e.arrow !== "start"
+        };
+        const lanes = [
+          ...straight ? [points] : shifts.filter((p) => fits2(p, e)),
+          ...laneRoutes(a, b, heads, borders, horizontal).map(steered)
+        ].filter(
+          (p) => unclaimed(p, e, !known2) && !elkLines.some((c) => collinear(p, c.p, c.q)) && (known2 || headRoom(p, heads))
+        );
+        const drawn = [...claimed.filter((c) => c.e !== e), ...elkLines].map((c) => ({
+          x: Math.min(c.p.x, c.q.x),
+          y: Math.min(c.p.y, c.q.y),
+          w: Math.abs(c.q.x - c.p.x),
+          h: Math.abs(c.q.y - c.p.y)
+        }));
+        const taken = [...claimed.filter((c) => c.e !== e), ...elkLines].flatMap((c) => [c.p, c.q]);
+        const around = () => {
+          const path = detour(a, b, roomy, [...borders, ...drawn], taken);
+          return path && !runsThrough(steered(path), walls) ? steered(path) : void 0;
+        };
+        points = lanes.find((p) => !runsThrough(p, roomy) && !alongBorder(p, borders)) ?? around() ?? lanes.find((p) => !runsThrough(p, walls)) ?? points;
+      }
+      freeRoutes.set(e.id, points);
+      claimed.push(...points.slice(1).map((q, i) => ({ e, p: points[i] ?? q, q })));
+    }
   }
-  for (const nd of scene.nodes) {
-    nd.ink = void 0;
-    nd.inkMuted = void 0;
-    if (nd.look !== "shape" || !nd.color) continue;
-    const lit2 = mixHex(nd.color, s.tile, 0.15);
-    const fill2 = mixHex(nd.color, canvas2, scene.theme === "dark" ? 0.16 : 0.1);
-    nd.ink = ensureContrast(ensureContrast(t.text, lit2), fill2);
-    nd.inkMuted = ensureContrast(ensureContrast(t.muted, lit2), fill2);
+  return freeRoutes;
+}
+function rerouteBlocks(ctx, w, freeRoutes) {
+  const { model, plan, horizontal } = ctx;
+  const { borders } = w;
+  const rerouted = /* @__PURE__ */ new Set();
+  if (!plan.blocks.size) return rerouted;
+  const length2 = (pts) => pts.slice(1).reduce(
+    (t, q, i) => t + Math.abs(q.x - (pts[i]?.x ?? q.x)) + Math.abs(q.y - (pts[i]?.y ?? q.y)),
+    0
+  );
+  for (const e of model.edges) {
+    const elk2 = plan.blockOf.has(e.from) || plan.blockOf.has(e.to) ? elkRoute(ctx, e) : void 0;
+    const a = attachBox(ctx, e.from);
+    const b = attachBox(ctx, e.to);
+    if (!elk2 || !a || !b || elk2.length < 3) continue;
+    const flowAt = (p) => horizontal ? p?.x ?? 0 : p?.y ?? 0;
+    const [lo, hi] = [flowAt(elk2[0]), flowAt(elk2.at(-1))].sort((m, n4) => m - n4);
+    const past = elk2.some((p) => flowAt(p) < (lo ?? 0) - 2 || flowAt(p) > (hi ?? 0) + 2);
+    const loop2 = elk2.length >= 6 && past || alongBorder(elk2, borders);
+    const most = length2(elk2) * (loop2 ? 1 : 0.7);
+    const roomy = w.roomyWalls(e);
+    const others = model.edges.flatMap((o) => {
+      const pts = o === e ? void 0 : freeRoutes.get(o.id) ?? elkRoute(ctx, o);
+      return pts ? pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q })) : [];
+    });
+    const clear = (pts) => !runsThrough(pts, roomy) && !alongBorder(pts, borders) && length2(pts) < most && others.every((c) => !collinear(pts, c.p, c.q));
+    const heads = {
+      start: e.arrow === "start" || e.arrow === "both",
+      end: e.arrow !== "none" && e.arrow !== "start"
+    };
+    const better = [freeRoute(a, b, 0), ...laneRoutes(a, b, heads, borders, horizontal)].find(clear) ?? [detour(a, b, roomy, borders)].find((p) => !!p && clear(p));
+    if (!better) continue;
+    freeRoutes.set(e.id, better);
+    rerouted.add(e.id);
   }
-  return scene;
+  return rerouted;
 }
 
-// src/layout.ts
-var elkInstance;
-function elk() {
-  if (elkInstance) return elkInstance;
-  const require2 = createRequire(import.meta.url);
-  const vendored = join5(vendorDir, "elk.bundled.cjs");
-  const ELK = require2(
-    existsSync3(vendored) ? vendored : "elkjs/lib/elk.bundled.js"
+// src/layout/graph-edges.ts
+function addEdges(ctx) {
+  const { model, opts, plan, elkNodes, root, rel: rel2 } = ctx;
+  const { free, inBlock, members, rep, cellOf, lowest } = rel2;
+  const port = (nodeId, side, e) => {
+    if (!model.merge || rel2.groupIds.has(nodeId)) return nodeId;
+    const el = elkNodes.get(nodeId);
+    if (!el) return nodeId;
+    const head2 = side === "in" ? e.arrow === "end" || e.arrow === "both" : e.arrow === "start" || e.arrow === "both";
+    const own = plan.blockOf.has(e.from) || plan.blockOf.has(e.to) ? `::${e.id}` : "";
+    const id = `${nodeId}::${side}::${e.line}::${head2 ? 1 : 0}::${e.color ?? ""}${e.flow ? `::${e.flow}` : ""}${own}`;
+    el.ports ??= [];
+    if (!el.ports.some((p) => p.id === id)) el.ports.push({ id, width: 0, height: 0 });
+    el.layoutOptions = { ...el.layoutOptions, "elk.portConstraints": "FREE" };
+    return id;
+  };
+  const source = (e) => opts.flip?.has(e.id) ? e.to : e.from;
+  const labelledFrom = new Set(
+    model.edges.filter((e) => !free(e) && (e.label || e.step !== void 0)).map(source)
   );
-  elkInstance = new ELK();
-  return elkInstance;
+  const edgeLabels = /* @__PURE__ */ new Map();
+  const cellEdges = /* @__PURE__ */ new Map();
+  for (const e of model.edges) {
+    if (free(e)) {
+      if (!e.constraint || inBlock(e) || opts.loose?.has(e.id)) continue;
+      const ends2 = (id) => [...new Set(members(id).map(rep))];
+      let i = 0;
+      for (const s of ends2(e.from))
+        for (const t of ends2(e.to))
+          if (s !== t) root.edges?.push({ id: `${e.id}__via${i++}`, sources: [s], targets: [t] });
+      continue;
+    }
+    const flip3 = !!opts.flip?.has(e.id);
+    const elkEdge = {
+      id: e.id,
+      sources: [port(flip3 ? e.to : e.from, "out", e)],
+      targets: [port(flip3 ? e.from : e.to, "in", e)]
+    };
+    if (!e.label && e.step === void 0 && labelledFrom.has(source(e))) {
+      elkEdge.labels = [{ id: `${e.id}__spacer`, text: " ", width: 1, height: 1 }];
+    }
+    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
+    if (e.label || e.step !== void 0) {
+      const block3 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+      const w = Math.ceil((e.label ? block3.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
+      const h = Math.ceil(Math.max(e.label ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
+      edgeLabels.set(e.id, { block: block3, w, h, stepW });
+      elkEdge.labels = [
+        {
+          id: `${e.id}__label`,
+          text: e.label || `step ${e.step}`,
+          width: w,
+          height: h
+        }
+      ];
+    }
+    const cell = plan.grids.size ? cellOf(lowest(e.from, e.to)) : void 0;
+    if (cell) cellEdges.set(cell, [...cellEdges.get(cell) ?? [], elkEdge]);
+    else root.edges?.push(elkEdge);
+  }
+  return { edgeLabels, cellEdges };
 }
-var SIZES = {
-  pad: 28,
-  nodeLabel: 13,
-  note: 11.5,
-  groupLabel: 13,
-  edgeLabel: 11.5,
-  title: 20,
-  subtitle: 13,
-  iconLabelMax: 132,
-  // Step badges: official AWS, Azure and Google badges are 0.54 to 0.75 of the icon size.
-  step: 28,
-  cardLabelMax: 168,
-  shapeLabelMax: 156,
-  edgeLabelMax: 150,
-  // AWS group tiles are 40x40 next to 48px service icons in the deck ("DON'T: Resize group icons").
-  tile: 40,
-  inlineIcon: 20
-};
-var ELK_DIRECTION = {
-  right: "RIGHT",
-  down: "DOWN",
-  left: "LEFT",
-  up: "UP"
-};
-var ELK_ROUTING = {
-  orthogonal: "ORTHOGONAL",
-  polyline: "POLYLINE",
-  spline: "SPLINES"
-};
-var round4 = (v) => Math.round(v * 100) / 100;
-var LAYER_CONSTRAINT = "elk.layered.layering.layerConstraint";
-var HOOKS = [laneHooks, kindHooks, notationHooks];
+
+// src/layout/measure.ts
 function nodeGeometry(n4, horizontal) {
   const notation = notationGeometry(n4, horizontal);
   if (notation) return notation;
@@ -13552,9 +14402,9 @@ function nodeGeometry(n4, horizontal) {
   return { w: Math.ceil(w), h: Math.ceil(h), label, note };
 }
 function badgePill(text4, anchor2) {
-  const w = round4(Math.max(18, measure(text4, 10, 600) + 10));
+  const w = round2(Math.max(18, measure(text4, 10, 600) + 10));
   const x2 = Math.max(anchor2.x + anchor2.w - w / 2 - 2, anchor2.x + anchor2.w / 2 + 6);
-  return { x: round4(x2), y: round4(anchor2.y - 7), w, h: 16 };
+  return { x: round2(x2), y: round2(anchor2.y - 7), w, h: 16 };
 }
 function groupGeometry(g) {
   const style3 = resolveGroupStyle(g.type);
@@ -13583,367 +14433,10 @@ function groupGeometry(g) {
     center: center3
   };
 }
-var hiddenOf = (model) => new Set(HOOKS.flatMap((h) => [...h.hiddenGroups?.(model) ?? []]));
-async function layout(model, opts = {}) {
-  return model.aspect === void 0 ? layoutRanked(model, opts) : layoutToAspect(model, opts);
-}
-var TURNED = {
-  right: "down",
-  down: "right",
-  left: "up",
-  up: "left"
-};
-async function layoutToAspect(model, opts) {
-  const target = model.aspect ?? 1;
-  if (model.kind === "journey") {
-    const scene = await layoutRanked(model, opts);
-    return withIgnored(scene, [
-      {
-        subject: "layout",
-        setting: "layout.aspect",
-        reason: "a journey keeps its stages in one row"
-      }
-    ]);
-  }
-  const turned = { ...model, direction: TURNED[model.direction] };
-  const wraps = hiddenOf(model).size === 0 && model.kind !== "tree" && model.kind !== "mindmap" ? ["MULTI_EDGE", "SINGLE_EDGE"] : [];
-  const tries = [
-    [model, opts],
-    [turned, opts],
-    ...[model, turned].flatMap(
-      (m) => wraps.map((wrap2) => [m, { ...opts, wrap: wrap2, ratio: target }])
-    )
-  ];
-  const scenes = [];
-  for (const [m, o] of tries) {
-    try {
-      scenes.push(await layoutRanked(m, o));
-    } catch (e) {
-      if (!scenes.length) throw e;
-    }
-  }
-  const [first] = scenes;
-  if (!first) throw new Error("layout failed");
-  const crossings0 = sceneCrossings(first);
-  const through0 = edgesThroughNodes(first);
-  const ink = (s) => s.edges.reduce(
-    (t, e) => t + e.points.slice(1).reduce(
-      (u, q, i) => u + Math.abs(q.x - (e.points[i]?.x ?? q.x)) + Math.abs(q.y - (e.points[i]?.y ?? q.y)),
-      0
-    ),
-    0
-  );
-  const reach2 = (s) => ink(s) / Math.max(1, s.edges.length) / Math.sqrt(Math.max(1, s.width * s.height));
-  const most = Math.max(0.6, 1.25 * reach2(first));
-  const off = (s) => Math.abs(Math.log(s.width / Math.max(1, s.height) / target));
-  const best = scenes.filter(
-    (s) => sceneCrossings(s) <= crossings0 && edgesThroughNodes(s) <= through0 && reach2(s) <= most
-  ).sort((a, b) => off(a) - off(b))[0] ?? first;
-  if (off(best) <= Math.log(1.25)) return best;
-  const ratio = (v) => `${Math.round(v * 100) / 100}:1`;
-  return withIgnored(best, [
-    {
-      subject: "layout",
-      setting: "layout.aspect",
-      reason: `the nearest layout is ${ratio(best.width / Math.max(1, best.height))}, not ${ratio(target)}`
-    }
-  ]);
-}
-var withIgnored = (scene, more) => more.length ? { ...scene, ignored: [...scene.ignored ?? [], ...more] } : scene;
-async function layoutRanked(model, opts) {
-  const asked = model.nodes.filter((n4) => typeof n4.rank === "number");
-  if (!asked.length) return layoutCore(model, opts);
-  const strip = (m, keep) => ({
-    ...m,
-    nodes: m.nodes.map((n4) => {
-      if (typeof n4.rank !== "number") return n4;
-      const { rank: _, ...rest } = n4;
-      const anchor2 = keep.get(n4.id);
-      return anchor2 ? { ...rest, align: anchor2 } : rest;
-    })
-  });
-  const probe = await layoutCore(strip(model, /* @__PURE__ */ new Map()), opts);
-  const ignored = [];
-  const ignore = (subject, reason) => ignored.push({ subject, setting: "rank", reason });
-  const hidden = hiddenOf(model);
-  const plan = planPlacement(model, hidden);
-  const parent = new Map([...model.groups, ...model.nodes].map((x2) => [x2.id, x2.parent]));
-  const host = (id) => {
-    let p = parent.get(id);
-    while (p && hidden.has(p)) p = parent.get(p);
-    return p;
-  };
-  const own = selfPlaced(model.kind);
-  const layersAround = (scene2, id, self) => layersOf(
-    [
-      ...scene2.nodes.map((n4) => ({ id: n4.id, box: n4.box })),
-      ...scene2.groups.filter((g) => !g.overlay && !hidden.has(g.id)).map((g) => ({ id: g.id, box: g.box }))
-    ].filter((it) => (self || it.id !== id) && host(it.id) === host(id)),
-    scene2.direction
-  );
-  const anchors = /* @__PURE__ */ new Map();
-  const want = /* @__PURE__ */ new Map();
-  for (const n4 of asked) {
-    const rank = typeof n4.rank === "number" ? n4.rank : 1;
-    const p = parent.get(n4.id);
-    if (own) {
-      ignore(n4.id, own);
-      continue;
-    }
-    if (p && plan.grids.has(p)) {
-      ignore(n4.id, `group "${p}" places its children in ${plan.grids.get(p)} columns`);
-      continue;
-    }
-    if (layersAround(probe, n4.id, true).get(n4.id) === rank - 1) continue;
-    const others = layersAround(probe, n4.id, false);
-    const count = new Set(others.values()).size;
-    if (rank > count) {
-      ignore(n4.id, `its group has ${count} layer${count === 1 ? "" : "s"} besides it`);
-      continue;
-    }
-    const linked = (id) => model.edges.some((e) => e.from === n4.id && e.to === id || e.to === n4.id && e.from === id);
-    const order = new Map(model.nodes.map((x2, i) => [x2.id, i]));
-    const pick2 = [...others].filter(
-      ([id, l]) => l === rank - 1 && order.has(id) && !(parent.get(id) && plan.grids.has(parent.get(id) ?? ""))
-    ).map(([id]) => id).sort(
-      (a, b) => Number(linked(a)) - Number(linked(b)) || (order.get(a) ?? 0) - (order.get(b) ?? 0)
-    )[0];
-    if (!pick2) {
-      ignore(n4.id, `layer ${rank} of its group holds only groups`);
-      continue;
-    }
-    anchors.set(n4.id, pick2);
-    want.set(n4.id, rank - 1);
-  }
-  if (!anchors.size) return withIgnored(probe, ignored);
-  const scene = await layoutCore(strip(model, anchors), opts);
-  const missed = [...anchors.keys()].filter(
-    (id) => layersAround(scene, id, true).get(id) !== want.get(id)
-  );
-  const renamed = (s) => ({
-    ...s,
-    ...s.ignored ? {
-      ignored: s.ignored.map(
-        (x2) => anchors.has(x2.subject) && x2.setting === "align" ? { ...x2, setting: "rank" } : x2
-      )
-    } : {}
-  });
-  if (!missed.length) return withIgnored(renamed(scene), ignored);
-  for (const id of missed) {
-    anchors.delete(id);
-    ignore(id, `its links keep it out of layer ${(want.get(id) ?? 0) + 1}`);
-  }
-  if (!anchors.size) return withIgnored(probe, ignored);
-  return withIgnored(renamed(await layoutCore(strip(model, anchors), opts)), ignored);
-}
-async function layoutCore(model, opts = {}) {
-  const theme = opts.theme ?? model.theme;
-  if (model.kind === "journey") {
-    const laid = await journeyLayout(model, theme);
-    const grid = laid && withIgnored(laid, planPlacement(model, hiddenOf(model)).ignored);
-    if (grid) return model.skin === "stage" ? stageColors(grid) : grid;
-  }
-  const t = THEME_TOKENS[theme];
-  const horizontal = model.direction === "right" || model.direction === "left";
-  const s = model.spacing;
-  const minWidthOf = (id, gg) => !horizontal && opts.widen?.has(id) ? Math.max(gg.minWidth, 2 * (gg.minWidth - 10)) : gg.minWidth;
-  const base = {
-    "elk.algorithm": "layered",
-    "elk.direction": ELK_DIRECTION[model.direction],
-    "elk.hierarchyHandling": "INCLUDE_CHILDREN",
-    "elk.edgeRouting": ELK_ROUTING[model.routing],
-    "elk.layered.layering.strategy": model.layering === "simplex" ? "NETWORK_SIMPLEX" : "LONGEST_PATH_SOURCE",
-    "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
-    "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-    // Orders each layer by the elk.position hints below, so siblings keep spec order (AZ A left
-    // of AZ B). considerModelOrder would do the same but crashes elkjs 0.12 on nested graphs.
-    "elk.layered.crossingMinimization.semiInteractive": "true",
-    "elk.spacing.nodeNode": String(Math.round(40 * s)),
-    "elk.layered.spacing.nodeNodeBetweenLayers": String(Math.round(64 * s)),
-    "elk.spacing.edgeNode": String(Math.round(18 * s)),
-    "elk.spacing.edgeEdge": String(Math.round(10 * s)),
-    "elk.layered.spacing.edgeNodeBetweenLayers": String(Math.round(20 * s)),
-    "elk.layered.spacing.edgeEdgeBetweenLayers": String(Math.round(10 * s)),
-    "elk.spacing.edgeLabel": "4",
-    "elk.spacing.labelNode": "6",
-    "elk.edgeLabels.placement": "CENTER",
-    // One side for every label (and its step badge); ELK's default picks per edge.
-    "elk.layered.edgeLabels.sideSelection": "ALWAYS_UP",
-    "elk.json.shapeCoords": "ROOT",
-    "elk.json.edgeCoords": "ROOT",
-    "elk.layered.mergeEdges": model.merge ? "true" : "false",
-    "elk.layered.unnecessaryBendpoints": "true",
-    "elk.layered.thoroughness": "12",
-    ...Object.assign({}, ...HOOKS.map((h) => h.elkOptions?.(model) ?? {})),
-    ...opts.wrap ? {
-      "elk.layered.wrapping.strategy": opts.wrap,
-      "elk.aspectRatio": String(opts.ratio ?? 1)
-    } : {}
-  };
-  const hidden = hiddenOf(model);
-  const order = new Map(HOOKS.flatMap((h) => [...h.order?.(model) ?? []]));
-  const plan = planPlacement(model, hidden);
-  const nodeGeom = /* @__PURE__ */ new Map();
-  const groupGeom = /* @__PURE__ */ new Map();
-  const elkNodes = /* @__PURE__ */ new Map();
-  for (const n4 of model.nodes) {
-    const g = nodeGeometry(n4, horizontal);
-    nodeGeom.set(n4.id, g);
-    const end = plan.blockOf.has(n4.id) ? void 0 : plan.ends.get(n4.id);
-    const node4 = {
-      id: n4.id,
-      width: g.w,
-      height: g.h,
-      layoutOptions: {
-        "elk.alignment": "CENTER",
-        ...end ? { [LAYER_CONSTRAINT]: end } : {}
-      }
-    };
-    if (g.outside) {
-      node4.labels = [
-        {
-          id: `${n4.id}__label`,
-          text: n4.label,
-          width: g.outside.w,
-          height: g.outside.h
-        }
-      ];
-      node4.layoutOptions = {
-        ...node4.layoutOptions,
-        "elk.nodeLabels.placement": "OUTSIDE V_BOTTOM H_CENTER",
-        "elk.spacing.labelNode": "6"
-      };
-    }
-    if (n4.badge) {
-      const S = n4.iconSize;
-      const anchor2 = n4.look === "icon" ? { x: horizontal ? 0 : (g.w - S) / 2, y: 0, w: S, h: S } : { x: 0, y: 0, w: g.w, h: g.h };
-      const pill = badgePill(n4.badge, anchor2);
-      const overhang = Math.ceil(pill.x + pill.w - g.w);
-      if (overhang > 0)
-        node4.labels = [
-          ...node4.labels ?? [],
-          {
-            id: `${n4.id}__badge`,
-            text: n4.badge,
-            width: overhang,
-            height: 16,
-            layoutOptions: {
-              "elk.nodeLabels.placement": "OUTSIDE V_TOP H_RIGHT H_PRIORITY"
-            }
-          }
-        ];
-    }
-    elkNodes.set(n4.id, node4);
-  }
-  for (const grp of model.groups) groupGeom.set(grp.id, groupGeometry(grp));
-  for (const grp of model.groups) {
-    const gg = groupGeom.get(grp.id);
-    if (!gg || grp.around || hidden.has(grp.id)) continue;
-    const siblings = model.groups.filter(
-      (o) => !o.around && !hidden.has(o.id) && o.parent === grp.parent
-    );
-    gg.header = Math.max(...siblings.map((o) => groupGeom.get(o.id)?.header ?? 0));
-  }
-  for (const grp of model.groups) {
-    const gg = groupGeom.get(grp.id);
-    if (!gg || grp.around || hidden.has(grp.id)) continue;
-    const top2 = gg.header + 18 + (opts.room?.get(grp.id) ?? 0);
-    elkNodes.set(grp.id, {
-      id: grp.id,
-      children: [],
-      layoutOptions: {
-        ...base,
-        "elk.padding": `[top=${top2},left=20,bottom=20,right=20]`,
-        "elk.nodeSize.constraints": "MINIMUM_SIZE",
-        // ELK applies a compound minimum in its rotated frame when the flow is vertical.
-        "elk.nodeSize.minimum": horizontal ? `(${gg.minWidth}, ${top2 + 24})` : `(${top2 + 24}, ${minWidthOf(grp.id, gg)})`,
-        // Centered in a column; frames side by side in a row share their top edge.
-        "elk.alignment": horizontal ? "CENTER" : "TOP",
-        // A group widened by its label keeps its children centered under the header.
-        "elk.contentAlignment": horizontal ? "V_TOP H_CENTER" : "V_CENTER H_CENTER"
-      }
-    });
-  }
-  for (const id of plan.blocks.keys()) {
-    const end = plan.ends.get(id);
-    const room3 = Math.max(
-      Math.round(40 * s),
-      ...model.edges.filter((e) => plan.blockOf.get(e.from) === id && plan.blockOf.get(e.to) === id).map((e) => {
-        if (horizontal) return 0;
-        const step = e.step !== void 0 ? SIZES.step + 2 : 0;
-        const text4 = e.label ? textBlock(e.label, SIZES.edgeLabel, SIZES.edgeLabelMax) : void 0;
-        return Math.ceil((text4 ? text4.width + 12 : 0) + step + 32);
-      })
-    );
-    elkNodes.set(id, {
-      id,
-      children: [],
-      layoutOptions: {
-        ...base,
-        "elk.padding": "[top=0,left=0,bottom=0,right=0]",
-        "elk.alignment": "CENTER",
-        "elk.spacing.nodeNode": String(room3),
-        ...end ? { [LAYER_CONSTRAINT]: end } : {}
-      }
-    });
-  }
-  const titleBlock = model.title ? textBlock(model.title, SIZES.title, 1400, 600, 1.25) : void 0;
-  const subtitleBlock = model.subtitle ? textBlock(model.subtitle, SIZES.subtitle, 1400, 400) : void 0;
-  const root = {
-    id: "__root",
-    layoutOptions: {
-      ...base,
-      "elk.padding": `[top=${SIZES.pad},left=${SIZES.pad},bottom=${SIZES.pad},right=${SIZES.pad}]`
-    },
-    children: [],
-    edges: []
-  };
-  const host = (parent) => {
-    let p = parent;
-    while (p && hidden.has(p)) p = model.groups.find((g) => g.id === p)?.parent;
-    return p ? elkNodes.get(p) : root;
-  };
-  const cells = /* @__PURE__ */ new Map();
-  for (const item of [...model.groups, ...model.nodes]) {
-    const el = elkNodes.get(item.id);
-    if (!el) continue;
-    if (item.parent && plan.grids.has(item.parent)) {
-      cells.set(item.parent, [...cells.get(item.parent) ?? [], item.id]);
-      continue;
-    }
-    const block3 = elkNodes.get(plan.blockOf.get(item.id) ?? "");
-    const parent = host(item.parent);
-    if (block3 && !block3.children?.length) {
-      const into = parent ?? root;
-      into.children?.push(block3);
-      into.layoutOptions = {
-        ...into.layoutOptions,
-        "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST"
-      };
-    }
-    (block3?.children ?? parent?.children ?? root.children)?.push(el);
-  }
-  for (const parent of [root, ...elkNodes.values()]) {
-    const kids = parent.children ?? [];
-    const rank = order.size ? new Map(
-      kids.map((c, i) => [c, i]).sort(([a, i], [b, j]) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0) || i - j).map(([c], r3) => [c, r3])
-    ) : void 0;
-    kids.forEach((c, i) => {
-      const at = rank?.get(c) ?? i;
-      c.layoutOptions = {
-        ...c.layoutOptions,
-        "elk.position": horizontal ? `(0,${at * 10})` : `(${at * 10},0)`
-      };
-    });
-  }
-  for (const grp of model.groups) {
-    const el = elkNodes.get(grp.id);
-    const gg = groupGeom.get(grp.id);
-    if (el && gg && !el.children?.length) {
-      el.width = gg.minWidth;
-      el.height = gg.header + 60;
-    }
-  }
+var minWidthOf = (ctx, id, gg) => !ctx.horizontal && ctx.opts.widen?.has(id) ? Math.max(gg.minWidth, 2 * (gg.minWidth - 10)) : gg.minWidth;
+
+// src/layout/relations.ts
+function relations(model, plan, hidden, opts) {
   const groupIds = new Set(model.groups.map((g) => g.id));
   const overlays = new Map(
     model.groups.filter((g) => g.around?.length).map((g) => [g.id, g.around ?? []])
@@ -13980,400 +14473,613 @@ async function layoutCore(model, opts = {}) {
   const rep = (id) => [id, ...above(id)].filter((g) => plan.grids.has(g)).at(-1) ?? id;
   const inside3 = (id) => [...model.nodes, ...model.groups].filter((x2) => x2.parent === id).flatMap((x2) => hidden.has(x2.id) ? inside3(x2.id) : [x2.id]);
   const members = (id) => (overlays.get(id) ?? (hidden.has(id) ? inside3(id) : [id])).filter((m) => !overlays.has(m));
-  const port = (nodeId, side, e) => {
-    if (!model.merge || groupIds.has(nodeId)) return nodeId;
-    const el = elkNodes.get(nodeId);
-    if (!el) return nodeId;
-    const head2 = side === "in" ? e.arrow === "end" || e.arrow === "both" : e.arrow === "start" || e.arrow === "both";
-    const own2 = plan.blockOf.has(e.from) || plan.blockOf.has(e.to) ? `::${e.id}` : "";
-    const id = `${nodeId}::${side}::${e.line}::${head2 ? 1 : 0}::${e.color ?? ""}${e.flow ? `::${e.flow}` : ""}${own2}`;
-    el.ports ??= [];
-    if (!el.ports.some((p) => p.id === id)) el.ports.push({ id, width: 0, height: 0 });
-    el.layoutOptions = { ...el.layoutOptions, "elk.portConstraints": "FREE" };
-    return id;
+  return {
+    groupIds,
+    overlays,
+    parentOf,
+    above,
+    lowest,
+    cellOf,
+    gridBetween,
+    inBlock,
+    free,
+    rep,
+    inside: inside3,
+    members
   };
-  const labelledFrom = new Set(
-    model.edges.filter((e) => !free(e) && (e.label || e.step !== void 0)).map((e) => e.from)
-  );
-  const edgeLabels = /* @__PURE__ */ new Map();
-  const cellEdges = /* @__PURE__ */ new Map();
-  for (const e of model.edges) {
-    if (free(e)) {
-      if (!e.constraint || inBlock(e) || opts.loose?.has(e.id)) continue;
-      const ends3 = (id) => [...new Set(members(id).map(rep))];
-      let i = 0;
-      for (const s2 of ends3(e.from))
-        for (const t2 of ends3(e.to))
-          if (s2 !== t2) root.edges?.push({ id: `${e.id}__via${i++}`, sources: [s2], targets: [t2] });
-      continue;
+}
+var depthOf = (model, id) => {
+  let d = 0;
+  let p = id;
+  while (p) {
+    d += 1;
+    p = model.groups.find((g) => g.id === p)?.parent;
+  }
+  return d;
+};
+
+// src/layout/graph.ts
+function buildGraph(ctx) {
+  const { model, opts, hidden, plan, horizontal } = ctx;
+  const nodeGeom = /* @__PURE__ */ new Map();
+  const groupGeom = /* @__PURE__ */ new Map();
+  const elkNodes = /* @__PURE__ */ new Map();
+  for (const n4 of model.nodes) {
+    const g = nodeGeometry(n4, horizontal);
+    nodeGeom.set(n4.id, g);
+    elkNodes.set(n4.id, nodeElk(ctx, n4, g));
+  }
+  for (const grp of model.groups) groupGeom.set(grp.id, groupGeometry(grp));
+  groupElks(ctx, groupGeom, elkNodes);
+  blockElks(ctx, elkNodes);
+  const titleBlock = model.title ? textBlock(model.title, SIZES.title, 1400, 600, 1.25) : void 0;
+  const subtitleBlock = model.subtitle ? textBlock(model.subtitle, SIZES.subtitle, 1400, 400) : void 0;
+  const root = {
+    id: "__root",
+    layoutOptions: {
+      ...ctx.base,
+      "elk.padding": `[top=${SIZES.pad},left=${SIZES.pad},bottom=${SIZES.pad},right=${SIZES.pad}]`
+    },
+    children: [],
+    edges: []
+  };
+  const cells = placeChildren(ctx, elkNodes, root);
+  orderHints(ctx, root, elkNodes);
+  for (const grp of model.groups) {
+    const el = elkNodes.get(grp.id);
+    const gg = groupGeom.get(grp.id);
+    if (el && gg && !el.children?.length) {
+      el.width = gg.minWidth;
+      el.height = gg.header + 60;
     }
-    const elkEdge = {
-      id: e.id,
-      sources: [port(e.from, "out", e)],
-      targets: [port(e.to, "in", e)]
+  }
+  const rel2 = relations(model, plan, hidden, opts);
+  const graph = {
+    ...ctx,
+    nodeGeom,
+    groupGeom,
+    elkNodes,
+    root,
+    cells,
+    titleBlock,
+    subtitleBlock,
+    rel: rel2
+  };
+  return { ...graph, ...addEdges(graph) };
+}
+function nodeElk(ctx, n4, g) {
+  const { plan, horizontal } = ctx;
+  const end = plan.blockOf.has(n4.id) ? void 0 : plan.ends.get(n4.id);
+  const node4 = {
+    id: n4.id,
+    width: g.w,
+    height: g.h,
+    layoutOptions: {
+      "elk.alignment": "CENTER",
+      ...end ? { [LAYER_CONSTRAINT]: end } : {}
+    }
+  };
+  if (g.outside) {
+    node4.labels = [
+      {
+        id: `${n4.id}__label`,
+        text: n4.label,
+        width: g.outside.w,
+        height: g.outside.h
+      }
+    ];
+    node4.layoutOptions = {
+      ...node4.layoutOptions,
+      "elk.nodeLabels.placement": "OUTSIDE V_BOTTOM H_CENTER",
+      "elk.spacing.labelNode": "6"
     };
-    if (!e.label && e.step === void 0 && labelledFrom.has(e.from)) {
-      elkEdge.labels = [{ id: `${e.id}__spacer`, text: " ", width: 1, height: 1 }];
-    }
-    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
-    if (e.label || e.step !== void 0) {
-      const block3 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-      const w = Math.ceil((e.label ? block3.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-      const h = Math.ceil(Math.max(e.label ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
-      edgeLabels.set(e.id, { block: block3, w, h, stepW });
-      elkEdge.labels = [
+  }
+  if (n4.badge) {
+    const S = n4.iconSize;
+    const anchor2 = n4.look === "icon" ? { x: horizontal ? 0 : (g.w - S) / 2, y: 0, w: S, h: S } : { x: 0, y: 0, w: g.w, h: g.h };
+    const pill = badgePill(n4.badge, anchor2);
+    const overhang = Math.ceil(pill.x + pill.w - g.w);
+    if (overhang > 0)
+      node4.labels = [
+        ...node4.labels ?? [],
         {
-          id: `${e.id}__label`,
-          text: e.label || `step ${e.step}`,
-          width: w,
-          height: h
+          id: `${n4.id}__badge`,
+          text: n4.badge,
+          width: overhang,
+          height: 16,
+          layoutOptions: {
+            "elk.nodeLabels.placement": "OUTSIDE V_TOP H_RIGHT H_PRIORITY"
+          }
         }
       ];
-    }
-    const cell = plan.grids.size ? cellOf(lowest(e.from, e.to)) : void 0;
-    if (cell) cellEdges.set(cell, [...cellEdges.get(cell) ?? [], elkEdge]);
-    else root.edges?.push(elkEdge);
   }
-  const ranked = async (graph) => {
-    try {
-      return await runElk(graph);
-    } catch (err) {
-      const stripped = /* @__PURE__ */ new Set();
-      const strip = (n4) => {
-        if (n4.layoutOptions?.[LAYER_CONSTRAINT]) {
-          delete n4.layoutOptions[LAYER_CONSTRAINT];
-          stripped.add(n4.id);
-        }
-        for (const c of n4.children ?? []) strip(c);
-      };
-      strip(graph);
-      if (!stripped.size) throw err;
-      for (const n4 of model.nodes)
-        if (stripped.has(plan.blockOf.get(n4.id) ?? n4.id) && (n4.rank === "first" || n4.rank === "last"))
-          plan.ignored.push({
-            subject: n4.id,
-            setting: "rank",
-            reason: "the layout engine cannot keep it there with its links"
-          });
-      return runElk(graph);
-    }
-  };
-  const gridPlans = /* @__PURE__ */ new Map();
-  const cellRuns = /* @__PURE__ */ new Map();
-  for (const gid of [...plan.grids.keys()].sort((a, b) => above(b).length - above(a).length)) {
-    const el = elkNodes.get(gid);
-    const gg = groupGeom.get(gid);
-    if (!el || !gg) continue;
-    const list = [];
-    for (const id of cells.get(gid) ?? []) {
-      const g = nodeGeom.get(id);
-      if (g) {
-        const w2 = Math.max(g.w, g.outside?.w ?? 0);
-        const h2 = g.h + (g.outside ? 6 + g.outside.h : 0);
-        list.push({ id, w: w2, h: h2, box: { x: (w2 - g.w) / 2, y: 0, w: g.w, h: g.h } });
-        continue;
-      }
-      const child = elkNodes.get(id);
-      if (!child) continue;
-      if (!plan.grids.has(id) && child.children?.length) {
-        const run2 = {
-          id: `__cell:${id}`,
-          layoutOptions: { ...base, "elk.padding": "[top=0,left=0,bottom=0,right=0]" },
-          children: [child],
-          edges: cellEdges.get(id) ?? []
-        };
-        const { graph } = await ranked(run2);
-        const laid = graph.children?.[0];
-        if (laid) {
-          cellRuns.set(id, graph);
-          child.width = laid.width;
-          child.height = laid.height;
-        }
-      }
-      const w = child.width ?? 0;
-      const h = child.height ?? 0;
-      list.push({ id, w, h, box: { x: 0, y: 0, w, h } });
-    }
-    if (!list.length) continue;
-    const inner = new Set(list.map((c) => c.id));
-    const cellOfGrid = (id) => [id, ...above(id)].find((x2) => inner.has(x2));
-    const labels2 = model.edges.filter((e) => {
-      const [f, t2] = [cellOfGrid(e.from), cellOfGrid(e.to)];
-      return f && t2 && f !== t2 && (e.label || e.step !== void 0);
-    }).map((e) => {
-      const text4 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-      const step = e.step !== void 0 ? SIZES.step + 2 : 0;
-      return { w: (e.label ? text4.width + 12 : 0) + step, h: Math.max(text4.height + 6, step) };
-    });
-    const gap = Math.round(Math.max(40 * s, ...labels2.map((l) => (horizontal ? l.h : l.w) + 32)));
-    const grid = gridCells(list, plan.grids.get(gid) ?? 1, gap);
-    const top2 = gg.header + 18 + (opts.room?.get(gid) ?? 0);
-    const position = el.layoutOptions?.["elk.position"];
-    Object.assign(el, {
-      width: Math.max(minWidthOf(gid, gg), grid.w + 40),
-      height: Math.max(gg.header + 60, top2 + grid.h + 20),
+  return node4;
+}
+function groupElks(ctx, groupGeom, elkNodes) {
+  const { model, opts, hidden, horizontal } = ctx;
+  for (const grp of model.groups) {
+    const gg = groupGeom.get(grp.id);
+    if (!gg || grp.around || hidden.has(grp.id)) continue;
+    const siblings = model.groups.filter(
+      (o) => !o.around && !hidden.has(o.id) && o.parent === grp.parent
+    );
+    gg.header = Math.max(...siblings.map((o) => groupGeom.get(o.id)?.header ?? 0));
+  }
+  for (const grp of model.groups) {
+    const gg = groupGeom.get(grp.id);
+    if (!gg || grp.around || hidden.has(grp.id)) continue;
+    const top = gg.header + 18 + (opts.room?.get(grp.id) ?? 0);
+    elkNodes.set(grp.id, {
+      id: grp.id,
       children: [],
       layoutOptions: {
+        ...ctx.base,
+        "elk.padding": `[top=${top},left=20,bottom=20,right=20]`,
+        "elk.nodeSize.constraints": "MINIMUM_SIZE",
+        // ELK applies a compound minimum in its rotated frame when the flow is vertical.
+        "elk.nodeSize.minimum": horizontal ? `(${gg.minWidth}, ${top + 24})` : `(${top + 24}, ${minWidthOf(ctx, grp.id, gg)})`,
+        // Centered in a column; frames side by side in a row share their top edge.
         "elk.alignment": horizontal ? "CENTER" : "TOP",
-        ...position ? { "elk.position": position } : {}
+        // A group widened by its label keeps its children centered under the header.
+        "elk.contentAlignment": horizontal ? "V_TOP H_CENTER" : "V_CENTER H_CENTER"
       }
     });
-    gridPlans.set(gid, { cells: list, at: grid.at, w: grid.w, top: top2 });
   }
-  let { graph: result2, fallback } = await ranked(root);
-  const strict = crossings(result2);
-  if (strict.count > 0) {
-    const free2 = structuredClone(root);
-    const leaves = new Set(model.nodes.map((n4) => n4.id).filter((id) => strict.nodes.has(id)));
-    const unpin = (n4) => {
-      if (leaves.has(n4.id) && n4.layoutOptions) delete n4.layoutOptions["elk.position"];
-      for (const c of n4.children ?? []) unpin(c);
-    };
-    unpin(free2);
-    const alt = await runElk(free2);
-    if (crossings(alt.graph).count < strict.count) ({ graph: result2, fallback } = alt);
-  }
-  for (const gid of [...gridPlans.keys()].sort((a, b) => above(a).length - above(b).length)) {
-    const el = findNode(result2, gid);
-    const gp = gridPlans.get(gid);
-    if (!el || !gp) continue;
-    const ox = (el.x ?? 0) + ((el.width ?? 0) - gp.w) / 2;
-    const oy = (el.y ?? 0) + gp.top;
-    el.children = gp.cells.map((c, i) => {
-      const at = gp.at[i] ?? { x: 0, y: 0 };
-      const x2 = round4(ox + at.x + c.box.x);
-      const y = round4(oy + at.y + c.box.y);
-      const g = nodeGeom.get(c.id);
-      if (g?.outside)
-        return {
-          id: c.id,
-          x: x2,
-          y,
-          width: c.box.w,
-          height: c.box.h,
-          labels: [
-            {
-              id: `${c.id}__label`,
-              text: " ",
-              x: round4(x2 + (c.box.w - g.outside.w) / 2),
-              y: y + c.box.h + 6,
-              width: g.outside.w,
-              height: g.outside.h
-            }
-          ]
-        };
-      const run2 = cellRuns.get(c.id);
-      const laid = run2?.children?.[0];
-      if (!run2 || !laid) return { id: c.id, x: x2, y, width: c.box.w, height: c.box.h };
-      laid.edges = run2.edges ?? [];
-      return moveElk(laid, x2 - (laid.x ?? 0), y - (laid.y ?? 0));
+}
+function blockElks(ctx, elkNodes) {
+  const { model, plan, horizontal, spacing } = ctx;
+  for (const id of plan.blocks.keys()) {
+    const end = plan.ends.get(id);
+    const room2 = Math.max(
+      Math.round(40 * spacing),
+      ...model.edges.filter((e) => plan.blockOf.get(e.from) === id && plan.blockOf.get(e.to) === id).map((e) => {
+        if (horizontal) return 0;
+        const step = e.step !== void 0 ? SIZES.step + 2 : 0;
+        const text4 = e.label ? textBlock(e.label, SIZES.edgeLabel, SIZES.edgeLabelMax) : void 0;
+        return Math.ceil((text4 ? text4.width + 12 : 0) + step + 32);
+      })
+    );
+    elkNodes.set(id, {
+      id,
+      children: [],
+      layoutOptions: {
+        ...ctx.base,
+        "elk.padding": "[top=0,left=0,bottom=0,right=0]",
+        "elk.alignment": "CENTER",
+        "elk.spacing.nodeNode": String(room2),
+        ...end ? { [LAYER_CONSTRAINT]: end } : {}
+      }
     });
   }
-  if (plan.blocks.size) {
-    const hoist = (n4) => {
-      if (!n4.children) return;
-      n4.children = n4.children.flatMap((c) => plan.blocks.has(c.id) ? c.children ?? [] : [c]);
-      for (const c of n4.children) hoist(c);
-    };
-    hoist(result2);
-  }
-  const top = titleBlock ? Math.ceil(SIZES.pad + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6) : 0;
-  const shift = (p) => ({ x: round4(p.x), y: round4(p.y + top) });
-  const placed = /* @__PURE__ */ new Map();
-  const walk = (n4) => {
-    placed.set(n4.id, n4);
-    for (const c of n4.children ?? []) walk(c);
+}
+function placeChildren(ctx, elkNodes, root) {
+  const { model, hidden, plan } = ctx;
+  const host = (parent) => {
+    let p = parent;
+    while (p && hidden.has(p)) p = model.groups.find((g) => g.id === p)?.parent;
+    return p ? elkNodes.get(p) : root;
   };
-  walk(result2);
-  const depth = (id) => {
-    let d = 0;
-    let p = id;
-    while (p) {
-      d += 1;
-      p = model.groups.find((g) => g.id === p)?.parent;
-    }
-    return d;
-  };
-  const elkEdges = [...placed.values()].flatMap((n4) => n4.edges ?? []);
-  const edgeMarks = elkEdges.flatMap((e) => [
-    ...(e.sections ?? []).flatMap(
-      (s2) => [s2.startPoint, ...s2.bendPoints ?? [], s2.endPoint].map((p) => ({
-        ...p,
-        w: 0,
-        h: 0
-      }))
-    ),
-    ...(e.labels ?? []).map((l) => ({
-      x: l.x ?? 0,
-      y: l.y ?? 0,
-      w: l.width,
-      h: l.height
-    }))
-  ]);
-  const byDepth = model.groups.filter((g) => !g.around).sort((a, b) => depth(b.parent) - depth(a.parent));
-  for (const grp of byDepth) {
-    const el = placed.get(grp.id);
-    const gg = groupGeom.get(grp.id);
-    if (!el?.children?.length || !gg) continue;
-    const kids = el.children.flatMap((c) => [
-      { x: c.x ?? 0, y: c.y ?? 0, w: c.width ?? 0, h: c.height ?? 0 },
-      ...(c.labels ?? []).map((l) => ({
-        x: l.x ?? 0,
-        y: l.y ?? 0,
-        w: l.width,
-        h: l.height
-      }))
-    ]);
-    const old = {
-      x: el.x ?? 0,
-      y: el.y ?? 0,
-      w: el.width ?? 0,
-      h: el.height ?? 0
-    };
-    const k = union3(kids);
-    let x0 = Math.max(old.x, k.x - 20);
-    let y0 = Math.max(old.y, k.y - gg.header - 18 - (opts.room?.get(grp.id) ?? 0));
-    let x1 = Math.min(old.x + old.w, k.x + k.w + 20);
-    let y1 = Math.min(old.y + old.h, k.y + k.h + 20);
-    if (x1 - x0 < minWidthOf(grp.id, gg)) [x0, x1] = [old.x, old.x + old.w];
-    if (y1 - y0 < gg.header + 42) [y0, y1] = [old.y, old.y + old.h];
-    for (const b of edgeMarks) {
-      if (!contains(old, b)) continue;
-      if (b.x < x0) x0 = old.x;
-      if (b.y < y0) y0 = old.y;
-      if (b.x + b.w > x1) x1 = old.x + old.w;
-      if (b.y + b.h > y1) y1 = old.y + old.h;
-    }
-    Object.assign(el, { x: x0, y: y0, width: x1 - x0, height: y1 - y0 });
-  }
-  stretchColumns(model, placed, elkEdges);
-  const groups = [];
-  const headerRoom = /* @__PURE__ */ new Map();
-  const paintGroup = (grp, box, overlay) => {
-    const gg = groupGeom.get(grp.id);
-    const style3 = resolveGroupStyle(grp.type);
-    if (!gg || !style3) return void 0;
-    const strokeBase = grp.color ?? style3.stroke;
-    let stroke3 = strokeBase;
-    let fill2 = grp.fill === "none" ? "none" : grp.fill ?? style3.fill ?? "none";
-    if (overlay) fill2 = "none";
-    const ink = style3.labelColor === "ink" || !style3.labelColor;
-    let labelColor = grp.color ?? (ink ? t.text : style3.labelColor ?? t.text);
-    if (theme === "dark") {
-      if (luminance(strokeBase) < 0.04) stroke3 = "#c9d1d9";
-      else if (contrast(strokeBase, t.background) < 2) stroke3 = mixHex(strokeBase, "#ffffff", 0.55);
-      if (fill2 !== "none") fill2 = mixHex(fill2, t.background, 0.14);
-      if (!grp.color && !ink && luminance(style3.labelColor ?? "#000000") < 0.04)
-        labelColor = t.text;
-    }
-    labelColor = ensureContrast(labelColor, fill2 === "none" ? t.background : fill2, 4.5);
-    const L = gg.label;
-    let iconBox;
-    let labelX;
-    let labelY;
-    if (overlay && gg.iconStyle === "tile-center" && gg.icon) {
-      iconBox = {
-        x: box.x + (box.w - SIZES.tile) / 2,
-        y: box.y - SIZES.tile / 2,
-        w: SIZES.tile,
-        h: SIZES.tile
-      };
-      labelX = box.x + (box.w - L.width) / 2;
-      labelY = iconBox.y + SIZES.tile + 3;
-    } else if (overlay) {
-      iconBox = gg.icon ? { x: box.x + 10, y: box.y - 8, w: 16, h: 16 } : void 0;
-      labelX = iconBox ? iconBox.x + iconBox.w + 5 : box.x + 12;
-      labelY = box.y - L.height / 2;
-    } else if (gg.iconStyle === "tile-center") {
-      iconBox = gg.icon ? {
-        x: box.x + (box.w - SIZES.tile) / 2,
-        y: box.y,
-        w: SIZES.tile,
-        h: SIZES.tile
-      } : void 0;
-      labelX = box.x + (box.w - L.width) / 2;
-      labelY = box.y + (gg.icon ? SIZES.tile + 3 : 6);
-    } else if (gg.iconStyle === "tile") {
-      iconBox = gg.icon ? { x: box.x, y: box.y, w: SIZES.tile, h: SIZES.tile } : void 0;
-      labelX = gg.center ? box.x + (box.w - L.width) / 2 : iconBox ? box.x + SIZES.tile + 8 : box.x + 12;
-      labelY = iconBox ? box.y + Math.max(6, (SIZES.tile - L.height) / 2) : box.y + 6;
-    } else {
-      iconBox = gg.icon ? {
-        x: box.x + 12,
-        y: box.y + 9,
-        w: SIZES.inlineIcon,
-        h: SIZES.inlineIcon
-      } : void 0;
-      labelX = gg.center && !iconBox ? box.x + (box.w - L.width) / 2 : iconBox ? iconBox.x + iconBox.w + 8 : box.x + 12;
-      labelY = box.y + 10;
-    }
-    const cornerTile = !overlay && gg.iconStyle === "tile" && !!iconBox;
-    const inset = overlay ? 10 : 12;
-    headerRoom.set(grp.id, {
-      moveIcon: !!iconBox && !cornerTile,
-      lo: cornerTile ? box.x + SIZES.tile + 8 : box.x + inset,
-      hi: box.x + box.w - inset
-    });
-    const innerFill = !overlay && style3.innerFill ? theme === "dark" ? mixHex(style3.innerFill, t.background, 0.06) : style3.innerFill : void 0;
-    const headerH = gg.header + 4;
-    const inner = innerFill ? {
-      box: {
-        x: round4(box.x + 8),
-        y: round4(box.y + headerH),
-        w: round4(box.w - 16),
-        h: round4(box.h - headerH - 8)
-      },
-      fill: innerFill
-    } : void 0;
-    return {
-      inner,
-      id: grp.id,
-      type: grp.type,
-      box,
-      depth: overlay ? 1e3 : depth(grp.parent),
-      label: gg.label,
-      labelBox: {
-        x: round4(labelX),
-        y: round4(labelY),
-        w: round4(gg.label.width),
-        h: round4(gg.label.height)
-      },
-      iconBox,
-      icon: gg.icon,
-      stroke: stroke3,
-      fill: fill2,
-      labelColor,
-      dash: grp.dashed === false ? void 0 : style3.dash ?? (grp.dashed ? "6 4" : void 0),
-      strokeWidth: style3.strokeWidth,
-      radius: style3.rounded,
-      parent: overlay ? void 0 : grp.parent,
-      overlay: overlay || void 0
-    };
-  };
-  for (const grp of model.groups) {
-    if (grp.around) continue;
-    const el = placed.get(grp.id);
+  const cells = /* @__PURE__ */ new Map();
+  for (const item of [...model.groups, ...model.nodes]) {
+    const el = elkNodes.get(item.id);
     if (!el) continue;
-    const box = {
-      x: round4(el.x ?? 0),
-      y: round4((el.y ?? 0) + top),
-      w: round4(el.width ?? 0),
-      h: round4(el.height ?? 0)
+    if (item.parent && plan.grids.has(item.parent)) {
+      cells.set(item.parent, [...cells.get(item.parent) ?? [], item.id]);
+      continue;
+    }
+    const block3 = elkNodes.get(plan.blockOf.get(item.id) ?? "");
+    const parent = host(item.parent);
+    if (block3 && !block3.children?.length) {
+      const into = parent ?? root;
+      into.children?.push(block3);
+      into.layoutOptions = {
+        ...into.layoutOptions,
+        "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST"
+      };
+    }
+    (block3?.children ?? parent?.children ?? root.children)?.push(el);
+  }
+  return cells;
+}
+function orderHints(ctx, root, elkNodes) {
+  const { order, horizontal } = ctx;
+  for (const parent of [root, ...elkNodes.values()]) {
+    const kids = parent.children ?? [];
+    const rank = order.size ? new Map(
+      kids.map((c, i) => [c, i]).sort(([a, i], [b, j]) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0) || i - j).map(([c], r3) => [c, r3])
+    ) : void 0;
+    kids.forEach((c, i) => {
+      const at = rank?.get(c) ?? i;
+      c.layoutOptions = {
+        ...c.layoutOptions,
+        "elk.position": horizontal ? `(0,${at * 10})` : `(${at * 10},0)`
+      };
+    });
+  }
+}
+
+// src/layout/labels.ts
+function placeFreeLabels(ctx) {
+  const { model, opts, nodes, groups, edges, headers, rerouted, rel: rel2 } = ctx;
+  const footprints = nodes.map((n4) => union3([n4.box, n4.iconBox, n4.labelBox, n4.noteBox]));
+  for (const e of model.edges) {
+    const edge3 = edges.find((x2) => x2.id === e.id);
+    if (!(rel2.free(e) || rerouted.has(e.id)) || !edge3 || !e.label && e.step === void 0)
+      continue;
+    const block3 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
+    const w = Math.ceil((e.label ? block3.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
+    const h = Math.ceil(Math.max(e.label ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
+    const fresh = rel2.inBlock(e) || rel2.gridBetween(e) || rerouted.has(e.id) || !!opts.loose?.has(e.id);
+    const avoid = [
+      ...footprints,
+      ...edges.flatMap((x2) => [x2.labelBox, x2.stepBox]),
+      ...groups.map((g) => g.labelBox),
+      ...fresh ? nodes.map((n4) => n4.badgeBox) : [],
+      ...fresh ? groups.flatMap((g) => [
+        { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
+        { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
+        { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
+        { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
+      ]) : []
+    ];
+    const spot = fresh ? labelSpot(
+      edge3.points,
+      w,
+      h,
+      [
+        ...avoid.filter((b) => !!b),
+        ...headers.map((x2) => x2.box),
+        ...groups.flatMap((g) => g.iconBox ? [g.iconBox] : [])
+      ],
+      edges.filter((x2) => x2 !== edge3).map((x2) => x2.points)
+    ) : void 0;
+    const box = spot ?? freeLabelBox(edge3.points, w, h, avoid);
+    if (e.step !== void 0)
+      edge3.stepBox = {
+        x: box.x,
+        y: round2(box.y + (h - SIZES.step) / 2),
+        w: SIZES.step,
+        h: SIZES.step
+      };
+    if (e.label) {
+      edge3.label = block3;
+      edge3.labelBox = {
+        x: round2(box.x + stepW + (stepW ? 2 : 0)),
+        y: box.y,
+        w: round2(w - stepW - (stepW ? 2 : 0)),
+        h
+      };
+    }
+  }
+}
+function labelSpot(points, w, h, avoid, lines2) {
+  const stroke3 = ([p, q]) => ({
+    x: Math.min(p.x, q.x) - 1,
+    y: Math.min(p.y, q.y) - 1,
+    w: Math.abs(q.x - p.x) + 2,
+    h: Math.abs(q.y - p.y) + 2
+  });
+  const tips = (pts) => [pts[0], pts.at(-1)].flatMap((p) => p ? [{ x: p.x - 6, y: p.y - 6, w: 12, h: 12 }] : []);
+  const walls = [
+    ...avoid,
+    ...[...lines2, points].flatMap((pts) => [...segmentsOf(pts).map(stroke3), ...tips(pts)])
+  ];
+  const runs2 = segmentsOf(points).filter(([p, q]) => Math.abs(p.x - q.x) + Math.abs(p.y - q.y) > 1).sort(([a, b], [c, d]) => Math.hypot(d.x - c.x, d.y - c.y) - Math.hypot(b.x - a.x, b.y - a.y));
+  for (const [p, q] of runs2)
+    for (const f of [0.5, 1 / 3, 2 / 3]) {
+      const x2 = p.x + (q.x - p.x) * f;
+      const y = p.y + (q.y - p.y) * f;
+      const level = Math.abs(p.y - q.y) < 0.5;
+      const spots = level ? [
+        { x: x2 - w / 2, y: y - h - 3, w, h },
+        { x: x2 - w / 2, y: y + 3, w, h }
+      ] : [
+        { x: x2 + 6, y: y - h / 2, w, h },
+        { x: x2 - 6 - w, y: y - h / 2, w, h }
+      ];
+      const spot = spots.find((b) => !walls.some((o) => meet(b, o)));
+      if (spot) return { x: round2(spot.x), y: round2(spot.y), w, h };
+    }
+  return void 0;
+}
+function freeLabelBox(points, w, h, avoid) {
+  const runs2 = points.slice(1).map((q2, i) => [points[i] ?? q2, q2]).filter(([p2, q2]) => Math.abs(p2.x - q2.x) < 0.5 && Math.abs(p2.y - q2.y) > 0.5).sort(([a, b], [c, d]) => Math.abs(d.y - c.y) - Math.abs(b.y - a.y));
+  const inside3 = (b) => ({
+    ...b,
+    x: round2(Math.max(0, b.x)),
+    y: round2(Math.max(0, b.y))
+  });
+  const clear = (b) => !avoid.some((o) => o && overlaps2(b, o));
+  const pick2 = (first, second) => clear(first) || !clear(second) ? first : second;
+  const run2 = runs2[0];
+  if (!run2) {
+    const mid = midpoint(points);
+    const above = inside3({ x: mid.x - w / 2, y: mid.y - h - 3, w, h });
+    return pick2(above, inside3({ ...above, y: mid.y + 3 }));
+  }
+  const [p, q] = run2;
+  const y = (p.y + q.y) / 2 - h / 2;
+  return pick2(inside3({ x: p.x + 6, y, w, h }), inside3({ x: p.x - 6 - w, y, w, h }));
+}
+
+// src/layout/groups.ts
+function paintGroup(ctx, grp, box, overlay) {
+  const { model, theme, tokens: t, groupGeom, headerRoom } = ctx;
+  const gg = groupGeom.get(grp.id);
+  const style3 = resolveGroupStyle(grp.type);
+  if (!gg || !style3) return void 0;
+  const { stroke: stroke3, fill: fill2, labelColor } = groupColors(grp, style3, theme, t, overlay);
+  const { iconBox, labelX, labelY } = headerAt(gg, box, overlay);
+  const cornerTile = !overlay && gg.iconStyle === "tile" && !!iconBox;
+  const inset = overlay ? 10 : 12;
+  headerRoom.set(grp.id, {
+    moveIcon: !!iconBox && !cornerTile,
+    lo: cornerTile ? box.x + SIZES.tile + 8 : box.x + inset,
+    hi: box.x + box.w - inset
+  });
+  const innerFill = !overlay && style3.innerFill ? theme === "dark" ? mixHex(style3.innerFill, t.background, 0.06) : style3.innerFill : void 0;
+  const headerH = gg.header + 4;
+  const inner = innerFill ? {
+    box: {
+      x: round2(box.x + 8),
+      y: round2(box.y + headerH),
+      w: round2(box.w - 16),
+      h: round2(box.h - headerH - 8)
+    },
+    fill: innerFill
+  } : void 0;
+  return {
+    inner,
+    id: grp.id,
+    type: grp.type,
+    box,
+    depth: overlay ? 1e3 : depthOf(model, grp.parent),
+    label: gg.label,
+    labelBox: {
+      x: round2(labelX),
+      y: round2(labelY),
+      w: round2(gg.label.width),
+      h: round2(gg.label.height)
+    },
+    iconBox,
+    icon: gg.icon,
+    stroke: stroke3,
+    fill: fill2,
+    labelColor,
+    dash: grp.dashed === false ? void 0 : style3.dash ?? (grp.dashed ? "6 4" : void 0),
+    strokeWidth: style3.strokeWidth,
+    radius: style3.rounded,
+    parent: overlay ? void 0 : grp.parent,
+    overlay: overlay || void 0
+  };
+}
+function groupColors(grp, style3, theme, t, overlay) {
+  const strokeBase = grp.color ?? style3.stroke;
+  let stroke3 = strokeBase;
+  let fill2 = grp.fill === "none" ? "none" : grp.fill ?? style3.fill ?? "none";
+  if (overlay) fill2 = "none";
+  const ink = style3.labelColor === "ink" || !style3.labelColor;
+  let labelColor = grp.color ?? (ink ? t.text : style3.labelColor ?? t.text);
+  if (theme === "dark") {
+    if (luminance(strokeBase) < 0.04) stroke3 = "#c9d1d9";
+    else if (contrast(strokeBase, t.background) < 2) stroke3 = mixHex(strokeBase, "#ffffff", 0.55);
+    if (fill2 !== "none") fill2 = mixHex(fill2, t.background, 0.14);
+    if (!grp.color && !ink && luminance(style3.labelColor ?? "#000000") < 0.04) labelColor = t.text;
+  }
+  labelColor = ensureContrast(labelColor, fill2 === "none" ? t.background : fill2, 4.5);
+  return { stroke: stroke3, fill: fill2, labelColor };
+}
+function headerAt(gg, box, overlay) {
+  const L = gg.label;
+  let iconBox;
+  let labelX;
+  let labelY;
+  if (overlay && gg.iconStyle === "tile-center" && gg.icon) {
+    iconBox = {
+      x: box.x + (box.w - SIZES.tile) / 2,
+      y: box.y - SIZES.tile / 2,
+      w: SIZES.tile,
+      h: SIZES.tile
     };
-    const sg = paintGroup(grp, box, false);
+    labelX = box.x + (box.w - L.width) / 2;
+    labelY = iconBox.y + SIZES.tile + 3;
+  } else if (overlay) {
+    iconBox = gg.icon ? { x: box.x + 10, y: box.y - 8, w: 16, h: 16 } : void 0;
+    labelX = iconBox ? iconBox.x + iconBox.w + 5 : box.x + 12;
+    labelY = box.y - L.height / 2;
+  } else if (gg.iconStyle === "tile-center") {
+    iconBox = gg.icon ? {
+      x: box.x + (box.w - SIZES.tile) / 2,
+      y: box.y,
+      w: SIZES.tile,
+      h: SIZES.tile
+    } : void 0;
+    labelX = box.x + (box.w - L.width) / 2;
+    labelY = box.y + (gg.icon ? SIZES.tile + 3 : 6);
+  } else if (gg.iconStyle === "tile") {
+    iconBox = gg.icon ? { x: box.x, y: box.y, w: SIZES.tile, h: SIZES.tile } : void 0;
+    labelX = gg.center ? box.x + (box.w - L.width) / 2 : iconBox ? box.x + SIZES.tile + 8 : box.x + 12;
+    labelY = iconBox ? box.y + Math.max(6, (SIZES.tile - L.height) / 2) : box.y + 6;
+  } else {
+    iconBox = gg.icon ? {
+      x: box.x + 12,
+      y: box.y + 9,
+      w: SIZES.inlineIcon,
+      h: SIZES.inlineIcon
+    } : void 0;
+    labelX = gg.center && !iconBox ? box.x + (box.w - L.width) / 2 : iconBox ? iconBox.x + iconBox.w + 8 : box.x + 12;
+    labelY = box.y + 10;
+  }
+  return { iconBox, labelX, labelY };
+}
+function clearHeader(g, room2, groups, nodes, edges) {
+  const icon2 = room2.moveIcon ? g.iconBox : void 0;
+  const u = union3([g.labelBox, icon2]);
+  const chip = { x: u.x - 6, y: u.y - 1, w: u.w + 12, h: u.h + 2 };
+  const inBand = (b) => b.y < chip.y + chip.h - 0.5 && b.y + b.h > chip.y + 0.5;
+  const hit = (b, dx2) => b.x < chip.x + dx2 + chip.w - 0.01 && b.x + b.w > chip.x + dx2 + 0.01;
+  const segments3 = edges.flatMap((e) => e.points.slice(1).map((q, i) => segmentBox(e.points[i] ?? q, q))).filter(inBand);
+  const others = [
+    ...segments3,
+    ...nodes.flatMap((n4) => [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox]),
+    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
+    ...groups.filter((o) => o !== g).flatMap((o) => [o.labelBox, o.iconBox])
+  ].filter((b) => !!b && inBand(b));
+  if (!(g.overlay ? others : segments3).some((b) => hit(b, 0))) return true;
+  const min = room2.lo - u.x;
+  const max = room2.hi - (u.x + u.w);
+  const dx = others.flatMap((b) => [b.x - (chip.x + chip.w), b.x + b.w - chip.x]).filter((d) => d >= min - 0.01 && d <= max + 0.01 && !others.some((b) => hit(b, d))).sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)[0];
+  if (dx === void 0) return false;
+  g.labelBox.x = round2(g.labelBox.x + dx);
+  if (icon2) icon2.x = round2(icon2.x + dx);
+  return true;
+}
+
+// src/layout/overlays.ts
+function drawOverlays(ctx, groups, nodes) {
+  const { model, groupGeom } = ctx;
+  for (const grp of model.groups) {
+    if (!grp.around?.length) continue;
+    const gg = groupGeom.get(grp.id);
+    const boxes = [];
+    for (const id of grp.around) {
+      const nd = nodes.find((x2) => x2.id === id);
+      if (nd)
+        boxes.push(
+          ...[nd.box, nd.iconBox, nd.labelBox, nd.noteBox, nd.badgeBox].filter(
+            (b) => !!b && b.w > 0
+          )
+        );
+      const sg2 = groups.find((x2) => x2.id === id);
+      if (sg2) boxes.push(sg2.box);
+    }
+    if (!boxes.length || !gg) continue;
+    const pad = 12;
+    const head2 = gg.iconStyle === "tile-center" && gg.icon ? Math.ceil(SIZES.tile / 2 + 3 + gg.label.height + 6) : pad + 2;
+    let x0 = Math.min(...boxes.map((b) => b.x)) - pad;
+    let x1 = Math.max(...boxes.map((b) => b.x + b.w)) + pad;
+    const short2 = gg.minWidth + 2 * pad - (x1 - x0);
+    if (short2 > 0) [x0, x1] = [x0 - short2 / 2, x1 + short2 / 2];
+    const y0 = Math.min(...boxes.map((b) => b.y)) - head2;
+    const y1 = Math.max(...boxes.map((b) => b.y + b.h)) + pad;
+    const sg = paintGroup(
+      ctx,
+      grp,
+      { x: round2(x0), y: round2(y0), w: round2(x1 - x0), h: round2(y1 - y0) },
+      true
+    );
     if (sg) groups.push(sg);
   }
-  groups.sort((a, b) => a.depth - b.depth);
+}
+function clearOverlayBorders(ctx) {
+  const { model, groups, edges } = ctx;
+  for (const [i, g] of groups.entries()) {
+    const grp = g.overlay ? model.groups.find((x2) => x2.id === g.id) : void 0;
+    if (!grp) continue;
+    let [x0, y0, x1, y1] = [g.box.x, g.box.y, g.box.x + g.box.w, g.box.y + g.box.h];
+    for (const e of edges)
+      for (let k = 1; k < e.points.length; k++) {
+        const p = e.points[k - 1];
+        const q = e.points[k];
+        if (!p || !q) continue;
+        const flat = Math.abs(p.y - q.y) < 0.5;
+        if (!flat && Math.abs(p.x - q.x) >= 0.5) continue;
+        const [lo, hi] = flat ? [Math.min(p.x, q.x), Math.max(p.x, q.x)] : [Math.min(p.y, q.y), Math.max(p.y, q.y)];
+        const [from, to] = flat ? [x0, x1] : [y0, y1];
+        if (Math.min(hi, to) - Math.max(lo, from) < 20) continue;
+        const at = flat ? p.y : p.x;
+        if (flat && Math.abs(at - y0) < 8) y0 = Math.min(y0, at - 8);
+        if (flat && Math.abs(at - y1) < 8) y1 = Math.max(y1, at + 8);
+        if (!flat && Math.abs(at - x0) < 8) x0 = Math.min(x0, at - 8);
+        if (!flat && Math.abs(at - x1) < 8) x1 = Math.max(x1, at + 8);
+      }
+    if (x0 === g.box.x && y0 === g.box.y && x1 === g.box.x + g.box.w && y1 === g.box.y + g.box.h)
+      continue;
+    const box = { x: round2(x0), y: round2(y0), w: round2(x1 - x0), h: round2(y1 - y0) };
+    const sg = paintGroup(ctx, grp, box, true);
+    if (sg) groups[i] = sg;
+  }
+}
+
+// src/layout/passes.ts
+function secondPass(ctx) {
+  const { model, opts, horizontal, groups, nodes, edges, headerRoom, groupGeom, rerouted } = ctx;
+  const blocked = [];
+  for (const g of groups) {
+    const room3 = headerRoom.get(g.id);
+    if (room3 && !clearHeader(g, room3, groups, nodes, edges)) blocked.push(g.id);
+  }
+  const widen = blocked.filter((id) => {
+    const gg = groupGeom.get(id);
+    const box = groups.find((g) => g.id === id)?.box;
+    if (!gg || !box || gg.center || gg.iconStyle === "tile-center") return false;
+    if (model.groups.find((g) => g.id === id)?.around) return false;
+    return box.w + 0.5 < Math.max(gg.minWidth, 2 * (gg.minWidth - 10));
+  });
+  const room2 = overlayRoom(ctx);
+  const wider = !horizontal && widen.length > 0;
+  const sign = model.direction === "left" || model.direction === "up" ? -1 : 1;
+  const along3 = (id) => {
+    const b = attachBox(ctx, id)?.full;
+    return b ? (horizontal ? b.x + b.w / 2 : b.y + b.h / 2) * sign : 0;
+  };
+  const back = new Set(
+    [...rerouted].filter((id) => {
+      const e = model.edges.find((x2) => x2.id === id);
+      return !!e && along3(e.from) > along3(e.to) + 1;
+    })
+  );
+  const loose = new Set([...rerouted].filter((id) => !back.has(id)));
+  return !opts.widen && !opts.room && !opts.loose && !opts.flip && (wider || room2.size || rerouted.size) ? {
+    ...opts,
+    widen: wider ? new Set(widen) : void 0,
+    room: room2.size ? room2 : void 0,
+    loose: loose.size ? loose : void 0,
+    flip: back.size ? back : void 0
+  } : void 0;
+}
+function overlayRoom(ctx) {
+  const { model, groups, rel: rel2 } = ctx;
+  const room2 = /* @__PURE__ */ new Map();
+  const headOf = (g) => {
+    const parts = [g.label.lines.length ? g.labelBox : void 0, g.iconBox].filter(
+      (b) => !!b && b.w > 0 && b.h > 0
+    );
+    return parts.length ? union3(parts) : void 0;
+  };
+  const hits5 = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  for (const ov of groups) {
+    const head2 = ov.overlay ? headOf(ov) : void 0;
+    if (!head2) continue;
+    let need = 0;
+    for (const g of groups) {
+      const h = g.overlay ? void 0 : headOf(g);
+      if (h && hits5(head2, h)) need = Math.max(need, h.y + h.h + 8 - head2.y);
+    }
+    if (need <= 0) continue;
+    for (const id of rel2.overlays.get(ov.id) ?? []) {
+      const parent = model.nodes.find((n4) => n4.id === id)?.parent ?? model.groups.find((g) => g.id === id)?.parent;
+      if (parent && !rel2.overlays.has(parent))
+        room2.set(parent, Math.max(room2.get(parent) ?? 0, Math.ceil(need)));
+    }
+  }
+  return room2;
+}
+
+// src/layout/nodes.ts
+function sceneNodes(ctx, placed, groups, top) {
+  const { model, nodeGeom, tokens: t, horizontal } = ctx;
   const nodes = [];
   for (const n4 of model.nodes) {
     const el = placed.get(n4.id);
     const g = nodeGeom.get(n4.id);
     if (!el || !g) continue;
     const box = {
-      x: round4(el.x ?? 0),
-      y: round4((el.y ?? 0) + top),
-      w: round4(el.width ?? 0),
-      h: round4(el.height ?? 0)
+      x: round2(el.x ?? 0),
+      y: round2((el.y ?? 0) + top),
+      w: round2(el.width ?? 0),
+      h: round2(el.height ?? 0)
     };
     const node4 = {
       id: n4.id,
@@ -14404,612 +15110,117 @@ async function layoutCore(model, opts = {}) {
       if (ink !== t.text) node4.ink = ink;
       if (inkMuted !== t.muted) node4.inkMuted = inkMuted;
     }
-    const S = n4.iconSize;
-    if (n4.look === "icon") {
-      if (horizontal) {
-        node4.iconBox = { ...box };
-        const lab = el.labels?.[0];
-        const lx = lab?.x !== void 0 ? lab.x : box.x + (S - (g.outside?.w ?? 0)) / 2;
-        const ly = lab?.y !== void 0 ? lab.y + top : box.y + S + 6;
-        const ow = g.outside?.w ?? g.label.width;
-        node4.labelBox = {
-          x: round4(lx + (ow - g.label.width) / 2),
-          y: round4(ly),
-          w: round4(g.label.width),
-          h: round4(g.label.height)
-        };
-      } else {
-        node4.iconBox = {
-          x: round4(box.x + (box.w - S) / 2),
-          y: box.y,
-          w: S,
-          h: S
-        };
-        node4.labelBox = {
-          x: round4(box.x + (box.w - g.label.width) / 2),
-          y: round4(box.y + S + 6),
-          w: round4(g.label.width),
-          h: round4(g.label.height)
-        };
-      }
-      if (g.note) {
-        node4.noteBox = {
-          x: round4(node4.labelBox.x + (g.label.width - g.note.width) / 2),
-          y: round4(node4.labelBox.y + g.label.height + 2),
-          w: round4(g.note.width),
-          h: round4(g.note.height)
-        };
-      }
-    } else if (n4.look === "card") {
-      const textH = g.label.height + (g.note ? g.note.height + 2 : 0);
-      const ix = box.x + 16;
-      if (n4.icon)
-        node4.iconBox = {
-          x: round4(ix),
-          y: round4(box.y + (box.h - S) / 2),
-          w: S,
-          h: S
-        };
-      const tx = n4.icon ? ix + S + 12 : box.x + 16;
-      const ty = box.y + (box.h - textH) / 2;
-      node4.labelBox = {
-        x: round4(tx),
-        y: round4(ty),
-        w: round4(g.label.width),
-        h: round4(g.label.height)
-      };
-      if (g.note)
-        node4.noteBox = {
-          x: round4(tx),
-          y: round4(ty + g.label.height + 2),
-          w: round4(g.note.width),
-          h: round4(g.note.height)
-        };
-    } else {
-      const textH = g.label.height + (g.note ? g.note.height + 2 : 0);
-      const extraTop = n4.shape === "person" ? 30 : n4.shape === "cylinder" ? 10 : n4.shape === "cloud" ? 8 : 0;
-      const innerH = box.h - extraTop - (n4.shape === "document" ? 10 : 0);
-      const iconW = n4.icon ? 28 : 0;
-      const textW = Math.max(g.label.width, g.note?.width ?? 0);
-      const startX = box.x + (box.w - (textW + iconW)) / 2;
-      const ty = box.y + extraTop + (innerH - textH) / 2;
-      if (n4.icon)
-        node4.iconBox = {
-          x: round4(startX),
-          y: round4(ty + (textH - 20) / 2),
-          w: 20,
-          h: 20
-        };
-      const tx = startX + iconW;
-      node4.labelBox = {
-        x: round4(tx + (textW - g.label.width) / 2),
-        y: round4(ty),
-        w: round4(g.label.width),
-        h: round4(g.label.height)
-      };
-      if (g.note) {
-        node4.noteBox = {
-          x: round4(tx + (textW - g.note.width) / 2),
-          y: round4(ty + g.label.height + 2),
-          w: round4(g.note.width),
-          h: round4(g.note.height)
-        };
-      }
-    }
+    if (n4.look === "icon") iconText(node4, n4, g, el, horizontal, top);
+    else if (n4.look === "card") cardText(node4, n4, g);
+    else shapeText(node4, n4, g);
     const outside = el.labels?.find((l) => l.id === `${n4.id}__label`);
     placeNotation(node4, n4, g, {
       horizontal,
-      label: outside?.x !== void 0 && outside.y !== void 0 ? { x: round4(outside.x), y: round4(outside.y + top) } : void 0
+      label: outside?.x !== void 0 && outside.y !== void 0 ? { x: round2(outside.x), y: round2(outside.y + top) } : void 0
     });
     if (n4.badge)
       node4.badgeBox = badgePill(n4.badge, node4.iconBox && n4.look === "icon" ? node4.iconBox : box);
     nodes.push(node4);
   }
-  for (const grp of model.groups) {
-    if (!grp.around?.length) continue;
-    const gg = groupGeom.get(grp.id);
-    const boxes = [];
-    for (const id of grp.around) {
-      const nd = nodes.find((x2) => x2.id === id);
-      if (nd)
-        boxes.push(
-          ...[nd.box, nd.iconBox, nd.labelBox, nd.noteBox, nd.badgeBox].filter(
-            (b) => !!b && b.w > 0
-          )
-        );
-      const sg2 = groups.find((x2) => x2.id === id);
-      if (sg2) boxes.push(sg2.box);
-    }
-    if (!boxes.length || !gg) continue;
-    const pad = 12;
-    const head2 = gg.iconStyle === "tile-center" && gg.icon ? Math.ceil(SIZES.tile / 2 + 3 + gg.label.height + 6) : pad + 2;
-    let x0 = Math.min(...boxes.map((b) => b.x)) - pad;
-    let x1 = Math.max(...boxes.map((b) => b.x + b.w)) + pad;
-    const short2 = gg.minWidth + 2 * pad - (x1 - x0);
-    if (short2 > 0) [x0, x1] = [x0 - short2 / 2, x1 + short2 / 2];
-    const y0 = Math.min(...boxes.map((b) => b.y)) - head2;
-    const y1 = Math.max(...boxes.map((b) => b.y + b.h)) + pad;
-    const sg = paintGroup(
-      grp,
-      { x: round4(x0), y: round4(y0), w: round4(x1 - x0), h: round4(y1 - y0) },
-      true
-    );
-    if (sg) groups.push(sg);
-  }
-  const edges = [];
-  const attachBox = (id) => {
-    const nd = nodes.find((x2) => x2.id === id);
-    if (nd) {
-      const side = nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
-      const parts = [nd.box, nd.iconBox, nd.labelBox, nd.noteBox].filter((b) => !!b);
-      return { side, full: union3(parts), parts };
-    }
-    const g = groups.find((x2) => x2.id === id);
-    if (!g) return void 0;
-    const head2 = g.overlay ? [g.iconBox, g.labelBox].filter((b) => !!b && b.w > 0) : [];
-    return { side: g.box, full: g.box, avoid: head2.length ? union3(head2) : void 0 };
-  };
-  const freeRoutes = /* @__PURE__ */ new Map();
-  const claimed = [];
-  const related2 = (a, b) => [a.from, a.to].some((id) => id === b.from || id === b.to);
-  const fits2 = (points, e) => {
-    const [s2, p, q, t2] = points;
-    if (!s2 || !p || !q || !t2) return true;
-    const v = Math.abs(p.x - q.x) < 0.5;
-    const at = v ? p.x : p.y;
-    const [lo, hi] = v ? [s2.x, t2.x].sort((m, n4) => m - n4) : [s2.y, t2.y].sort((m, n4) => m - n4);
-    if (at < (lo ?? at) + 8 || at > (hi ?? at) - 8) return false;
-    const span = (a, b) => (v ? [a.y, b.y] : [a.x, b.x]).sort((m, n4) => m - n4);
-    const [a0 = 0, a1 = 0] = span(p, q);
-    return !claimed.some((c) => {
-      if (related2(c.e, e) || Math.abs(c.p.x - c.q.x) < 0.5 !== v) return false;
-      if (Math.abs((v ? c.p.x : c.p.y) - at) >= 6) return false;
-      const [b0 = 0, b1 = 0] = span(c.p, c.q);
-      return Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
-    });
-  };
-  const unclaimed = (points, e, strict2 = false) => points.slice(1).every((q, i) => {
-    const p = points[i] ?? q;
-    const v = Math.abs(p.x - q.x) < 0.5;
-    const at = v ? p.x : p.y;
-    const [a0 = 0, a1 = 0] = (v ? [p.y, q.y] : [p.x, q.x]).sort((m, n4) => m - n4);
-    return !claimed.some((c) => {
-      if (related2(c.e, e) && !strict2 || c.e === e || Math.abs(c.p.x - c.q.x) < 0.5 !== v)
-        return false;
-      if (Math.abs((v ? c.p.x : c.p.y) - at) >= 6) return false;
-      const [b0 = 0, b1 = 0] = (v ? [c.p.y, c.q.y] : [c.p.x, c.q.x]).sort((m, n4) => m - n4);
-      return Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
-    });
-  });
-  const elkMarks = model.edges.flatMap((e) => {
-    const lab = edgeLabels.get(e.id);
-    const at = free(e) || !lab ? void 0 : findEdge(result2, e.id)?.labels?.[0];
-    return at?.x === void 0 || at.y === void 0 ? [] : [
-      {
-        id: e.id,
-        box: { x: round4(at.x), y: round4(at.y + top), w: lab?.w ?? 0, h: lab?.h ?? 0 }
-      }
-    ];
-  });
-  const headers = groups.flatMap((g) => {
-    const parts = [g.label.lines.length ? g.labelBox : void 0, g.iconBox].filter(
-      (b) => !!b && b.w > 0 && b.h > 0
-    );
-    if (!parts.length) return [];
-    const u = union3(parts);
-    return [{ id: g.id, box: { x: u.x - 4, y: u.y - 1, w: u.w + 8, h: u.h + 2 } }];
-  });
-  const ends2 = (e) => nodes.filter((n4) => n4.id === e.from || n4.id === e.to);
-  const others = (e) => [
-    ...nodes.filter((n4) => n4.id !== e.from && n4.id !== e.to).map((n4) => union3([n4.box, n4.iconBox, n4.labelBox, n4.noteBox])),
-    ...headers.filter((h) => !(overlays.has(h.id) && (h.id === e.from || h.id === e.to))).map((h) => h.box),
-    ...elkMarks.filter((m) => m.id !== e.id).map((m) => m.box)
-  ];
-  const own = (e) => ends2(e).flatMap((n4) => [n4.box, n4.labelBox, n4.noteBox].filter((b) => !!b && b.w > 0));
-  const walls = (e) => [...others(e), ...own(e)];
-  const roomyWalls = (e) => [
-    ...others(e).map((b) => ({ x: b.x - 4, y: b.y - 4, w: b.w + 8, h: b.h + 8 })),
-    ...nodes.filter((n4) => n4.id !== e.from && n4.id !== e.to).map((n4) => ({ x: n4.box.x - 10, y: n4.box.y - 10, w: n4.box.w + 20, h: n4.box.h + 20 })),
-    ...own(e)
-  ];
-  const borders = groups.filter((g) => !g.overlay).map((g) => g.box);
-  const elkRoute = (e) => {
-    const sec = free(e) ? void 0 : findEdge(result2, e.id)?.sections?.[0];
-    return sec ? dropStraightPoints([sec.startPoint, ...sec.bendPoints ?? [], sec.endPoint].map(shift)) : void 0;
-  };
-  const elkLines = plan.blocks.size || plan.grids.size || opts.loose ? model.edges.flatMap((o) => {
-    const pts = elkRoute(o);
-    return pts ? pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q })) : [];
-  }) : [];
-  for (const straight of [true, false]) {
-    for (const e of model.edges) {
-      const a = attachBox(e.from);
-      const b = attachBox(e.to);
-      if (!free(e) || !a || !b) continue;
-      const steered = (p) => steer(steer(p, "to", b.avoid, b.full), "from", a.avoid, a.full);
-      const route = (d) => steered(freeRoute(a, b, d));
-      let points = route(0);
-      if (points.length === 2 !== straight) continue;
-      const shifts = [0, 12, -12, 24, -24, 36, -36].map(route);
-      if (!straight) points = shifts.find((p) => fits2(p, e)) ?? points;
-      const w = walls(e);
-      const known2 = !inBlock(e) && !gridBetween(e) && !opts.loose?.has(e.id);
-      if (!known2 || runsThrough(points, w)) {
-        const roomy = roomyWalls(e);
-        const heads = {
-          start: e.arrow === "start" || e.arrow === "both",
-          end: e.arrow !== "none" && e.arrow !== "start"
-        };
-        const lanes = [
-          ...straight ? [points] : shifts.filter((p) => fits2(p, e)),
-          ...laneRoutes(a, b, heads, borders, horizontal).map(steered)
-        ].filter(
-          (p) => unclaimed(p, e, !known2) && !elkLines.some((c) => collinear(p, c.p, c.q)) && (known2 || headRoom(p, heads))
-        );
-        const drawn2 = [...claimed.filter((c) => c.e !== e), ...elkLines].map((c) => ({
-          x: Math.min(c.p.x, c.q.x),
-          y: Math.min(c.p.y, c.q.y),
-          w: Math.abs(c.q.x - c.p.x),
-          h: Math.abs(c.q.y - c.p.y)
-        }));
-        const taken = [...claimed.filter((c) => c.e !== e), ...elkLines].flatMap((c) => [c.p, c.q]);
-        const around = () => {
-          const path = detour(a, b, roomy, [...borders, ...drawn2], taken);
-          return path && !runsThrough(steered(path), w) ? steered(path) : void 0;
-        };
-        points = lanes.find((p) => !runsThrough(p, roomy) && !alongBorder(p, borders)) ?? around() ?? lanes.find((p) => !runsThrough(p, w)) ?? points;
-      }
-      freeRoutes.set(e.id, points);
-      claimed.push(...points.slice(1).map((q, i) => ({ e, p: points[i] ?? q, q })));
-    }
-  }
-  const rerouted = /* @__PURE__ */ new Set();
-  if (plan.blocks.size) {
-    const length2 = (pts) => pts.slice(1).reduce(
-      (t2, q, i) => t2 + Math.abs(q.x - (pts[i]?.x ?? q.x)) + Math.abs(q.y - (pts[i]?.y ?? q.y)),
-      0
-    );
-    for (const e of model.edges) {
-      const elk2 = plan.blockOf.has(e.from) || plan.blockOf.has(e.to) ? elkRoute(e) : void 0;
-      const a = attachBox(e.from);
-      const b = attachBox(e.to);
-      if (!elk2 || !a || !b || elk2.length < 3) continue;
-      const loop2 = elk2.length >= 6 || alongBorder(elk2, borders);
-      const most = length2(elk2) * (loop2 ? 1 : 0.7);
-      const roomy = roomyWalls(e);
-      const others2 = model.edges.flatMap((o) => {
-        const pts = o === e ? void 0 : freeRoutes.get(o.id) ?? elkRoute(o);
-        return pts ? pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q })) : [];
-      });
-      const clear = (pts) => !runsThrough(pts, roomy) && !alongBorder(pts, borders) && length2(pts) < most && others2.every((c) => !collinear(pts, c.p, c.q));
-      const heads = {
-        start: e.arrow === "start" || e.arrow === "both",
-        end: e.arrow !== "none" && e.arrow !== "start"
-      };
-      const better = [freeRoute(a, b, 0), ...laneRoutes(a, b, heads, borders, horizontal)].find(clear) ?? [detour(a, b, roomy, borders)].find((p) => !!p && clear(p));
-      if (!better) continue;
-      freeRoutes.set(e.id, better);
-      rerouted.add(e.id);
-    }
-  }
-  for (const e of model.edges) {
-    if (free(e) || rerouted.has(e.id)) {
-      const points2 = freeRoutes.get(e.id);
-      if (points2)
-        edges.push({
-          id: e.id,
-          from: e.from,
-          to: e.to,
-          points: points2,
-          line: e.line,
-          arrow: e.arrow,
-          color: e.color,
-          step: e.step,
-          ...e.flow ? { flow: e.flow } : {}
-        });
-      continue;
-    }
-    const el = result2.edges?.find((x2) => x2.id === e.id) ?? findEdge(result2, e.id);
-    const section = el?.sections?.[0];
-    if (!el || !section) continue;
-    const points = [section.startPoint, ...section.bendPoints ?? [], section.endPoint].map(shift);
-    const edge3 = {
-      id: e.id,
-      from: e.from,
-      to: e.to,
-      points,
-      line: e.line,
-      arrow: e.arrow,
-      color: e.color,
-      step: e.step,
-      ...e.flow ? { flow: e.flow } : {}
-    };
-    const lab = edgeLabels.get(e.id);
-    const elkLabel = el.labels?.[0];
-    if (lab && elkLabel?.x !== void 0 && elkLabel.y !== void 0) {
-      const box = {
-        x: round4(elkLabel.x),
-        y: round4(elkLabel.y + top),
-        w: lab.w,
-        h: lab.h
-      };
-      if (e.step !== void 0) {
-        edge3.stepBox = {
-          x: box.x,
-          y: round4(box.y + (box.h - SIZES.step) / 2),
-          w: SIZES.step,
-          h: SIZES.step
-        };
-      }
-      if (e.label) {
-        edge3.label = lab.block;
-        edge3.labelBox = {
-          x: round4(box.x + lab.stepW + (lab.stepW ? 2 : 0)),
-          y: box.y,
-          w: round4(lab.w - lab.stepW - (lab.stepW ? 2 : 0)),
-          h: lab.h
-        };
-      }
-    }
-    edges.push(edge3);
-  }
-  if (model.routing !== "spline") for (const e of edges) e.points = dropStraightPoints(e.points);
-  if (model.routing === "orthogonal") {
-    const sides = new Map([
-      ...groups.filter((g) => !g.overlay).map((g) => [g.id, [g.box]]),
-      ...nodes.map((n4) => [
-        n4.id,
-        n4.look === "icon" && n4.iconBox ? [n4.iconBox, n4.box] : [n4.box]
-      ])
-    ]);
-    for (const e of edges) {
-      straightenEnd(e, "to", sides.get(e.to), edges);
-      straightenEnd(e, "from", sides.get(e.from), edges);
-      e.points = dropStraightPoints(e.points);
-    }
-  }
-  const footprints = nodes.map((n4) => union3([n4.box, n4.iconBox, n4.labelBox, n4.noteBox]));
-  for (const e of model.edges) {
-    const edge3 = edges.find((x2) => x2.id === e.id);
-    if (!(free(e) || rerouted.has(e.id)) || !edge3 || !e.label && e.step === void 0) continue;
-    const block3 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
-    const w = Math.ceil((e.label ? block3.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-    const h = Math.ceil(Math.max(e.label ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
-    const fresh = inBlock(e) || gridBetween(e) || rerouted.has(e.id) || !!opts.loose?.has(e.id);
-    const box = freeLabelBox(edge3.points, w, h, [
-      ...footprints,
-      ...edges.flatMap((x2) => [x2.labelBox, x2.stepBox]),
-      ...groups.map((g) => g.labelBox),
-      ...fresh ? nodes.map((n4) => n4.badgeBox) : [],
-      ...fresh ? groups.flatMap((g) => [
-        { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
-        { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
-        { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
-        { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
-      ]) : []
-    ]);
-    if (e.step !== void 0)
-      edge3.stepBox = {
-        x: box.x,
-        y: round4(box.y + (h - SIZES.step) / 2),
-        w: SIZES.step,
-        h: SIZES.step
-      };
-    if (e.label) {
-      edge3.label = block3;
-      edge3.labelBox = {
-        x: round4(box.x + stepW + (stepW ? 2 : 0)),
-        y: box.y,
-        w: round4(w - stepW - (stepW ? 2 : 0)),
-        h
-      };
-    }
-  }
-  const hooked = { model, theme, horizontal, top, nodes, groups, edges, routing: model.routing };
-  for (const h of HOOKS) h.after?.(hooked);
-  for (const [i, g] of groups.entries()) {
-    const grp = g.overlay ? model.groups.find((x2) => x2.id === g.id) : void 0;
-    if (!grp) continue;
-    let [x0, y0, x1, y1] = [g.box.x, g.box.y, g.box.x + g.box.w, g.box.y + g.box.h];
-    for (const e of edges)
-      for (let k = 1; k < e.points.length; k++) {
-        const p = e.points[k - 1];
-        const q = e.points[k];
-        if (!p || !q) continue;
-        const flat = Math.abs(p.y - q.y) < 0.5;
-        if (!flat && Math.abs(p.x - q.x) >= 0.5) continue;
-        const [lo, hi] = flat ? [Math.min(p.x, q.x), Math.max(p.x, q.x)] : [Math.min(p.y, q.y), Math.max(p.y, q.y)];
-        const [from, to] = flat ? [x0, x1] : [y0, y1];
-        if (Math.min(hi, to) - Math.max(lo, from) < 20) continue;
-        const at = flat ? p.y : p.x;
-        if (flat && Math.abs(at - y0) < 8) y0 = Math.min(y0, at - 8);
-        if (flat && Math.abs(at - y1) < 8) y1 = Math.max(y1, at + 8);
-        if (!flat && Math.abs(at - x0) < 8) x0 = Math.min(x0, at - 8);
-        if (!flat && Math.abs(at - x1) < 8) x1 = Math.max(x1, at + 8);
-      }
-    if (x0 === g.box.x && y0 === g.box.y && x1 === g.box.x + g.box.w && y1 === g.box.y + g.box.h)
-      continue;
-    const box = { x: round4(x0), y: round4(y0), w: round4(x1 - x0), h: round4(y1 - y0) };
-    const sg = paintGroup(grp, box, true);
-    if (sg) groups[i] = sg;
-  }
-  const blocked = [];
-  for (const g of groups) {
-    const room3 = headerRoom.get(g.id);
-    if (room3 && !clearHeader(g, room3, groups, nodes, edges)) blocked.push(g.id);
-  }
-  const widen = blocked.filter((id) => {
-    const gg = groupGeom.get(id);
-    const box = groups.find((g) => g.id === id)?.box;
-    if (!gg || !box || gg.center || gg.iconStyle === "tile-center") return false;
-    if (model.groups.find((g) => g.id === id)?.around) return false;
-    return box.w + 0.5 < Math.max(gg.minWidth, 2 * (gg.minWidth - 10));
-  });
-  const room2 = /* @__PURE__ */ new Map();
-  const headOf = (g) => {
-    const parts = [g.label.lines.length ? g.labelBox : void 0, g.iconBox].filter(
-      (b) => !!b && b.w > 0 && b.h > 0
-    );
-    return parts.length ? union3(parts) : void 0;
-  };
-  const hits5 = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-  for (const ov of groups) {
-    const head2 = ov.overlay ? headOf(ov) : void 0;
-    if (!head2) continue;
-    let need = 0;
-    for (const g of groups) {
-      const h = g.overlay ? void 0 : headOf(g);
-      if (h && hits5(head2, h)) need = Math.max(need, h.y + h.h + 8 - head2.y);
-    }
-    if (need <= 0) continue;
-    for (const id of overlays.get(ov.id) ?? []) {
-      const parent = model.nodes.find((n4) => n4.id === id)?.parent ?? model.groups.find((g) => g.id === id)?.parent;
-      if (parent && !overlays.has(parent))
-        room2.set(parent, Math.max(room2.get(parent) ?? 0, Math.ceil(need)));
-    }
-  }
-  const wider = !horizontal && widen.length > 0;
-  if (!opts.widen && !opts.room && !opts.loose && (wider || room2.size || rerouted.size))
-    return layoutCore(model, {
-      ...opts,
-      widen: wider ? new Set(widen) : void 0,
-      room: room2.size ? room2 : void 0,
-      loose: rerouted.size ? rerouted : void 0
-    });
-  const drawn = [
-    ...groups.flatMap((g) => [g.box, g.labelBox, g.iconBox]),
-    ...nodes.flatMap((n4) => [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox]),
-    ...edges.flatMap((e) => [
-      e.labelBox,
-      e.stepBox,
-      ...e.points.map((p) => ({ ...p, w: 0, h: 0 }))
-    ])
-  ].filter((b) => !!b);
-  const dx = Math.max(0, Math.ceil(4 - Math.min(...drawn.map((b) => b.x))));
-  const dy = Math.max(
-    0,
-    Math.ceil(top + (titleBlock ? 8 : 4) - Math.min(...drawn.map((b) => b.y)))
-  );
-  if (dx || dy) {
-    const moved = /* @__PURE__ */ new Set();
-    const move = (b) => {
-      if (!b || moved.has(b)) return;
-      moved.add(b);
-      b.x = round4(b.x + dx);
-      b.y = round4(b.y + dy);
-    };
-    for (const g of groups) [g.box, g.labelBox, g.iconBox, g.inner?.box].forEach(move);
-    for (const n4 of nodes) [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox].forEach(move);
-    for (const e of edges) {
-      [e.labelBox, e.stepBox].forEach(move);
-      e.points = e.points.map((p) => ({
-        x: round4(p.x + dx),
-        y: round4(p.y + dy)
-      }));
-    }
-  }
-  let width2 = hidden.size ? 0 : round4((result2.width ?? 0) + dx);
-  let height = hidden.size ? 0 : round4((result2.height ?? 0) + top + dy);
-  const relocated = model.kind !== "architecture" || hidden.size > 0 ? nodes.flatMap((n4) => [n4.box, n4.labelBox, n4.noteBox, n4.badgeBox]) : [];
-  for (const b of [
-    ...groups.map((g) => g.box),
-    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
-    ...relocated
-  ]) {
-    if (!b) continue;
-    width2 = Math.max(width2, round4(b.x + b.w + SIZES.pad));
-    height = Math.max(height, round4(b.y + b.h + SIZES.pad));
-  }
-  let titleBox;
-  let subtitleBox;
-  if (titleBlock) {
-    titleBox = {
-      x: SIZES.pad,
-      y: SIZES.pad - 4,
-      w: round4(titleBlock.width),
-      h: round4(titleBlock.height)
-    };
-    width2 = Math.max(width2, round4(titleBlock.width + SIZES.pad * 2));
-    if (subtitleBlock) {
-      subtitleBox = {
-        x: SIZES.pad,
-        y: round4(titleBox.y + titleBlock.height + 4),
-        w: round4(subtitleBlock.width),
-        h: round4(subtitleBlock.height)
-      };
-      width2 = Math.max(width2, round4(subtitleBlock.width + SIZES.pad * 2));
-    }
-  }
-  width2 = Math.ceil(width2);
-  height = Math.ceil(height);
-  let legend4;
-  if (model.legend?.length) {
-    legend4 = placeLegend2(model.legend, width2, height);
-    width2 = Math.max(width2, Math.ceil(legend4.box.w + SIZES.pad * 2));
-    height = Math.ceil(legend4.box.y + legend4.box.h + SIZES.pad);
-  }
-  const scene = {
-    width: width2,
-    height,
-    theme,
-    direction: model.direction,
-    routing: hooked.routing,
-    arrowhead: model.arrowhead,
-    animate: animateOf(model),
-    skin: model.skin,
-    background: model.background,
-    title: titleBlock,
-    titleBox,
-    subtitle: subtitleBlock,
-    subtitleBox,
-    nodes,
-    groups,
-    edges,
-    legend: legend4,
-    layoutFallback: fallback,
-    description: describe2(model),
-    kind: model.kind,
-    ...model.story ? { story: model.story } : {},
-    ...plan.ignored.length ? { ignored: plan.ignored } : {}
-  };
-  return model.skin === "stage" ? stageColors(scene) : scene;
+  return nodes;
 }
-var animateOf = (model) => model.animate ?? (model.skin === "stage" ? "relay" : "packets");
-function placeLegend2(entries2, width2, height) {
-  const P2 = 10;
-  const rows = entries2.map((e) => ({
-    line: e.line,
-    label: textBlock(e.label, SIZES.edgeLabel, 240)
-  }));
-  const w = Math.ceil(P2 + 28 + 8 + Math.max(...rows.map((r3) => r3.label.width)) + P2);
-  const pitch = rows.map((r3) => Math.max(18, r3.label.height + 3));
-  const last = rows[rows.length - 1]?.label.height ?? 0;
-  const h = Math.ceil(P2 + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P2);
-  const box = {
-    x: Math.max(SIZES.pad, width2 - SIZES.pad - w),
-    y: height - SIZES.pad + 12,
-    w,
-    h
+function iconText(node4, n4, g, el, horizontal, top) {
+  const { box } = node4;
+  const S = n4.iconSize;
+  if (horizontal) {
+    node4.iconBox = { ...box };
+    const lab = el.labels?.[0];
+    const lx = lab?.x !== void 0 ? lab.x : box.x + (S - (g.outside?.w ?? 0)) / 2;
+    const ly = lab?.y !== void 0 ? lab.y + top : box.y + S + 6;
+    const ow = g.outside?.w ?? g.label.width;
+    node4.labelBox = {
+      x: round2(lx + (ow - g.label.width) / 2),
+      y: round2(ly),
+      w: round2(g.label.width),
+      h: round2(g.label.height)
+    };
+  } else {
+    node4.iconBox = {
+      x: round2(box.x + (box.w - S) / 2),
+      y: box.y,
+      w: S,
+      h: S
+    };
+    node4.labelBox = {
+      x: round2(box.x + (box.w - g.label.width) / 2),
+      y: round2(box.y + S + 6),
+      w: round2(g.label.width),
+      h: round2(g.label.height)
+    };
+  }
+  if (g.note) {
+    node4.noteBox = {
+      x: round2(node4.labelBox.x + (g.label.width - g.note.width) / 2),
+      y: round2(node4.labelBox.y + g.label.height + 2),
+      w: round2(g.note.width),
+      h: round2(g.note.height)
+    };
+  }
+}
+function cardText(node4, n4, g) {
+  const { box } = node4;
+  const S = n4.iconSize;
+  const textH = g.label.height + (g.note ? g.note.height + 2 : 0);
+  const ix = box.x + 16;
+  if (n4.icon)
+    node4.iconBox = {
+      x: round2(ix),
+      y: round2(box.y + (box.h - S) / 2),
+      w: S,
+      h: S
+    };
+  const tx = n4.icon ? ix + S + 12 : box.x + 16;
+  const ty = box.y + (box.h - textH) / 2;
+  node4.labelBox = {
+    x: round2(tx),
+    y: round2(ty),
+    w: round2(g.label.width),
+    h: round2(g.label.height)
   };
-  let y = box.y + P2;
-  const items = rows.map((r3, i) => {
-    const swatch = {
-      x: box.x + P2,
-      y: round4(y + (r3.label.lead - 12) / 2),
-      w: 28,
-      h: 12
+  if (g.note)
+    node4.noteBox = {
+      x: round2(tx),
+      y: round2(ty + g.label.height + 2),
+      w: round2(g.note.width),
+      h: round2(g.note.height)
     };
-    const labelBox = {
-      x: box.x + P2 + 36,
-      y: round4(y),
-      w: round4(r3.label.width),
-      h: round4(r3.label.height)
+}
+function shapeText(node4, n4, g) {
+  const { box } = node4;
+  const textH = g.label.height + (g.note ? g.note.height + 2 : 0);
+  const extraTop = n4.shape === "person" ? 30 : n4.shape === "cylinder" ? 10 : n4.shape === "cloud" ? 8 : 0;
+  const innerH = box.h - extraTop - (n4.shape === "document" ? 10 : 0);
+  const iconW = n4.icon ? 28 : 0;
+  const textW = Math.max(g.label.width, g.note?.width ?? 0);
+  const startX = box.x + (box.w - (textW + iconW)) / 2;
+  const ty = box.y + extraTop + (innerH - textH) / 2;
+  if (n4.icon)
+    node4.iconBox = {
+      x: round2(startX),
+      y: round2(ty + (textH - 20) / 2),
+      w: 20,
+      h: 20
     };
-    y += pitch[i] ?? 18;
-    return { line: r3.line, swatch, label: r3.label, labelBox };
-  });
-  return { box, items };
+  const tx = startX + iconW;
+  node4.labelBox = {
+    x: round2(tx + (textW - g.label.width) / 2),
+    y: round2(ty),
+    w: round2(g.label.width),
+    h: round2(g.label.height)
+  };
+  if (g.note) {
+    node4.noteBox = {
+      x: round2(tx + (textW - g.note.width) / 2),
+      y: round2(ty + g.label.height + 2),
+      w: round2(g.note.width),
+      h: round2(g.note.height)
+    };
+  }
 }
 function fitIcons(scene) {
   if (scene.direction !== "right" && scene.direction !== "left") return;
@@ -15017,9 +15228,9 @@ function fitIcons(scene) {
     const b = n4.iconBox;
     const aspect = n4.look === "icon" && n4.icon ? iconAspect(n4.icon) : void 0;
     if (!b || !aspect || aspect >= 1) continue;
-    const w = round4(b.h * aspect);
+    const w = round2(b.h * aspect);
     if (w >= b.w - 0.01) continue;
-    const x2 = round4(b.x + (b.w - w) / 2);
+    const x2 = round2(b.x + (b.w - w) / 2);
     for (const e of scene.edges) {
       const ends2 = [e.from === n4.id ? 0 : -1, e.to === n4.id ? e.points.length - 1 : -1];
       for (const i of ends2) {
@@ -15027,11 +15238,67 @@ function fitIcons(scene) {
         const next = e.points[i === 0 ? 1 : i - 1];
         if (!p || !next || Math.abs(next.y - p.y) > 0.5 || p.y < b.y || p.y > b.y + b.h) continue;
         if (Math.abs(p.x - b.x) < 0.5) e.points[i] = { x: x2, y: p.y };
-        else if (Math.abs(p.x - (b.x + b.w)) < 0.5) e.points[i] = { x: round4(x2 + w), y: p.y };
+        else if (Math.abs(p.x - (b.x + b.w)) < 0.5) e.points[i] = { x: round2(x2 + w), y: p.y };
       }
     }
     n4.iconBox = { ...b, x: x2, w };
     if (n4.badge) n4.badgeBox = badgePill(n4.badge, n4.iconBox);
+  }
+}
+
+// src/layout/trim.ts
+function trimGroups(ctx, placed, elkEdges) {
+  const { model, opts, groupGeom } = ctx;
+  const edgeMarks = elkEdges.flatMap((e) => [
+    ...(e.sections ?? []).flatMap(
+      (s) => [s.startPoint, ...s.bendPoints ?? [], s.endPoint].map((p) => ({
+        ...p,
+        w: 0,
+        h: 0
+      }))
+    ),
+    ...(e.labels ?? []).map((l) => ({
+      x: l.x ?? 0,
+      y: l.y ?? 0,
+      w: l.width,
+      h: l.height
+    }))
+  ]);
+  const byDepth = model.groups.filter((g) => !g.around).sort((a, b) => depthOf(model, b.parent) - depthOf(model, a.parent));
+  for (const grp of byDepth) {
+    const el = placed.get(grp.id);
+    const gg = groupGeom.get(grp.id);
+    if (!el?.children?.length || !gg) continue;
+    const kids = el.children.flatMap((c) => [
+      { x: c.x ?? 0, y: c.y ?? 0, w: c.width ?? 0, h: c.height ?? 0 },
+      ...(c.labels ?? []).map((l) => ({
+        x: l.x ?? 0,
+        y: l.y ?? 0,
+        w: l.width,
+        h: l.height
+      }))
+    ]);
+    const old = {
+      x: el.x ?? 0,
+      y: el.y ?? 0,
+      w: el.width ?? 0,
+      h: el.height ?? 0
+    };
+    const k = union3(kids);
+    let x0 = Math.max(old.x, k.x - 20);
+    let y0 = Math.max(old.y, k.y - gg.header - 18 - (opts.room?.get(grp.id) ?? 0));
+    let x1 = Math.min(old.x + old.w, k.x + k.w + 20);
+    let y1 = Math.min(old.y + old.h, k.y + k.h + 20);
+    if (x1 - x0 < minWidthOf(ctx, grp.id, gg)) [x0, x1] = [old.x, old.x + old.w];
+    if (y1 - y0 < gg.header + 42) [y0, y1] = [old.y, old.y + old.h];
+    for (const b of edgeMarks) {
+      if (!contains(old, b)) continue;
+      if (b.x < x0) x0 = old.x;
+      if (b.y < y0) y0 = old.y;
+      if (b.x + b.w > x1) x1 = old.x + old.w;
+      if (b.y + b.h > y1) y1 = old.y + old.h;
+    }
+    Object.assign(el, { x: x0, y: y0, width: x1 - x0, height: y1 - y0 });
   }
 }
 function stretchColumns(model, placed, edges) {
@@ -15110,326 +15377,244 @@ function stretchColumns(model, placed, edges) {
     }
   }
 }
-var segmentBox = (p, q) => ({
-  x: Math.min(p.x, q.x),
-  y: Math.min(p.y, q.y),
-  w: Math.abs(q.x - p.x),
-  h: Math.abs(q.y - p.y)
-});
-function clearHeader(g, room2, groups, nodes, edges) {
-  const icon2 = room2.moveIcon ? g.iconBox : void 0;
-  const u = union3([g.labelBox, icon2]);
-  const chip = { x: u.x - 6, y: u.y - 1, w: u.w + 12, h: u.h + 2 };
-  const inBand = (b) => b.y < chip.y + chip.h - 0.5 && b.y + b.h > chip.y + 0.5;
-  const hit = (b, dx2) => b.x < chip.x + dx2 + chip.w - 0.01 && b.x + b.w > chip.x + dx2 + 0.01;
-  const segments3 = edges.flatMap((e) => e.points.slice(1).map((q, i) => segmentBox(e.points[i] ?? q, q))).filter(inBand);
-  const others = [
-    ...segments3,
-    ...nodes.flatMap((n4) => [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox]),
-    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
-    ...groups.filter((o) => o !== g).flatMap((o) => [o.labelBox, o.iconBox])
-  ].filter((b) => !!b && inBand(b));
-  if (!(g.overlay ? others : segments3).some((b) => hit(b, 0))) return true;
-  const min = room2.lo - u.x;
-  const max = room2.hi - (u.x + u.w);
-  const dx = others.flatMap((b) => [b.x - (chip.x + chip.w), b.x + b.w - chip.x]).filter((d) => d >= min - 0.01 && d <= max + 0.01 && !others.some((b) => hit(b, d))).sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)[0];
-  if (dx === void 0) return false;
-  g.labelBox.x = round4(g.labelBox.x + dx);
-  if (icon2) icon2.x = round4(icon2.x + dx);
-  return true;
-}
-var contains = (outer, b) => b.x >= outer.x - 0.01 && b.y >= outer.y - 0.01 && b.x + b.w <= outer.x + outer.w + 0.01 && b.y + b.h <= outer.y + outer.h + 0.01;
-function union3(boxes) {
-  const list = boxes.filter((b) => !!b);
-  const x2 = Math.min(...list.map((b) => b.x));
-  const y = Math.min(...list.map((b) => b.y));
-  const w = Math.max(...list.map((b) => b.x + b.w)) - x2;
-  const h = Math.max(...list.map((b) => b.y + b.h)) - y;
-  return { x: x2, y, w, h };
-}
-function steer(points, end, avoid, border) {
-  if (!avoid) return points;
-  const pts = (end === "to" ? [...points].reverse() : [...points]).map((q) => ({ ...q }));
-  const [e, p] = pts;
-  const far = pts.at(-1);
-  if (!e || !p || !far || pts.length < 2) return points;
-  const gap = 12;
-  const under = e.x >= avoid.x - gap && e.x <= avoid.x + avoid.w + gap && e.y >= avoid.y - gap && e.y <= avoid.y + avoid.h + gap;
-  if (!under) return points;
-  const vertical = Math.abs(p.x - e.x) < 0.5;
-  const k = vertical ? "x" : "y";
-  const j = vertical ? "y" : "x";
-  const clear = 20;
-  const lo = (vertical ? avoid.x : avoid.y) - clear;
-  const hi = (vertical ? avoid.x + avoid.w : avoid.y + avoid.h) + clear;
-  const min = (vertical ? border.x : border.y) + gap;
-  const max = (vertical ? border.x + border.w : border.y + border.h) - gap;
-  const to = (far[k] <= (lo + hi) / 2 ? [lo, hi] : [hi, lo]).map(round4).find((v) => v >= min && v <= max);
-  if (to === void 0) return points;
-  let out = pts;
-  if (pts.length === 2) {
-    const mid = round4((e[j] + far[j]) / 2);
-    const at = (a, b) => vertical ? { x: a, y: b } : { x: b, y: a };
-    out = [at(to, e[j]), at(to, mid), at(far[k], mid), far];
-  } else {
-    e[k] = to;
-    p[k] = to;
+
+// src/layout/read.ts
+function readBack(ctx) {
+  const { model, titleBlock, subtitleBlock, result: result2 } = ctx;
+  const top = titleBlock ? Math.ceil(SIZES.pad + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6) : 0;
+  const shift = (p) => ({ x: round2(p.x), y: round2(p.y + top) });
+  const placed = /* @__PURE__ */ new Map();
+  const walk = (n4) => {
+    placed.set(n4.id, n4);
+    for (const c of n4.children ?? []) walk(c);
+  };
+  walk(result2);
+  const elkEdges = [...placed.values()].flatMap((n4) => n4.edges ?? []);
+  trimGroups(ctx, placed, elkEdges);
+  stretchColumns(model, placed, elkEdges);
+  const groups = [];
+  const headerRoom = /* @__PURE__ */ new Map();
+  const paint = { ...ctx, headerRoom };
+  for (const grp of model.groups) {
+    if (grp.around) continue;
+    const el = placed.get(grp.id);
+    if (!el) continue;
+    const box = {
+      x: round2(el.x ?? 0),
+      y: round2((el.y ?? 0) + top),
+      w: round2(el.width ?? 0),
+      h: round2(el.height ?? 0)
+    };
+    const sg = paintGroup(paint, grp, box, false);
+    if (sg) groups.push(sg);
   }
-  return end === "to" ? out.reverse() : out;
+  groups.sort((a, b) => a.depth - b.depth);
+  const nodes = sceneNodes(ctx, placed, groups, top);
+  drawOverlays(paint, groups, nodes);
+  return { ...ctx, top, shift, placed, headerRoom, groups, nodes };
 }
-function freeRoute(from, to, shift) {
-  const sideBySide = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
-  const a = sideBySide ? from.side : from.full;
-  const b = sideBySide ? to.side : to.full;
-  const ac = { x: from.side.x + from.side.w / 2, y: a.y + a.h / 2 };
-  const bc = { x: to.side.x + to.side.w / 2, y: b.y + b.h / 2 };
-  if (sideBySide) {
-    const right = a.x + a.w <= b.x;
-    const sx = right ? a.x + a.w : a.x;
-    const ex = right ? b.x : b.x + b.w;
-    if (Math.abs(ac.y - bc.y) < 1)
-      return [
-        { x: sx, y: ac.y },
-        { x: ex, y: ac.y }
-      ];
-    const mx = round4((sx + ex) / 2 + shift);
-    return [
-      { x: sx, y: ac.y },
-      { x: mx, y: ac.y },
-      { x: mx, y: bc.y },
-      { x: ex, y: bc.y }
-    ];
+
+// src/layout/grids.ts
+async function boxGrids(ctx, ranked, gridPlans, cellRuns) {
+  const { opts, plan, horizontal, elkNodes, groupGeom, rel: rel2 } = ctx;
+  for (const gid of [...plan.grids.keys()].sort(
+    (a, b) => rel2.above(b).length - rel2.above(a).length
+  )) {
+    const el = elkNodes.get(gid);
+    const gg = groupGeom.get(gid);
+    if (!el || !gg) continue;
+    const list = await cellList(ctx, gid, ranked, cellRuns);
+    if (!list.length) continue;
+    const grid = gridCells(list, plan.grids.get(gid) ?? 1, cellGap(ctx, list));
+    const top = gg.header + 18 + (opts.room?.get(gid) ?? 0);
+    const position = el.layoutOptions?.["elk.position"];
+    Object.assign(el, {
+      width: Math.max(minWidthOf(ctx, gid, gg), grid.w + 40),
+      height: Math.max(gg.header + 60, top + grid.h + 20),
+      children: [],
+      layoutOptions: {
+        "elk.alignment": horizontal ? "CENTER" : "TOP",
+        ...position ? { "elk.position": position } : {}
+      }
+    });
+    gridPlans.set(gid, { cells: list, at: grid.at, w: grid.w, top });
   }
-  const down = a.y + a.h <= b.y;
-  const sy = down ? a.y + a.h : a.y;
-  const ey = down ? b.y : b.y + b.h;
-  if (Math.abs(ac.x - bc.x) < 1)
-    return [
-      { x: ac.x, y: sy },
-      { x: ac.x, y: ey }
-    ];
-  const my = round4((sy + ey) / 2 + shift);
-  return [
-    { x: ac.x, y: sy },
-    { x: ac.x, y: my },
-    { x: bc.x, y: my },
-    { x: bc.x, y: ey }
-  ];
 }
-function straightenEnd(e, end, sides, edges) {
-  const n4 = e.points.length;
-  const at = (i) => e.points[end === "to" ? n4 - 1 - i : i];
-  const E = at(0);
-  const P2 = at(1);
-  const Q = at(2);
-  if (!E || !P2 || !sides) return;
-  const vertical = Math.abs(P2.y - E.y) > Math.abs(P2.x - E.x);
-  const k = vertical ? "x" : "y";
-  const a = vertical ? "y" : "x";
-  let target = P2[k];
-  let moveP = false;
-  if (Q) {
-    const lateral = Math.abs(Q[k] - P2[k]);
-    const along3 = Math.abs(Q[a] - P2[a]);
-    const jog = along3 < 0.01 && lateral > 0.01 && lateral < 6 && n4 >= 4;
-    const skew = lateral > 0.01 && lateral <= 1 && along3 > lateral;
-    if (jog || skew) [target, moveP] = [Q[k], true];
-  }
-  if (Math.abs(target - E[k]) < 0.01 || Math.abs(target - E[k]) > 6) return;
-  const side = sides.find((b) => {
-    const edge3 = vertical ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
-    const [lo2, hi2] = vertical ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
-    return edge3.some((v) => Math.abs(v - E[a]) < 0.5) && E[k] >= lo2 - 0.5 && E[k] <= hi2 + 0.5;
-  });
-  if (!side) return;
-  const [lo, hi] = vertical ? [side.x, side.x + side.w] : [side.y, side.y + side.h];
-  if (target < lo + 2 || target > hi - 2) return;
-  const others = edges.flatMap(
-    (o) => o === e ? [] : [o.points[0], o.points[o.points.length - 1]]
-  );
-  const near = (p, q, d) => !!p && Math.abs(p.x - q.x) < d && Math.abs(p.y - q.y) < d;
-  const moved = { ...E, [k]: target };
-  if (others.some((p) => near(p, E, 0.5) || near(p, moved, 4))) return;
-  const iE = end === "to" ? n4 - 1 : 0;
-  e.points[iE] = moved;
-  if (moveP) e.points[end === "to" ? n4 - 2 : 1] = { ...P2, [k]: target };
-}
-function dropStraightPoints(points) {
-  const out = [];
-  for (const p of points) {
-    const last = out[out.length - 1];
-    const prev = out[out.length - 2];
-    if (last && Math.abs(last.x - p.x) < 0.01 && Math.abs(last.y - p.y) < 0.01) continue;
-    if (prev && last) {
-      const cross = (last.x - prev.x) * (p.y - prev.y) - (last.y - prev.y) * (p.x - prev.x);
-      const ahead = (last.x - prev.x) * (p.x - last.x) + (last.y - prev.y) * (p.y - last.y) >= 0;
-      if (Math.abs(cross) < 0.01 && ahead) out.pop();
+async function cellList(ctx, gid, ranked, cellRuns) {
+  const { plan, base, elkNodes, nodeGeom, cells, cellEdges } = ctx;
+  const list = [];
+  for (const id of cells.get(gid) ?? []) {
+    const g = nodeGeom.get(id);
+    if (g) {
+      const w2 = Math.max(g.w, g.outside?.w ?? 0);
+      const h2 = g.h + (g.outside ? 6 + g.outside.h : 0);
+      list.push({ id, w: w2, h: h2, box: { x: (w2 - g.w) / 2, y: 0, w: g.w, h: g.h } });
+      continue;
     }
-    out.push(p);
+    const child = elkNodes.get(id);
+    if (!child) continue;
+    if (!plan.grids.has(id) && child.children?.length) {
+      const run2 = {
+        id: `__cell:${id}`,
+        layoutOptions: { ...base, "elk.padding": "[top=0,left=0,bottom=0,right=0]" },
+        children: [child],
+        edges: cellEdges.get(id) ?? []
+      };
+      const { graph } = await ranked(run2);
+      const laid = graph.children?.[0];
+      if (laid) {
+        cellRuns.set(id, graph);
+        child.width = laid.width;
+        child.height = laid.height;
+      }
+    }
+    const w = child.width ?? 0;
+    const h = child.height ?? 0;
+    list.push({ id, w, h, box: { x: 0, y: 0, w, h } });
   }
-  return out.length >= 2 ? out : points;
+  return list;
 }
-function headRoom(points, heads) {
-  const run2 = (p, q) => p && q ? Math.abs(p.x - q.x) + Math.abs(p.y - q.y) : 0;
-  const n4 = points.length;
-  return n4 < 3 || (!heads.start || run2(points[0], points[1]) >= 16) && (!heads.end || run2(points[n4 - 2], points[n4 - 1]) >= 16);
-}
-function collinear(points, p, q) {
-  const v = Math.abs(p.x - q.x) < 0.5;
-  if (!v && Math.abs(p.y - q.y) >= 0.5) return false;
-  const at = v ? p.x : p.y;
-  const [b0, b1] = (v ? [p.y, q.y] : [p.x, q.x]).sort((m, n4) => m - n4);
-  return points.slice(1).some((s, i) => {
-    const r3 = points[i] ?? s;
-    if (Math.abs(r3.x - s.x) < 0.5 !== v || !v && Math.abs(r3.y - s.y) >= 0.5) return false;
-    if (Math.abs((v ? r3.x : r3.y) - at) >= 6) return false;
-    const [a0, a1] = (v ? [r3.y, s.y] : [r3.x, s.x]).sort((m, n4) => m - n4);
-    return Math.min(a1 ?? 0, b1 ?? 0) - Math.max(a0 ?? 0, b0 ?? 0) > 0.5;
+function cellGap(ctx, list) {
+  const { model, horizontal, spacing: s, rel: rel2 } = ctx;
+  const inner = new Set(list.map((c) => c.id));
+  const cellOfGrid = (id) => [id, ...rel2.above(id)].find((x2) => inner.has(x2));
+  const labels2 = model.edges.filter((e) => {
+    const [f, t] = [cellOfGrid(e.from), cellOfGrid(e.to)];
+    return f && t && f !== t && (e.label || e.step !== void 0);
+  }).map((e) => {
+    const text4 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+    const step = e.step !== void 0 ? SIZES.step + 2 : 0;
+    return { w: (e.label ? text4.width + 12 : 0) + step, h: Math.max(text4.height + 6, step) };
   });
+  return Math.round(Math.max(40 * s, ...labels2.map((l) => (horizontal ? l.h : l.w) + 32)));
 }
-function midpoint(points) {
-  const i = Math.max(0, Math.floor((points.length - 1) / 2));
-  const a = points[i] ?? { x: 0, y: 0 };
-  const b = points[i + 1] ?? a;
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-}
-var overlaps2 = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-function freeLabelBox(points, w, h, avoid) {
-  const runs2 = points.slice(1).map((q2, i) => [points[i] ?? q2, q2]).filter(([p2, q2]) => Math.abs(p2.x - q2.x) < 0.5 && Math.abs(p2.y - q2.y) > 0.5).sort(([a, b], [c, d]) => Math.abs(d.y - c.y) - Math.abs(b.y - a.y));
-  const inside3 = (b) => ({
-    ...b,
-    x: round4(Math.max(0, b.x)),
-    y: round4(Math.max(0, b.y))
-  });
-  const clear = (b) => !avoid.some((o) => o && overlaps2(b, o));
-  const pick2 = (first, second) => clear(first) || !clear(second) ? first : second;
-  const run2 = runs2[0];
-  if (!run2) {
-    const mid = midpoint(points);
-    const above = inside3({ x: mid.x - w / 2, y: mid.y - h - 3, w, h });
-    return pick2(above, inside3({ ...above, y: mid.y + 3 }));
+function fillGrids(ctx, result2, gridPlans, cellRuns) {
+  const { nodeGeom, rel: rel2 } = ctx;
+  for (const gid of [...gridPlans.keys()].sort(
+    (a, b) => rel2.above(a).length - rel2.above(b).length
+  )) {
+    const el = findNode(result2, gid);
+    const gp = gridPlans.get(gid);
+    if (!el || !gp) continue;
+    const ox = (el.x ?? 0) + ((el.width ?? 0) - gp.w) / 2;
+    const oy = (el.y ?? 0) + gp.top;
+    el.children = gp.cells.map((c, i) => {
+      const at = gp.at[i] ?? { x: 0, y: 0 };
+      const x2 = round2(ox + at.x + c.box.x);
+      const y = round2(oy + at.y + c.box.y);
+      const g = nodeGeom.get(c.id);
+      if (g?.outside)
+        return {
+          id: c.id,
+          x: x2,
+          y,
+          width: c.box.w,
+          height: c.box.h,
+          labels: [
+            {
+              id: `${c.id}__label`,
+              text: " ",
+              x: round2(x2 + (c.box.w - g.outside.w) / 2),
+              y: y + c.box.h + 6,
+              width: g.outside.w,
+              height: g.outside.h
+            }
+          ]
+        };
+      const run2 = cellRuns.get(c.id);
+      const laid = run2?.children?.[0];
+      if (!run2 || !laid) return { id: c.id, x: x2, y, width: c.box.w, height: c.box.h };
+      laid.edges = run2.edges ?? [];
+      return moveElk(laid, x2 - (laid.x ?? 0), y - (laid.y ?? 0));
+    });
   }
-  const [p, q] = run2;
-  const y = (p.y + q.y) / 2 - h / 2;
-  return pick2(inside3({ x: p.x + 6, y, w, h }), inside3({ x: p.x - 6 - w, y, w, h }));
 }
-function findNode(n4, id) {
-  if (n4.id === id) return n4;
-  for (const c of n4.children ?? []) {
-    const f = findNode(c, id);
-    if (f) return f;
+
+// src/layout/run.ts
+async function runLayout(ctx) {
+  const { model, plan, root } = ctx;
+  const ranked = (graph) => runRanked(ctx, graph);
+  const gridPlans = /* @__PURE__ */ new Map();
+  const cellRuns = /* @__PURE__ */ new Map();
+  if (plan.grids.size) await boxGrids(ctx, ranked, gridPlans, cellRuns);
+  let { graph: result2, fallback } = await ranked(root);
+  const strict = crossings(result2);
+  if (strict.count > 0) {
+    const free = structuredClone(root);
+    const leaves = new Set(model.nodes.map((n4) => n4.id).filter((id) => strict.nodes.has(id)));
+    const unpin = (n4) => {
+      if (leaves.has(n4.id) && n4.layoutOptions) delete n4.layoutOptions["elk.position"];
+      for (const c of n4.children ?? []) unpin(c);
+    };
+    unpin(free);
+    const alt = await runElk(free);
+    if (crossings(alt.graph).count < strict.count) ({ graph: result2, fallback } = alt);
   }
-  return void 0;
+  fillGrids(ctx, result2, gridPlans, cellRuns);
+  if (plan.blocks.size) {
+    const hoist = (n4) => {
+      if (!n4.children) return;
+      n4.children = n4.children.flatMap((c) => plan.blocks.has(c.id) ? c.children ?? [] : [c]);
+      for (const c of n4.children) hoist(c);
+    };
+    hoist(result2);
+  }
+  return { ...ctx, result: result2, fallback };
 }
-function moveElk(n4, dx, dy) {
-  const at = (p) => ({
-    ...p,
-    x: round4((p.x ?? 0) + dx),
-    y: round4((p.y ?? 0) + dy)
-  });
-  const pt = (p) => ({ x: round4(p.x + dx), y: round4(p.y + dy) });
+async function runRanked(ctx, graph) {
+  const { model, plan } = ctx;
+  try {
+    return await runElk(graph);
+  } catch (err) {
+    const stripped = /* @__PURE__ */ new Set();
+    const strip = (n4) => {
+      if (n4.layoutOptions?.[LAYER_CONSTRAINT]) {
+        delete n4.layoutOptions[LAYER_CONSTRAINT];
+        stripped.add(n4.id);
+      }
+      for (const c of n4.children ?? []) strip(c);
+    };
+    strip(graph);
+    if (!stripped.size) throw err;
+    for (const n4 of model.nodes)
+      if (stripped.has(plan.blockOf.get(n4.id) ?? n4.id) && (n4.rank === "first" || n4.rank === "last"))
+        plan.ignored.push({
+          subject: n4.id,
+          setting: "rank",
+          reason: "the layout engine cannot keep it there with its links"
+        });
+    return runElk(graph);
+  }
+}
+
+// src/layout/scene.ts
+function assemble(ctx, routing, canvas2) {
+  const { model, theme, titleBlock, subtitleBlock, nodes, groups, edges, fallback, plan } = ctx;
+  const { width: width2, height, titleBox, subtitleBox, legend: legend4 } = canvas2;
   return {
-    ...at(n4),
-    labels: n4.labels?.map(at),
-    ports: n4.ports?.map(at),
-    children: n4.children?.map((c) => moveElk(c, dx, dy)),
-    edges: n4.edges?.map((e) => ({
-      ...e,
-      labels: e.labels?.map(at),
-      sections: e.sections?.map((s) => ({
-        startPoint: pt(s.startPoint),
-        endPoint: pt(s.endPoint),
-        bendPoints: s.bendPoints?.map(pt)
-      }))
-    }))
+    width: width2,
+    height,
+    theme,
+    direction: model.direction,
+    routing,
+    arrowhead: model.arrowhead,
+    animate: animateOf(model),
+    skin: model.skin,
+    background: model.background,
+    title: titleBlock,
+    titleBox,
+    subtitle: subtitleBlock,
+    subtitleBox,
+    nodes,
+    groups,
+    edges,
+    legend: legend4,
+    layoutFallback: fallback,
+    description: describe2(model),
+    kind: model.kind,
+    ...model.story ? { story: model.story } : {},
+    ...plan.ignored.length ? { ignored: plan.ignored } : {}
   };
-}
-function findEdge(n4, id) {
-  for (const e of n4.edges ?? []) if (e.id === id) return e;
-  for (const c of n4.children ?? []) {
-    const f = findEdge(c, id);
-    if (f) return f;
-  }
-  return void 0;
-}
-var elkRuns = /* @__PURE__ */ new Map();
-async function runElk(root) {
-  const key = JSON.stringify(root);
-  let run2 = elkRuns.get(key);
-  if (!run2) {
-    run2 = runElkUncached(root);
-    elkRuns.set(key, run2);
-    run2.catch(() => elkRuns.delete(key));
-    if (elkRuns.size > 64) {
-      const oldest = elkRuns.keys().next().value;
-      if (oldest !== void 0) elkRuns.delete(oldest);
-    }
-  }
-  const { graph, fallback } = await run2;
-  return { graph: structuredClone(graph), fallback };
-}
-function crossings(graph) {
-  const nodeOf = (ref) => (ref ?? "").split("::")[0];
-  const lines2 = (graph.edges ?? []).flatMap((e) => {
-    const s = e.sections?.[0];
-    if (!s) return [];
-    const pts = [s.startPoint, ...s.bendPoints ?? [], s.endPoint];
-    const ends2 = [nodeOf(e.sources[0]), nodeOf(e.targets[0])];
-    return [{ ends: ends2, segs: pts.slice(1).map((q, i) => [pts[i] ?? q, q]) }];
-  });
-  const cross = (a, b, c, d) => {
-    const o = (p, q, r3) => (q.x - p.x) * (r3.y - p.y) - (q.y - p.y) * (r3.x - p.x);
-    return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
-  };
-  let count = 0;
-  const nodes = /* @__PURE__ */ new Set();
-  for (let i = 0; i < lines2.length; i++)
-    for (let j = i + 1; j < lines2.length; j++) {
-      const a = lines2[i];
-      const b = lines2[j];
-      if (!a || !b || a.ends.some((x2) => b.ends.includes(x2))) continue;
-      for (const [p, q] of a.segs)
-        for (const [r3, t] of b.segs)
-          if (cross(p, q, r3, t)) {
-            count++;
-            for (const x2 of [...a.ends, ...b.ends]) if (x2) nodes.add(x2);
-          }
-    }
-  return { count, nodes };
-}
-async function runElkUncached(root) {
-  const fallbacks = [
-    [void 0, {}],
-    [
-      "brandes-koepf placement",
-      {
-        "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
-        "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED"
-      }
-    ],
-    [
-      "network-simplex layering, simple placement",
-      {
-        "elk.layered.layering.strategy": "NETWORK_SIMPLEX",
-        "elk.layered.nodePlacement.strategy": "SIMPLE"
-      }
-    ]
-  ];
-  let lastError;
-  for (const [fallback, extra] of fallbacks) {
-    const graph = applyOptions(structuredClone(root), extra);
-    try {
-      return { graph: await elk().layout(graph), fallback };
-    } catch (e) {
-      lastError = e;
-    }
-  }
-  throw new Error(`layout failed: ${lastError?.message ?? lastError}`);
-}
-function applyOptions(n4, extra) {
-  if (n4.layoutOptions && "elk.algorithm" in n4.layoutOptions) Object.assign(n4.layoutOptions, extra);
-  for (const c of n4.children ?? []) applyOptions(c, extra);
-  return n4;
 }
 function describe2(model) {
   const name = (id) => model.nodes.find((n4) => n4.id === id)?.label ?? model.groups.find((g) => g.id === id)?.label ?? id;
@@ -15442,6 +15627,313 @@ function describe2(model) {
   if (flows.length)
     parts.push(`Connections: ${flows.join("; ")}${model.edges.length > 24 ? "; and more" : ""}.`);
   return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
+// src/layout/walls.ts
+function wallsOf(ctx) {
+  const { model, result: result2, top, edgeLabels, rel: rel2, groups, nodes } = ctx;
+  const elkMarks = model.edges.flatMap((e) => {
+    const lab = edgeLabels.get(e.id);
+    const at = rel2.free(e) || !lab ? void 0 : findEdge(result2, e.id)?.labels?.[0];
+    return at?.x === void 0 || at.y === void 0 ? [] : [
+      {
+        id: e.id,
+        box: { x: round2(at.x), y: round2(at.y + top), w: lab?.w ?? 0, h: lab?.h ?? 0 }
+      }
+    ];
+  });
+  const headers = groups.flatMap((g) => {
+    const parts = [g.label.lines.length ? g.labelBox : void 0, g.iconBox].filter(
+      (b) => !!b && b.w > 0 && b.h > 0
+    );
+    if (!parts.length) return [];
+    const u = union3(parts);
+    return [{ id: g.id, box: { x: u.x - 4, y: u.y - 1, w: u.w + 8, h: u.h + 2 } }];
+  });
+  const ends2 = (e) => nodes.filter((n4) => n4.id === e.from || n4.id === e.to);
+  const others = (e) => [
+    ...nodes.filter((n4) => n4.id !== e.from && n4.id !== e.to).map((n4) => union3([n4.box, n4.iconBox, n4.labelBox, n4.noteBox])),
+    ...headers.filter((h) => !(rel2.overlays.has(h.id) && (h.id === e.from || h.id === e.to))).map((h) => h.box),
+    ...elkMarks.filter((m) => m.id !== e.id).map((m) => m.box)
+  ];
+  const own = (e) => ends2(e).flatMap((n4) => [n4.box, n4.labelBox, n4.noteBox].filter((b) => !!b && b.w > 0));
+  const walls = (e) => [...others(e), ...own(e)];
+  const roomyWalls = (e) => [
+    ...others(e).map((b) => ({ x: b.x - 4, y: b.y - 4, w: b.w + 8, h: b.h + 8 })),
+    ...nodes.filter((n4) => n4.id !== e.from && n4.id !== e.to).map((n4) => ({ x: n4.box.x - 10, y: n4.box.y - 10, w: n4.box.w + 20, h: n4.box.h + 20 })),
+    ...own(e)
+  ];
+  const borders = groups.filter((g) => !g.overlay).map((g) => g.box);
+  return { headers, borders, walls, roomyWalls };
+}
+
+// src/layout/core.ts
+async function layoutCore(model, opts = {}) {
+  const theme = opts.theme ?? model.theme;
+  if (model.kind === "journey") {
+    const laid = await journeyLayout(model, theme);
+    const grid = laid && withIgnored(laid, planPlacement(model, hiddenOf(model)).ignored);
+    if (grid) return model.skin === "stage" ? stageColors(grid) : grid;
+  }
+  const graph = buildGraph(prepare(model, opts, theme));
+  const placed = readBack(await runLayout(graph));
+  const walls = wallsOf(placed);
+  const freeRoutes = routeFree(placed, walls);
+  const rerouted = rerouteBlocks(placed, walls, freeRoutes);
+  const edges = sceneEdges2(placed, freeRoutes, rerouted);
+  tidyEdges(placed, edges);
+  const routed = { ...placed, edges, freeRoutes, rerouted, headers: walls.headers };
+  placeFreeLabels(routed);
+  const { horizontal, top, nodes, groups } = routed;
+  const hooked = { model, theme, horizontal, top, nodes, groups, edges, routing: model.routing };
+  for (const h of HOOKS) h.after?.(hooked);
+  clearOverlayBorders(routed);
+  const next = secondPass(routed);
+  const again = next ? layoutCore(model, next) : void 0;
+  if (again && !rerouted.size) return again;
+  const scene = assemble(routed, hooked.routing, sizeCanvas(routed));
+  const done = model.skin === "stage" ? stageColors(scene) : scene;
+  if (!again) return done;
+  const second = await again;
+  return sceneDefects(second) > sceneDefects(done) ? done : second;
+}
+
+// src/layout/hints.ts
+async function layoutRanked(model, opts) {
+  const asked = model.nodes.filter((n4) => typeof n4.rank === "number");
+  if (!asked.length) return layoutAligned(model, opts);
+  const strip = (m, keep) => ({
+    ...m,
+    nodes: m.nodes.map((n4) => {
+      if (typeof n4.rank !== "number") return n4;
+      const { rank: _, ...rest } = n4;
+      const anchor2 = keep.get(n4.id);
+      return anchor2 ? { ...rest, align: anchor2 } : rest;
+    })
+  });
+  const probe = await layoutAligned(strip(model, /* @__PURE__ */ new Map()), opts);
+  const ignored = [];
+  const ignore = (subject, reason) => ignored.push({ subject, setting: "rank", reason });
+  const { anchors, want } = rankAnchors(model, probe, ignore);
+  if (!anchors.size) return withIgnored(probe, ignored);
+  const scene = await layoutAligned(strip(model, anchors), opts);
+  const layersAround = layersAroundOf(model);
+  const missed = [...anchors.keys()].filter(
+    (id) => layersAround(scene, id, true).get(id) !== want.get(id) && !scene.ignored?.some((x2) => x2.subject === id && x2.setting === "align")
+  );
+  const renamed = (s) => ({
+    ...s,
+    ...s.ignored ? {
+      ignored: s.ignored.map(
+        (x2) => anchors.has(x2.subject) && x2.setting === "align" ? { ...x2, setting: "rank" } : x2
+      )
+    } : {}
+  });
+  if (!missed.length) return withIgnored(renamed(scene), ignored);
+  for (const id of missed) {
+    anchors.delete(id);
+    ignore(id, `its links keep it out of layer ${(want.get(id) ?? 0) + 1}`);
+  }
+  if (!anchors.size) return withIgnored(probe, ignored);
+  return withIgnored(renamed(await layoutAligned(strip(model, anchors), opts)), ignored);
+}
+function layersAroundOf(model) {
+  const hidden = hiddenOf(model);
+  const parent = new Map([...model.groups, ...model.nodes].map((x2) => [x2.id, x2.parent]));
+  const host = (id) => {
+    let p = parent.get(id);
+    while (p && hidden.has(p)) p = parent.get(p);
+    return p;
+  };
+  return (scene, id, self) => layersOf(
+    [
+      ...scene.nodes.map((n4) => ({ id: n4.id, box: n4.box })),
+      ...scene.groups.filter((g) => !g.overlay && !hidden.has(g.id)).map((g) => ({ id: g.id, box: g.box }))
+    ].filter((it) => (self || it.id !== id) && host(it.id) === host(id)),
+    scene.direction
+  );
+}
+function rankAnchors(model, probe, ignore) {
+  const plan = planPlacement(model, hiddenOf(model));
+  const parent = new Map([...model.groups, ...model.nodes].map((x2) => [x2.id, x2.parent]));
+  const own = selfPlaced(model.kind);
+  const layersAround = layersAroundOf(model);
+  const anchors = /* @__PURE__ */ new Map();
+  const want = /* @__PURE__ */ new Map();
+  for (const n4 of model.nodes.filter((x2) => typeof x2.rank === "number")) {
+    const rank = typeof n4.rank === "number" ? n4.rank : 1;
+    const p = parent.get(n4.id);
+    if (own) {
+      ignore(n4.id, own);
+      continue;
+    }
+    if (p && plan.grids.has(p)) {
+      ignore(n4.id, `group "${p}" places its children in ${plan.grids.get(p)} columns`);
+      continue;
+    }
+    if (layersAround(probe, n4.id, true).get(n4.id) === rank - 1) continue;
+    const others = layersAround(probe, n4.id, false);
+    const count = new Set(others.values()).size;
+    if (rank > count) {
+      ignore(n4.id, `its group has ${count} layer${count === 1 ? "" : "s"} besides it`);
+      continue;
+    }
+    const linked = (id) => model.edges.some((e) => e.from === n4.id && e.to === id || e.to === n4.id && e.from === id);
+    const order = new Map(model.nodes.map((x2, i) => [x2.id, i]));
+    const pick2 = [...others].filter(
+      ([id, l]) => l === rank - 1 && order.has(id) && !(parent.get(id) && plan.grids.has(parent.get(id) ?? ""))
+    ).map(([id]) => id).sort(
+      (a, b) => Number(linked(a)) - Number(linked(b)) || (order.get(a) ?? 0) - (order.get(b) ?? 0)
+    )[0];
+    if (!pick2) {
+      ignore(n4.id, `layer ${rank} of its group holds only groups`);
+      continue;
+    }
+    anchors.set(n4.id, pick2);
+    want.set(n4.id, rank - 1);
+  }
+  return { anchors, want };
+}
+var COVERED = "in that layer an edge or its label would cover a node or another label";
+var CROWDED = "in its grid an edge or its label would cover a node or another label";
+async function layoutGridded(model, opts) {
+  const scene = await layoutRanked(model, opts);
+  const plan = sceneDefects(scene) ? planPlacement(model, hiddenOf(model)) : void 0;
+  if (!plan?.grids.size) return scene;
+  const without = (m, ids) => ({
+    ...m,
+    groups: m.groups.map((g) => {
+      if (!ids.has(g.id)) return g;
+      const { cols: _, ...rest } = g;
+      return rest;
+    })
+  });
+  const hinted = (m) => m.groups.filter((g) => g.cols !== void 0 && plan.grids.has(g.id)).map((g) => g.id);
+  const kept = await dropCovering(model, scene, hinted, without, (m) => layoutRanked(m, opts));
+  const order = new Map(model.groups.map((g, i) => [g.id, i]));
+  return withIgnored(
+    kept.scene,
+    kept.dropped.sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0)).map((id) => ({ subject: id, setting: "cols", reason: CROWDED }))
+  );
+}
+async function layoutAligned(model, opts) {
+  const scene = await layoutCore(model, opts);
+  const plan = sceneDefects(scene) ? planPlacement(model, hiddenOf(model)) : void 0;
+  if (!plan?.blocks.size) return scene;
+  const without = (m, ids) => ({
+    ...m,
+    nodes: m.nodes.map((n4) => {
+      if (!ids.has(n4.id)) return n4;
+      const { align: _, ...rest } = n4;
+      return rest;
+    })
+  });
+  const hinted = (m) => m.nodes.filter((n4) => n4.align !== void 0 && plan.blockOf.has(n4.id)).map((n4) => n4.id);
+  const kept = await dropCovering(model, scene, hinted, without, (m) => layoutCore(m, opts));
+  const order = new Map(model.nodes.map((n4, i) => [n4.id, i]));
+  return withIgnored(
+    kept.scene,
+    kept.dropped.sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0)).map((id) => ({ subject: id, setting: "align", reason: COVERED }))
+  );
+}
+async function dropCovering(model, first, hinted, without, run2) {
+  let scene = first;
+  let defects = sceneDefects(scene);
+  const dropped = [];
+  let current = model;
+  while (defects) {
+    let pick2;
+    for (const id of hinted(current)) {
+      const m = without(current, /* @__PURE__ */ new Set([id]));
+      const s = await run2(m);
+      const d = sceneDefects(s);
+      if (d <= (pick2 ? pick2.defects : defects - 1)) pick2 = { id, scene: s, defects: d, model: m };
+    }
+    if (!pick2) break;
+    ({ scene, defects, model: current } = pick2);
+    dropped.push(pick2.id);
+  }
+  const rest = hinted(current);
+  if (defects && rest.length) {
+    const s = await run2(without(current, new Set(rest)));
+    const d = sceneDefects(s);
+    if (d < defects) {
+      scene = s;
+      dropped.push(...rest);
+    }
+  }
+  return { scene, dropped };
+}
+
+// src/layout/aspect.ts
+var TURNED = {
+  right: "down",
+  down: "right",
+  left: "up",
+  up: "left"
+};
+async function layoutToAspect(model, opts) {
+  const target = model.aspect ?? 1;
+  if (model.kind === "journey") {
+    const scene = await layoutGridded(model, opts);
+    return withIgnored(scene, [
+      {
+        subject: "layout",
+        setting: "layout.aspect",
+        reason: "a journey keeps its stages in one row"
+      }
+    ]);
+  }
+  const turned = { ...model, direction: TURNED[model.direction] };
+  const wraps = hiddenOf(model).size === 0 && model.kind !== "tree" && model.kind !== "mindmap" ? ["MULTI_EDGE", "SINGLE_EDGE"] : [];
+  const tries = [
+    [model, opts],
+    [turned, opts],
+    ...[model, turned].flatMap(
+      (m) => wraps.map((wrap2) => [m, { ...opts, wrap: wrap2, ratio: target }])
+    )
+  ];
+  const scenes = [];
+  for (const [m, o] of tries) {
+    try {
+      scenes.push(await layoutGridded(m, o));
+    } catch (e) {
+      if (!scenes.length) throw e;
+    }
+  }
+  const [first] = scenes;
+  if (!first) throw new Error("layout failed");
+  const crossings0 = sceneCrossings(first);
+  const through0 = edgesThroughNodes(first);
+  const defects0 = sceneDefects(first);
+  const dropped0 = first.ignored?.length ?? 0;
+  const ink = (s) => s.edges.reduce(
+    (t, e) => t + e.points.slice(1).reduce(
+      (u, q, i) => u + Math.abs(q.x - (e.points[i]?.x ?? q.x)) + Math.abs(q.y - (e.points[i]?.y ?? q.y)),
+      0
+    ),
+    0
+  );
+  const reach2 = (s) => ink(s) / Math.max(1, s.edges.length) / Math.sqrt(Math.max(1, s.width * s.height));
+  const most = Math.max(0.6, 1.25 * reach2(first));
+  const off = (s) => Math.abs(Math.log(s.width / Math.max(1, s.height) / target));
+  const best = scenes.filter(
+    (s) => sceneCrossings(s) <= crossings0 && edgesThroughNodes(s) <= through0 && sceneDefects(s) <= defects0 && (s.ignored?.length ?? 0) <= dropped0 && reach2(s) <= most
+  ).sort((a, b) => off(a) - off(b))[0] ?? first;
+  if (off(best) <= Math.log(1.25)) return best;
+  const ratio = (v) => `${Math.round(v * 100) / 100}:1`;
+  return withIgnored(best, [
+    {
+      subject: "layout",
+      setting: "layout.aspect",
+      reason: `the nearest layout is ${ratio(best.width / Math.max(1, best.height))}, not ${ratio(target)}`
+    }
+  ]);
+}
+
+// src/layout/index.ts
+async function layout(model, opts = {}) {
+  return model.aspect === void 0 ? layoutGridded(model, opts) : layoutToAspect(model, opts);
 }
 
 // src/icons-local/geometry.ts
@@ -21717,9 +22209,9 @@ import { basename as basename4 } from "node:path";
 var EPS2 = 0.5;
 var r1 = (v) => Math.round(v * 10) / 10;
 var r23 = (v) => Math.round(v * 100) / 100;
-var real = (b) => !!b && b.w > 0 && b.h > 0;
+var real2 = (b) => !!b && b.w > 0 && b.h > 0;
 function union5(list) {
-  const l = list.filter(real);
+  const l = list.filter(real2);
   if (!l.length) return void 0;
   const x2 = Math.min(...l.map((b) => b.x));
   const y = Math.min(...l.map((b) => b.y));
@@ -21828,7 +22320,7 @@ function badgeRect2(n4) {
 }
 function headerBottom(g) {
   if (g.overlay) return g.box.y;
-  const parts = [g.labelBox, g.iconBox].filter(real);
+  const parts = [g.labelBox, g.iconBox].filter(real2);
   return Math.max(g.box.y, ...parts.map((b) => b.y + b.h));
 }
 function contentStart(g) {
@@ -22046,7 +22538,7 @@ function whitespace(c, frames2) {
       h: g.box.y + g.box.h - start.y
     };
     if (inner.w <= 0 || inner.h <= 0) continue;
-    const labels2 = scene.edges.map((e) => e.labelBox).filter((b) => real(b) && interArea(b, inner) > 0);
+    const labels2 = scene.edges.map((e) => e.labelBox).filter((b) => real2(b) && interArea(b, inner) > 0);
     const cover = [
       ...own.map((b) => ({
         x: b.x - margin,
@@ -22246,27 +22738,27 @@ function bpmnJoins(c, { bpmn, outOf }) {
     const outs = outOf(n4.id);
     if (outs.length < 2) continue;
     const maps = outs.map((e) => reach2(travel(e)[1]));
-    let meet;
+    let meet2;
     for (const id of maps[0]?.keys() ?? []) {
       const ds = maps.map((m) => m.get(id));
       if (id === n4.id || ds.some((d) => d === void 0)) continue;
       const worst = Math.max(...ds.map(Number));
       const sum = ds.reduce((s, d) => s + Number(d), 0);
-      if (!meet || worst < meet.worst || worst === meet.worst && sum < meet.sum)
-        meet = { id, worst, sum };
+      if (!meet2 || worst < meet2.worst || worst === meet2.worst && sum < meet2.sum)
+        meet2 = { id, worst, sum };
     }
-    const k = meet ? bpmn.get(meet.id) ?? "" : "";
-    if (!meet || k === "parallel" || k === "inclusive" || k === "complex" || k.startsWith("end"))
+    const k = meet2 ? bpmn.get(meet2.id) ?? "" : "";
+    if (!meet2 || k === "parallel" || k === "inclusive" || k === "complex" || k.startsWith("end"))
       continue;
     joins++;
     add(
       "conventions.bpmn-join",
       "major",
-      [n4.id, meet.id],
-      { split: n4.id, meet: meet.id, meetKind: k || "plain node", branches: outs.length },
-      `the ${outs.length} parallel branches out of "${n4.id}" meet at "${meet.id}"${k ? ` (${k})` : ""}, which does not wait for them, so it runs ${outs.length} times`,
+      [n4.id, meet2.id],
+      { split: n4.id, meet: meet2.id, meetKind: k || "plain node", branches: outs.length },
+      `the ${outs.length} parallel branches out of "${n4.id}" meet at "${meet2.id}"${k ? ` (${k})` : ""}, which does not wait for them, so it runs ${outs.length} times`,
       [
-        `add a node with bpmn: parallel where the branches meet, and lead every branch into it, then on to "${meet.id}"`
+        `add a node with bpmn: parallel where the branches meet, and lead every branch into it, then on to "${meet2.id}"`
       ],
       8
     );
@@ -22716,7 +23208,7 @@ function awsServiceLabels(c) {
 function calloutSizes(c) {
   const { scene, add } = c;
   const callouts = new Set(
-    scene.edges.filter((e) => real(e.stepBox)).map((e) => `${r1(e.stepBox?.w ?? 0)}`)
+    scene.edges.filter((e) => real2(e.stepBox)).map((e) => `${r1(e.stepBox?.w ?? 0)}`)
   );
   if (callouts.size > 1)
     add(
@@ -23342,8 +23834,8 @@ function checkHead(c, e, h, chips, counts) {
   };
   const covers = [];
   for (const o of scene.edges) {
-    if (real(o.labelBox) && hit(o.labelBox)) covers.push(`label of ${o.id}`);
-    if (real(o.stepBox) && hit(o.stepBox)) covers.push(`step of ${o.id}`);
+    if (real2(o.labelBox) && hit(o.labelBox)) covers.push(`label of ${o.id}`);
+    if (real2(o.stepBox) && hit(o.stepBox)) covers.push(`step of ${o.id}`);
   }
   for (const ch of chips) if (hit(ch.box)) covers.push(`header of ${ch.id}`);
   for (const n4 of scene.nodes) {
@@ -23353,7 +23845,7 @@ function checkHead(c, e, h, chips, counts) {
       ["badge", badgeRect2(n4)]
     ];
     if (n4.id !== h.target) parts.push(["node", n4.iconBox ?? n4.box]);
-    for (const [what, b] of parts) if (real(b) && hit(b)) covers.push(`${what} of ${n4.id}`);
+    for (const [what, b] of parts) if (real2(b) && hit(b)) covers.push(`${what} of ${n4.id}`);
   }
   if (covers.length) {
     counts.hidden++;
@@ -23461,7 +23953,7 @@ function stepOrder(c) {
   const { scene, model, add, dir } = c;
   const horizontal = horizontalFlow2(dir);
   const stepped = scene.edges.filter((e) => e.step !== void 0).map((e) => {
-    const at = real(e.stepBox) ? { x: e.stepBox.x + e.stepBox.w / 2, y: e.stepBox.y + e.stepBox.h / 2 } : midpoint2(e.points);
+    const at = real2(e.stepBox) ? { x: e.stepBox.x + e.stepBox.w / 2, y: e.stepBox.y + e.stepBox.h / 2 } : midpoint2(e.points);
     return { e, step: e.step, at };
   }).sort((a, b) => a.step - b.step);
   let inversions = 0;
@@ -23946,7 +24438,7 @@ function largestHole(c) {
     scene.titleBox,
     scene.subtitleBox,
     scene.legend?.box
-  ].filter(real);
+  ].filter(real2);
   const edgeBoxes = edges.map((e) => {
     const xs = e.points.map((p) => p.x);
     const ys = e.points.map((p) => p.y);
@@ -24304,7 +24796,7 @@ function edgesThroughStepsAndText(c) {
   const horizontal = horizontalFlow2(scene.direction);
   for (const e of scene.edges) {
     for (const o of scene.edges) {
-      const len2 = o.id !== e.id && real(o.stepBox) ? pathClipLen(e.points, o.stepBox, 1) : 0;
+      const len2 = o.id !== e.id && real2(o.stepBox) ? pathClipLen(e.points, o.stepBox, 1) : 0;
       if (len2 > 1) {
         hard.edgesThroughLabels++;
         add(
@@ -24329,7 +24821,7 @@ function edgesThroughStepsAndText(c) {
         ["label", n4.labelBox],
         ["note", n4.noteBox]
       ]) {
-        if (!real(b) || n4.look !== "icon" && own) continue;
+        if (!real2(b) || n4.look !== "icon" && own) continue;
         const len2 = pathClipLen(e.points, b, 1);
         if (len2 > 1) {
           hard.edgesThroughLabels++;
