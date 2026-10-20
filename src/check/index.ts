@@ -10,7 +10,14 @@ import {
   unexplainedLines,
 } from "./composition.ts";
 import { type CheckOptions, checkContext, type Rule } from "./context.ts";
-import { edgeSkimsNode, edgeThroughHeader, edgeThroughLabel, edgeThroughNode } from "./edges.ts";
+import {
+  edgeSkimsNode,
+  edgeThroughHeader,
+  edgeThroughLabel,
+  edgeThroughNode,
+  headOnShortEnd,
+} from "./edges.ts";
+import { edgeAlongBorder, edgeNearTitle, edgeThroughGroup } from "./groups.ts";
 import { badgesCover, edgeLabelCovers, labelOnBorder, nodesOverlap } from "./overlaps.ts";
 import { overlayEncloses, overlayHeaderCovers } from "./overlays.ts";
 
@@ -37,6 +44,10 @@ const RULES: Rule[] = [
   ignoredSettings, // DG219
   labelOnBorder, // DG220
   edgeSkimsNode, // DG221
+  headOnShortEnd, // DG222
+  edgeThroughGroup, // DG223
+  edgeAlongBorder, // DG224
+  edgeNearTitle, // DG225
 ];
 
 export function checkScene(scene: Scene, model: Model, opts: CheckOptions = {}): Diagnostic[] {

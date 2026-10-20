@@ -83,7 +83,17 @@ function matches(n: XNode, sel: string): boolean {
   return true;
 }
 
-const EXTERNAL_URL = /url\(\s*["']?\s*(?!#)/i;
+/**
+ * True when a url(...) in the value points anywhere but an id in this file. The value inside the
+ * parentheses is read whole, so url(#g), url('#g') and url( #g ) are all the file's own ids; an
+ * unclosed url( counts as outside.
+ */
+function externalUrl(value: string): boolean {
+  if (/url\((?![^)]*\))/i.test(value)) return true;
+  return [...value.matchAll(/url\(([^)]*)\)/gi)].some(
+    (m) => !/^(["']?)\s*#[^"'\s]+\s*\1$/.test((m[1] ?? "").trim()),
+  );
+}
 
 /**
  * Refuses anything unsafe and removes what draws nothing: metadata, comments, editor namespaces,
@@ -127,7 +137,7 @@ export function sanitize(root: XNode, bad: Bad, adopt = false): XNode {
         );
       if (/javascript:/i.test(value.replace(/\s/g, "")))
         throw bad(`has a javascript: link on <${n.name}>`, `delete the ${rawKey} attribute`);
-      if (EXTERNAL_URL.test(value))
+      if (externalUrl(value))
         throw bad(
           `points outside the file with url(...) in ${rawKey} on <${n.name}>`,
           "an icon may only reference its own ids, url(#id); inline what it loads",

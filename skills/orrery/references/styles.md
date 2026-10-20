@@ -23,6 +23,22 @@ Read from the official PowerPoint toolkit in the [AWS Architecture Icons](https:
 | `aws:iot-greengrass` | #7AA116 | solid | Greengrass tile |
 | `aws:generic`, `aws:generic-dashed` | #7D8998 | solid / 6.67 5 | no icon, label centered |
 
+### Service groups
+
+A group framed by one AWS service, with that service's icon in its corner (an Amazon EKS cluster, an AWS CodePipeline pipeline, an organizational unit), takes the color of the icon's AWS category on its border, the way AWS colors the icon itself. It applies to `box`, `dashed`, `aws:generic` and `aws:generic-dashed` groups whose `icon:` is an AWS service or resource icon. The label stays black (white on dark backgrounds) as on every AWS group, an explicit `color:` still wins, and the stage skin keeps its own palette. "General" icons (users, clients, documents) are dark and keep the grey border.
+
+| Border | Categories |
+| --- | --- |
+| #ED7100 | Blockchain, Compute, Containers, Media Services, Quantum Technologies |
+| #8C4FFF | Analytics, Games, Networking & Content Delivery |
+| #E7157B | Application Integration, Management & Governance |
+| #7AA116 | Cloud Financial Management, Internet of Things, Storage |
+| #01A88D | Artificial Intelligence, End User Computing, Migration & Modernization |
+| #DD344C | Business Applications, Front-End Web & Mobile, Security, Identity & Compliance |
+| #C925D1 | Customer Enablement, Databases, Developer Tools, Satellite |
+
+A service group takes its color from the category of the icon in its corner. The colors are the fills of the category icons in the 2026-07-31 package (`aws:category-*`), which every service and resource icon of the category repeats. That guide's own table lists three other values (#00A4A6, #C7243A, #CD2264) and files Lambda under Serverless; orrery follows the artwork, so a border always matches its tile (the Lambda icon is Compute orange).
+
 From the deck's guidance pages:
 
 - "Some groups cross multiple groups, such as Auto Scaling, while others are meant to nest inside another, such as a VPC and subnets." Use `around:` for the crossing ones.
@@ -98,7 +114,7 @@ orrery's own, with no vendor behind them. `box`, `dashed`, `zone` and `internet`
 | `on-prem` | grey panel with a building glyph |
 | `internet` | dotted border with a globe glyph |
 
-Any group takes `color:` (border and label), `fill:` (background or `none`), `icon:` (any icon id, or `false`) and `dashed:`.
+Any group takes `color:` (border and label), `fill:` (background or `none`), `icon:` (any icon id, or `false`) and `dashed:`. A `box` or `dashed` group with an AWS service icon is a [service group](#service-groups) and takes that icon's category color.
 
 ## Processes and swimlanes
 

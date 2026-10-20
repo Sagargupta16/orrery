@@ -3,6 +3,7 @@
 
 import { stageColors } from "../skins.ts";
 import type { Model, Scene } from "../types.ts";
+import { clearBorders } from "./borders.ts";
 import { sizeCanvas } from "./canvas.ts";
 import {
   HOOKS,
@@ -45,6 +46,8 @@ export async function layoutCore(model: Model, opts: LayoutOptions = {}): Promis
   tidyEdges(placed, edges);
   const routed: Routed = { ...placed, edges, freeRoutes, rerouted, headers: walls.headers };
   placeFreeLabels(routed);
+  // After every label is placed, so a run that moves keeps off them all.
+  if (!process.env.NO_CLEAR) clearBorders(placed, edges);
 
   const { horizontal, top, nodes, groups } = routed;
   const hooked = { model, theme, horizontal, top, nodes, groups, edges, routing: model.routing };

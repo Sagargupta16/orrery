@@ -90,8 +90,9 @@ export function reviewScene(
       for (let p = parentOf(id); p; p = parentOf(p)) if (p === ancestor) return true;
       return false;
     },
-    add: (id, severity, subjects, evidence, claim, fixes, cost, patches) => {
+    add: (id, severity, subjects, evidence, claim, fixes, cost, patches, rule) => {
       const kind: FindingKind = FINDINGS[id];
+      const cites = rule ?? kind.rule;
       spent.set(id, (spent.get(id) ?? 0) + Math.max(0, cost));
       findings.push({
         id,
@@ -102,7 +103,7 @@ export function reviewScene(
         claim,
         fixes,
         ...(patches?.length ? { patches } : {}),
-        ...(kind.rule ? { rule: kind.rule } : {}),
+        ...(cites ? { rule: cites } : {}),
       });
     },
     metrics,

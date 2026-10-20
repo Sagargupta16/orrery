@@ -2,11 +2,31 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.10.0] - 2026-10-20
+
+### Added
+
+- **Geometry checks for the arrows themselves:** DG222 (an arrowhead on a zero-length or too-short end run), DG223 (an edge that cuts through a group holding neither of its ends), DG224 (a straight run along a group border, which reads as part of the frame) and DG225 (an edge label in a group's title band, or a line crowding the title). DG208 now also warns once when a diagram has nodes but no edges at all.
+- **Review findings** for a figure spread thin (`layout.sparse`, `layout.wide-pitch`), a gap between a group's rows, columns or sibling groups wider than its labels need (`grid.wide-gap`, `grid.group-gap`), two unrelated arrows running side by side (`flow.side-by-side`) and a subtitle that only repeats the title (`conventions.subtitle-echo`). The new check codes count in the score.
+- **Vendor-neutral composition rules** for every diagram: groups only for real boundaries (FLOW-11), actors outside every group (FLOW-12), denied paths dashed red and labelled (FLOW-13), hubs keep their targets together (FLOW-14), side branches leave their own main-path node, egress at the far end, peers side by side (LEG-10), names copied exactly from the evidence (ACC-06) and one vocabulary across figures (ACC-09).
+- The boundary-label, service-group and service-label checks (AWS-17 to AWS-19) now cover Azure, Google Cloud and Kubernetes too.
+- **AWS service groups take their category color** in the classic skin: a group framed by a service's icon gets the color of that icon's category (compute orange, databases magenta, networking purple ...), read from the official category icons. An explicit `color:` still wins.
+
+### Changed
+
+- Overlap fixes now lead with spacing or rerouting and suggest shortening a label last.
+- Routes keep clear of group borders and titles, so three examples draw cleaner lines.
+
+### Fixed
+
+- `orrery icons check` printed a raw stack trace for an SVG over 512 KB; it now says the file is too large for an icon and writes no contact sheet.
+- A local icon that references its own gradient or clip path as `url('#g')` or `url( #g )` was rejected as pointing outside the file.
+
 ## [0.9.0] - 2026-10-20
 
 ### Added
 
-- **Layout you can steer.** `rank: first`, `last` or a layer number places a node along the flow; `align: <node>` lines two nodes up across it; `cols:` on a group lays its children out as a grid, row by row in spec order; `layout: { aspect: 4:3 }` aims the canvas at a shape that reads in a README or on a slide. A hint the layout cannot honor is reported, with the reason, as DG219, and a hint that would make an edge or a label cover a node is dropped rather than drawn over; bad values fail with DG114 to DG116. The hosted-agent diagram of the AgentCore sample went from a 3:1 strip whose labels render at 6.6 px in a README column (review 89.3, failing) to 1.47:1 and 97.3 passing with `aspect: 4:3` and three `align` hints.
+- **Layout you can steer.** `rank: first`, `last` or a layer number places a node along the flow; `align: <node>` lines two nodes up across it; `cols:` on a group lays its children out as a grid, row by row in spec order; `layout: { aspect: 4:3 }` aims the canvas at a shape that reads in a README or on a slide. A hint the layout cannot honor is reported, with the reason, as DG219, and a hint that would make an edge or a label cover a node is dropped rather than drawn over; bad values fail with DG114 to DG116. A hosted-agent diagram went from a 3:1 strip whose labels render at 6.6 px in a README column (review 89.3, failing) to 1.47:1 and 97.3 passing with `aspect: 4:3` and three `align` hints.
 - **Lines that are not part of the layout go around nodes.** Edges with `constraint: false` and edges to overlay groups now try more routes and keep the first that clears every node they do not connect and every group header. No example's route changed; a spec whose free edge crossed nodes went from 7 warnings to none.
 - **Agents that draw from your code** (Claude Code):
   - `/orrery:draw <what to draw>`: the new `planner` agent reads the infrastructure and code and returns every service, boundary and flow with the file and line it came from, marked declared or inferred, plus what it leaves out and why; you confirm that list before any spec is written.

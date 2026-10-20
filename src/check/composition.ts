@@ -20,8 +20,23 @@ export function emptyGroups({ model, warn }: CheckContext): void {
   }
 }
 
-/** DG208: nodes nothing connects to. */
+/**
+ * DG208: nodes nothing connects to, or, once, a diagram of several nodes with no edges at all
+ * (without arrows the diagram shows no flow). A journey's grid tells its story without them.
+ */
 export function lonelyNodes({ model, parentOf, warn }: CheckContext): void {
+  if (!model.edges.length) {
+    if (model.kind !== "journey" && model.nodes.length > 1) {
+      warn("DG208", `${model.nodes.length} nodes and no edges, so the diagram shows no flow`, {
+        evidence: { nodes: model.nodes.length, edges: 0 },
+        fixes: [
+          "connect the nodes with edges (a -> b) in the order requests or data move",
+          "fine for a legend or an inventory of services",
+        ],
+      });
+    }
+    return;
+  }
   const touched = new Set(model.edges.flatMap((e) => [e.from, e.to]));
   const reached = (id: string): boolean => {
     for (let p: string | undefined = id; p; p = parentOf.get(p)) if (touched.has(p)) return true;
@@ -29,7 +44,7 @@ export function lonelyNodes({ model, parentOf, warn }: CheckContext): void {
   };
   // A journey's grid places its steps, so links between them are optional.
   for (const n of model.kind === "journey" ? [] : model.nodes) {
-    if (!reached(n.id) && model.edges.length) {
+    if (!reached(n.id)) {
       warn("DG208", `node "${n.id}" has no connections`, {
         subject: { node: n.id },
         fixes: [`connect "${n.id}" or remove it (fine for a legend or a standalone service)`],

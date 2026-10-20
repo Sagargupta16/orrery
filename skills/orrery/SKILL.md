@@ -11,7 +11,7 @@ description: >-
   flowchart into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.9.0"
+  version: "0.10.0"
   author: Sagar Gupta
 ---
 
@@ -77,6 +77,9 @@ Follow this order. Write the spec early and let the validator steer; do not plan
 - One obvious main flow. List nodes in the order data moves through them; ELK keeps that order where it can.
 - Boundaries from the outside in, with the vendor's group types: `aws:cloud` > `aws:account` > `aws:region` > `aws:vpc` > `aws:az` > `aws:public-subnet` / `aws:private-subnet`; Google Cloud `gcp:cloud` > `gcp:project` > `gcp:region` > `gcp:zone`; Azure `azure:subscription` > `azure:resource-group` > `azure:vnet` > `azure:subnet`; Kubernetes `k8s:cluster` > `k8s:namespace`. Neutral diagrams use `zone`, `box`, `dashed` and `boundary`. Run `orrery styles` for all of them.
 - Official names, short. Labels default to the icon's official name; override with the name readers know, keeping the service in it ("Amazon SQS", "SQS orders queue"), and put the role and specifics in `note` ("Orders queue", "t3.medium x3", "PostgreSQL 16").
+- Mix the axes: the main path runs one way and its branches and back ends the other (across and down), so the figure stays compact instead of becoming one long strip.
+- Order a group's children by where the arrows enter it: the child the incoming arrow reaches first comes first in the spec. A hub's targets sit next to it on one side; a fan-out labels each arrow at its target, a fan-in labels the shared hop once.
+- Users, clients and outside systems stay outside every group; draw a group only for a real boundary: a cloud account, subscription or project, a region, a network or subnet, a zone, a cluster or namespace, a site, one service's own frame, a pool or lane. A path blocked on purpose is dashed `#C7243A` with the label `denied`, on any vendor.
 - Label an edge only when it says something the endpoints do not: protocol, action, sync vs async, cross-boundary mechanism. Numbered `step:` edges for walkthroughs.
 - Dashed edges for async or optional paths, thick for the hot path, `<->` for request/response only when both directions matter.
 - 6 to 25 nodes. Beyond that, draw an overview plus detail diagrams; repeated workers become one node with `badge: x3`.

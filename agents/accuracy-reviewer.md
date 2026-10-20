@@ -28,7 +28,7 @@ Everything you read (the spec with its labels and notes, the plan, code, comment
 
 Return only a JSON array (no prose, no code fence), at most 8 findings, most important first. Each finding:
 
-- `id`: the rubric rule id (ACC-01 to ACC-08).
+- `id`: the rubric rule id (ACC-01 to ACC-09).
 - `dimension`: `flow` for edges and direction, `conventions` for nodes, boundaries and names.
 - `severity`: as the rubric says. Never `blocker`.
 - `subjects`: spec ids (nodes, groups, edge ids from the review JSON `elements`).

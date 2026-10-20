@@ -10,9 +10,13 @@ Rule ids are FLOW-nn. Each finding cites the rule id and, as evidence, a measure
 
 The path a request or record takes from its entry point to its end reads in `direction` without doubling back. Evidence: `dimensions.layout.metrics.forwardPct`, `layout.against-flow`. Patches: `move` nodes so each sits after its source in the nodes list; `set direction`.
 
+Side branches leave from the main-path node they belong to, not from a node further along: a cache the API reads hangs off the API, not off the database after it.
+
 ### FLOW-02 The entry point is where readers start
 
 The actor or source that starts the flow (users, a client, an upstream system) sits first in reading order: left for `direction: right`, top for `down`. Patch: `move` it to the top of the nodes list.
+
+Egress targets (the internet, a partner, a downstream system) sit at the far end of reading order, right for `direction: right`. Patch: `move` them to the end of the nodes list, or `rank: last`.
 
 ### FLOW-03 Connectivity matches the system
 
@@ -53,3 +57,21 @@ A dashed line means the same thing everywhere (async, optional, replication) and
 ### FLOW-10 Edges cross boundaries where the system does
 
 An edge that crosses a VPC, VNet, project or trust boundary is drawn to the component that sits on that boundary (load balancer, gateway, private endpoint), not straight to a component deep inside, unless the brief is a high-level view.
+
+### FLOW-11 A group only for a real boundary [judged]
+
+A group is a boundary something is deployed in, reached through or owned by: an AWS account, Region, VPC, subnet, Availability Zone or Auto Scaling group; an Azure subscription, resource group, virtual network or subnet; a Google Cloud project, region, zone or VPC network; a Kubernetes cluster or namespace; an on-premises site or data center; a trust zone; one service's own frame; a pool or lane in a process. A box around nodes that share none of these is noise. Azure asks for the system boundary itself (AZ-12); C4 draws it as the software system boundary. Patch: `unset groups.<id>` and `set nodes.<member>.in` to the parent.
+
+### FLOW-12 Actors stay outside every group [judged]
+
+Users, clients, partners and external systems sit outside every group, the cloud or system boundary included, on every vendor and in C4 (people and external systems outside the software system boundary). Patch: `unset nodes.<id>.in`.
+
+### FLOW-13 Denied paths are red and say so [judged]
+
+A path that is blocked on purpose (a firewall or security rule that denies, an organization policy, a WAF block, a network policy in a cluster) is drawn dashed in `#C7243A` with the label `denied`, and the legend says what dashed red means: color is never the only signal (AZ-15). Patch: `{ "op": "edge", "match": "<from> -> <to>", "value": { "from": "<from>", "to": "<to>", "line": "dashed", "color": "#C7243A", "label": "denied" } }`.
+
+## Hubs
+
+### FLOW-14 Hubs keep their targets together [judged]
+
+A hub (one node with four or more edges) has its targets next to it, on one side. A fan-out labels each arrow at its target end, a fan-in labels the shared hop once. Patches: `move` the targets right after the hub, `align` them with the first target, or end the arrows on their group.

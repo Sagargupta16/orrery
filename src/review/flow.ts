@@ -31,8 +31,9 @@ const CROSS_CUTTING: Record<string, RegExp> = {
 export function measureFlow(c: Ctx, diagnostics: Diagnostic[]): void {
   const m = c.metrics.flow;
 
-  const { hidden, onBend, short } = arrowEnds(c);
+  const { hidden, short } = arrowEnds(c);
   const trunks = sharedTrunks(c);
+  const parallel = sideBySide(c, trunks);
   const { steps, inversions } = stepOrder(c);
   const { both, none } = arrowSemantics(c);
   const crossing = unlabelledCrossings(c);
@@ -42,9 +43,11 @@ export function measureFlow(c: Ctx, diagnostics: Diagnostic[]): void {
 
   Object.assign(m, {
     hiddenHeads: hidden,
-    headsOnBends: onBend,
+    // DG222 from check.ts; overlap.ts maps it to flow.head-on-bend.
+    headsOnBends: diagnostics.filter((d) => d.code === "DG222").length,
     shortEnds: short,
-    sharedTrunks: trunks,
+    sharedTrunks: trunks.size,
+    sideBySide: parallel,
     steps,
     stepInversions: inversions,
     bidirectional: both.length,
@@ -66,7 +69,6 @@ interface Head {
 
 interface EndCounts {
   hidden: number;
-  onBend: number;
   short: number;
 }
 
@@ -74,7 +76,7 @@ interface EndCounts {
 function arrowEnds(c: Ctx): EndCounts {
   const { scene } = c;
   const horizontal = horizontalFlow(c.dir);
-  const counts: EndCounts = { hidden: 0, onBend: 0, short: 0 };
+  const counts: EndCounts = { hidden: 0, short: 0 };
   const chips = scene.groups.flatMap((g) => {
     const chip = headerChip(g);
     return [
@@ -100,7 +102,7 @@ function arrowEnds(c: Ctx): EndCounts {
   return counts;
 }
 
-/** One arrowhead: under a label, step, header, badge or another node, or on the bend. */
+/** One arrowhead under a label, step, header, badge or another node (on the bend is DG222). */
 function checkHead(
   c: Ctx,
   e: SceneEdge,
@@ -159,18 +161,6 @@ function checkHead(
       10,
     );
   }
-  if (L < len - EPS) {
-    counts.onBend++;
-    add(
-      "flow.head-on-bend",
-      "minor",
-      [e.id],
-      { edge: edgeName(e), lastRunPx: r1(L), headPx: len },
-      `the last straight run of ${edgeName(e)} is ${r1(L)}px, shorter than its ${len}px arrowhead`,
-      ["use layout: { spacing: loose }", `reorder so "${h.target}" lines up with its source`],
-      3,
-    );
-  }
 }
 
 /** Both ends of a horizontal-flow edge against narrow icon glyphs. */
@@ -212,9 +202,9 @@ function shortEnds(
 }
 
 /** Unrelated edges on one line (layout lane: collinear overlap, no shared endpoint). */
-function sharedTrunks(c: Ctx): number {
+function sharedTrunks(c: Ctx): Set<string> {
   const { scene, add } = c;
-  let trunks = 0;
+  const trunks = new Set<string>();
   const E = scene.edges;
   for (let i = 0; i < E.length; i++)
     for (let j = i + 1; j < E.length; j++) {
@@ -243,7 +233,7 @@ function sharedTrunks(c: Ctx): number {
             );
         }
       if (olap > 10) {
-        trunks++;
+        trunks.add(`${a.id}|${b.id}`);
         add(
           "flow.shared-trunk",
           olap > 40 ? "major" : "minor",
@@ -260,6 +250,61 @@ function sharedTrunks(c: Ctx): number {
       }
     }
   return trunks;
+}
+
+/**
+ * Unrelated edges side by side (aws-archify geometry checks, MIT-0: two arrows within about 12px
+ * of each other read as one double line). Parallel runs 1.5 to 12px apart that share more than an
+ * icon's length (48px) of span: ELK keeps unrelated edges in one channel 10px apart, and a shorter
+ * stretch beside a bend (the gallery has six of 27 to 37px) reads as part of the bend. Closer runs
+ * are flow.shared-trunk's, and a pair it reported is not counted again. Edges that share an
+ * endpoint fan out or in together by design. Canvas px, like flow.shared-trunk's: the sample's
+ * limits are drawing units, and a narrower column brings the lines closer still.
+ */
+function sideBySide(c: Ctx, trunks: Set<string>): number {
+  const { scene, add } = c;
+  let pairs = 0;
+  const E = scene.edges;
+  for (let i = 0; i < E.length; i++)
+    for (let j = i + 1; j < E.length; j++) {
+      const a = E[i];
+      const b = E[j];
+      if (!a || !b || trunks.has(`${a.id}|${b.id}`)) continue;
+      if (a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to) continue;
+      let span = 0;
+      let apart = 0;
+      for (const [p, q] of segments(simplify(a.points)))
+        for (const [u, v] of segments(simplify(b.points))) {
+          const h = Math.abs(p.y - q.y) < EPS && Math.abs(u.y - v.y) < EPS;
+          const vert = Math.abs(p.x - q.x) < EPS && Math.abs(u.x - v.x) < EPS;
+          if (!h && !vert) continue;
+          const d = h ? Math.abs(p.y - u.y) : Math.abs(p.x - u.x);
+          if (d < 1.5 || d > 12) continue;
+          const [p0, p1, u0, u1] = h ? [p.x, q.x, u.x, v.x] : [p.y, q.y, u.y, v.y];
+          const shared =
+            Math.min(Math.max(p0, p1), Math.max(u0, u1)) -
+            Math.max(Math.min(p0, p1), Math.min(u0, u1));
+          if (shared > span) {
+            span = shared;
+            apart = d;
+          }
+        }
+      if (span <= 48) continue;
+      pairs++;
+      add(
+        "flow.side-by-side",
+        "minor",
+        [a.id, b.id],
+        { a: edgeName(a), b: edgeName(b), apartPx: r1(apart), sharedPx: r1(span) },
+        `${edgeName(a)} and ${edgeName(b)} run ${r1(apart)}px apart for ${r1(span)}px, so they read as one double line`,
+        [
+          "reorder nodes so the two edges take different channels",
+          "use layout: { spacing: loose }",
+        ],
+        3,
+      );
+    }
+  return pairs;
 }
 
 /** Steps: numbering, and order along the picture (AWS deck slide 18). */

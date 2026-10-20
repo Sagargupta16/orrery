@@ -5,7 +5,7 @@ import type { ModelEdge, Point } from "../types.ts";
 import type { Placed } from "./context.ts";
 import { detour } from "./detour.ts";
 import { elkRoute } from "./edges.ts";
-import { alongBorder, laneRoutes, runsThrough } from "./elbows.ts";
+import { alongBorder, clearOfFrames, laneRoutes, runsThrough } from "./elbows.ts";
 import { collinear, headRoom } from "./geometry.ts";
 import { attachBox, freeRoute, steer } from "./steer.ts";
 import type { Walls } from "./walls.ts";
@@ -20,7 +20,17 @@ interface Claim {
 // their line first; each elbow then steps aside from the lines of unrelated free edges.
 export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
   const { model, opts, plan, horizontal, rel } = ctx;
-  const { borders } = w;
+  const { borders, titles } = w;
+  /** Off every border line and beside no title: a route that clears the walls may still do neither. */
+  const framed = (p: Point[]) => !!process.env.NO_FRAMED || clearOfFrames(p, borders, titles);
+  /** The groups that hold neither end, which a lane taken to get off a border must not cut through. */
+  const strangers = (e: ModelEdge) =>
+    ctx.groups
+      .filter(
+        (g) =>
+          !g.overlay && ![e.from, e.to].some((id) => id === g.id || rel.above(id).includes(g.id)),
+      )
+      .map((g) => g.box);
   const freeRoutes = new Map<string, Point[]>();
   const claimed: Claim[] = [];
   const related = (a: ModelEdge, b: ModelEdge) =>
@@ -80,11 +90,17 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
       const shifts = [0, 12, -12, 24, -24, 36, -36].map(route);
       if (!straight) points = shifts.find((p) => fits(p, e)) ?? points;
       // An edge that was free before rank, align and cols keeps today's route when it clears
-      // everything. Otherwise the first lane clear of the walls with a margin, off group borders
-      // and off ELK's lines wins, then a detour around them, then any lane that clears the walls.
+      // everything, group border lines and titles included. Otherwise the first lane clear of the
+      // walls with a margin, off group borders and off ELK's lines wins, then a detour around
+      // them, then a lane that clears the walls and the frames, then any lane that clears the walls.
       const walls = w.walls(e);
       const known = !rel.inBlock(e) && !rel.gridBetween(e) && !opts.loose?.has(e.id);
-      if (!known || runsThrough(points, walls)) {
+      if (!known || runsThrough(points, walls) || !framed(points)) {
+        // Today's route that only lies on a border or beside a title gives way to a lane that cuts
+        // through no more groups holding neither end (DG223), or stays.
+        const kept = known && !runsThrough(points, walls) ? points : undefined;
+        const cuts = (p: Point[]) => runsThrough(p, strangers(e), 4);
+        const fair = (p: Point[]) => !kept || !cuts(p) || cuts(kept);
         const roomy = w.roomyWalls(e);
         const heads = {
           start: e.arrow === "start" || e.arrow === "both",
@@ -97,7 +113,8 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
           (p) =>
             unclaimed(p, e, !known) &&
             !elkLines.some((c) => collinear(p, c.p, c.q)) &&
-            (known || headRoom(p, heads)),
+            (known || headRoom(p, heads)) &&
+            fair(p),
         );
         // The detour treats the lines already drawn like borders: it may cross them, not run on them.
         const drawn = [...claimed.filter((c) => c.e !== e), ...elkLines].map((c) => ({
@@ -109,11 +126,14 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
         const taken = [...claimed.filter((c) => c.e !== e), ...elkLines].flatMap((c) => [c.p, c.q]);
         const around = () => {
           const path = detour(a, b, roomy, [...borders, ...drawn], taken);
-          return path && !runsThrough(steered(path), walls) ? steered(path) : undefined;
+          const out = path && steered(path);
+          return out && !runsThrough(out, walls) && framed(out) && fair(out) ? out : undefined;
         };
         points =
           lanes.find((p) => !runsThrough(p, roomy) && !alongBorder(p, borders)) ??
           around() ??
+          lanes.find((p) => !runsThrough(p, walls) && framed(p) && !cuts(p)) ??
+          kept ??
           lanes.find((p) => !runsThrough(p, walls)) ??
           points;
       }

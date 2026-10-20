@@ -173,8 +173,8 @@ export interface GridCell {
 }
 
 /**
- * The aws-archify Grid: row by row in spec order into `cols` equal cells, the cell as wide as the
- * widest child and the row pitch the tallest; each child centered across its cell, and every box
+ * The grid: row by row in spec order into `cols` equal cells, the cell as wide as the widest
+ * child and the row pitch the tallest; each child centered across its cell, and every box
  * centered on one line per row (the icon band), so labels of different lengths hang below it.
  * Returns the content size and each footprint's top-left, relative to the content origin.
  */

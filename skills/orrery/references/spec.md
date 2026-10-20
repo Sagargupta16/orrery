@@ -215,7 +215,7 @@ edges:
 | DG205 | warning | The diagram is over 2400 px wide, or a long thin strip: wider than 4.5 times its height, or taller than 4.5 times its width, with more than six nodes. |
 | DG206 | warning | More than 40 nodes in one diagram. |
 | DG207 | warning | An empty group. |
-| DG208 | warning | A node nothing connects to. |
+| DG208 | warning | A node nothing connects to, or (once) a diagram of two or more nodes with no edges at all, which shows no flow. Journeys are exempt: their grid places the steps. |
 | DG209 | warning | An edge runs through a group's header label, or a pool's or lane's name strip, which hides the line and makes it look broken. |
 | DG210 | warning | Something is drawn outside the canvas (a step badge, label, node, group, the title or the legend) and gets cut off. The evidence says how far and past which side. |
 | DG211 | warning | A step badge or a node badge sits on a node, a node or edge label, or another badge. |
@@ -227,6 +227,10 @@ edges:
 | DG219 | warning | A placement setting had no effect (`rank`, `align`, `cols`, `layout.aspect`), with the reason: it conflicts with an edge or another hint, the kind places nodes itself, or no layout got close enough. |
 | DG220 | warning | An edge label sits on a group's border line, so the frame looks cut where it passes. |
 | DG221 | warning | An edge passes within 10 px of a node it does not connect, so it reads as touching that node. |
+| DG222 | warning | An arrowhead sits on an end run of zero length, or on a straight run shorter than the head, so it points nowhere or folds back on the line. |
+| DG223 | warning | An edge cuts through a group that holds neither of its ends; the line should go around it or end on it. |
+| DG224 | warning | A straight run lies within 4 px of a parallel group border for more than 24 px, so the line reads as part of the frame. |
+| DG225 | warning | An edge label sits in the top 28 px of a group, among its title, or a vertical run passes within 6 px right of a group title. |
 | DG301 | error | An icon library that comes from npm (`github`, `ibm`, `logos`, `si`, `tabler`, `ph`) could not be loaded: it is not in `node_modules` or the cache and the download failed. The fixes say how to prefetch it (`orrery icons fetch`, `ORRERY_CACHE`) or to use the bundled packs (`aws`, `azure`, `gcp`, `k8s`). |
 | DG401 | error | `orrery doc`: a figure marker names a spec file that does not exist, or no file at all. |
 | DG402 | error | `orrery doc`: an output would have a different number of figures than the document has markers, usually because a marker is not on a line of its own at the top level (inside a list or a quote). |

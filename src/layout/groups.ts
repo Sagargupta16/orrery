@@ -2,7 +2,7 @@
 // (overlays carry a legend on their top border), and sliding a header off the edges crossing it.
 
 import { contrast, ensureContrast, luminance, mixHex } from "../color.ts";
-import { type GroupStyle, resolveGroupStyle } from "../styles.ts";
+import { type GroupStyle, resolveGroupStyle, serviceGroupStroke } from "../styles.ts";
 import type { Theme } from "../themes.ts";
 import type { Box, ModelGroup, SceneEdge, SceneGroup, SceneNode, ThemeName } from "../types.ts";
 import type { Placed } from "./context.ts";
@@ -32,7 +32,7 @@ export function paintGroup(
   const gg = groupGeom.get(grp.id);
   const style = resolveGroupStyle(grp.type);
   if (!gg || !style) return undefined;
-  const { stroke, fill, labelColor } = groupColors(grp, style, theme, t, overlay);
+  const { stroke, fill, labelColor } = groupColors(grp, style, theme, t, overlay, gg.icon);
   const { iconBox, labelX, labelY } = headerAt(gg, box, overlay);
   // A corner tile stays in its corner; inline icons and legends travel with their label.
   const cornerTile = !overlay && gg.iconStyle === "tile" && !!iconBox;
@@ -92,8 +92,11 @@ function groupColors(
   theme: ThemeName,
   t: Theme,
   overlay: boolean,
+  icon: string | undefined,
 ): { stroke: string; fill: string; labelColor: string } {
-  const strokeBase = grp.color ?? style.stroke;
+  // An AWS service group takes its icon's category color on the border; the label stays the
+  // deck's black or white.
+  const strokeBase = grp.color ?? serviceGroupStroke(grp.type, icon) ?? style.stroke;
   let stroke = strokeBase;
   let fill = grp.fill === "none" ? "none" : (grp.fill ?? style.fill ?? "none");
   if (overlay) fill = "none";
@@ -178,9 +181,13 @@ function headerAt(
   return { iconBox, labelX, labelY };
 }
 
+/** How far past its inset a header may slide when no free stretch fits (the chip stays inside). */
+const HEADER_SLACK = 4;
+
 /**
  * Slides a group's header label sideways off the edges that cross it: renderers paint a chip
- * behind the label, which would cut those edges. Returns false when no free stretch fits.
+ * behind the label, which would cut those edges. Returns false when no free stretch fits in its
+ * room, though it may still have slid up to HEADER_SLACK px past it.
  */
 export function clearHeader(
   g: SceneGroup,
@@ -210,12 +217,23 @@ export function clearHeader(
   const min = room.lo - u.x;
   const max = room.hi - (u.x + u.w);
   // Free spots start or end against an obstacle; take the one closest to the styled place.
-  const dx = others
-    .flatMap((b) => [b.x - (chip.x + chip.w), b.x + b.w - chip.x])
-    .filter((d) => d >= min - 0.01 && d <= max + 0.01 && !others.some((b) => hit(b, d)))
-    .sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)[0];
-  if (dx === undefined) return false;
-  g.labelBox.x = round(g.labelBox.x + dx);
-  if (icon) icon.x = round(icon.x + dx);
-  return true;
+  const spot = (lo: number, hi: number) =>
+    others
+      .flatMap((b) => [b.x - (chip.x + chip.w), b.x + b.w - chip.x])
+      .filter((d) => d >= lo - 0.01 && d <= hi + 0.01 && !others.some((b) => hit(b, d)))
+      .sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)[0];
+  const slide = (dx: number) => {
+    g.labelBox.x = round(g.labelBox.x + dx);
+    if (icon) icon.x = round(icon.x + dx);
+  };
+  const dx = spot(min, max);
+  if (dx !== undefined) {
+    slide(dx);
+    return true;
+  }
+  // No free stretch: the header still gives up HEADER_SLACK px of its inset when that keeps a
+  // line just beside the text 6px off it (DG225). It stays blocked, so the group still widens.
+  const near = spot(min - HEADER_SLACK, max + HEADER_SLACK);
+  if (near !== undefined) slide(near);
+  return false;
 }

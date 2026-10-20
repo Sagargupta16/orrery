@@ -15,6 +15,27 @@ interface OverlapRule {
   hard?: keyof HardCounts;
   /** Diagnostic subject keys that name spec ids. */
   ids: string[];
+  /** Severity and cost from the scene, when the code alone does not say how bad it is. */
+  grade?: (c: Ctx, d: Diagnostic) => { severity: ReviewSeverity; cost: number };
+}
+
+/**
+ * DG223 is major only when the edge truly crosses the frame: both ends outside its box and over
+ * 24px of line inside it (DG224's riser length). A run that clips a corner, or an end whose node
+ * sits over the frame, reads as touching it rather than belonging to it.
+ */
+function throughGroup(c: Ctx, d: Diagnostic): { severity: ReviewSeverity; cost: number } {
+  const e = c.scene.edges.find((x) => x.id === d.subject?.edge);
+  const g = c.groups.get(String(d.subject?.group ?? ""));
+  const [a, b] = [e?.points[0], e?.points.at(-1)];
+  const outside = (p?: { x: number; y: number }) =>
+    !!p &&
+    !!g &&
+    !(p.x > g.box.x && p.x < g.box.x + g.box.w && p.y > g.box.y && p.y < g.box.y + g.box.h);
+  const inside = e && g ? pathClipLen(e.points, g.box, 4) : 0;
+  return outside(a) && outside(b) && inside > 24
+    ? { severity: "major", cost: 8 }
+    : { severity: "minor", cost: 4 };
 }
 
 /** By diagnostic code; DG202 is two findings, told apart by `subject.edges` (label on label). */
@@ -103,6 +124,33 @@ const OVERLAP_RULES: Record<string, OverlapRule> = {
     cost: 4,
     ids: ["edge", "node"],
   },
+  // The head-on-bend geometry lives in check.ts (DG222); the flow dimension scores it.
+  DG222: {
+    id: "flow.head-on-bend",
+    severity: "minor",
+    cost: 3,
+    ids: ["edge"],
+  },
+  DG223: {
+    id: "overlap.edge-through-group",
+    severity: "minor",
+    cost: 4,
+    ids: ["edge", "group"],
+    grade: throughGroup,
+  },
+  // A run on a border line breaks the frame's rhythm rather than hiding text: grid, minor.
+  DG224: {
+    id: "grid.edge-on-border",
+    severity: "minor",
+    cost: 3,
+    ids: ["edge", "group"],
+  },
+  DG225: {
+    id: "overlap.title-band",
+    severity: "minor",
+    cost: 4,
+    ids: ["edge", "group"],
+  },
 };
 
 /** A diagnostic's evidence as flat number/string pairs: a nested box becomes "box.x", "box.w"... */
@@ -144,6 +192,8 @@ export function measureOverlap(c: Ctx, diagnostics: Diagnostic[]): void {
     nestingProblems: count("DG213") + nesting,
     labelsOnBorders: count("DG220"),
     edgesSkimmingNodes: count("DG221"),
+    edgesThroughGroups: count("DG223"),
+    labelsInTitleBands: count("DG225"),
   });
 }
 
@@ -154,14 +204,15 @@ function mapDiagnostics(c: Ctx, diagnostics: Diagnostic[]): void {
     const rule = OVERLAP_RULES[d.code === "DG202" && d.subject?.edges ? "DG202:labels" : d.code];
     if (!rule) continue;
     if (rule.hard) hard[rule.hard]++;
+    const { severity, cost } = rule.grade?.(c, d) ?? rule;
     add(
       rule.id,
-      rule.severity,
+      severity,
       subjectIds(d, rule.ids),
       flatEvidence(d.evidence),
       d.message,
       d.fixes ?? [],
-      rule.cost,
+      cost,
     );
   }
 }

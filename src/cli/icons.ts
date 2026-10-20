@@ -246,7 +246,18 @@ async function checkIconFile(path: string, out?: string): Promise<boolean> {
       ? out
       : `${out}.png`
     : join(dirname(path), `${basename(path, extname(path))}.sheet.png`);
-  writeAtomic(sheet, await iconSheet(path));
+  // The sheet loads the file the way a diagram does, so the loader's own limits (file size) apply.
+  let png: Uint8Array;
+  try {
+    png = await iconSheet(path);
+  } catch (e) {
+    if (!(e instanceof LocalIconError)) throw e;
+    process.stderr.write(
+      `error ${shown} ${e.problem}; no contact sheet written\n      fix: ${e.fix}\n`,
+    );
+    return false;
+  }
+  writeAtomic(sheet, png);
   const failing = check.results.filter((r) => !r.ok).length;
   process.stdout.write(
     `wrote ${shownPath(sheet)}: look at all four tiles before handing over (IC10)\n${failing ? `failed: ${failing} rule(s)` : "ok: every rule passes"}\n`,

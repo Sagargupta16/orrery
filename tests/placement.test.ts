@@ -2,12 +2,31 @@ import { describe, expect, it } from "vitest";
 import { sceneDefects } from "../src/layout/defects.ts";
 import { segmentHits } from "../src/layout/geometry.ts";
 import { layout } from "../src/layout/index.ts";
-import type { Box, Scene } from "../src/types.ts";
+import type { Box, Point, Scene } from "../src/types.ts";
 import { model, must } from "./helpers.ts";
 
 const box = (s: Scene, id: string): Box => must(s.nodes.find((n) => n.id === id)?.box, id);
 const cx = (b: Box) => b.x + b.w / 2;
 const cy = (b: Box) => b.y + b.h / 2;
+/**
+ * The straight runs of a path that lie on a group's border line: parallel to a side, within 4px
+ * of it, over more than 24px of it (the frame's stroke would hide them).
+ */
+const onBorder = (s: Scene, pts: Point[]) =>
+  pts.slice(1).flatMap((q, i) => {
+    const p = must(pts[i], "point");
+    const upright = Math.abs(p.x - q.x) < 0.5;
+    if (!upright && Math.abs(p.y - q.y) >= 0.5) return [];
+    return s.groups.flatMap((g) => {
+      const [at, lo, hi] = upright ? [p.x, p.y, q.y] : [p.y, p.x, q.x];
+      const [s0, s1, from, to] = upright
+        ? [g.box.x, g.box.x + g.box.w, g.box.y, g.box.y + g.box.h]
+        : [g.box.y, g.box.y + g.box.h, g.box.x, g.box.x + g.box.w];
+      const along = Math.min(Math.max(lo, hi), to) - Math.max(Math.min(lo, hi), from);
+      const near = [s0, s1].some((v) => Math.abs(v - at) <= 4);
+      return near && along > 24 ? [`${g.id} at ${at}`] : [];
+    });
+  });
 /** Where a box sits along the flow of the scene: two nodes in one layer share it. */
 const flow = (s: Scene, id: string) =>
   s.direction === "right" || s.direction === "left" ? cx(box(s, id)) : cy(box(s, id));
@@ -278,5 +297,66 @@ edges:
     expect(e.points.slice(1).some((q, i) => segmentHits(must(e.points[i], "point"), q, m))).toBe(
       false,
     );
+  });
+
+  it("keeps a free edge off a group border its riser would run along", async () => {
+    // The riser of n3 -> n4 fell on the right border of g0, where the frame hid it.
+    const s = await layout(
+      model(`groups:
+  g0: { type: zone, label: Group 0 }
+  g1: { type: zone, label: Group 1 }
+nodes:
+  n0: { label: Node 0, in: g1 }
+  n1: { label: Node 1, in: g0 }
+  n2: { label: Node 2, in: g1 }
+  n3: { label: Node 3, in: g1 }
+  n4: { label: Node 4, in: g0 }
+edges:
+  - n0 -> n1
+  - n0 -> n2
+  - n0 -> n3
+  - n2 -> n4
+  - { from: n3, to: n4, constraint: false }
+  - { from: n3, to: n2, constraint: false }
+`),
+    );
+    const e = must(
+      s.edges.find((x) => x.from === "n3" && x.to === "n4"),
+      "free edge",
+    );
+    expect(onBorder(s, e.points)).toEqual([]);
+    expect(sceneDefects(s)).toBe(0);
+  });
+
+  it("moves a run ELK lays on a group border off it, with its label", async () => {
+    // ELK took n0 -> n4 out of g0 along its bottom border, 2px inside the frame.
+    const s = await layout(
+      model(`direction: right
+groups:
+  g0: { type: zone, label: Group 0 }
+nodes:
+  n0: { label: Node 0, in: g0 }
+  n1: { label: Node 1, in: g0 }
+  n2: { label: Node 2, in: g0 }
+  n3: { label: Node 3, in: g0 }
+  n4: { label: Node 4 }
+edges:
+  - n0 -> n1
+  - n1 -> n2: lbl
+  - n0 -> n3
+  - n0 -> n4: lbl
+`),
+    );
+    for (const e of s.edges) expect(onBorder(s, e.points)).toEqual([]);
+    expect(sceneDefects(s)).toBe(0);
+    const e = must(
+      s.edges.find((x) => x.from === "n0" && x.to === "n4"),
+      "edge",
+    );
+    const label = must(e.labelBox, "label");
+    // The label still sits just above the long run it names.
+    const run = must(e.points.at(-1), "end").y;
+    expect(run - (label.y + label.h)).toBeGreaterThanOrEqual(0);
+    expect(run - (label.y + label.h)).toBeLessThanOrEqual(12);
   });
 });

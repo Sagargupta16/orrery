@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.9.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.10.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -8068,7 +8068,12 @@ function matches(n4, sel) {
   if (m[2] === "#" && n4.attrs.get("id") !== m[3]) return false;
   return true;
 }
-var EXTERNAL_URL = /url\(\s*["']?\s*(?!#)/i;
+function externalUrl(value) {
+  if (/url\((?![^)]*\))/i.test(value)) return true;
+  return [...value.matchAll(/url\(([^)]*)\)/gi)].some(
+    (m) => !/^(["']?)\s*#[^"'\s]+\s*\1$/.test((m[1] ?? "").trim())
+  );
+}
 function sanitize(root, bad, adopt = false) {
   const rules = [];
   if (adopt) {
@@ -8106,7 +8111,7 @@ function sanitize(root, bad, adopt = false) {
         );
       if (/javascript:/i.test(value.replace(/\s/g, "")))
         throw bad(`has a javascript: link on <${n4.name}>`, `delete the ${rawKey} attribute`);
-      if (EXTERNAL_URL.test(value))
+      if (externalUrl(value))
         throw bad(
           `points outside the file with url(...) in ${rawKey} on <${n4.name}>`,
           "an icon may only reference its own ids, url(#id); inline what it loads"
@@ -9227,7 +9232,7 @@ function starterIcon(name) {
 }
 
 // src/cli/help.ts
-var VERSION = true ? "0.9.0" : "dev";
+var VERSION = true ? "0.10.0" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
@@ -9811,13 +9816,25 @@ function emptyGroups({ model, warn }) {
   }
 }
 function lonelyNodes({ model, parentOf, warn }) {
+  if (!model.edges.length) {
+    if (model.kind !== "journey" && model.nodes.length > 1) {
+      warn("DG208", `${model.nodes.length} nodes and no edges, so the diagram shows no flow`, {
+        evidence: { nodes: model.nodes.length, edges: 0 },
+        fixes: [
+          "connect the nodes with edges (a -> b) in the order requests or data move",
+          "fine for a legend or an inventory of services"
+        ]
+      });
+    }
+    return;
+  }
   const touched = new Set(model.edges.flatMap((e) => [e.from, e.to]));
   const reached = (id) => {
     for (let p = id; p; p = parentOf.get(p)) if (touched.has(p)) return true;
     return model.groups.some((g) => g.around?.includes(id) && touched.has(g.id));
   };
   for (const n4 of model.kind === "journey" ? [] : model.nodes) {
-    if (!reached(n4.id) && model.edges.length) {
+    if (!reached(n4.id)) {
       warn("DG208", `node "${n4.id}" has no connections`, {
         subject: { node: n4.id },
         fixes: [`connect "${n4.id}" or remove it (fine for a legend or a standalone service)`]
@@ -9900,6 +9917,8 @@ function checkContext(scene, model, opts) {
 
 // src/check/edges.ts
 var SKIM_PX = 10;
+var STAGE_HEAD = 6;
+var STAGE_DISPLAY = 880;
 function edgeThroughNode({ scene, nodeBoxes: nodeBoxes2, warn }) {
   for (const e of scene.edges) {
     for (const nb of nodeBoxes2) {
@@ -9995,6 +10014,206 @@ function edgeSkimsNode({ scene, nodeBoxes: nodeBoxes2, warn }) {
     }
   }
 }
+var headLength = (scene, e) => scene.skin === "stage" ? STAGE_HEAD * Math.max(1, scene.width / STAGE_DISPLAY) : e.line === "thick" ? 11 : 9;
+function endRun(pts) {
+  const [tip, prev] = pts;
+  if (!tip || !prev) return { raw: 0, run: 0 };
+  const [ux, uy] = [prev.x - tip.x, prev.y - tip.y];
+  const raw = Math.hypot(ux, uy);
+  if (raw < 0.01) return { raw, run: 0 };
+  let run2 = raw;
+  for (const p of pts.slice(2)) {
+    const [dx, dy] = [p.x - tip.x, p.y - tip.y];
+    const across2 = Math.abs(dx * uy - dy * ux) / raw;
+    const along3 = (dx * ux + dy * uy) / raw;
+    if (across2 > 0.01 || along3 < run2) break;
+    run2 = along3;
+  }
+  return { raw, run: run2 };
+}
+function headOnShortEnd({ scene, warn }) {
+  for (const e of scene.edges) {
+    const n4 = e.points.length;
+    if (n4 < 2) continue;
+    const spline = scene.routing === "spline" && (n4 - 1) % 3 === 0 && n4 > 2;
+    const head2 = headLength(scene, e);
+    const ends2 = [
+      ...e.arrow === "end" || e.arrow === "both" ? [{ at: e.to, pts: [...e.points].reverse() }] : [],
+      ...e.arrow === "start" || e.arrow === "both" ? [{ at: e.from, pts: e.points }] : []
+    ];
+    for (const { at, pts } of ends2) {
+      const { raw, run: run2 } = endRun(pts);
+      const zero = raw < 0.01;
+      if (!zero && (spline || run2 >= head2 - EPS)) continue;
+      const tip = pts[0];
+      warn(
+        "DG222",
+        zero ? `the arrowhead of ${e.from} -> ${e.to} at "${at}" ends a zero-length segment, so it points nowhere` : `the arrowhead of ${e.from} -> ${e.to} at "${at}" sits on a ${tenth(run2)}px straight run, shorter than the ${tenth(head2)}px head, so it covers the bend`,
+        {
+          subject: { edge: e.id, from: e.from, to: e.to, end: at },
+          evidence: { runPx: tenth(run2), headPx: tenth(head2), tip: pointOf(tip) },
+          fixes: [
+            `move "${at}" in the nodes list so it lines up with the other end`,
+            "use layout: { spacing: loose }",
+            "try layout: { layering: simplex }"
+          ]
+        }
+      );
+    }
+  }
+}
+
+// src/check/groups.ts
+var BORDER_PX = 4;
+var ALONG_MIN = 24;
+var TITLE_BAND = 28;
+var TITLE_CLEAR = 6;
+var framed = (g) => !g.overlay && !g.lane && g.type !== "pool" && g.type !== "lane";
+function runOf(p, q) {
+  if (Math.abs(p.x - q.x) < EPS && Math.abs(p.y - q.y) >= EPS)
+    return { vertical: true, at: p.x, lo: Math.min(p.y, q.y), hi: Math.max(p.y, q.y) };
+  if (Math.abs(p.y - q.y) < EPS && Math.abs(p.x - q.x) >= EPS)
+    return { vertical: false, at: p.y, lo: Math.min(p.x, q.x), hi: Math.max(p.x, q.x) };
+  return void 0;
+}
+var segmentsOf = (pts) => pts.slice(1).map((q, i) => [pts[i], q]);
+var within = (b, g) => b.x >= g.x - EPS && b.y >= g.y - EPS && b.x + b.w <= g.x + g.w + EPS && b.y + b.h <= g.y + g.h + EPS;
+function edgeThroughGroup({ scene, model, parentOf, warn }) {
+  const under = (id, gid) => {
+    for (let p = id; p; p = parentOf.get(p)) if (p === gid) return true;
+    return false;
+  };
+  const holds = (gid, id) => under(id, gid) || !!model.groups.find((g) => g.id === id)?.around?.some((m) => under(m, gid));
+  const groups = scene.groups.filter(
+    (g) => framed(g) && !scene.nodes.every((n4) => within(n4.box, g.box))
+  );
+  for (const e of scene.edges) {
+    const cut = groups.flatMap((g) => {
+      if (holds(g.id, e.from) || holds(g.id, e.to)) return [];
+      const hit = segmentsOf(e.points).find(([p, q]) => segmentHitsBox(p, q, g.box, BORDER_PX));
+      return hit ? [{ g, hit }] : [];
+    });
+    for (const { g, hit } of cut) {
+      if (cut.some((o) => o.g !== g && under(g.id, o.g.id))) continue;
+      warn(
+        "DG223",
+        `edge ${e.from} -> ${e.to} cuts through group "${g.id}", which holds neither end`,
+        {
+          subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
+          evidence: { group: boxOf(g.box), segment: hit.map(pointOf) },
+          fixes: [
+            `move "${e.from}" or "${e.to}" in the nodes list so the edge runs around "${g.id}"`,
+            `put the end that belongs with "${g.id}" in it (in: ${g.id}), or connect to the group itself`,
+            "try layout: { layering: simplex }",
+            "change direction"
+          ]
+        }
+      );
+    }
+  }
+}
+function edgeAlongBorder({ scene, warn }) {
+  for (const e of scene.edges) {
+    if (scene.routing === "spline" && (e.points.length - 1) % 3 === 0 && e.points.length > 2)
+      continue;
+    for (const g of scene.groups) {
+      const r4 = g.box;
+      const borders = [
+        { side: "left", vertical: true, at: r4.x, lo: r4.y, hi: r4.y + r4.h },
+        { side: "right", vertical: true, at: r4.x + r4.w, lo: r4.y, hi: r4.y + r4.h },
+        { side: "top", vertical: false, at: r4.y, lo: r4.x, hi: r4.x + r4.w },
+        { side: "bottom", vertical: false, at: r4.y + r4.h, lo: r4.x, hi: r4.x + r4.w }
+      ];
+      let found;
+      for (const seg of segmentsOf(e.points)) {
+        const run2 = runOf(...seg);
+        if (!run2) continue;
+        for (const b of borders) {
+          const off = Math.abs(run2.at - b.at);
+          const len2 = Math.min(run2.hi, b.hi) - Math.max(run2.lo, b.lo);
+          if (b.vertical !== run2.vertical || off > BORDER_PX || len2 <= ALONG_MIN) continue;
+          if (!found || len2 > found.len) found = { side: b.side, off, len: len2, seg };
+        }
+      }
+      if (!found) continue;
+      warn(
+        "DG224",
+        `edge ${e.from} -> ${e.to} runs ${tenth(found.len)}px along the ${found.side} border of group "${g.id}" (${tenth(found.off)}px off it), so the line hides under the frame`,
+        {
+          subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
+          evidence: {
+            group: boxOf(r4),
+            side: found.side,
+            offPx: tenth(found.off),
+            alongPx: tenth(found.len),
+            segment: found.seg.map(pointOf)
+          },
+          fixes: [
+            `move "${e.from}" or "${e.to}" in the nodes list so the turn lands clear of "${g.id}"`,
+            "use layout: { spacing: loose }",
+            "try layout: { layering: simplex }"
+          ]
+        }
+      );
+    }
+  }
+}
+function edgeNearTitle({ scene, warn }) {
+  for (const g of scene.groups) {
+    const chip = headerChip(g);
+    if (!framed(g) || !chip) continue;
+    const r4 = g.box;
+    const t = g.labelBox;
+    const band = Math.max(TITLE_BAND, t.y + t.h - r4.y);
+    for (const e of scene.edges) {
+      const b = e.labelBox;
+      if (!b || !e.label) continue;
+      const onTop = r4.y > b.y + 1 && r4.y < b.y + b.h - 1;
+      const inBand = b.y < r4.y + band && b.y + b.h > r4.y && b.x >= r4.x && b.x + b.w <= r4.x + r4.w;
+      if (onTop || !inBand) continue;
+      warn(
+        "DG225",
+        `label "${e.label.lines.join(" ")}" on ${e.from} -> ${e.to} sits in the title band of group "${g.id}", so it reads as part of the title`,
+        {
+          subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
+          evidence: { label: boxOf(b), band: boxOf({ x: r4.x, y: r4.y, w: r4.w, h: band }) },
+          fixes: [
+            `move "${e.from}" or "${e.to}" in the nodes list so the edge enters "${g.id}" from the side`,
+            "use layout: { spacing: loose }",
+            "shorten the label"
+          ]
+        }
+      );
+    }
+    for (const e of scene.edges) {
+      const near = segmentsOf(e.points).find(([p, q]) => {
+        const run2 = runOf(p, q);
+        const gap2 = run2 ? run2.at - (t.x + t.w) : -1;
+        return !!run2?.vertical && gap2 > 0 && gap2 < TITLE_CLEAR - EPS && run2.lo < t.y + t.h && run2.hi > t.y && !segmentHitsBox(p, q, chip, EPS);
+      });
+      if (!near) continue;
+      const gap = near[0].x - (t.x + t.w);
+      warn(
+        "DG225",
+        `edge ${e.from} -> ${e.to} passes ${tenth(gap)}px to the right of the title of group "${g.id}", which crowds it`,
+        {
+          subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
+          evidence: {
+            title: boxOf(t),
+            gapPx: tenth(gap),
+            minPx: TITLE_CLEAR,
+            segment: near.map(pointOf)
+          },
+          fixes: [
+            `move "${e.from}" or "${e.to}" in the nodes list so the edge enters "${g.id}" from the side`,
+            "use layout: { spacing: loose }",
+            `shorten the label of group "${g.id}"`
+          ]
+        }
+      );
+    }
+  }
+}
 
 // src/check/overlaps.ts
 function edgeLabelCovers({ scene, nodeBoxes: nodeBoxes2, warn }) {
@@ -10007,7 +10226,11 @@ function edgeLabelCovers({ scene, nodeBoxes: nodeBoxes2, warn }) {
           `label "${e.label?.lines.join(" ")}" on ${e.from} -> ${e.to} covers node "${nb.id}"`,
           {
             subject: { edge: e.id, node: nb.id },
-            fixes: ["shorten the edge label", "use layout: { spacing: loose }"]
+            fixes: [
+              "use layout: { spacing: loose }",
+              `move "${nb.id}" earlier or later in the nodes list`,
+              "shorten the edge label"
+            ]
           }
         );
       }
@@ -10023,7 +10246,7 @@ function edgeLabelCovers({ scene, nodeBoxes: nodeBoxes2, warn }) {
           `edge labels on ${a.e.from} -> ${a.e.to} and ${b.e.from} -> ${b.e.to} overlap`,
           {
             subject: { edges: [a.e.id, b.e.id] },
-            fixes: ["shorten one label or drop a redundant one", "use layout: { spacing: loose }"]
+            fixes: ["use layout: { spacing: loose }", "shorten one label or drop a redundant one"]
           }
         );
       }
@@ -10125,9 +10348,9 @@ function labelOnBorder({ scene, warn }) {
           subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
           evidence: { label: boxOf(b), group: boxOf(r4), sides: on.join(",") },
           fixes: [
-            "shorten the label so it fits between the borders",
             `move "${e.from}" or "${e.to}" in the nodes list so the edge's middle sits inside or outside "${g.id}"`,
-            "use layout: { spacing: loose }"
+            "use layout: { spacing: loose }",
+            "shorten the label so it fits between the borders"
           ]
         }
       );
@@ -10266,8 +10489,16 @@ var RULES = [
   // DG219
   labelOnBorder,
   // DG220
-  edgeSkimsNode
+  edgeSkimsNode,
   // DG221
+  headOnShortEnd,
+  // DG222
+  edgeThroughGroup,
+  // DG223
+  edgeAlongBorder,
+  // DG224
+  edgeNearTitle
+  // DG225
 ];
 function checkScene(scene, model, opts = {}) {
   const ctx = checkContext(scene, model, opts);
@@ -10452,7 +10683,7 @@ function midpoint(points) {
 }
 var overlaps2 = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 var meet = (a, b, pad = 0) => a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
-var segmentsOf = (points) => points.slice(1).map((q, i) => [points[i] ?? q, q]);
+var segmentsOf2 = (points) => points.slice(1).map((q, i) => [points[i] ?? q, q]);
 function segmentHits(p, q, b, inset = 1) {
   const c = clip(p, q, b, inset);
   return !!c && c[1] - c[0] > 1e-6;
@@ -11014,12 +11245,12 @@ function loopPoints(b, c, k, spline) {
   return pts.map((p) => ({ x: r(p.x), y: r(p.y) }));
 }
 function loopLabelSpots(loop2, c, w, h) {
-  const beside = c.right ? loop2.x + loop2.w + 6 : loop2.x - 6 - w;
+  const beside2 = c.right ? loop2.x + loop2.w + 6 : loop2.x - 6 - w;
   const past = c.top ? loop2.y - 4 - h : loop2.y + loop2.h + 4;
   const outer = c.right ? loop2.x + loop2.w - w : loop2.x;
   const inner = c.right ? loop2.x : loop2.x + loop2.w - w;
   return [
-    { x: beside, y: loop2.y + loop2.h / 2 - h / 2 },
+    { x: beside2, y: loop2.y + loop2.h / 2 - h / 2 },
     { x: loop2.x + loop2.w / 2 - w / 2, y: past },
     { x: outer, y: past },
     { x: inner, y: past }
@@ -12175,6 +12406,37 @@ function resolveGroupStyle(type) {
 function groupStyleKeys() {
   return [...Object.keys(GROUP_STYLES), ...Object.keys(TYPE_ALIASES)];
 }
+var AWS_CATEGORY_COLORS = {
+  Analytics: "#8c4fff",
+  "Application Integration": "#e7157b",
+  "Artificial Intelligence": "#01a88d",
+  Blockchain: "#ed7100",
+  "Business Applications": "#dd344c",
+  "Cloud Financial Management": "#7aa116",
+  Compute: "#ed7100",
+  Containers: "#ed7100",
+  "Customer Enablement": "#c925d1",
+  Databases: "#c925d1",
+  "Developer Tools": "#c925d1",
+  "End User Computing": "#01a88d",
+  "Front-End Web & Mobile": "#dd344c",
+  Games: "#8c4fff",
+  "Internet of Things": "#7aa116",
+  "Management & Governance": "#e7157b",
+  "Media Services": "#ed7100",
+  "Migration & Modernization": "#01a88d",
+  "Networking & Content Delivery": "#8c4fff",
+  "Quantum Technologies": "#ed7100",
+  Satellite: "#c925d1",
+  "Security, Identity & Compliance": "#dd344c",
+  Storage: "#7aa116"
+};
+var SERVICE_FRAMES = /* @__PURE__ */ new Set(["box", "dashed", "aws:generic", "aws:generic-dashed"]);
+function serviceGroupStroke(type, icon2) {
+  if (!icon2 || !SERVICE_FRAMES.has(type)) return void 0;
+  const info = iconInfo(icon2);
+  return info?.pack === "aws" ? AWS_CATEGORY_COLORS[info.category] : void 0;
+}
 
 // src/types.ts
 var DIRECTIONS = ["right", "down", "left", "up"];
@@ -12501,8 +12763,8 @@ function fitEnd(pts, i, j, o) {
   const b = o.box;
   if (!E || !Q || i === j) return;
   const near = (v, w) => Math.abs(v - w) < 0.6;
-  const within = (v, lo2, len2) => v >= lo2 - 0.6 && v <= lo2 + len2 + 0.6;
-  const side = (near(E.x, b.x) || near(E.x, b.x + b.w)) && within(E.y, b.y, b.h) || (near(E.y, b.y) || near(E.y, b.y + b.h)) && within(E.x, b.x, b.w);
+  const within2 = (v, lo2, len2) => v >= lo2 - 0.6 && v <= lo2 + len2 + 0.6;
+  const side = (near(E.x, b.x) || near(E.x, b.x + b.w)) && within2(E.y, b.y, b.h) || (near(E.y, b.y) || near(E.y, b.y + b.h)) && within2(E.x, b.x, b.w);
   if (!side || o.inside(E.x, E.y)) return;
   const d = Math.hypot(E.x - Q.x, E.y - Q.y);
   if (!d) return;
@@ -13313,7 +13575,7 @@ function bandLayout(ctx, ids) {
   const layers = sizeBands(sc, tree, elkCross);
   const lead = insetStrips(tree, all);
   const along3 = pullColumns(sc, items, itemOf);
-  const run2 = runOf(sc, items, along3, lead);
+  const run2 = runOf2(sc, items, along3, lead);
   placeAcross(ctx, tree);
   moveItems(sc, tree, all, layers, along3, run2.m0);
   followOverlays(sc, overlays);
@@ -13381,7 +13643,7 @@ function bandTree(model, ids) {
   return tree;
 }
 function collectItems(sc, tree) {
-  const { ctx, ids, A: A2, sceneNode, sceneGroup, within } = sc;
+  const { ctx, ids, A: A2, sceneNode, sceneGroup, within: within2 } = sc;
   const { model, edges, horizontal } = ctx;
   const attachOf = (n4) => symbolBox(n4) ?? (n4.look === "icon" && horizontal && n4.iconBox ? n4.iconBox : n4.box);
   const items = [];
@@ -13406,14 +13668,14 @@ function collectItems(sc, tree) {
     if (!sg) continue;
     const boxes = [sg.box, sg.labelBox, sg.iconBox, sg.inner?.box];
     for (const x2 of [...model.nodes, ...model.groups]) {
-      if (!within(x2.id, g.id)) continue;
+      if (!within2(x2.id, g.id)) continue;
       const n4 = sceneNode.get(x2.id);
       const s = sceneGroup.get(x2.id);
       if (n4) boxes.push(...nodeBoxes(n4));
       if (s) boxes.push(s.box, s.labelBox, s.iconBox, s.inner?.box);
     }
     const inner = edges.filter(
-      (e) => [e.from, e.to].every((id) => id === g.id || within(id, g.id))
+      (e) => [e.from, e.to].every((id) => id === g.id || within2(id, g.id))
     );
     const it = {
       id: g.id,
@@ -13430,7 +13692,7 @@ function collectItems(sc, tree) {
   for (const it of items) {
     itemOf.set(it.id, it);
     for (const x2 of [...model.nodes, ...model.groups])
-      if (within(x2.id, it.id)) itemOf.set(x2.id, it);
+      if (within2(x2.id, it.id)) itemOf.set(x2.id, it);
   }
   return { items, elkCross, itemOf };
 }
@@ -13556,7 +13818,7 @@ function pullColumns(sc, items, itemOf) {
   });
   return along3;
 }
-function runOf(sc, items, along3, lead) {
+function runOf2(sc, items, along3, lead) {
   const { ctx, A: A2 } = sc;
   const feet = items.map((it) => {
     const [s0, s1] = mspan(A2, it.foot);
@@ -13982,7 +14244,7 @@ function properCross(a, b, c, d) {
 }
 function sceneCrossings(scene) {
   let count = 0;
-  const lines2 = scene.edges.map((e) => ({ ends: [e.from, e.to], segs: segmentsOf(e.points) }));
+  const lines2 = scene.edges.map((e) => ({ ends: [e.from, e.to], segs: segmentsOf2(e.points) }));
   for (let i = 0; i < lines2.length; i++)
     for (let j = i + 1; j < lines2.length; j++) {
       const a = lines2[i];
@@ -13998,7 +14260,7 @@ function edgesThroughNodes(scene) {
   for (const e of scene.edges)
     for (const n4 of scene.nodes) {
       if (n4.id === e.from || n4.id === e.to) continue;
-      if (segmentsOf(e.points).some(([p, q]) => segmentHits(p, q, n4.box, 3))) count++;
+      if (segmentsOf2(e.points).some(([p, q]) => segmentHits(p, q, n4.box, 3))) count++;
     }
   return count;
 }
@@ -14034,7 +14296,7 @@ function sceneDefects(scene) {
   );
   let count = 0;
   for (const e of scene.edges) {
-    const segs = segmentsOf(e.points);
+    const segs = segmentsOf2(e.points);
     for (const n4 of scene.nodes) {
       const own = n4.id === e.from || n4.id === e.to;
       if (!own && segs.some(([p, q]) => segmentHits(p, q, n4.box, 3))) count++;
@@ -14108,6 +14370,291 @@ function stageColors(scene) {
     nd.inkMuted = ensureContrast(ensureContrast(t.muted, lit2), fill2);
   }
   return scene;
+}
+
+// src/layout/elbows.ts
+var runsThrough = (points, boxes, inset = 1) => segmentsOf2(points).some(([p, q]) => boxes.some((b) => segmentHits(p, q, b, inset)));
+var HEAD_ROOM = 16;
+var RISER = 0.45;
+var BORDER = 6;
+var ON_BORDER = 4;
+var ON_BORDER_ALONG = 24;
+var TITLE_CLEAR2 = 6;
+function borderHug(points, borders) {
+  for (const [i, [p, q]] of segmentsOf2(points).entries()) {
+    const flat = Math.abs(p.y - q.y) < 0.5;
+    if (!flat && Math.abs(p.x - q.x) >= 0.5) continue;
+    const [lo, hi] = flat ? [Math.min(p.x, q.x), Math.max(p.x, q.x)] : [Math.min(p.y, q.y), Math.max(p.y, q.y)];
+    const at = flat ? p.y : p.x;
+    for (const box of borders) {
+      const [from, to] = flat ? [box.x, box.x + box.w] : [box.y, box.y + box.h];
+      if (Math.min(hi, to) - Math.max(lo, from) <= ON_BORDER_ALONG) continue;
+      const sides = flat ? [box.y, box.y + box.h] : [box.x, box.x + box.w];
+      const line = sides.find((v) => Math.abs(v - at) <= ON_BORDER);
+      if (line !== void 0) return { i, line, box };
+    }
+  }
+  return void 0;
+}
+function nearTitle(points, titles2) {
+  const zones = titles2.map((t) => ({
+    x: t.x - TITLE_CLEAR2,
+    y: t.y,
+    w: t.w + 2 * TITLE_CLEAR2,
+    h: t.h
+  }));
+  return segmentsOf2(points).some(([p, q]) => zones.some((z) => segmentHits(p, q, z, 0)));
+}
+var clearOfFrames = (points, borders, titles2) => !borderHug(points, borders) && !nearTitle(points, titles2);
+function alongBorder(points, borders, min = 12) {
+  return segmentsOf2(points).some(([p, q]) => {
+    const flat = Math.abs(p.y - q.y) < 0.5;
+    if (!flat && Math.abs(p.x - q.x) >= 0.5) return false;
+    const [lo, hi] = flat ? [Math.min(p.x, q.x), Math.max(p.x, q.x)] : [Math.min(p.y, q.y), Math.max(p.y, q.y)];
+    const at = flat ? p.y : p.x;
+    return borders.some((b) => {
+      const [from, to] = flat ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+      if (Math.min(hi, to) - Math.max(lo, from) < min) return false;
+      const sides = flat ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
+      return sides.some((v) => Math.abs(v - at) < BORDER);
+    });
+  });
+}
+function laneRoutes(a, b, heads, borders, across2 = true) {
+  const sideBySide2 = a.full.x + a.full.w <= b.full.x || b.full.x + b.full.w <= a.full.x;
+  const stacked = a.full.y + a.full.h <= b.full.y || b.full.y + b.full.h <= a.full.y;
+  const order = across2 ? [sideBySide2, !sideBySide2 && stacked] : [!stacked && sideBySide2, stacked];
+  const out = [
+    ...order[0] ? lanesFor(a, b, heads, borders, true) : [],
+    ...order[1] ? lanesFor(a, b, heads, borders, false) : []
+  ];
+  if (sideBySide2 && stacked) out.push(...lanesFor(a, b, heads, borders, !across2));
+  return out;
+}
+function lanesFor(a, b, heads, borders, h) {
+  const out = [];
+  const cx = (r4) => r4.x + r4.w / 2;
+  const cy = (r4) => r4.y + r4.h / 2;
+  const A2 = h ? a.side : a.full;
+  const B = h ? b.side : b.full;
+  const along3 = (r4) => h ? r4.x : r4.y;
+  const size = (r4) => h ? r4.w : r4.h;
+  const forward = along3(A2) + size(A2) <= along3(B);
+  const s = forward ? along3(A2) + size(A2) : along3(A2);
+  const t = forward ? along3(B) : along3(B) + size(B);
+  const dir = forward ? 1 : -1;
+  const s0 = h ? cy(a.side) : cx(a.side);
+  const t0 = h ? cy(b.side) : cx(b.side);
+  const pt = (u, v) => h ? { x: round(u), y: round(v) } : { x: round(v), y: round(u) };
+  if (Math.abs(s0 - t0) >= 1) {
+    const ok = (u) => (u - s) * dir >= (heads.start ? HEAD_ROOM : 8) && (t - u) * dir >= (heads.end ? HEAD_ROOM : 8);
+    const mid = s + (t - s) * RISER;
+    const roomy = dir > 0 ? Math.min(mid, t - HEAD_ROOM) : Math.max(mid, t + HEAD_ROOM);
+    const [lo, hi] = [Math.min(s0, t0), Math.max(s0, t0)];
+    const lines2 = borders.flatMap((g) => {
+      const [from, to] = h ? [g.y, g.y + g.h] : [g.x, g.x + g.w];
+      if (hi <= from + BORDER || lo >= to - BORDER) return [];
+      return h ? [g.x, g.x + g.w] : [g.y, g.y + g.h];
+    });
+    const onLine = (u) => lines2.some((l) => Math.abs(u - l) <= BORDER);
+    const off = (u) => {
+      if (!onLine(u)) return u;
+      for (const d of [-dir, dir])
+        for (const k of [12, 24]) if (!onLine(u + d * k)) return u + d * k;
+      return u;
+    };
+    const lanes = [
+      off(roomy),
+      roomy,
+      mid,
+      s + 24 * dir,
+      t - 24 * dir,
+      s + HEAD_ROOM * dir,
+      t - HEAD_ROOM * dir
+    ];
+    for (const u of new Set(lanes.map(round)))
+      if (ok(u)) out.push([pt(s, s0), pt(u, s0), pt(u, t0), pt(t, t0)]);
+  }
+  const cross = (r4) => h ? [r4.y, r4.y + r4.h] : [r4.x, r4.x + r4.w];
+  const [b0, b1] = cross(h ? b.full : b.side);
+  if (s0 < b0 || s0 > b1) {
+    const u = h ? cx(b.side) : cy(b.side);
+    const end = s0 < b0 ? b0 : b1;
+    if ((u - s) * dir >= 8 && Math.abs(end - s0) >= (heads.end ? HEAD_ROOM : 8))
+      out.push([pt(s, s0), pt(u, s0), pt(u, end)]);
+  }
+  const [a0, a1] = cross(h ? a.full : a.side);
+  if (t0 < a0 || t0 > a1) {
+    const u = h ? cx(a.side) : cy(a.side);
+    const start = t0 < a0 ? a0 : a1;
+    if ((t - u) * dir >= (heads.end ? HEAD_ROOM : 8) && Math.abs(t0 - start) >= 8)
+      out.push([pt(u, start), pt(u, t0), pt(t, t0)]);
+  }
+  return out;
+}
+
+// src/layout/borders.ts
+var OFFSETS = [12, 10, 8, 16, 20, 24];
+var ENOUGH = 12;
+var SKIM = 10;
+var CORNER = 8;
+var real2 = (b) => !!b && b.w > 0 && b.h > 0;
+var grow4 = (b, d) => ({
+  x: b.x - d,
+  y: b.y - d,
+  w: b.w + 2 * d,
+  h: b.h + 2 * d
+});
+function clearBorders(ctx, edges) {
+  if (ctx.model.routing !== "orthogonal") return;
+  const borders = ctx.groups.filter((g) => !g.overlay).map((g) => g.box);
+  for (const e of edges)
+    for (let tries = 0; tries < 3; tries++) {
+      const hug = borderHug(e.points, borders);
+      if (!hug || !moveOff(ctx, edges, e, hug, borders)) break;
+    }
+}
+function moveOff(ctx, edges, e, hug, borders) {
+  const { nodes, groups, rel: rel2 } = ctx;
+  const { i, line, box } = hug;
+  const pts = e.points;
+  const p = pts[i];
+  const q = pts[i + 1];
+  if (!p || !q) return false;
+  const upright = Math.abs(p.x - q.x) < 0.5;
+  const k = upright ? "x" : "y";
+  const j = upright ? "y" : "x";
+  const at = p[k];
+  const lo = Math.min(p[j], q[j]);
+  const hi = Math.max(p[j], q[j]);
+  const last = pts.length - 2;
+  const ends2 = /* @__PURE__ */ new Set([e.from, e.to]);
+  const heads = {
+    start: e.arrow === "start" || e.arrow === "both",
+    end: e.arrow !== "none" && e.arrow !== "start"
+  };
+  const span = (b) => upright ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
+  const cross = (b) => upright ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+  const overlapsRun = (b) => Math.min(hi, span(b)[1]) - Math.max(lo, span(b)[0]) > 0;
+  const sideOf = (id, pt) => {
+    const nd = nodes.find((x2) => x2.id === id);
+    const boxes = nd ? [nd.iconBox, nd.box] : groups.filter((g) => g.id === id).map((g) => g.box);
+    for (const b of boxes.filter(real2)) {
+      if (!span(b).some((v) => Math.abs(v - pt[j]) < 0.5)) continue;
+      const [c0, c1] = cross(b);
+      if (pt[k] >= c0 - 0.5 && pt[k] <= c1 + 0.5) return [c0, c1];
+    }
+    return void 0;
+  };
+  const endsElsewhere = edges.flatMap((o) => o === e ? [] : [o.points[0], o.points.at(-1)]);
+  const endFits = (id, pt, v) => {
+    const side2 = sideOf(id, pt);
+    if (!side2 || v < side2[0] + CORNER || v > side2[1] - CORNER) return false;
+    const moved = { ...pt, [k]: v };
+    return !endsElsewhere.some(
+      (o) => !!o && Math.abs(o.x - moved.x) < 4 && Math.abs(o.y - moved.y) < 4
+    );
+  };
+  const others = edges.filter((o) => o !== e);
+  const tags = (o) => [o.labelBox, o.stepBox].filter(real2);
+  const own = tags(e);
+  const carry = own.length > 0 && beside(union2(own), at, lo, hi, upright);
+  const walls = [
+    ...nodes.filter((n4) => !ends2.has(n4.id)).flatMap((n4) => [
+      grow4(n4.box, SKIM),
+      grow4(union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox].filter(real2)), 4)
+    ]),
+    ...groups.flatMap((g) => g.iconBox ? [grow4(g.iconBox, 2)] : []),
+    ...others.flatMap(tags).map((b) => grow4(b, 2)),
+    ...carry ? [] : own.map((b) => grow4(b, 2))
+  ];
+  const titles2 = groups.filter((g) => !g.overlay && g.label.lines.length).map((g) => g.labelBox);
+  const holds = (gid) => [...ends2].some((id) => id === gid || rel2.above(id).includes(gid));
+  const strangers = groups.filter((g) => !g.overlay && !holds(g.id)).map((g) => g.box);
+  const homes = groups.filter(
+    (g) => !g.overlay && [...ends2].every((id) => id === g.id || rel2.above(id).includes(g.id))
+  ).map((g) => g.box);
+  const within2 = (path, b) => path.every(
+    (pt) => pt.x >= b.x - 0.5 && pt.x <= b.x + b.w + 0.5 && pt.y >= b.y - 0.5 && pt.y <= b.y + b.h + 0.5
+  );
+  const unrelated = others.filter((o) => !ends2.has(o.from) && !ends2.has(o.to));
+  const part = (path) => path.slice(Math.max(0, i - 1), i + 3);
+  const before = segmentsOf2(part(pts));
+  const crowded = nearTitle(part(pts), titles2);
+  const reaches = (segs, b, inset) => segs.some(([a, c]) => segmentHits(a, c, b, inset));
+  const turnsKept = (path) => [i - 1, i + 1].every((m) => {
+    const a = path[m];
+    const c = path[m + 1];
+    const a0 = pts[m];
+    const c0 = pts[m + 1];
+    if (!a || !c || !a0 || !c0) return true;
+    const was = c0[k] - a0[k];
+    const now = c[k] - a[k];
+    const need = m === 0 && heads.start || m === last && heads.end ? HEAD_ROOM : 8;
+    return Math.sign(now) === Math.sign(was) && Math.abs(now) >= Math.min(need, Math.abs(was));
+  });
+  const room2 = (v) => {
+    let r4 = ENOUGH;
+    for (const b of borders.filter(overlapsRun))
+      for (const s of cross(b)) r4 = Math.min(r4, Math.abs(v - s));
+    for (const n4 of nodes) {
+      if (ends2.has(n4.id) || !overlapsRun(n4.box)) continue;
+      const [c0, c1] = cross(n4.box);
+      r4 = Math.min(r4, v < c0 ? c0 - v : v > c1 ? v - c1 : 0);
+    }
+    return r4;
+  };
+  const inward = (upright ? box.x + box.w / 2 : box.y + box.h / 2) > line ? 1 : -1;
+  const side = Math.abs(at - line) > 0.5 ? Math.sign(at - line) : inward;
+  let best;
+  for (const v of OFFSETS.flatMap((d) => [line + side * d, line - side * d]).map(round)) {
+    const path = pts.map((pt, m) => m === i || m === i + 1 ? { ...pt, [k]: v } : pt);
+    const segs = segmentsOf2(part(path));
+    if (i === 0 && !endFits(e.from, p, v)) continue;
+    if (i === last && !endFits(e.to, q, v)) continue;
+    if (!turnsKept(path)) continue;
+    if (borderHug(part(path), borders) || alongBorder(path.slice(i, i + 2), borders)) continue;
+    if (!crowded && nearTitle(part(path), titles2)) continue;
+    if (walls.some((w) => reaches(segs, w, 0) && !reaches(before, w, 0))) continue;
+    if (strangers.some((g) => reaches(segs, g, 4) && !reaches(before, g, 4))) continue;
+    if (homes.some((b) => within2(part(pts), b) && !within2(part(path), b))) continue;
+    if (unrelated.some((o) => segs.some(([a, c]) => collinear(o.points, a, c)))) continue;
+    if (carry && !tagsFit(own, k, v - at, nodes, groups, others, titles2)) continue;
+    const r4 = room2(v);
+    if (!best || r4 > best.room) best = { path, v, room: r4 };
+  }
+  if (!best) return false;
+  const dv = best.v - at;
+  e.points = best.path;
+  if (carry) {
+    if (e.labelBox) e.labelBox = { ...e.labelBox, [k]: round(e.labelBox[k] + dv) };
+    if (e.stepBox) e.stepBox = { ...e.stepBox, [k]: round(e.stepBox[k] + dv) };
+  }
+  return true;
+}
+function beside(b, at, lo, hi, upright) {
+  const [s0, s1] = upright ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
+  if (Math.min(hi, s1) - Math.max(lo, s0) <= 0) return false;
+  const [c0, c1] = upright ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+  return c0 >= at - 1 && c0 - at <= 12 || c1 <= at + 1 && at - c1 <= 12;
+}
+function tagsFit(tags, k, d, nodes, groups, others, titles2) {
+  const moved = tags.map((b) => ({ ...b, [k]: b[k] + d }));
+  const blocks = [
+    ...nodes.map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox].filter(real2))),
+    ...nodes.flatMap((n4) => real2(n4.badgeBox) ? [n4.badgeBox] : []),
+    ...titles2.map((t) => grow4(t, 4)),
+    ...groups.flatMap((g) => real2(g.iconBox) ? [g.iconBox] : []),
+    ...others.flatMap((o) => [o.labelBox, o.stepBox].filter(real2))
+  ];
+  const straddles = (b) => groups.filter(({ box: r4 }) => {
+    const inside3 = (v, lo, len2) => v > lo + 1 && v < lo + len2 - 1;
+    const spans2 = (lo, len2, a, alen) => lo < a + alen - 0.5 && a < lo + len2 - 0.5;
+    return (inside3(r4.y, b.y, b.h) || inside3(r4.y + r4.h, b.y, b.h)) && spans2(r4.x, r4.w, b.x, b.w) || (inside3(r4.x, b.x, b.w) || inside3(r4.x + r4.w, b.x, b.w)) && spans2(r4.y, r4.h, b.y, b.h);
+  }).length;
+  return moved.every(
+    (b, m) => straddles(b) <= straddles(tags[m] ?? b) && !blocks.some((o) => meet(b, o, -1)) && !others.some((o) => segmentsOf2(o.points).some(([a, c]) => segmentHits(a, c, b, 0.5)))
+  );
 }
 
 // src/layout/sizes.ts
@@ -14294,12 +14841,12 @@ function steer(points, end, avoid, border) {
   return end === "to" ? out.reverse() : out;
 }
 function freeRoute(from, to, shift) {
-  const sideBySide = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
-  const a = sideBySide ? from.side : from.full;
-  const b = sideBySide ? to.side : to.full;
+  const sideBySide2 = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
+  const a = sideBySide2 ? from.side : from.full;
+  const b = sideBySide2 ? to.side : to.full;
   const ac = { x: from.side.x + from.side.w / 2, y: a.y + a.h / 2 };
   const bc = { x: to.side.x + to.side.w / 2, y: b.y + b.h / 2 };
-  if (sideBySide) {
+  if (sideBySide2) {
     const right = a.x + a.w <= b.x;
     const sx = right ? a.x + a.w : a.x;
     const ex = right ? b.x : b.x + b.w;
@@ -14463,98 +15010,6 @@ function tidyEdges(ctx, edges) {
       e.points = dropStraightPoints(e.points);
     }
   }
-}
-
-// src/layout/elbows.ts
-var runsThrough = (points, boxes) => segmentsOf(points).some(([p, q]) => boxes.some((b) => segmentHits(p, q, b)));
-var HEAD_ROOM = 16;
-var RISER = 0.45;
-var BORDER = 6;
-function alongBorder(points, borders, min = 12) {
-  return segmentsOf(points).some(([p, q]) => {
-    const flat = Math.abs(p.y - q.y) < 0.5;
-    if (!flat && Math.abs(p.x - q.x) >= 0.5) return false;
-    const [lo, hi] = flat ? [Math.min(p.x, q.x), Math.max(p.x, q.x)] : [Math.min(p.y, q.y), Math.max(p.y, q.y)];
-    const at = flat ? p.y : p.x;
-    return borders.some((b) => {
-      const [from, to] = flat ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
-      if (Math.min(hi, to) - Math.max(lo, from) < min) return false;
-      const sides = flat ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
-      return sides.some((v) => Math.abs(v - at) < BORDER);
-    });
-  });
-}
-function laneRoutes(a, b, heads, borders, across2 = true) {
-  const sideBySide = a.full.x + a.full.w <= b.full.x || b.full.x + b.full.w <= a.full.x;
-  const stacked = a.full.y + a.full.h <= b.full.y || b.full.y + b.full.h <= a.full.y;
-  const order = across2 ? [sideBySide, !sideBySide && stacked] : [!stacked && sideBySide, stacked];
-  const out = [
-    ...order[0] ? lanesFor(a, b, heads, borders, true) : [],
-    ...order[1] ? lanesFor(a, b, heads, borders, false) : []
-  ];
-  if (sideBySide && stacked) out.push(...lanesFor(a, b, heads, borders, !across2));
-  return out;
-}
-function lanesFor(a, b, heads, borders, h) {
-  const out = [];
-  const cx = (r4) => r4.x + r4.w / 2;
-  const cy = (r4) => r4.y + r4.h / 2;
-  const A2 = h ? a.side : a.full;
-  const B = h ? b.side : b.full;
-  const along3 = (r4) => h ? r4.x : r4.y;
-  const size = (r4) => h ? r4.w : r4.h;
-  const forward = along3(A2) + size(A2) <= along3(B);
-  const s = forward ? along3(A2) + size(A2) : along3(A2);
-  const t = forward ? along3(B) : along3(B) + size(B);
-  const dir = forward ? 1 : -1;
-  const s0 = h ? cy(a.side) : cx(a.side);
-  const t0 = h ? cy(b.side) : cx(b.side);
-  const pt = (u, v) => h ? { x: round(u), y: round(v) } : { x: round(v), y: round(u) };
-  if (Math.abs(s0 - t0) >= 1) {
-    const ok = (u) => (u - s) * dir >= (heads.start ? HEAD_ROOM : 8) && (t - u) * dir >= (heads.end ? HEAD_ROOM : 8);
-    const mid = s + (t - s) * RISER;
-    const roomy = dir > 0 ? Math.min(mid, t - HEAD_ROOM) : Math.max(mid, t + HEAD_ROOM);
-    const [lo, hi] = [Math.min(s0, t0), Math.max(s0, t0)];
-    const lines2 = borders.flatMap((g) => {
-      const [from, to] = h ? [g.y, g.y + g.h] : [g.x, g.x + g.w];
-      if (hi <= from + BORDER || lo >= to - BORDER) return [];
-      return h ? [g.x, g.x + g.w] : [g.y, g.y + g.h];
-    });
-    const onLine = (u) => lines2.some((l) => Math.abs(u - l) <= BORDER);
-    const off = (u) => {
-      if (!onLine(u)) return u;
-      for (const d of [-dir, dir])
-        for (const k of [12, 24]) if (!onLine(u + d * k)) return u + d * k;
-      return u;
-    };
-    const lanes = [
-      off(roomy),
-      roomy,
-      mid,
-      s + 24 * dir,
-      t - 24 * dir,
-      s + HEAD_ROOM * dir,
-      t - HEAD_ROOM * dir
-    ];
-    for (const u of new Set(lanes.map(round)))
-      if (ok(u)) out.push([pt(s, s0), pt(u, s0), pt(u, t0), pt(t, t0)]);
-  }
-  const cross = (r4) => h ? [r4.y, r4.y + r4.h] : [r4.x, r4.x + r4.w];
-  const [b0, b1] = cross(h ? b.full : b.side);
-  if (s0 < b0 || s0 > b1) {
-    const u = h ? cx(b.side) : cy(b.side);
-    const end = s0 < b0 ? b0 : b1;
-    if ((u - s) * dir >= 8 && Math.abs(end - s0) >= (heads.end ? HEAD_ROOM : 8))
-      out.push([pt(s, s0), pt(u, s0), pt(u, end)]);
-  }
-  const [a0, a1] = cross(h ? a.full : a.side);
-  if (t0 < a0 || t0 > a1) {
-    const u = h ? cx(a.side) : cy(a.side);
-    const start = t0 < a0 ? a0 : a1;
-    if ((t - u) * dir >= (heads.end ? HEAD_ROOM : 8) && Math.abs(t0 - start) >= 8)
-      out.push([pt(u, start), pt(u, t0), pt(t, t0)]);
-  }
-  return out;
 }
 
 // src/layout/detour.ts
@@ -14770,7 +15225,11 @@ var inside2 = (p, b) => p.x > b.x + 1 && p.x < b.x + b.w - 1 && p.y > b.y + 1 &&
 // src/layout/free-edges.ts
 function routeFree(ctx, w) {
   const { model, opts, plan, horizontal, rel: rel2 } = ctx;
-  const { borders } = w;
+  const { borders, titles: titles2 } = w;
+  const framed2 = (p) => !!process.env.NO_FRAMED || clearOfFrames(p, borders, titles2);
+  const strangers = (e) => ctx.groups.filter(
+    (g) => !g.overlay && ![e.from, e.to].some((id) => id === g.id || rel2.above(id).includes(g.id))
+  ).map((g) => g.box);
   const freeRoutes = /* @__PURE__ */ new Map();
   const claimed = [];
   const related2 = (a, b) => [a.from, a.to].some((id) => id === b.from || id === b.to);
@@ -14820,7 +15279,10 @@ function routeFree(ctx, w) {
       if (!straight) points = shifts.find((p) => fits2(p, e)) ?? points;
       const walls = w.walls(e);
       const known2 = !rel2.inBlock(e) && !rel2.gridBetween(e) && !opts.loose?.has(e.id);
-      if (!known2 || runsThrough(points, walls)) {
+      if (!known2 || runsThrough(points, walls) || !framed2(points)) {
+        const kept = known2 && !runsThrough(points, walls) ? points : void 0;
+        const cuts2 = (p) => runsThrough(p, strangers(e), 4);
+        const fair = (p) => !kept || !cuts2(p) || cuts2(kept);
         const roomy = w.roomyWalls(e);
         const heads = {
           start: e.arrow === "start" || e.arrow === "both",
@@ -14830,7 +15292,7 @@ function routeFree(ctx, w) {
           ...straight ? [points] : shifts.filter((p) => fits2(p, e)),
           ...laneRoutes(a, b, heads, borders, horizontal).map(steered)
         ].filter(
-          (p) => unclaimed(p, e, !known2) && !elkLines.some((c) => collinear(p, c.p, c.q)) && (known2 || headRoom(p, heads))
+          (p) => unclaimed(p, e, !known2) && !elkLines.some((c) => collinear(p, c.p, c.q)) && (known2 || headRoom(p, heads)) && fair(p)
         );
         const drawn = [...claimed.filter((c) => c.e !== e), ...elkLines].map((c) => ({
           x: Math.min(c.p.x, c.q.x),
@@ -14841,9 +15303,10 @@ function routeFree(ctx, w) {
         const taken = [...claimed.filter((c) => c.e !== e), ...elkLines].flatMap((c) => [c.p, c.q]);
         const around = () => {
           const path = detour(a, b, roomy, [...borders, ...drawn], taken);
-          return path && !runsThrough(steered(path), walls) ? steered(path) : void 0;
+          const out = path && steered(path);
+          return out && !runsThrough(out, walls) && framed2(out) && fair(out) ? out : void 0;
         };
-        points = lanes.find((p) => !runsThrough(p, roomy) && !alongBorder(p, borders)) ?? around() ?? lanes.find((p) => !runsThrough(p, walls)) ?? points;
+        points = lanes.find((p) => !runsThrough(p, roomy) && !alongBorder(p, borders)) ?? around() ?? lanes.find((p) => !runsThrough(p, walls) && framed2(p) && !cuts2(p)) ?? kept ?? lanes.find((p) => !runsThrough(p, walls)) ?? points;
       }
       freeRoutes.set(e.id, points);
       claimed.push(...points.slice(1).map((q, i) => ({ e, p: points[i] ?? q, q })));
@@ -16181,9 +16644,9 @@ function labelSpot(points, w, h, avoid, lines2) {
   const tips = (pts) => [pts[0], pts.at(-1)].flatMap((p) => p ? [{ x: p.x - 6, y: p.y - 6, w: 12, h: 12 }] : []);
   const walls = [
     ...avoid,
-    ...[...lines2, points].flatMap((pts) => [...segmentsOf(pts).map(stroke3), ...tips(pts)])
+    ...[...lines2, points].flatMap((pts) => [...segmentsOf2(pts).map(stroke3), ...tips(pts)])
   ];
-  const runs2 = segmentsOf(points).filter(([p, q]) => Math.abs(p.x - q.x) + Math.abs(p.y - q.y) > 1).sort(([a, b], [c, d]) => Math.hypot(d.x - c.x, d.y - c.y) - Math.hypot(b.x - a.x, b.y - a.y));
+  const runs2 = segmentsOf2(points).filter(([p, q]) => Math.abs(p.x - q.x) + Math.abs(p.y - q.y) > 1).sort(([a, b], [c, d]) => Math.hypot(d.x - c.x, d.y - c.y) - Math.hypot(b.x - a.x, b.y - a.y));
   for (const [p, q] of runs2)
     for (const f of [0.5, 1 / 3, 2 / 3]) {
       const x2 = p.x + (q.x - p.x) * f;
@@ -16227,7 +16690,7 @@ function paintGroup(ctx, grp, box, overlay) {
   const gg = groupGeom.get(grp.id);
   const style3 = resolveGroupStyle(grp.type);
   if (!gg || !style3) return void 0;
-  const { stroke: stroke3, fill: fill2, labelColor } = groupColors(grp, style3, theme, t, overlay);
+  const { stroke: stroke3, fill: fill2, labelColor } = groupColors(grp, style3, theme, t, overlay, gg.icon);
   const { iconBox, labelX, labelY } = headerAt(gg, box, overlay);
   const cornerTile = !overlay && gg.iconStyle === "tile" && !!iconBox;
   const inset = overlay ? 10 : 12;
@@ -16272,8 +16735,8 @@ function paintGroup(ctx, grp, box, overlay) {
     overlay: overlay || void 0
   };
 }
-function groupColors(grp, style3, theme, t, overlay) {
-  const strokeBase = grp.color ?? style3.stroke;
+function groupColors(grp, style3, theme, t, overlay, icon2) {
+  const strokeBase = grp.color ?? serviceGroupStroke(grp.type, icon2) ?? style3.stroke;
   let stroke3 = strokeBase;
   let fill2 = grp.fill === "none" ? "none" : grp.fill ?? style3.fill ?? "none";
   if (overlay) fill2 = "none";
@@ -16331,6 +16794,7 @@ function headerAt(gg, box, overlay) {
   }
   return { iconBox, labelX, labelY };
 }
+var HEADER_SLACK = 4;
 function clearHeader(g, room2, groups, nodes, edges) {
   const icon2 = room2.moveIcon ? g.iconBox : void 0;
   const u = union2([g.labelBox, icon2]);
@@ -16347,11 +16811,19 @@ function clearHeader(g, room2, groups, nodes, edges) {
   if (!(g.overlay ? others : segments3).some((b) => hit(b, 0))) return true;
   const min = room2.lo - u.x;
   const max = room2.hi - (u.x + u.w);
-  const dx = others.flatMap((b) => [b.x - (chip.x + chip.w), b.x + b.w - chip.x]).filter((d) => d >= min - 0.01 && d <= max + 0.01 && !others.some((b) => hit(b, d))).sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)[0];
-  if (dx === void 0) return false;
-  g.labelBox.x = round(g.labelBox.x + dx);
-  if (icon2) icon2.x = round(icon2.x + dx);
-  return true;
+  const spot = (lo, hi) => others.flatMap((b) => [b.x - (chip.x + chip.w), b.x + b.w - chip.x]).filter((d) => d >= lo - 0.01 && d <= hi + 0.01 && !others.some((b) => hit(b, d))).sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)[0];
+  const slide = (dx2) => {
+    g.labelBox.x = round(g.labelBox.x + dx2);
+    if (icon2) icon2.x = round(icon2.x + dx2);
+  };
+  const dx = spot(min, max);
+  if (dx !== void 0) {
+    slide(dx);
+    return true;
+  }
+  const near = spot(min - HEADER_SLACK, max + HEADER_SLACK);
+  if (near !== void 0) slide(near);
+  return false;
 }
 
 // src/layout/overlays.ts
@@ -17082,7 +17554,8 @@ function wallsOf(ctx) {
     ...own(e)
   ];
   const borders = groups.filter((g) => !g.overlay).map((g) => g.box);
-  return { headers, borders, walls, roomyWalls };
+  const titles2 = groups.filter((g) => !g.overlay && g.label.lines.length).map((g) => g.labelBox);
+  return { headers, borders, titles: titles2, walls, roomyWalls };
 }
 
 // src/layout/core.ts
@@ -17102,6 +17575,7 @@ async function layoutCore(model, opts = {}) {
   tidyEdges(placed, edges);
   const routed = { ...placed, edges, freeRoutes, rerouted, headers: walls.headers };
   placeFreeLabels(routed);
+  if (!process.env.NO_CLEAR) clearBorders(placed, edges);
   const { horizontal, top, nodes, groups } = routed;
   const hooked = { model, theme, horizontal, top, nodes, groups, edges, routing: model.routing };
   for (const h of HOOKS) h.after?.(hooked);
@@ -22324,9 +22798,9 @@ import { basename as basename5 } from "node:path";
 var EPS2 = 0.5;
 var r1 = (v) => Math.round(v * 10) / 10;
 var r22 = (v) => Math.round(v * 100) / 100;
-var real2 = (b) => !!b && b.w > 0 && b.h > 0;
+var real3 = (b) => !!b && b.w > 0 && b.h > 0;
 function union5(list) {
-  const l = list.filter(real2);
+  const l = list.filter(real3);
   if (!l.length) return void 0;
   const x2 = Math.min(...l.map((b) => b.x));
   const y = Math.min(...l.map((b) => b.y));
@@ -22435,7 +22909,7 @@ function badgeRect2(n4) {
 }
 function headerBottom(g) {
   if (g.overlay) return g.box.y;
-  const parts = [g.labelBox, g.iconBox].filter(real2);
+  const parts = [g.labelBox, g.iconBox].filter(real3);
   return Math.max(g.box.y, ...parts.map((b) => b.y + b.h));
 }
 function contentStart(g) {
@@ -22491,7 +22965,7 @@ function measureComposition(c) {
   }
   const { zigs, bends } = zigZags(c);
   const frames2 = scene.groups.filter((g) => !g.overlay && !g.lane);
-  const beside = besideGroups(c, frames2);
+  const beside2 = besideGroups(c, frames2);
   const siblings = unevenSiblings(c, frames2);
   const { sparse, padded } = whitespace(c, frames2);
   Object.assign(c.metrics.grid, {
@@ -22500,7 +22974,7 @@ function measureComposition(c) {
     unevenSiblings: siblings,
     padding: padded
   });
-  Object.assign(c.metrics.layout, { sparseGroups: sparse, besideGroup: beside });
+  Object.assign(c.metrics.layout, { sparseGroups: sparse, besideGroup: beside2 });
 }
 function zigZags(c) {
   const { scene, add } = c;
@@ -22564,7 +23038,7 @@ function zigZags(c) {
 function besideGroups(c, frames2) {
   const { scene, add } = c;
   const W2 = scene.width;
-  let beside = 0;
+  let beside2 = 0;
   for (const n4 of scene.nodes) {
     const f = c.foot.get(n4.id) ?? n4.box;
     const hits5 = [];
@@ -22579,7 +23053,7 @@ function besideGroups(c, frames2) {
     }
     const hit = hits5.sort((x2, y) => x2.g.depth - y.g.depth)[0];
     if (!hit) continue;
-    beside++;
+    beside2++;
     add(
       "layout.beside-group",
       "minor",
@@ -22593,7 +23067,7 @@ function besideGroups(c, frames2) {
       3
     );
   }
-  return beside;
+  return beside2;
 }
 function unevenSiblings(c, frames2) {
   const { add } = c;
@@ -22653,7 +23127,7 @@ function whitespace(c, frames2) {
       h: g.box.y + g.box.h - start.y
     };
     if (inner.w <= 0 || inner.h <= 0) continue;
-    const labels2 = scene.edges.map((e) => e.labelBox).filter((b) => real2(b) && interArea(b, inner) > 0);
+    const labels2 = scene.edges.map((e) => e.labelBox).filter((b) => real3(b) && interArea(b, inner) > 0);
     const cover = [
       ...own.map((b) => ({
         x: b.x - margin,
@@ -23087,10 +23561,11 @@ function measureConventions(c) {
   const m = c.metrics.conventions;
   const { c4, notation, vendors, rubrics } = rubricsFor(c);
   const missing = legendAndTitle(c, c4);
+  const subtitle = subtitleEcho(c);
   const { shorts, longAws } = awsNames(c);
-  const boundaries = awsBoundaryLabels(c);
-  const serviceGroups = awsServiceGroups(c);
-  const serviceLabels = awsServiceLabels(c);
+  const boundaries = awsBoundaryLabels(c) + vendorBoundaryLabels(c);
+  const groupsOfOne = serviceGroups(c);
+  const named = serviceLabels(c);
   const callouts = calloutSizes(c);
   const { c4Elements, c4Relations } = c4Notation(c, c4);
   const recolored = recoloredMarks(c);
@@ -23098,12 +23573,13 @@ function measureConventions(c) {
   Object.assign(m, {
     vendors: vendors.join(",") || "none",
     title: model.title ? "yes" : "no",
+    subtitle,
     legendMissing: missing,
     shortNames: shorts,
     longAwsLabels: longAws,
     boundaryLabels: boundaries,
-    serviceGroups,
-    serviceLabels,
+    serviceGroups: groupsOfOne,
+    serviceLabels: named,
     calloutSizes: callouts,
     c4Elements,
     c4Relations,
@@ -23180,6 +23656,48 @@ function legendAndTitle(c, c4) {
     );
   return missing.length;
 }
+var JOINERS = /* @__PURE__ */ new Set(["a", "an", "and", "or", "plus", "the", "then", "to", "via", "with"]);
+function subtitleEcho(c) {
+  const { model, add } = c;
+  if (!model.subtitle) return "none";
+  const stem = (w) => w.replace(/s$/, "");
+  const words = (s) => norm(s).split(" ").filter((w) => w && !JOINERS.has(w)).map(stem);
+  const title = new Set(words(model.title ?? ""));
+  const sub = words(model.subtitle);
+  let echo;
+  if (title.size && sub.length && sub.every((w) => title.has(w))) echo = "title";
+  const parts = [...model.nodes, ...model.groups].flatMap((x2) => [
+    x2.label,
+    x2.label.replace(/^(Amazon|AWS|Azure|Google Cloud|Microsoft)\s+/i, "")
+  ]).map((l) => words(l).join(" ")).filter(Boolean).sort((a, b) => b.length - a.length);
+  let rest = ` ${sub.join(" ")} `;
+  const listed = /* @__PURE__ */ new Set();
+  for (const p of parts)
+    if (rest.includes(` ${p} `)) {
+      listed.add(p);
+      rest = rest.split(` ${p} `).join(" | ");
+    }
+  const left = rest.split(/[\s|]+/).filter(Boolean).length;
+  if (!echo && (listed.size >= 2 && !left || listed.size >= 4 && left <= 1)) echo = "labels";
+  if (!echo) return "ok";
+  add(
+    "conventions.subtitle-echo",
+    "minor",
+    [],
+    {
+      subtitle: model.subtitle,
+      echoes: echo,
+      ...echo === "labels" ? { labels: listed.size } : {}
+    },
+    echo === "title" ? `the subtitle "${model.subtitle}" only repeats the title` : `the subtitle "${model.subtitle}" only lists ${listed.size} labels the diagram already shows`,
+    [
+      "say in the subtitle what the picture alone does not: the scope, the main path, what changes",
+      "drop the subtitle"
+    ],
+    4
+  );
+  return echo;
+}
 function awsNames(c) {
   const { model, add } = c;
   const allText = norm(
@@ -23246,84 +23764,231 @@ function awsBoundaryLabels(c) {
       "conventions.boundary-label",
       "minor",
       [g.id],
-      { group: g.id, type: g.type, label: g.label, expected: want.name },
+      { group: g.id, type: g.type, label: g.label, expected: want.name, rule: "AWS-17" },
       `group "${g.id}" draws the ${g.type} boundary but its label "${g.label}" does not say ${want.name}`,
       [`set label: ${label} on "${g.id}"`],
       3,
-      [{ op: "set", path: `groups.${g.id}.label`, value: label }]
+      [{ op: "set", path: `groups.${g.id}.label`, value: label }],
+      "AWS-17"
     );
   }
   return boundaries;
 }
-function awsServiceGroups(c) {
+var VENDOR_RULES = {
+  boundary: { azure: "AZ-12", gcp: "GCP-06", k8s: "FLOW-12" },
+  serviceGroup: { aws: "AWS-18", azure: "FLOW-12", gcp: "FLOW-12" },
+  serviceLabel: { aws: "AWS-19", azure: "AZ-07", gcp: "GCP-04" }
+};
+var BOUNDARY_FAMILIES = {
+  "azure:subscription": {
+    pack: "azure",
+    family: "subscription",
+    generic: /^(azure )?subscriptions?$/,
+    example: "Production subscription"
+  },
+  "azure:resource-group": {
+    pack: "azure",
+    family: "resource group",
+    generic: /^(resource groups?|rg)$/,
+    example: "rg-web-prod"
+  },
+  "azure:vnet": {
+    pack: "azure",
+    family: "virtual network",
+    generic: /^(hub )?(virtual networks?|vnets?)$/,
+    example: "vnet-spoke-app"
+  },
+  "azure:vnet-hub": {
+    pack: "azure",
+    family: "virtual network",
+    generic: /^(hub )?(virtual networks?|vnets?)$/,
+    example: "vnet-hub"
+  },
+  "azure:subnet": { pack: "azure", family: "subnet", generic: /^subnets?$/, example: "snet-web" },
+  "gcp:project": {
+    pack: "gcp",
+    family: "project",
+    generic: /^projects?$/,
+    example: "Project shop-prod"
+  },
+  "gcp:region": { pack: "gcp", family: "region", generic: /^regions?$/, example: "us-central1" },
+  "gcp:zone": { pack: "gcp", family: "zone", generic: /^zones?$/, example: "us-central1-a" },
+  "gcp:vpc": {
+    pack: "gcp",
+    family: "VPC network",
+    generic: /^(vpc|vpc networks?|networks?)$/,
+    example: "VPC network shared"
+  },
+  "gcp:subnet": { pack: "gcp", family: "subnet", generic: /^subnets?$/, example: "Subnet web" },
+  "k8s:cluster": {
+    pack: "k8s",
+    family: "cluster",
+    generic: /^(kubernetes )?clusters?$/,
+    example: "Production cluster"
+  },
+  "k8s:namespace": {
+    pack: "k8s",
+    family: "namespace",
+    generic: /^namespaces?$/,
+    example: "Namespace shop"
+  }
+};
+function vendorBoundaryLabels(c) {
   const { model, add } = c;
-  let serviceGroups = 0;
+  let boundaries = 0;
+  const families = /* @__PURE__ */ new Map();
+  for (const g of model.groups) {
+    const f = BOUNDARY_FAMILIES[g.type];
+    if (f)
+      families.set(`${f.pack}:${f.family}`, [...families.get(`${f.pack}:${f.family}`) ?? [], g]);
+  }
+  for (const members of families.values()) {
+    if (members.length < 2) continue;
+    for (const [i, g] of members.entries()) {
+      const f = BOUNDARY_FAMILIES[g.type];
+      if (!f) continue;
+      const label = norm(g.label);
+      const bare = !label || f.generic.test(label);
+      const twin = bare ? void 0 : members.slice(0, i).find((o) => o.parent === g.parent && norm(o.label) === label);
+      if (!bare && !twin) continue;
+      boundaries++;
+      const rule = VENDOR_RULES.boundary[f.pack];
+      add(
+        "conventions.boundary-label",
+        "minor",
+        twin ? [twin.id, g.id] : [g.id],
+        {
+          group: g.id,
+          type: g.type,
+          label: g.label,
+          sameType: members.length,
+          ...twin ? { twin: twin.id } : {},
+          rule
+        },
+        twin ? `groups "${twin.id}" and "${g.id}" are both ${f.family}s labelled "${g.label}" in one parent, so readers cannot tell them apart` : `group "${g.id}" is one of ${members.length} ${f.family}s but its label "${g.label}" only names the ${f.family}, not what it is for`,
+        [`set label: on "${g.id}" to say what it holds, for example ${f.example}`],
+        3,
+        void 0,
+        rule
+      );
+    }
+  }
+  return boundaries;
+}
+var genericIcon = (info) => info.type !== "service" || info.category === "General" || info.pack === "azure" && /^(Users|Groups)$/.test(info.name);
+var sameService = (a, b) => a.id === b.id || a.name.startsWith(b.name) || b.name.startsWith(a.name);
+function serviceGroups(c) {
+  const { model, add } = c;
+  let count = 0;
   for (const g of model.groups) {
     const own = typeof g.icon === "string" ? iconInfo(g.icon) : void 0;
-    if (own?.pack !== "aws" || own.type !== "service") continue;
+    if (own?.type !== "service" || !(own.pack in VENDOR_RULES.serviceGroup)) continue;
+    const aws2 = own.pack === "aws";
     const others = model.nodes.filter((n4) => {
       const info = n4.parent === g.id && n4.icon ? iconInfo(n4.icon) : void 0;
-      return info?.pack === "aws" && info.category !== "General" && !info.name.startsWith(own.name);
+      if (info?.pack !== own.pack) return false;
+      return aws2 ? info.category !== "General" && !info.name.startsWith(own.name) : !genericIcon(info) && !sameService(info, own);
     });
     if (!others.length) continue;
-    serviceGroups++;
+    count++;
+    const rule = VENDOR_RULES.serviceGroup[own.pack];
     const names = [...new Set(others.map((n4) => iconInfo(n4.icon ?? "")?.name ?? n4.id))];
     add(
       "conventions.service-group",
       "minor",
       [g.id, ...others.map((n4) => n4.id)],
-      { group: g.id, service: own.name, others: names.join(", ") },
+      { group: g.id, service: own.name, others: names.join(", "), rule },
       `group "${g.id}" carries the ${own.name} icon but holds ${names.join(", ")}`,
       [
-        `drop icon: from "${g.id}" and use type: aws:generic for a tier of different services`,
+        aws2 ? `drop icon: from "${g.id}" and use type: aws:generic for a tier of different services` : `drop icon: from "${g.id}" so it reads as a tier of different services`,
         `keep only ${own.name} and its own parts in "${g.id}"`
       ],
       4,
-      [{ op: "unset", path: `groups.${g.id}.icon` }]
+      [{ op: "unset", path: `groups.${g.id}.icon` }],
+      rule
     );
   }
-  return serviceGroups;
+  return count;
 }
-function awsServiceLabels(c) {
+var INSTANCE_WORD = /^(services?|accounts?|sets?|profiles?|environments?|workspaces?|instances?)$/i;
+var PLAIN_WORD = /^(services?|accounts?|sets?|apps?|profiles?|environments?|workspaces?|instances?|resources?|groups?|servers?|databases?|machines?|storage|networks?)$/i;
+var singular = (w) => w.replace(/ies$/, "y").replace(/([^s])s$/, "$1");
+function vendorFormsOf(info) {
+  const words = info.name.split(/\s+/);
+  const last = words.at(-1) ?? "";
+  const one = [...words.slice(0, -1), singular(last)].join(" ");
+  const bare = (s) => {
+    const rest = s.replace(/^(Azure|Microsoft|Google Cloud|Google|Cloud)\s+/, "");
+    return rest !== s && (rest.includes(" ") || rest.length >= 5) ? rest : "";
+  };
+  const head2 = words.length > 1 && INSTANCE_WORD.test(last) ? words.slice(0, -1).join(" ") : "";
+  const tail = words.length > 1 && !PLAIN_WORD.test(last) && last.length >= 4 ? last : "";
+  const acronym = words.filter((w) => /^[A-Z]/.test(w)).map((w) => w[0]).join("");
+  return [
+    info.name,
+    one,
+    bare(info.name),
+    bare(one),
+    head2.includes(" ") || head2.length >= 5 ? head2 : "",
+    tail,
+    tail && singular(tail),
+    acronym.length >= 2 ? acronym : "",
+    ...aliasesFor(info.id)
+  ].filter(Boolean);
+}
+function partOfFrame(c, parent, info, forms) {
+  for (let p = parent; p; p = c.parentOf(p)) {
+    const g = c.model.groups.find((x2) => x2.id === p);
+    const gi = typeof g?.icon === "string" ? iconInfo(g.icon) : void 0;
+    if (gi?.name && (gi.id === info.id || info.name.startsWith(gi.name) || gi.name.startsWith(info.name)))
+      return true;
+    if (g && forms.some((f) => hasPhrase(norm(g.label), f))) return true;
+  }
+  return false;
+}
+function serviceLabels(c) {
   const { model, add } = c;
-  let serviceLabels = 0;
+  let count = 0;
+  const about = norm(`${model.title ?? ""} ${model.subtitle ?? ""}`);
   for (const n4 of model.nodes) {
     const info = n4.icon ? iconInfo(n4.icon) : void 0;
-    if (info?.pack !== "aws" || info.type !== "service" || !/^(Amazon|AWS) /.test(info.name))
+    if (!info || !(info.pack in VENDOR_RULES.serviceLabel)) continue;
+    const aws2 = info.pack === "aws";
+    if (aws2 ? info.type !== "service" || !/^(Amazon|AWS) /.test(info.name) : genericIcon(info))
       continue;
-    const forms = [info.name, ...shortFormsOf(info)];
-    if (/^(Amazon|AWS)\s/.test(n4.label) || forms.some((f) => hasPhrase(norm(n4.label), f))) continue;
-    let part = false;
-    for (let p = n4.parent; p && !part; p = c.parentOf(p)) {
-      const g = model.groups.find((x2) => x2.id === p);
-      const gi = typeof g?.icon === "string" ? iconInfo(g.icon) : void 0;
-      part = !!gi?.name && (gi.id === info.id || info.name.startsWith(gi.name) || gi.name.startsWith(info.name));
-      part ||= !!g && forms.some((f) => hasPhrase(norm(g.label), f));
-    }
-    if (part) continue;
-    serviceLabels++;
+    const forms = aws2 ? [info.name, ...shortFormsOf(info)] : vendorFormsOf(info);
+    const text4 = norm(aws2 ? n4.label : `${n4.label} ${n4.note ?? ""}`);
+    if (aws2 && /^(Amazon|AWS)\s/.test(n4.label) || forms.some((f) => hasPhrase(text4, f))) continue;
+    if (partOfFrame(c, n4.parent, info, forms) || !aws2 && forms.some((f) => hasPhrase(about, f)))
+      continue;
+    count++;
+    const rule = VENDOR_RULES.serviceLabel[info.pack];
+    const product = aws2 ? info.name : info.pack === "azure" ? vendorFormsOf(info)[1] ?? info.name : info.name;
     const rest = (n4.note ?? "").replace(new RegExp(escapeRe(info.name), "i"), "").replace(/^[\s,;:-]+|[\s,;:-]+$/g, "");
-    const note = rest ? `${n4.label}, ${rest}` : n4.label;
+    const note = aws2 ? rest ? `${n4.label}, ${rest}` : n4.label : rest ? `${product}, ${rest}` : product;
     add(
       "conventions.service-label",
       "minor",
       [n4.id],
-      { label: n4.label, service: info.name, note: n4.note ?? "" },
-      `"${n4.id}" is drawn with the ${info.name} icon but its label "${n4.label}" does not name the service`,
-      [`set label: ${info.name} and note: ${note} on "${n4.id}"`],
-      2,
+      { label: n4.label, service: info.name, note: n4.note ?? "", rule },
+      aws2 ? `"${n4.id}" is drawn with the ${info.name} icon but its label "${n4.label}" does not name the service` : `"${n4.id}" is drawn with the ${info.name} icon but neither its label "${n4.label}" nor its note names the product`,
       [
+        aws2 ? `set label: ${info.name} and note: ${note} on "${n4.id}"` : `set note: ${note} on "${n4.id}", or put ${product} in its label`
+      ],
+      2,
+      aws2 ? [
         { op: "set", path: `nodes.${n4.id}.label`, value: info.name },
         { op: "set", path: `nodes.${n4.id}.note`, value: note }
-      ]
+      ] : [{ op: "set", path: `nodes.${n4.id}.note`, value: note }],
+      rule
     );
   }
-  return serviceLabels;
+  return count;
 }
 function calloutSizes(c) {
   const { scene, add } = c;
   const callouts = new Set(
-    scene.edges.filter((e) => real2(e.stepBox)).map((e) => `${r1(e.stepBox?.w ?? 0)}`)
+    scene.edges.filter((e) => real3(e.stepBox)).map((e) => `${r1(e.stepBox?.w ?? 0)}`)
   );
   if (callouts.size > 1)
     add(
@@ -23516,6 +24181,18 @@ var FINDINGS = {
     cap: 30,
     about: "two groups that do not nest overlap"
   },
+  "overlap.edge-through-group": {
+    dimension: "overlap",
+    rule: "DG223",
+    cap: 24,
+    about: "an edge cuts through a group that holds neither of its ends, so it reads as belonging there"
+  },
+  "overlap.title-band": {
+    dimension: "overlap",
+    rule: "DG225",
+    cap: 16,
+    about: "an edge label sits in a group's title band, or a vertical run passes right beside the title, so it reads as part of the title"
+  },
   "overlap.label-on-border": {
     dimension: "overlap",
     rule: "DG220",
@@ -23537,6 +24214,11 @@ var FINDINGS = {
     dimension: "flow",
     cap: 32,
     about: "two unrelated edges run on the same line, so readers cannot tell them apart"
+  },
+  "flow.side-by-side": {
+    dimension: "flow",
+    cap: 12,
+    about: "two unrelated edges run parallel within 12px of each other for over 48px, so they read as one double line"
   },
   "flow.step-order": {
     dimension: "flow",
@@ -23568,8 +24250,9 @@ var FINDINGS = {
   },
   "flow.head-on-bend": {
     dimension: "flow",
+    rule: "DG222",
     cap: 15,
-    about: "the last straight run is shorter than the arrowhead, so the head sits on the bend"
+    about: "an arrowhead ends a zero-length segment or a straight run shorter than itself, so it points nowhere or sits on the bend"
   },
   "flow.arrow-short": {
     dimension: "flow",
@@ -23606,6 +24289,16 @@ var FINDINGS = {
     dimension: "layout",
     cap: 25,
     about: "a large empty rectangle inside the content"
+  },
+  "layout.sparse": {
+    dimension: "layout",
+    cap: 15,
+    about: "the median empty gap between neighbouring nodes in a row or column is over 300px, so the picture is spread thin"
+  },
+  "layout.wide-pitch": {
+    dimension: "layout",
+    cap: 8,
+    about: "the median centre-to-centre node pitch is over 400px while the gaps are fine, so labels are wider than they need to be"
   },
   "layout.aspect": {
     dimension: "layout",
@@ -23667,10 +24360,26 @@ var FINDINGS = {
     cap: 21,
     about: "a group's content is off its center by more than 6px"
   },
+  "grid.edge-on-border": {
+    dimension: "grid",
+    rule: "DG224",
+    cap: 12,
+    about: "a straight run lies on a group's border line, so the line hides under the frame"
+  },
   "grid.uneven-gaps": {
     dimension: "grid",
     cap: 15,
     about: "gaps between layers vary a lot"
+  },
+  "grid.wide-gap": {
+    dimension: "grid",
+    cap: 12,
+    about: "a gap between a group's rows or columns is over 160px, or over 2.5x its smallest and over 64px, so it reads as an empty band"
+  },
+  "grid.group-gap": {
+    dimension: "grid",
+    cap: 12,
+    about: "two sibling groups sit further apart than the edge labels between them need (label plus 16px a side, at least 48px) plus 32px"
   },
   "grid.zig-zag": {
     dimension: "grid",
@@ -23750,6 +24459,11 @@ var FINDINGS = {
     rule: "C4-01",
     cap: 8,
     about: "the diagram has no title"
+  },
+  "conventions.subtitle-echo": {
+    dimension: "conventions",
+    cap: 4,
+    about: "the subtitle repeats the title or only lists node labels, so it adds nothing"
   },
   "conventions.short-name": {
     dimension: "conventions",
@@ -23875,8 +24589,9 @@ var CROSS_CUTTING = {
 };
 function measureFlow(c, diagnostics) {
   const m = c.metrics.flow;
-  const { hidden, onBend, short: short2 } = arrowEnds(c);
+  const { hidden, short: short2 } = arrowEnds(c);
   const trunks = sharedTrunks(c);
+  const parallel = sideBySide(c, trunks);
   const { steps, inversions } = stepOrder(c);
   const { both, none } = arrowSemantics(c);
   const crossing = unlabelledCrossings(c);
@@ -23885,9 +24600,11 @@ function measureFlow(c, diagnostics) {
   const fanIn = crossCutting(c);
   Object.assign(m, {
     hiddenHeads: hidden,
-    headsOnBends: onBend,
+    // DG222 from check.ts; overlap.ts maps it to flow.head-on-bend.
+    headsOnBends: diagnostics.filter((d) => d.code === "DG222").length,
     shortEnds: short2,
-    sharedTrunks: trunks,
+    sharedTrunks: trunks.size,
+    sideBySide: parallel,
     steps,
     stepInversions: inversions,
     bidirectional: both.length,
@@ -23902,7 +24619,7 @@ function measureFlow(c, diagnostics) {
 function arrowEnds(c) {
   const { scene } = c;
   const horizontal = horizontalFlow2(c.dir);
-  const counts = { hidden: 0, onBend: 0, short: 0 };
+  const counts = { hidden: 0, short: 0 };
   const chips = scene.groups.flatMap((g) => {
     const chip = headerChip2(g);
     return [
@@ -23949,8 +24666,8 @@ function checkHead(c, e, h, chips, counts) {
   };
   const covers = [];
   for (const o of scene.edges) {
-    if (real2(o.labelBox) && hit(o.labelBox)) covers.push(`label of ${o.id}`);
-    if (real2(o.stepBox) && hit(o.stepBox)) covers.push(`step of ${o.id}`);
+    if (real3(o.labelBox) && hit(o.labelBox)) covers.push(`label of ${o.id}`);
+    if (real3(o.stepBox) && hit(o.stepBox)) covers.push(`step of ${o.id}`);
   }
   for (const ch of chips) if (hit(ch.box)) covers.push(`header of ${ch.id}`);
   for (const n4 of scene.nodes) {
@@ -23960,7 +24677,7 @@ function checkHead(c, e, h, chips, counts) {
       ["badge", badgeRect2(n4)]
     ];
     if (n4.id !== h.target) parts.push(["node", n4.iconBox ?? n4.box]);
-    for (const [what, b] of parts) if (real2(b) && hit(b)) covers.push(`${what} of ${n4.id}`);
+    for (const [what, b] of parts) if (real3(b) && hit(b)) covers.push(`${what} of ${n4.id}`);
   }
   if (covers.length) {
     counts.hidden++;
@@ -23975,18 +24692,6 @@ function checkHead(c, e, h, chips, counts) {
         "shorten the covering label or badge"
       ],
       10
-    );
-  }
-  if (L < len2 - EPS2) {
-    counts.onBend++;
-    add(
-      "flow.head-on-bend",
-      "minor",
-      [e.id],
-      { edge: edgeName(e), lastRunPx: r1(L), headPx: len2 },
-      `the last straight run of ${edgeName(e)} is ${r1(L)}px, shorter than its ${len2}px arrowhead`,
-      ["use layout: { spacing: loose }", `reorder so "${h.target}" lines up with its source`],
-      3
     );
   }
 }
@@ -24019,7 +24724,7 @@ function shortEnds(c, e, first, last, counts) {
 }
 function sharedTrunks(c) {
   const { scene, add } = c;
-  let trunks = 0;
+  const trunks = /* @__PURE__ */ new Set();
   const E = scene.edges;
   for (let i = 0; i < E.length; i++)
     for (let j = i + 1; j < E.length; j++) {
@@ -24046,7 +24751,7 @@ function sharedTrunks(c) {
             );
         }
       if (olap > 10) {
-        trunks++;
+        trunks.add(`${a.id}|${b.id}`);
         add(
           "flow.shared-trunk",
           olap > 40 ? "major" : "minor",
@@ -24064,11 +24769,54 @@ function sharedTrunks(c) {
     }
   return trunks;
 }
+function sideBySide(c, trunks) {
+  const { scene, add } = c;
+  let pairs = 0;
+  const E = scene.edges;
+  for (let i = 0; i < E.length; i++)
+    for (let j = i + 1; j < E.length; j++) {
+      const a = E[i];
+      const b = E[j];
+      if (!a || !b || trunks.has(`${a.id}|${b.id}`)) continue;
+      if (a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to) continue;
+      let span = 0;
+      let apart = 0;
+      for (const [p, q] of segments2(simplify2(a.points)))
+        for (const [u, v] of segments2(simplify2(b.points))) {
+          const h = Math.abs(p.y - q.y) < EPS2 && Math.abs(u.y - v.y) < EPS2;
+          const vert = Math.abs(p.x - q.x) < EPS2 && Math.abs(u.x - v.x) < EPS2;
+          if (!h && !vert) continue;
+          const d = h ? Math.abs(p.y - u.y) : Math.abs(p.x - u.x);
+          if (d < 1.5 || d > 12) continue;
+          const [p0, p1, u0, u1] = h ? [p.x, q.x, u.x, v.x] : [p.y, q.y, u.y, v.y];
+          const shared = Math.min(Math.max(p0, p1), Math.max(u0, u1)) - Math.max(Math.min(p0, p1), Math.min(u0, u1));
+          if (shared > span) {
+            span = shared;
+            apart = d;
+          }
+        }
+      if (span <= 48) continue;
+      pairs++;
+      add(
+        "flow.side-by-side",
+        "minor",
+        [a.id, b.id],
+        { a: edgeName(a), b: edgeName(b), apartPx: r1(apart), sharedPx: r1(span) },
+        `${edgeName(a)} and ${edgeName(b)} run ${r1(apart)}px apart for ${r1(span)}px, so they read as one double line`,
+        [
+          "reorder nodes so the two edges take different channels",
+          "use layout: { spacing: loose }"
+        ],
+        3
+      );
+    }
+  return pairs;
+}
 function stepOrder(c) {
   const { scene, model, add, dir } = c;
   const horizontal = horizontalFlow2(dir);
   const stepped = scene.edges.filter((e) => e.step !== void 0).map((e) => {
-    const at = real2(e.stepBox) ? { x: e.stepBox.x + e.stepBox.w / 2, y: e.stepBox.y + e.stepBox.h / 2 } : midpoint2(e.points);
+    const at = real3(e.stepBox) ? { x: e.stepBox.x + e.stepBox.w / 2, y: e.stepBox.y + e.stepBox.h / 2 } : midpoint2(e.points);
     return { e, step: e.step, at };
   }).sort((a, b) => a.step - b.step);
   let inversions = 0;
@@ -24403,14 +25151,139 @@ function measureGrid2(c) {
       (cv - 0.35) * 40
     );
   }
+  const { wide, between } = frameGaps(c);
   Object.assign(m, {
     raggedLayers: ragged,
     jogs,
     offCenterGroups: offCenter,
     gapCv: r22(cv),
     gapMinPx: gaps.length ? r1(Math.min(...gaps)) : 0,
-    gapMaxPx: gaps.length ? r1(Math.max(...gaps)) : 0
+    gapMaxPx: gaps.length ? r1(Math.max(...gaps)) : 0,
+    wideGaps: wide,
+    groupGaps: between
   });
+}
+function frameGaps(c) {
+  const { scene, model, add } = c;
+  let wide = 0;
+  let between = 0;
+  if (model.kind === "journey") return { wide, between };
+  const layer = 64 * model.spacing;
+  const frames2 = scene.groups.filter((g) => !g.overlay);
+  const runs2 = scene.edges.flatMap((e) => segments2(simplify2(e.points)));
+  const marks2 = scene.edges.flatMap(
+    (e) => [e.labelBox, e.stepBox].filter(real3).map((box) => ({ e, box }))
+  );
+  for (const g of [void 0, ...frames2.filter((x2) => !x2.lane)]) {
+    const P2 = g?.id;
+    const kids = frames2.filter((x2) => x2.parent === P2);
+    const items = [
+      ...scene.nodes.filter((n4) => n4.parent === P2).map((n4) => c.foot.get(n4.id) ?? n4.box),
+      ...kids.map((x2) => x2.box)
+    ];
+    if (items.length < 2) continue;
+    const area = g?.box ?? { x: 0, y: 0, w: scene.width, h: scene.height };
+    const where = g ? `group "${g.id}"` : "the canvas";
+    for (const [axis, at, size, across2, acrossSize] of [
+      ["row", "y", "h", "x", "w"],
+      ["column", "x", "w", "y", "h"]
+    ]) {
+      const bands = [];
+      for (const b of [...items].sort((p, q) => p[at] - q[at])) {
+        const lo = b[at];
+        const hi = b[at] + b[size];
+        const band = bands.find((x2) => lo < x2.hi && x2.lo < hi);
+        if (band) {
+          band.lo = Math.min(band.lo, lo);
+          band.hi = Math.max(band.hi, hi);
+        } else bands.push({ lo, hi });
+      }
+      const gaps = [];
+      for (let i = 1; i < bands.length; i++) {
+        const a0 = bands[i - 1]?.hi ?? 0;
+        const b0 = bands[i]?.lo ?? 0;
+        if (b0 <= a0) continue;
+        const inside3 = marks2.filter(
+          ({ box: t }) => t[at] < b0 && t[at] + t[size] > a0 && t[across2] < area[across2] + area[acrossSize] && t[across2] + t[acrossSize] > area[across2]
+        );
+        const lo = Math.max(a0, Math.min(...inside3.map(({ box: t }) => t[at])));
+        const hi = Math.min(b0, Math.max(...inside3.map(({ box: t }) => t[at] + t[size])));
+        const tracks = new Set(
+          runs2.filter(
+            ([p, q]) => Math.abs(p[at] - q[at]) < EPS2 && p[at] > a0 && p[at] < b0 && Math.min(p[across2], q[across2]) < area[across2] + area[acrossSize] && Math.max(p[across2], q[across2]) > area[across2]
+          ).map(([p]) => Math.round(p[at]))
+        ).size;
+        const channel = tracks ? (40 + 10 * (tracks - 1)) * model.spacing : 0;
+        const labels2 = inside3.length ? 2 * layer + Math.max(0, hi - lo) : layer;
+        gaps.push({
+          d: b0 - a0,
+          a0,
+          b0,
+          room: Math.max(labels2, channel),
+          tracks,
+          labelled: [...new Set(inside3.map((x2) => x2.e))]
+        });
+      }
+      const reported = /* @__PURE__ */ new Set();
+      for (const gap of gaps) {
+        const { d, a0, b0, room: room2 } = gap;
+        const need = Math.max(48, room2);
+        if (d <= 48 || d <= need + 32) continue;
+        const before = kids.filter((k) => Math.abs(k.box[at] + k.box[size] - a0) <= 1);
+        const after = kids.filter((k) => Math.abs(k.box[at] - b0) <= 1);
+        if (!before.length || !after.length) continue;
+        between++;
+        reported.add(gap);
+        const ids = [...before, ...after].map((k) => k.id);
+        add(
+          "grid.group-gap",
+          "minor",
+          [...ids, ...gap.labelled.map((e) => e.id)],
+          {
+            scope: P2 ?? "(root)",
+            axis,
+            gapPx: r1(d),
+            roomPx: r1(need),
+            labels: gap.labelled.length,
+            tracks: gap.tracks
+          },
+          `the ${axis} gap between groups ${ids.map((id) => `"${id}"`).join(", ")} in ${where} is ${Math.round(d)}px; layout needs ${Math.round(need)}px there`,
+          [
+            ...model.spacing > 1 ? ["use layout: { spacing: normal }"] : [],
+            "move the groups' connected nodes next to each other in the nodes list"
+          ],
+          3
+        );
+      }
+      const empty = gaps.filter(
+        (x2) => !reported.has(x2) && (x2.d > x2.room + 96 || x2.d > 2.5 * x2.room && x2.d > 64)
+      );
+      const worst = empty.sort((p, q) => q.d - q.room - (p.d - p.room))[0];
+      if (!worst) continue;
+      wide++;
+      add(
+        "grid.wide-gap",
+        "minor",
+        [...g ? [g.id] : [], ...worst.labelled.map((e) => e.id)],
+        {
+          scope: P2 ?? "(root)",
+          axis,
+          gapPx: r1(worst.d),
+          roomPx: r1(worst.room),
+          labels: worst.labelled.length,
+          tracks: worst.tracks,
+          gaps: gaps.map((x2) => Math.round(x2.d)).join(",")
+        },
+        `a ${axis} gap in ${where} is ${Math.round(worst.d)}px where layout needs ${Math.round(worst.room)}px, so it reads as an empty band`,
+        [
+          "move the nodes on either side of the gap next to each other in the nodes list",
+          ...model.spacing > 1 ? ["use layout: { spacing: normal }"] : []
+        ],
+        3
+      );
+    }
+  }
+  return { wide, between };
 }
 
 // src/review/layout.ts
@@ -24422,6 +25295,7 @@ function measureLayout(c, diagnostics) {
   const crossings2 = edgeCrossings(c);
   const { lens, median, long } = edgeLengths(c);
   const holePct = emptySpace(c);
+  const spacing = nodeSpacing(c);
   const aspect = proportions(c);
   const ignored = layoutDiagnostics(c, diagnostics);
   const { pairs, inOrder } = specOrder(c);
@@ -24430,6 +25304,8 @@ function measureLayout(c, diagnostics) {
     againstFlow: against.length,
     crossings: crossings2,
     holePct: r1(holePct),
+    nodeGapPx: Math.round(spacing.gap),
+    nodePitchPx: Math.round(spacing.pitch),
     aspect: r22(aspect),
     longEdges: long.length,
     edgeMedianPx: Math.round(median),
@@ -24553,7 +25429,7 @@ function largestHole(c) {
     scene.titleBox,
     scene.subtitleBox,
     scene.legend?.box
-  ].filter(real2);
+  ].filter(real3);
   const edgeBoxes = edges.map((e) => {
     const xs = e.points.map((p) => p.x);
     const ys = e.points.map((p) => p.y);
@@ -24635,6 +25511,73 @@ function emptySpace(c) {
     );
   }
   return holePct;
+}
+var upperMedian = (v) => [...v].sort((a, b) => a - b)[v.length >> 1] ?? 0;
+var SPARSE_GAP = 300;
+var WIDE_PITCH = 400;
+function nodeSpacing(c) {
+  const { scene, model, add } = c;
+  if (model.kind === "journey") return { gap: 0, pitch: 0 };
+  const items = scene.nodes.map((n4) => ({
+    tile: n4.iconBox ?? n4.box,
+    foot: c.foot.get(n4.id) ?? n4.box
+  }));
+  const gaps = [];
+  const pitches = [];
+  for (const [at, size, key, keySize] of [
+    ["x", "w", "y", "h"],
+    ["y", "h", "x", "w"]
+  ]) {
+    const lines2 = [];
+    for (const it of items) {
+      const k = it.tile[key] + it.tile[keySize] / 2;
+      const line = lines2.find((l) => Math.abs(l.k - k) < 24);
+      if (line) line.items.push(it);
+      else lines2.push({ k, items: [it] });
+    }
+    for (const l of lines2) {
+      const centres = l.items.map((it) => it.tile[at] + it.tile[size] / 2).sort((a, b) => a - b);
+      for (let i = 1; i < centres.length; i++) {
+        const d = (centres[i] ?? 0) - (centres[i - 1] ?? 0);
+        if (d > 0) pitches.push(d);
+      }
+      const row = [...l.items].sort((a, b) => a.foot[at] - b.foot[at]);
+      for (let i = 1; i < row.length; i++) {
+        const p = row[i - 1];
+        const q = row[i];
+        const d = p && q ? q.foot[at] - (p.foot[at] + p.foot[size]) : 0;
+        if (d > 0) gaps.push(d);
+      }
+    }
+  }
+  const gap = upperMedian(gaps);
+  const pitch = upperMedian(pitches);
+  if (gap > SPARSE_GAP)
+    add(
+      "layout.sparse",
+      "minor",
+      [],
+      { medianGapPx: Math.round(gap), limitPx: SPARSE_GAP, gaps: gaps.length },
+      `the median gap between neighbouring nodes is ${Math.round(gap)}px (over ${SPARSE_GAP}px), so the picture is spread thin`,
+      [
+        ...model.spacing > 0.75 ? ["use layout: { spacing: compact }"] : [],
+        "shorten the edge labels between layers: a labelled edge widens its gap",
+        "move connected nodes next to each other in the nodes list"
+      ],
+      Math.min(15, 6 + (gap - SPARSE_GAP) / 10),
+      model.spacing > 0.75 ? [{ op: "set", path: "layout.spacing", value: "compact" }] : void 0
+    );
+  else if (pitch > WIDE_PITCH)
+    add(
+      "layout.wide-pitch",
+      "minor",
+      [],
+      { medianPitchPx: Math.round(pitch), limitPx: WIDE_PITCH, medianGapPx: Math.round(gap) },
+      `the median node pitch is ${Math.round(pitch)}px (over ${WIDE_PITCH}px) while the gaps are fine, so the labels are wider than they need to be`,
+      ["shorten the longest node labels and notes: the widest text sets a node's width"],
+      Math.min(8, 4 + (pitch - WIDE_PITCH) / 20)
+    );
+  return { gap, pitch };
 }
 function proportions(c) {
   const { scene, add } = c;
@@ -24742,6 +25685,14 @@ function specOrder(c) {
 }
 
 // src/review/overlap.ts
+function throughGroup(c, d) {
+  const e = c.scene.edges.find((x2) => x2.id === d.subject?.edge);
+  const g = c.groups.get(String(d.subject?.group ?? ""));
+  const [a, b] = [e?.points[0], e?.points.at(-1)];
+  const outside = (p) => !!p && !!g && !(p.x > g.box.x && p.x < g.box.x + g.box.w && p.y > g.box.y && p.y < g.box.y + g.box.h);
+  const inside3 = e && g ? pathClipLen(e.points, g.box, 4) : 0;
+  return outside(a) && outside(b) && inside3 > 24 ? { severity: "major", cost: 8 } : { severity: "minor", cost: 4 };
+}
 var OVERLAP_RULES = {
   DG201: {
     id: "overlap.edge-through-node",
@@ -24826,6 +25777,33 @@ var OVERLAP_RULES = {
     severity: "minor",
     cost: 4,
     ids: ["edge", "node"]
+  },
+  // The head-on-bend geometry lives in check.ts (DG222); the flow dimension scores it.
+  DG222: {
+    id: "flow.head-on-bend",
+    severity: "minor",
+    cost: 3,
+    ids: ["edge"]
+  },
+  DG223: {
+    id: "overlap.edge-through-group",
+    severity: "minor",
+    cost: 4,
+    ids: ["edge", "group"],
+    grade: throughGroup
+  },
+  // A run on a border line breaks the frame's rhythm rather than hiding text: grid, minor.
+  DG224: {
+    id: "grid.edge-on-border",
+    severity: "minor",
+    cost: 3,
+    ids: ["edge", "group"]
+  },
+  DG225: {
+    id: "overlap.title-band",
+    severity: "minor",
+    cost: 4,
+    ids: ["edge", "group"]
   }
 };
 function flatEvidence(v, key = "", out = {}) {
@@ -24859,7 +25837,9 @@ function measureOverlap(c, diagnostics) {
     badgeOverlaps: count("DG211"),
     nestingProblems: count("DG213") + nesting,
     labelsOnBorders: count("DG220"),
-    edgesSkimmingNodes: count("DG221")
+    edgesSkimmingNodes: count("DG221"),
+    edgesThroughGroups: count("DG223"),
+    labelsInTitleBands: count("DG225")
   });
 }
 function mapDiagnostics(c, diagnostics) {
@@ -24868,14 +25848,15 @@ function mapDiagnostics(c, diagnostics) {
     const rule = OVERLAP_RULES[d.code === "DG202" && d.subject?.edges ? "DG202:labels" : d.code];
     if (!rule) continue;
     if (rule.hard) hard[rule.hard]++;
+    const { severity, cost } = rule.grade?.(c, d) ?? rule;
     add(
       rule.id,
-      rule.severity,
+      severity,
       subjectIds(d, rule.ids),
       flatEvidence(d.evidence),
       d.message,
       d.fixes ?? [],
-      rule.cost
+      cost
     );
   }
 }
@@ -24911,7 +25892,7 @@ function edgesThroughStepsAndText(c) {
   const horizontal = horizontalFlow2(scene.direction);
   for (const e of scene.edges) {
     for (const o of scene.edges) {
-      const len2 = o.id !== e.id && real2(o.stepBox) ? pathClipLen(e.points, o.stepBox, 1) : 0;
+      const len2 = o.id !== e.id && real3(o.stepBox) ? pathClipLen(e.points, o.stepBox, 1) : 0;
       if (len2 > 1) {
         hard.edgesThroughLabels++;
         add(
@@ -24936,7 +25917,7 @@ function edgesThroughStepsAndText(c) {
         ["label", n4.labelBox],
         ["note", n4.noteBox]
       ]) {
-        if (!real2(b) || n4.look !== "icon" && own) continue;
+        if (!real3(b) || n4.look !== "icon" && own) continue;
         const len2 = pathClipLen(e.points, b, 1);
         if (len2 > 1) {
           hard.edgesThroughLabels++;
@@ -25318,8 +26299,9 @@ function reviewScene(scene, model, diagnostics, opts) {
       for (let p = parentOf(id); p; p = parentOf(p)) if (p === ancestor) return true;
       return false;
     },
-    add: (id, severity, subjects, evidence, claim2, fixes, cost, patches) => {
+    add: (id, severity, subjects, evidence, claim2, fixes, cost, patches, rule) => {
       const kind = FINDINGS[id];
+      const cites = rule ?? kind.rule;
       spent.set(id, (spent.get(id) ?? 0) + Math.max(0, cost));
       findings.push({
         id,
@@ -25330,7 +26312,7 @@ function reviewScene(scene, model, diagnostics, opts) {
         claim: claim2,
         fixes,
         ...patches?.length ? { patches } : {},
-        ...kind.rule ? { rule: kind.rule } : {}
+        ...cites ? { rule: cites } : {}
       });
     },
     metrics,
@@ -26399,7 +27381,7 @@ var TOOLS = [
 var SERVER = {
   name: "orrery",
   title: "orrery",
-  version: true ? "0.9.0" : "dev"
+  version: true ? "0.10.0" : "dev"
 };
 var MODERN = ["2026-07-28"];
 var LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
@@ -27768,7 +28750,19 @@ async function checkIconFile(path, out) {
       );
   }
   const sheet = out ? extname4(out) ? out : `${out}.png` : join14(dirname7(path), `${basename7(path, extname4(path))}.sheet.png`);
-  writeAtomic(sheet, await iconSheet(path));
+  let png2;
+  try {
+    png2 = await iconSheet(path);
+  } catch (e) {
+    if (!(e instanceof LocalIconError)) throw e;
+    process.stderr.write(
+      `error ${shown} ${e.problem}; no contact sheet written
+      fix: ${e.fix}
+`
+    );
+    return false;
+  }
+  writeAtomic(sheet, png2);
   const failing = check.results.filter((r4) => !r4.ok).length;
   process.stdout.write(
     `wrote ${shownPath(sheet)}: look at all four tiles before handing over (IC10)

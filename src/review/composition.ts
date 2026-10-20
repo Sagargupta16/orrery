@@ -1,5 +1,5 @@
-// Composition checks ported from aws-archify: zig-zags and avoidable bends, nodes beside groups,
-// uneven same-kind siblings, and sparse or loosely padded frames (grid and layout findings).
+// Composition checks: zig-zags and avoidable bends, nodes beside groups, uneven same-kind
+// siblings, and sparse or loosely padded frames (grid and layout findings).
 import type { PatchOp } from "../patch/index.ts";
 import type { Box, SceneGroup } from "../types.ts";
 import {
@@ -14,7 +14,7 @@ import {
 import { edgeName } from "./names.ts";
 import type { Ctx } from "./types.ts";
 
-/** Group types that stand for no boundary: their contents differ by design (aws-archify check 10). */
+/** Group types that stand for no boundary: their contents differ by design. */
 const TIER_GROUPS = new Set([
   "box",
   "dashed",
@@ -36,11 +36,10 @@ const TIER_GROUPS = new Set([
 ]);
 
 /**
- * Composition checks ported from the aws-archify skill's check-layout.ts (checks 6, 10, 11, 14,
- * 14b; MIT-0). Its thresholds are canvas px at 1x and stay canvas px here: they say how far layout
- * put two ends out of line, or how loosely a frame fits, in the units layout works in (an orrery
- * icon is 48px, as is the sample's tile). A narrower column shrinks the defect and the room to fix
- * it alike, so the display width does not change the verdict; the ratios are unitless anyway.
+ * Composition checks. Their thresholds are canvas px at 1x: they say how far layout put two ends
+ * out of line, or how loosely a frame fits, in the units layout works in (an orrery icon is 48px).
+ * A narrower column shrinks the defect and the room to fix it alike, so the display width does not
+ * change the verdict; the ratios are unitless anyway.
  */
 export function measureComposition(c: Ctx): void {
   const { scene, model } = c;
@@ -67,9 +66,9 @@ export function measureComposition(c: Ctx): void {
 }
 
 /**
- * Zig-zags and avoidable bends (checks 14, 14b): a one-to-one edge bends only because its ends
- * are out of line. A fan out or in cannot line up with every end, an end on a group is routed to
- * the frame, and a pool or lane fixes each end's row, so those bend by necessity.
+ * Zig-zags and avoidable bends: a one-to-one edge bends only because its ends are out of line. A
+ * fan out or in cannot line up with every end, an end on a group is routed to the frame, and a
+ * pool or lane fixes each end's row, so those bend by necessity.
  */
 function zigZags(c: Ctx): { zigs: number; bends: number } {
   const { scene, add } = c;
@@ -138,9 +137,9 @@ function zigZags(c: Ctx): { zigs: number; bends: number } {
 }
 
 /**
- * A node beside a group (check 6): partly level with a frame it is outside, so the eye reads the
- * two as one row of peers. A node whose whole height sits in the frame's band is aligned with it on
- * purpose; a node inside another frame is that frame's peer, not this one's.
+ * A node beside a group: partly level with a frame it is outside, so the eye reads the two as one
+ * row of peers. A node whose whole height sits in the frame's band is aligned with it on purpose;
+ * a node inside another frame is that frame's peer, not this one's.
  */
 function besideGroups(c: Ctx, frames: SceneGroup[]): number {
   const { scene, add } = c;
@@ -179,9 +178,9 @@ function besideGroups(c: Ctx, frames: SceneGroup[]): number {
 }
 
 /**
- * Same-kind siblings, one size (check 10): boxes of one boundary type under one parent share a
- * height in a row and a width in a column. Nearly equal reads as a mistake, clearly different as
- * intended; two with the same role (Zone A and Zone B) must match either way.
+ * Same-kind siblings, one size: boxes of one boundary type under one parent share a height in a
+ * row and a width in a column. Nearly equal reads as a mistake, clearly different as intended;
+ * two with the same role (Zone A and Zone B) must match either way.
  */
 function unevenSiblings(c: Ctx, frames: SceneGroup[]): number {
   const { add } = c;
@@ -232,10 +231,10 @@ function unevenSiblings(c: Ctx, frames: SceneGroup[]): number {
 }
 
 /**
- * Whitespace and padding (check 11), per frame on an 8px raster: own nodes with a margin, child
- * frames and edge labels cover; the rest below the header is empty. The sample's 16px margin is
- * two thirds of its 24px gap; orrery leaves 64px between layers, so the margin is half of that
- * (scaled by layout.spacing) and the layout's own rhythm never counts as empty.
+ * Whitespace and padding, per frame on an 8px raster: own nodes with a margin, child frames and
+ * edge labels cover; the rest below the header is empty. A fixed 16px margin would count most of
+ * the 64px orrery leaves between layers as empty, so the margin is half of that gap (scaled by
+ * layout.spacing) and the layout's own rhythm never counts as empty.
  */
 function whitespace(c: Ctx, frames: SceneGroup[]): { sparse: number; padded: number } {
   const { scene, model } = c;
@@ -320,8 +319,8 @@ function framePadding(
     right: g.box.x + g.box.w - (content.x + content.w),
   };
   const lo = Math.max(8, Math.min(...Object.values(pads)));
-  // A frame layout sized to match a same-kind sibling pads out on purpose (the sample asks for the
-  // reason; here layout gave it), and one side much wider than the other is grid.off-center's.
+  // A frame layout sized to match a same-kind sibling pads out on purpose (padding needs a reason,
+  // and layout gave it one), and one side much wider than the other is grid.off-center's.
   const twin = (k: "w" | "h") =>
     frames.some(
       (o) =>

@@ -95,6 +95,20 @@ export const FINDINGS = {
     cap: 30,
     about: "two groups that do not nest overlap",
   },
+  "overlap.edge-through-group": {
+    dimension: "overlap",
+    rule: "DG223",
+    cap: 24,
+    about:
+      "an edge cuts through a group that holds neither of its ends, so it reads as belonging there",
+  },
+  "overlap.title-band": {
+    dimension: "overlap",
+    rule: "DG225",
+    cap: 16,
+    about:
+      "an edge label sits in a group's title band, or a vertical run passes right beside the title, so it reads as part of the title",
+  },
   "overlap.label-on-border": {
     dimension: "overlap",
     rule: "DG220",
@@ -116,6 +130,12 @@ export const FINDINGS = {
     dimension: "flow",
     cap: 32,
     about: "two unrelated edges run on the same line, so readers cannot tell them apart",
+  },
+  "flow.side-by-side": {
+    dimension: "flow",
+    cap: 12,
+    about:
+      "two unrelated edges run parallel within 12px of each other for over 48px, so they read as one double line",
   },
   "flow.step-order": {
     dimension: "flow",
@@ -147,8 +167,10 @@ export const FINDINGS = {
   },
   "flow.head-on-bend": {
     dimension: "flow",
+    rule: "DG222",
     cap: 15,
-    about: "the last straight run is shorter than the arrowhead, so the head sits on the bend",
+    about:
+      "an arrowhead ends a zero-length segment or a straight run shorter than itself, so it points nowhere or sits on the bend",
   },
   "flow.arrow-short": {
     dimension: "flow",
@@ -186,6 +208,18 @@ export const FINDINGS = {
     dimension: "layout",
     cap: 25,
     about: "a large empty rectangle inside the content",
+  },
+  "layout.sparse": {
+    dimension: "layout",
+    cap: 15,
+    about:
+      "the median empty gap between neighbouring nodes in a row or column is over 300px, so the picture is spread thin",
+  },
+  "layout.wide-pitch": {
+    dimension: "layout",
+    cap: 8,
+    about:
+      "the median centre-to-centre node pitch is over 400px while the gaps are fine, so labels are wider than they need to be",
   },
   "layout.aspect": {
     dimension: "layout",
@@ -248,10 +282,28 @@ export const FINDINGS = {
     cap: 21,
     about: "a group's content is off its center by more than 6px",
   },
+  "grid.edge-on-border": {
+    dimension: "grid",
+    rule: "DG224",
+    cap: 12,
+    about: "a straight run lies on a group's border line, so the line hides under the frame",
+  },
   "grid.uneven-gaps": {
     dimension: "grid",
     cap: 15,
     about: "gaps between layers vary a lot",
+  },
+  "grid.wide-gap": {
+    dimension: "grid",
+    cap: 12,
+    about:
+      "a gap between a group's rows or columns is over 160px, or over 2.5x its smallest and over 64px, so it reads as an empty band",
+  },
+  "grid.group-gap": {
+    dimension: "grid",
+    cap: 12,
+    about:
+      "two sibling groups sit further apart than the edge labels between them need (label plus 16px a side, at least 48px) plus 32px",
   },
   "grid.zig-zag": {
     dimension: "grid",
@@ -334,6 +386,11 @@ export const FINDINGS = {
     rule: "C4-01",
     cap: 8,
     about: "the diagram has no title",
+  },
+  "conventions.subtitle-echo": {
+    dimension: "conventions",
+    cap: 4,
+    about: "the subtitle repeats the title or only lists node labels, so it adds nothing",
   },
   "conventions.short-name": {
     dimension: "conventions",

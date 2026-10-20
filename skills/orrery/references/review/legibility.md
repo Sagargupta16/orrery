@@ -50,6 +50,10 @@ A label is the name readers know ("Orders queue", "Amazon SQS"); sizes, versions
 
 `dimensions.layout.metrics.holePct` gives the largest empty rectangle. Judge whether it reads as intended white space (between tiers) or as a gap that makes the diagram look unfinished, and propose the reorder that closes it.
 
+### LEG-10 Peers sit side by side [judged]
+
+Siblings go side by side; a stack of peers reads as a hierarchy. Two zones, three workers or replicas, sibling subnets or the services behind one load balancer line up across the flow, never one above another along it. Patches: `align` each peer with the first, `cols:` on their group, or `set direction`.
+
 ### LEG-09 Fit the place it is shown [judged]
 
 Compare the PNG with where the brief says it goes: a README column, a slide, a phone. A wide strip in a README or a tall column on a slide fails the brief even when every number passes; propose the direction or split that fits.
