@@ -8,7 +8,7 @@
 // (`Deployment/orders`) found as a document with that kind and name in its YAML or JSON, and
 // anything else found as its last segment in the repo's .tf, .yaml, .yml or .json files.
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { isMap, isScalar, isSeq, parseDocument } from "yaml";
 import type { Args } from "./cli/args.ts";
@@ -110,10 +110,23 @@ function git(cwd: string, args: string[]): string | undefined {
   }
 }
 
+/**
+ * A path as the file system names it. On Windows a temp folder can read as an 8.3 short name
+ * (RUNNER~1) while git names the same folder in full, and relative() between them leaves the repo.
+ */
+function real(path: string): string {
+  try {
+    return realpathSync.native(path);
+  } catch {
+    return path;
+  }
+}
+
 function openRepo(specPath: string): Repo {
-  const specDir = dirname(specPath);
+  const spec = real(specPath);
+  const specDir = dirname(spec);
   const root = git(specDir, ["rev-parse", "--show-toplevel"]);
-  return { spec: specPath, specDir, ...(root ? { root: resolve(root) } : {}), lines: new Map() };
+  return { spec, specDir, ...(root ? { root: real(resolve(root)) } : {}), lines: new Map() };
 }
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "out", "build", "vendor"]);
@@ -331,12 +344,15 @@ function checkTerraform(repo: Repo, address: string): Outcome {
   };
 }
 
+/** Text that matches itself inside a RegExp: every metacharacter, backslash included, escaped. */
+const escapeRe = (s: string) => s.replace(/[\\^$.*+?()[\]{}|/]/g, "\\$&");
+
 function checkKubernetes(repo: Repo, kind: string, name: string): Outcome {
-  const q = (v: string) => `["']?${v.replace(/\./g, "\\.")}["']?`;
+  const q = (v: string) => `["']?${escapeRe(v)}["']?`;
   const kindRe = new RegExp(`^\\s*-?\\s*kind:\\s*${q(kind)}\\s*(#.*)?$`);
   const nameRe = new RegExp(`^\\s+name:\\s*${q(name)}\\s*(#.*)?$`);
-  const jsonKind = new RegExp(`"kind"\\s*:\\s*"${kind}"`);
-  const jsonName = new RegExp(`"name"\\s*:\\s*"${name.replace(/\./g, "\\.")}"`);
+  const jsonKind = new RegExp(`"kind"\\s*:\\s*"${escapeRe(kind)}"`);
+  const jsonName = new RegExp(`"name"\\s*:\\s*"${escapeRe(name)}"`);
   const others = new Set<string>();
   for (const { file, lines } of addressFiles(repo, (f) => !/\.tf$/i.test(f))) {
     if (/\.json$/i.test(file)) {

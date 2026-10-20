@@ -182,7 +182,8 @@ function failure(r, failOn) {
   return undefined;
 }
 
-const cell = (s) => String(s).replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+// Backslashes first, so the escape added for a pipe cannot be read as an escape of its own.
+const cell = (s) => String(s).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 
 function changes(d) {
   if (d === undefined) return "-";

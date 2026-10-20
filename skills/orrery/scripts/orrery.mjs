@@ -30483,7 +30483,7 @@ ${wrote}
 // src/verify.ts
 var import_yaml10 = __toESM(require_dist(), 1);
 import { execFileSync as execFileSync2 } from "node:child_process";
-import { existsSync as existsSync15, readdirSync as readdirSync2, readFileSync as readFileSync15, statSync as statSync6 } from "node:fs";
+import { existsSync as existsSync15, readdirSync as readdirSync2, readFileSync as readFileSync15, realpathSync, statSync as statSync6 } from "node:fs";
 import { basename as basename8, dirname as dirname7, extname as extname4, isAbsolute as isAbsolute5, join as join12, relative as relative4, resolve as resolve10, sep } from "node:path";
 var LINES = /^(.+):(\d+)(?:-(\d+))?(?:#(.*))?$/;
 var TF_RESOURCE = /^(?:module\.[\w-]+(?:\[[^\]]*\])?\.)*(?:(data)\.)?([a-z][a-z0-9]*_[a-z0-9_]+)\.([\w-]+)(?:\[[^\]]*\])?$/;
@@ -30516,10 +30516,18 @@ function git(cwd, args) {
     return void 0;
   }
 }
+function real4(path) {
+  try {
+    return realpathSync.native(path);
+  } catch {
+    return path;
+  }
+}
 function openRepo(specPath) {
-  const specDir = dirname7(specPath);
+  const spec = real4(specPath);
+  const specDir = dirname7(spec);
   const root = git(specDir, ["rev-parse", "--show-toplevel"]);
-  return { spec: specPath, specDir, ...root ? { root: resolve10(root) } : {}, lines: /* @__PURE__ */ new Map() };
+  return { spec, specDir, ...root ? { root: real4(resolve10(root)) } : {}, lines: /* @__PURE__ */ new Map() };
 }
 var SKIP_DIRS = /* @__PURE__ */ new Set(["node_modules", ".git", "dist", "out", "build", "vendor"]);
 function repoFiles(repo) {
@@ -30687,12 +30695,13 @@ function checkTerraform(repo, address) {
     fix: near.length ? `did you mean ${near.join(" or ")}?` : "fix the address, or remove this evidence"
   };
 }
+var escapeRe2 = (s) => s.replace(/[\\^$.*+?()[\]{}|/]/g, "\\$&");
 function checkKubernetes(repo, kind, name) {
-  const q = (v) => `["']?${v.replace(/\./g, "\\.")}["']?`;
+  const q = (v) => `["']?${escapeRe2(v)}["']?`;
   const kindRe = new RegExp(`^\\s*-?\\s*kind:\\s*${q(kind)}\\s*(#.*)?$`);
   const nameRe = new RegExp(`^\\s+name:\\s*${q(name)}\\s*(#.*)?$`);
-  const jsonKind = new RegExp(`"kind"\\s*:\\s*"${kind}"`);
-  const jsonName = new RegExp(`"name"\\s*:\\s*"${name.replace(/\./g, "\\.")}"`);
+  const jsonKind = new RegExp(`"kind"\\s*:\\s*"${escapeRe2(kind)}"`);
+  const jsonName = new RegExp(`"name"\\s*:\\s*"${escapeRe2(name)}"`);
   const others = /* @__PURE__ */ new Set();
   for (const { file, lines: lines2 } of addressFiles(repo, (f) => !/\.tf$/i.test(f))) {
     if (/\.json$/i.test(file)) {
