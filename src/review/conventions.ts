@@ -399,9 +399,10 @@ const BOUNDARY_FAMILIES: Record<string, BoundaryFamily> = {
 
 /**
  * AWS-17 for the other vendors: when a diagram has several boundaries of one family (two VNets,
- * three subnets, two namespaces), each label says what that one is for. Their frames and corner icons already say the type, so the vendors' own naming
- * (vnet-hub, snet-web, Project shop-prod) passes; measured is a label that only repeats the type
- * ("Subnet") or one a sibling of the same family already carries. One of a kind needs no name.
+ * three subnets, two namespaces), each label says what that one is for. Their frames and corner
+ * icons already say the type, so the vendors' own naming (vnet-hub, snet-web, Project shop-prod)
+ * passes; measured is a label that only repeats the type ("Subnet") or one a sibling of the same
+ * family already carries. One of a kind needs no name.
  */
 function vendorBoundaryLabels(c: Ctx): number {
   const { model, add } = c;
@@ -462,9 +463,9 @@ const sameService = (a: IconInfo, b: IconInfo) =>
 
 /**
  * AWS-18: a group with a service's icon in its corner is that one service and holds only its
- * parts; Azure and Google Cloud frames work the same way (FLOW-12: one
- * service's own frame). Measured on an icon: override; the presets (Step Functions workflow, EC2
- * instance contents, a GKE cluster) hold other services by the vendors' own design.
+ * parts; Azure and Google Cloud frames work the same way (FLOW-12: one service's own frame).
+ * Measured on an icon: override; the presets (Step Functions workflow, EC2 instance contents, a
+ * GKE cluster) hold other services by the vendors' own design.
  */
 function serviceGroups(c: Ctx): number {
   const { model, add } = c;
@@ -566,12 +567,12 @@ function partOfFrame(c: Ctx, parent: string | undefined, info: IconInfo, forms: 
 }
 
 /**
- * AWS-19: a service icon's label is the official name and the role
- * goes in note, so every tile reads as a real service. Measured: the label names the service in no
- * form (full name, the name without Amazon or AWS, initials, catalog alias). Azure asks for the
- * product name close to the icon, in the label or the note (AZ-07), and Google Cloud for the names
- * its guide lists (GCP-04), so there either may carry it, in any form vendorFormsOf knows. Resource,
- * category and general icons (people, files) take any label, as do a service's parts in its frame;
+ * AWS-19: a service icon's label is the official name and the role goes in note, so every tile
+ * reads as a real service. Measured: the label names the service in no form (full name, the name
+ * without Amazon or AWS, initials, catalog alias). Azure asks for the product name close to the
+ * icon, in the label or the note (AZ-07), and Google Cloud for the names its guide lists (GCP-04),
+ * so there either may carry it, in any form vendorFormsOf knows. Resource, category and general
+ * icons (people, files) take any label, as do a service's parts in its frame;
  * outside AWS, a product the title or subtitle names frames the whole diagram, so its tiles may
  * carry component names (Model Registry on a Vertex AI MLOps diagram).
  */

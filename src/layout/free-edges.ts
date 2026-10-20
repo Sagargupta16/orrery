@@ -21,9 +21,9 @@ interface Claim {
 export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
   const { model, opts, plan, horizontal, rel } = ctx;
   const { borders, titles } = w;
-  /** Off every border line and beside no title: a route that clears the walls may still do neither. */
-  const framed = (p: Point[]) => !!process.env.NO_FRAMED || clearOfFrames(p, borders, titles);
-  /** The groups that hold neither end, which a lane taken to get off a border must not cut through. */
+  /** Off every group border line and clear beside every title, which clearing the walls is not. */
+  const framed = (p: Point[]) => clearOfFrames(p, borders, titles);
+  /** Groups that hold neither end, which a lane taken to get off a border must not cut through. */
   const strangers = (e: ModelEdge) =>
     ctx.groups
       .filter(
@@ -92,7 +92,7 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
       // An edge that was free before rank, align and cols keeps today's route when it clears
       // everything, group border lines and titles included. Otherwise the first lane clear of the
       // walls with a margin, off group borders and off ELK's lines wins, then a detour around
-      // them, then a lane that clears the walls and the frames, then any lane that clears the walls.
+      // them, then a lane clear of the walls and the frames, then any lane clear of the walls.
       const walls = w.walls(e);
       const known = !rel.inBlock(e) && !rel.gridBetween(e) && !opts.loose?.has(e.id);
       if (!known || runsThrough(points, walls) || !framed(points)) {

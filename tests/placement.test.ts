@@ -302,7 +302,8 @@ edges:
   it("keeps a free edge off a group border its riser would run along", async () => {
     // The riser of n3 -> n4 fell on the right border of g0, where the frame hid it.
     const s = await layout(
-      model(`groups:
+      model(`direction: down
+groups:
   g0: { type: zone, label: Group 0 }
   g1: { type: zone, label: Group 1 }
 nodes:

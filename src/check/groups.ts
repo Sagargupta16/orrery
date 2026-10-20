@@ -13,16 +13,16 @@ const BORDER_PX = 4;
 const ALONG_MIN = 24;
 /**
  * The title band (DG225): 28px under the top border. orrery's header label starts 6 to 10px down
- * and its 13px text ends about 28px down beside an inline icon or a 40px corner tile, so the band
- * is in canvas px; a taller header label extends it to its bottom.
+ * and its 13px text ends about 28px down beside an inline icon or a 40px corner tile, so 28 canvas
+ * px covers it; a taller header label extends the band to its bottom.
  */
 const TITLE_BAND = 28;
 /**
  * A vertical run closer than this (canvas px) to the right of a group title crowds it (DG225).
- * Bare text would need 12px; orrery paints a 4px chip behind the title, and its header
- * slide (layout/groups.ts clearHeader) keeps lines 2px past the chip, 6px from the text. Every
- * example's lines sit 6 to 11px off and read clear; a closer one is a line the slide missed,
- * and the chip notches its stroke.
+ * Bare text would need 12px; orrery paints a 4px chip behind the title, and its header slide
+ * (layout/groups.ts clearHeader) keeps lines 2px past the chip, 6px from the text. Every example's
+ * lines sit 6 to 11px off and read clear; a closer one is a line the slide missed, and the chip
+ * notches its stroke.
  */
 const TITLE_CLEAR = 6;
 

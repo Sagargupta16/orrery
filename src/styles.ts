@@ -587,9 +587,9 @@ export const AWS_CATEGORY_COLORS: Record<string, string> = {
 const SERVICE_FRAMES = new Set(["box", "dashed", "aws:generic", "aws:generic-dashed"]);
 
 /**
- * The border of an AWS service group (aws-archify composition.md: a group framed by one service
- * takes the category color of the icon in its corner, as AWS assigns it): a neutral frame whose
- * icon is an AWS service or resource icon gets that icon's category color. Undefined otherwise.
+ * The border of an AWS service group (a group framed by one service takes the category color of
+ * the icon in its corner, as AWS assigns it): a neutral frame whose icon is an AWS service or
+ * resource icon gets that icon's category color. Undefined otherwise.
  */
 export function serviceGroupStroke(type: string, icon: string | undefined): string | undefined {
   if (!icon || !SERVICE_FRAMES.has(type)) return undefined;

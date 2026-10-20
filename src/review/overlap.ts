@@ -110,8 +110,8 @@ const OVERLAP_RULES: Record<string, OverlapRule> = {
     hard: "overlaps",
     ids: ["group", "covered"],
   },
-  // The chip hides the line rather than colliding with text: the sample this comes from (aws-archify
-  // check-layout 3) warns, not fails, for a label with a knockout, so minor and no hard count.
+  // The chip hides the line rather than colliding with text: a label with a knockout is a warning,
+  // not a failure, so minor and no hard count.
   DG220: {
     id: "overlap.label-on-border",
     severity: "minor",

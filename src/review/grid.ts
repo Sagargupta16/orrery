@@ -165,22 +165,20 @@ interface Gap {
 }
 
 /**
- * Row and column gaps per frame (aws-archify check 11, MIT-0). A frame's rows (and columns) are
- * its own node footprints and child groups merged into bands across it; the canvas is a frame too.
- * The sample measures a gap against fixed numbers (over 160px, or over 2.5x the smallest and over
- * 64px, is an empty band; between two sibling groups, more than the labels in it need, 48px at
- * least, plus 32px). Here each gap is measured against the room layout itself gives it: one layer
- * gap (64px times layout.spacing), or, when edge labels sit in it, two layer gaps and the labels,
- * because ELK gives centered labels a layer of their own; and never less than the routing tracks of
- * the edge runs across it. At the sample's numbers every labelled
- * gap in the gallery (about 165px at normal spacing) reads as a hole, and no spec edit closes it.
- * So an empty band is over 96px more than its room (an unlabelled gap at normal spacing: the
- * sample's 160px) or over 2.5x its room and over 64px, and a gap between sibling groups is over its
- * room (48px at least) plus 32px. grid.uneven-gaps judges the spread of every layer gap at once,
- * so one evenly wide gap passes it. Canvas px at 1x, like every length in this file and the
- * sample's own: they say how far apart layout put two rows, and a narrower column shrinks the gap
- * and its room alike. A pool or lane places steps where they happen in time and a journey's grid
- * places every step, so neither is measured.
+ * Row and column gaps per frame. A frame's rows (and columns) are its own node footprints and
+ * child groups merged into bands across it; the canvas is a frame too. A fixed limit (over 160px,
+ * or over 2.5x the smallest and over 64px, is an empty band; between two sibling groups, more than
+ * the labels in it need, 48px at least, plus 32px) would flag every labelled gap in the gallery
+ * (about 165px at normal spacing) as a hole that no spec edit closes. So each gap is measured
+ * against the room layout itself gives it: one layer gap (64px times layout.spacing), or, when
+ * edge labels sit in it, two layer gaps and the labels, because ELK gives centered labels a layer
+ * of their own; and never less than the routing tracks of the edge runs across it. An empty band
+ * is over 96px more than its room (an unlabelled gap at normal spacing: 160px) or over 2.5x its
+ * room and over 64px, and a gap between sibling groups is over its room (48px at least) plus 32px.
+ * grid.uneven-gaps judges the spread of every layer gap at once, so one evenly wide gap passes it.
+ * Canvas px at 1x, like every length in this file: they say how far apart layout put two rows,
+ * and a narrower column shrinks the gap and its room alike. A pool or lane places steps where they
+ * happen in time and a journey's grid places every step, so neither is measured.
  */
 function frameGaps(c: Ctx): { wide: number; between: number } {
   const { scene, model, add } = c;

@@ -15226,7 +15226,7 @@ var inside2 = (p, b) => p.x > b.x + 1 && p.x < b.x + b.w - 1 && p.y > b.y + 1 &&
 function routeFree(ctx, w) {
   const { model, opts, plan, horizontal, rel: rel2 } = ctx;
   const { borders, titles: titles2 } = w;
-  const framed2 = (p) => !!process.env.NO_FRAMED || clearOfFrames(p, borders, titles2);
+  const framed2 = (p) => clearOfFrames(p, borders, titles2);
   const strangers = (e) => ctx.groups.filter(
     (g) => !g.overlay && ![e.from, e.to].some((id) => id === g.id || rel2.above(id).includes(g.id))
   ).map((g) => g.box);
@@ -17575,7 +17575,7 @@ async function layoutCore(model, opts = {}) {
   tidyEdges(placed, edges);
   const routed = { ...placed, edges, freeRoutes, rerouted, headers: walls.headers };
   placeFreeLabels(routed);
-  if (!process.env.NO_CLEAR) clearBorders(placed, edges);
+  clearBorders(placed, edges);
   const { horizontal, top, nodes, groups } = routed;
   const hooked = { model, theme, horizontal, top, nodes, groups, edges, routing: model.routing };
   for (const h of HOOKS) h.after?.(hooked);
@@ -25764,8 +25764,8 @@ var OVERLAP_RULES = {
     hard: "overlaps",
     ids: ["group", "covered"]
   },
-  // The chip hides the line rather than colliding with text: the sample this comes from (aws-archify
-  // check-layout 3) warns, not fails, for a label with a knockout, so minor and no hard count.
+  // The chip hides the line rather than colliding with text: a label with a knockout is a warning,
+  // not a failure, so minor and no hard count.
   DG220: {
     id: "overlap.label-on-border",
     severity: "minor",

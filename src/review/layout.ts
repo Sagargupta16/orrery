@@ -276,29 +276,28 @@ function emptySpace(c: Ctx): number {
   return holePct;
 }
 
-/** The upper median, as the aws-archify sample takes it. */
+/** The upper median: the middle value, or the higher of the two middle ones. */
 const upperMedian = (v: number[]) => [...v].sort((a, b) => a - b)[v.length >> 1] ?? 0;
 
 /**
- * Sparse figure and wide pitch limits (canvas px). The sample sets each just above its gallery's
- * widest (median gaps 27 to 131px, limit 150; pitches 112 to 232px, limit 240). Orrery's gallery
- * runs wider by construction: ELK gives centered edge labels a layer of their own (a labelled gap
- * is two layer gaps and the label, about 150px at normal spacing), routes edges in channels between
- * columns and nests group headers between nodes, so at the sample's numbers ten of its diagrams read
- * as sparse, dense ones such as system-design-video-streaming among them. Set the sample's way
- * instead, just above orrery's gallery (median gaps 20 to 262px, pitches 72 to 370px).
+ * Sparse figure and wide pitch limits (canvas px), each set just above the widest in orrery's
+ * gallery (median gaps 20 to 262px, pitches 72 to 370px). The gallery runs wide by construction:
+ * ELK gives centered edge labels a layer of their own (a labelled gap is two layer gaps and the
+ * label, about 150px at normal spacing), routes edges in channels between columns and nests group
+ * headers between nodes, so tighter limits (a 150px median gap, a 240px pitch) would read ten of
+ * its diagrams as sparse, dense ones such as system-design-video-streaming among them.
  */
 const SPARSE_GAP = 300;
 const WIDE_PITCH = 400;
 
 /**
- * Node spacing (aws-archify check 8, MIT-0): the median empty gap between neighbouring node
- * footprints (icon plus label and note) in a row or column, and the median centre-to-centre pitch
- * of their icon tiles; a row is the nodes whose tile centres sit within 24px. Gaps, not pitch, judge
- * sparseness: a long label makes a compact row's pitch large but its gaps small. Canvas px at 1x,
- * like every length in this file and the sample's own (its tile is 48px, as an orrery icon is): a
- * narrower column shrinks the gaps and the nodes alike, so the display width does not change the
- * verdict. A journey's grid places every step, so its spacing is not the author's to fix.
+ * Node spacing: the median empty gap between neighbouring node footprints (icon plus label and
+ * note) in a row or column, and the median centre-to-centre pitch of their icon tiles; a row is
+ * the nodes whose tile centres sit within 24px. Gaps, not pitch, judge sparseness: a long label
+ * makes a compact row's pitch large but its gaps small. Canvas px at 1x, like every length in this
+ * file (an orrery icon is 48px): a narrower column shrinks the gaps and the nodes alike, so the
+ * display width does not change the verdict. A journey's grid places every step, so its spacing
+ * is not the author's to fix.
  */
 function nodeSpacing(c: Ctx): { gap: number; pitch: number } {
   const { scene, model, add } = c;

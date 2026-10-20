@@ -253,13 +253,13 @@ function sharedTrunks(c: Ctx): Set<string> {
 }
 
 /**
- * Unrelated edges side by side (aws-archify geometry checks, MIT-0: two arrows within about 12px
- * of each other read as one double line). Parallel runs 1.5 to 12px apart that share more than an
- * icon's length (48px) of span: ELK keeps unrelated edges in one channel 10px apart, and a shorter
- * stretch beside a bend (the gallery has six of 27 to 37px) reads as part of the bend. Closer runs
- * are flow.shared-trunk's, and a pair it reported is not counted again. Edges that share an
- * endpoint fan out or in together by design. Canvas px, like flow.shared-trunk's: the sample's
- * limits are drawing units, and a narrower column brings the lines closer still.
+ * Unrelated edges side by side: two arrows within about 12px of each other read as one double
+ * line. Parallel runs 1.5 to 12px apart that share more than an icon's length (48px) of span: ELK
+ * keeps unrelated edges in one channel 10px apart, and a shorter stretch beside a bend (the
+ * gallery has six of 27 to 37px) reads as part of the bend. Closer runs are flow.shared-trunk's,
+ * and a pair it reported is not counted again. Edges that share an endpoint fan out or in
+ * together by design. Canvas px, like flow.shared-trunk's: the limits are drawing units, and a
+ * narrower column brings the lines closer still.
  */
 function sideBySide(c: Ctx, trunks: Set<string>): number {
   const { scene, add } = c;
@@ -480,9 +480,9 @@ function unconnectedNodes(c: Ctx, diagnostics: Diagnostic[]): Diagnostic[] {
 }
 
 /**
- * Edge budget (aws-archify SKILL.md: "Budget arrows at or below the node count"): more edges than
- * nodes means the picture is trying to show a call sequence. Architecture only: a state machine or
- * a process has more transitions than steps by nature.
+ * Edge budget (arrows at or below the node count): more edges than nodes means the picture is
+ * trying to show a call sequence. Architecture only: a state machine or a process has more
+ * transitions than steps by nature.
  */
 function edgeBudget(c: Ctx): { nodeCount: number; edgeCount: number } {
   const { model, add } = c;
@@ -506,8 +506,8 @@ function edgeBudget(c: Ctx): { nodeCount: number; edgeCount: number } {
 }
 
 /**
- * Cross-cutting services (aws-archify SKILL.md): an arrow from every node to the logs or the key
- * service says nothing and crosses everything; a shared services group with no arrows says it once.
+ * Cross-cutting services: an arrow from every node to the logs or the key service says nothing
+ * and crosses everything; a shared services group with no arrows says it once.
  * Three feeds or fewer may stay as named edges, so the finding starts at four. Feeds from the
  * service's own family (GuardDuty into Security Hub) are the diagram's subject, not a cross-cut.
  */

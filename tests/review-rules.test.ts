@@ -1,4 +1,4 @@
-// The rules ported from the aws-archify sample: one spec that triggers each, one that does not.
+// Layout, composition, spacing and naming rules: one spec that triggers each, one that does not.
 import { describe, expect, it } from "vitest";
 import { checkScene } from "../src/check/index.ts";
 import { layout } from "../src/layout/index.ts";
