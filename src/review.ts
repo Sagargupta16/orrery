@@ -4,6 +4,7 @@
 // Protocol and rubrics: skills/orrery/references/review/.
 import { contrast, isHex, mixHex } from "./color.ts";
 import { aliases, iconAspect, iconInfo, resolveIcon } from "./icons.ts";
+import type { PatchOp } from "./patch.ts";
 import { renderModel } from "./render/index.ts";
 import { renderPng } from "./render/png.ts";
 import { tokensFor } from "./themes.ts";
@@ -120,6 +121,18 @@ export const FINDINGS = {
     cap: 30,
     about: "two groups that do not nest overlap",
   },
+  "overlap.label-on-border": {
+    dimension: "overlap",
+    rule: "DG220",
+    cap: 16,
+    about: "an edge label sits on a group's border line, so the frame looks broken there",
+  },
+  "overlap.edge-skims-node": {
+    dimension: "overlap",
+    rule: "DG221",
+    cap: 16,
+    about: "an edge passes within 10px of a node it does not connect, so it reads as touching it",
+  },
   "flow.head-hidden": {
     dimension: "flow",
     cap: 40,
@@ -174,6 +187,17 @@ export const FINDINGS = {
     cap: 12,
     about: "a node nothing connects to",
   },
+  "flow.edge-budget": {
+    dimension: "flow",
+    cap: 6,
+    about: "an architecture diagram with more edges than nodes, which reads as a call sequence",
+  },
+  "flow.cross-cutting": {
+    dimension: "flow",
+    cap: 12,
+    about:
+      "four or more edges into a monitoring, logging, audit, identity or key service; a shared services group says it without arrows",
+  },
   "layout.against-flow": {
     dimension: "layout",
     cap: 30,
@@ -218,6 +242,23 @@ export const FINDINGS = {
     cap: 10,
     about: "a group with nothing in it",
   },
+  "layout.ignored": {
+    dimension: "layout",
+    rule: "DG219",
+    cap: 9,
+    about: "a placement setting layout could not honor, so the spec says more than the picture",
+  },
+  "layout.sparse-group": {
+    dimension: "layout",
+    cap: 12,
+    about: "a group more than 65% empty",
+  },
+  "layout.beside-group": {
+    dimension: "layout",
+    cap: 12,
+    about:
+      "a node outside a group shares 20 to 80% of its height with it, so the two read as one row of peers",
+  },
   "grid.ragged": {
     dimension: "grid",
     cap: 24,
@@ -237,6 +278,29 @@ export const FINDINGS = {
     dimension: "grid",
     cap: 15,
     about: "gaps between layers vary a lot",
+  },
+  "grid.zig-zag": {
+    dimension: "grid",
+    cap: 15,
+    about:
+      "a one-to-one edge steps 12 to 180px between two parallel runs (a Z), so its ends are out of line",
+  },
+  "grid.avoidable-bend": {
+    dimension: "grid",
+    cap: 15,
+    about: "a one-to-one edge turns once with a leg of 240px or less, so its ends are out of line",
+  },
+  "grid.uneven-siblings": {
+    dimension: "grid",
+    cap: 12,
+    about:
+      "same-kind sibling groups in a row differ 10 to 40% in height (in a column, in width), which reads as a mistake",
+  },
+  "grid.padding": {
+    dimension: "grid",
+    cap: 12,
+    about:
+      "one side of a group's padding is over 80px and over 3x its tightest side, so the box does not hug its content",
   },
   "quality.label-size": {
     dimension: "quality",
@@ -314,6 +378,24 @@ export const FINDINGS = {
     rule: "AWS-13",
     cap: 5,
     about: "step callouts come in more than one size",
+  },
+  "conventions.boundary-label": {
+    dimension: "conventions",
+    rule: "AWS-17",
+    cap: 12,
+    about: "an AWS boundary group's label does not name the boundary (Private subnet, VPC, Region)",
+  },
+  "conventions.service-group": {
+    dimension: "conventions",
+    rule: "AWS-18",
+    cap: 12,
+    about: "a group with an AWS service icon holds other services",
+  },
+  "conventions.service-label": {
+    dimension: "conventions",
+    rule: "AWS-19",
+    cap: 15,
+    about: "an AWS service icon's label does not name the service; the role belongs in note",
   },
   "conventions.c4-element": {
     dimension: "conventions",
@@ -413,6 +495,8 @@ export interface ReviewFinding {
   claim: string;
   /** Spec edits that resolve it, most likely first. */
   fixes: string[];
+  /** The first fix as spec patches (loop.md "Patches"), when it can be written as one. */
+  patches?: PatchOp[];
   /** The diagnostic code or rubric rule it restates. */
   rule?: string;
 }
@@ -637,6 +721,14 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const hasPhrase = (text: string, phrase: string) =>
   !!phrase && new RegExp(`(^| )${escapeRe(norm(phrase))}s?( |$)`).test(text);
 
+/** Monitoring, logging, audit, identity and key services, by icon pack and catalog name. */
+const CROSS_CUTTING: Record<string, RegExp> = {
+  aws: /^(Amazon CloudWatch|AWS CloudTrail|AWS X-Ray|AWS Identity and Access Management|AWS Key Management Service|AWS Config|Amazon GuardDuty|AWS Security Hub)\b/,
+  azure:
+    /^(Monitor|Azure Monitor|Log Analytics Workspaces|Application Insights|(Microsoft )?Entra ID|Entra Managed Identities|Key Vaults?)$/,
+  gcp: /^(Cloud Logging|Cloud Monitoring|Identity and Access Management|Key Management Service)$/,
+};
+
 // ---------------------------------------------------------------- review
 
 interface Ctx {
@@ -658,6 +750,7 @@ interface Ctx {
     claim: string,
     fixes: string[],
     cost: number,
+    patches?: PatchOp[],
   ) => void;
   metrics: Record<ReviewDimension, Record<string, number | string>>;
   hard: HardCounts;
@@ -670,8 +763,8 @@ interface OverlapRule {
   id: FindingId;
   severity: ReviewSeverity;
   cost: number;
-  /** The hard count each such diagnostic raises. */
-  hard: keyof HardCounts;
+  /** The hard count each such diagnostic raises; near misses raise none. */
+  hard?: keyof HardCounts;
   /** Diagnostic subject keys that name spec ids. */
   ids: string[];
 }
@@ -748,6 +841,20 @@ const OVERLAP_RULES: Record<string, OverlapRule> = {
     hard: "overlaps",
     ids: ["group", "covered"],
   },
+  // The chip hides the line rather than colliding with text: the sample this comes from (aws-archify
+  // check-layout 3) warns, not fails, for a label with a knockout, so minor and no hard count.
+  DG220: {
+    id: "overlap.label-on-border",
+    severity: "minor",
+    cost: 4,
+    ids: ["edge", "group"],
+  },
+  DG221: {
+    id: "overlap.edge-skims-node",
+    severity: "minor",
+    cost: 4,
+    ids: ["edge", "node"],
+  },
 };
 
 /** A diagnostic's evidence as flat number/string pairs: a nested box becomes "box.x", "box.w"... */
@@ -776,7 +883,7 @@ function measureOverlap(c: Ctx, diagnostics: Diagnostic[]): void {
   for (const d of diagnostics) {
     const rule = OVERLAP_RULES[d.code === "DG202" && d.subject?.edges ? "DG202:labels" : d.code];
     if (!rule) continue;
-    hard[rule.hard]++;
+    if (rule.hard) hard[rule.hard]++;
     add(
       rule.id,
       rule.severity,
@@ -927,6 +1034,8 @@ function measureOverlap(c: Ctx, diagnostics: Diagnostic[]): void {
     offCanvas: hard.offCanvas,
     badgeOverlaps: count("DG211"),
     nestingProblems: count("DG213") + nesting,
+    labelsOnBorders: count("DG220"),
+    edgesSkimmingNodes: count("DG221"),
   });
 }
 
@@ -1254,6 +1363,82 @@ function measureFlow(c: Ctx, diagnostics: Diagnostic[]): void {
     add("flow.unconnected", "minor", node ? [node] : [], { node }, d.message, d.fixes ?? [], 3);
   }
 
+  // Edge budget (aws-archify SKILL.md: "Budget arrows at or below the node count"): more edges than
+  // nodes means the picture is trying to show a call sequence. Architecture only: a state machine or
+  // a process has more transitions than steps by nature.
+  const nodeCount = model.nodes.length;
+  const edgeCount = model.edges.length;
+  if (model.kind === "architecture" && edgeCount > nodeCount)
+    add(
+      "flow.edge-budget",
+      "minor",
+      [],
+      { edges: edgeCount, nodes: nodeCount },
+      `${edgeCount} edges for ${nodeCount} nodes: more arrows than nodes reads as a call sequence`,
+      [
+        "draw one edge to a group instead of parallel edges to its members",
+        "drop reply, echo and cross-cutting edges: the layout already says them",
+        "split into an overview and a detail diagram",
+      ],
+      3,
+    );
+
+  // Cross-cutting services (aws-archify SKILL.md): an arrow from every node to the logs or the key
+  // service says nothing and crosses everything; a shared services group with no arrows says it once.
+  // Three feeds or fewer may stay as named edges, so the finding starts at four. Feeds from the
+  // service's own family (GuardDuty into Security Hub) are the diagram's subject, not a cross-cut.
+  const familyOf = (id: string) => {
+    const n = model.nodes.find((x) => x.id === id);
+    return n?.icon ? iconInfo(n.icon)?.category : undefined;
+  };
+  const fanIn = model.nodes.flatMap((n) => {
+    const info = n.icon ? iconInfo(n.icon) : undefined;
+    if (!info || !CROSS_CUTTING[info.pack]?.test(info.name)) return [];
+    const into = model.edges.filter(
+      (e) => travel(e)[1] === n.id && familyOf(travel(e)[0]) !== info.category,
+    );
+    return into.length >= 4 ? [{ n, into }] : [];
+  });
+  const [hub] = fanIn;
+  if (hub) {
+    const taken = new Set([...model.groups.map((g) => g.id), ...model.nodes.map((n) => n.id)]);
+    let gid = "shared-services";
+    for (let k = 2; taken.has(gid); k++) gid = `shared-services-${k}`;
+    const aws = iconInfo(hub.n.icon ?? "")?.pack === "aws";
+    const patches: PatchOp[] = [
+      {
+        op: "add",
+        path: `groups.${gid}`,
+        value: {
+          type: aws ? "aws:generic" : "box",
+          label: "Shared services",
+          ...(hub.n.parent ? { in: hub.n.parent } : {}),
+        },
+      },
+      ...fanIn.map(({ n }): PatchOp => ({ op: "set", path: `nodes.${n.id}.in`, value: gid })),
+      ...fanIn.flatMap(({ into }) =>
+        into.map((e): PatchOp => ({ op: "edge", match: edgeName(e), value: null })),
+      ),
+    ];
+    const names = fanIn.map(({ n, into }) => `"${n.id}" (${into.length} edges in)`).join(", ");
+    add(
+      "flow.cross-cutting",
+      "minor",
+      [...fanIn.map(({ n }) => n.id), ...fanIn.flatMap(({ into }) => into.map((e) => e.id))],
+      {
+        services: fanIn.map(({ n }) => n.id).join(","),
+        edgesIn: fanIn.reduce((s, { into }) => s + into.length, 0),
+      },
+      `${names}: edges from every node into a cross-cutting service say nothing and cross the picture`,
+      [
+        `put ${fanIn.map(({ n }) => `"${n.id}"`).join(", ")} in a group labelled Shared services with no edges to it`,
+        "keep at most three edges, dashed and labelled (logs, metrics), when the brief names the relation",
+      ],
+      4 * fanIn.length,
+      patches,
+    );
+  }
+
   Object.assign(m, {
     hiddenHeads: hidden,
     headsOnBends: onBend,
@@ -1265,6 +1450,8 @@ function measureFlow(c: Ctx, diagnostics: Diagnostic[]): void {
     undirected: none.length,
     unlabelledCrossings: crossing.length,
     unconnected: unconnected.length,
+    edgesPerNode: r2(edgeCount / Math.max(1, nodeCount)),
+    crossCutting: fanIn.length,
   });
   c.hard.overlaps += hidden;
 }
@@ -1520,6 +1707,31 @@ function measureLayout(c: Ctx, diagnostics: Diagnostic[]): void {
       5,
     );
   }
+  const ignored = diagnostics.filter((x) => x.code === "DG219");
+  for (const d of ignored) {
+    const setting = String(d.subject?.setting ?? "");
+    const [kind, id] = (["node", "group", "edge", "layout"] as const)
+      .map((k) => [k, d.subject?.[k]] as const)
+      .find(([, v]) => typeof v === "string") ?? ["layout", ""];
+    const path =
+      kind === "node"
+        ? `nodes.${id}.${setting}`
+        : kind === "group"
+          ? `groups.${id}.${setting}`
+          : kind === "layout"
+            ? setting
+            : undefined;
+    add(
+      "layout.ignored",
+      "minor",
+      kind === "layout" ? [] : [String(id)],
+      { setting, reason: String(d.evidence?.reason ?? "") },
+      d.message,
+      d.fixes ?? [],
+      3,
+      path ? [{ op: "unset", path }] : undefined,
+    );
+  }
 
   // Spec order kept (metric only: readers never see the spec).
   const cross = horizontalFlow(dir) ? "y" : "x";
@@ -1564,6 +1776,7 @@ function measureLayout(c: Ctx, diagnostics: Diagnostic[]): void {
     edgeMaxPx: Math.round(Math.max(0, ...lens.map((l) => l.len))),
     specOrderPct: pairs ? r1((100 * inOrder) / pairs) : 100,
     fallback: scene.layoutFallback ?? "none",
+    ignoredSettings: ignored.length,
   });
 }
 
@@ -1703,6 +1916,326 @@ function measureGrid(c: Ctx): void {
     gapMinPx: gaps.length ? r1(Math.min(...gaps)) : 0,
     gapMaxPx: gaps.length ? r1(Math.max(...gaps)) : 0,
   });
+}
+
+interface Run {
+  axis: "h" | "v";
+  len: number;
+  sign: number;
+}
+
+/** An edge's straight runs, or undefined when one is neither horizontal nor vertical. */
+function orthogonalRuns(points: Point[]): Run[] | undefined {
+  const out: Run[] = [];
+  for (const [p, q] of segments(simplify(points))) {
+    const dx = q.x - p.x;
+    const dy = q.y - p.y;
+    if (Math.abs(dy) < EPS) out.push({ axis: "h", len: Math.abs(dx), sign: Math.sign(dx) });
+    else if (Math.abs(dx) < EPS) out.push({ axis: "v", len: Math.abs(dy), sign: Math.sign(dy) });
+    else return undefined;
+  }
+  return out;
+}
+
+/** Group types that stand for no boundary: their contents differ by design (aws-archify check 10). */
+const TIER_GROUPS = new Set([
+  "box",
+  "dashed",
+  "zone",
+  "boundary",
+  "on-prem",
+  "internet",
+  "pool",
+  "lane",
+  "aws:generic",
+  "aws:generic-dashed",
+  "gcp:tier",
+  "gcp:optional",
+  "gcp:external",
+  "gcp:users",
+  "azure:service-group",
+  "azure:optional",
+  "c4:boundary",
+]);
+
+/**
+ * Composition checks ported from the aws-archify skill's check-layout.ts (checks 6, 10, 11, 14,
+ * 14b; MIT-0). Its thresholds are canvas px at 1x and stay canvas px here: they say how far layout
+ * put two ends out of line, or how loosely a frame fits, in the units layout works in (an orrery
+ * icon is 48px, as is the sample's tile). A narrower column shrinks the defect and the room to fix
+ * it alike, so the display width does not change the verdict; the ratios are unitless anyway.
+ */
+function measureComposition(c: Ctx): void {
+  const { scene, model, add } = c;
+  const W = scene.width;
+  // A journey's grid places every step, so nothing here is the author's to fix.
+  if (model.kind === "journey") {
+    Object.assign(c.metrics.grid, { zigZags: 0, avoidableBends: 0, unevenSiblings: 0, padding: 0 });
+    Object.assign(c.metrics.layout, { sparseGroups: 0, besideGroup: 0 });
+    return;
+  }
+
+  // Zig-zags and avoidable bends (checks 14, 14b): a one-to-one edge bends only because its ends
+  // are out of line. A fan out or in cannot line up with every end, an end on a group is routed to
+  // the frame, and a pool or lane fixes each end's row, so those bend by necessity.
+  const outs = new Map<string, number>();
+  const ins = new Map<string, number>();
+  for (const e of scene.edges) {
+    outs.set(e.from, (outs.get(e.from) ?? 0) + 1);
+    ins.set(e.to, (ins.get(e.to) ?? 0) + 1);
+  }
+  const band = (id: string) => {
+    for (let p = c.parentOf(id); p; p = c.parentOf(p)) if (c.groups.get(p)?.lane) return p;
+    return undefined;
+  };
+  const horizontal = horizontalFlow(scene.direction);
+  let zigs = 0;
+  let bends = 0;
+  for (const e of scene.edges) {
+    if (!c.nodes.has(e.from) || !c.nodes.has(e.to)) continue;
+    if (outs.get(e.from) !== 1 || ins.get(e.to) !== 1 || band(e.from) !== band(e.to)) continue;
+    const runs = orthogonalRuns(e.points);
+    if (!runs) continue;
+    const [a, m, b] = runs;
+    const zig =
+      runs.length === 3 && a && m && b && a.axis === b.axis && a.sign === b.sign
+        ? m.len
+        : undefined;
+    const leg = runs.length === 2 && a && m ? Math.min(a.len, m.len) : undefined;
+    if (zig === undefined && leg === undefined) continue;
+    // In a horizontal flow the ends share a row when they line up; in a vertical one, a column.
+    const line = horizontal ? "row" : "column";
+    const fixes = [
+      `put "${e.from}" and "${e.to}" in one ${line}: give them the same look and similar label lengths`,
+      `move "${e.to}" right after "${e.from}" in the nodes list`,
+      ...(c.parentOf(e.from) !== c.parentOf(e.to)
+        ? [`put "${e.from}" and "${e.to}" in the same group`]
+        : []),
+    ];
+    const patches: PatchOp[] = [{ op: "move", path: `nodes.${e.to}`, after: e.from }];
+    if (zig !== undefined && zig >= 12 && zig <= 180) {
+      zigs++;
+      add(
+        "grid.zig-zag",
+        "minor",
+        [e.id, e.from, e.to],
+        { edge: edgeName(e), stepPx: r1(zig), runs: 3 },
+        `${edgeName(e)} steps ${r1(zig)}px ${m?.axis === "v" ? "up or down" : "sideways"} between two parallel runs, so its ends are out of line`,
+        fixes,
+        3,
+        patches,
+      );
+    } else if (leg !== undefined && leg <= 240) {
+      bends++;
+      add(
+        "grid.avoidable-bend",
+        "minor",
+        [e.id, e.from, e.to],
+        { edge: edgeName(e), legPx: r1(leg), runs: 2 },
+        `${edgeName(e)} turns once with a ${r1(leg)}px leg, so its ends are out of line`,
+        fixes,
+        3,
+        patches,
+      );
+    }
+  }
+
+  // A node beside a group (check 6): partly level with a frame it is outside, so the eye reads the
+  // two as one row of peers. A node whose whole height sits in the frame's band is aligned with it on
+  // purpose; a node inside another frame is that frame's peer, not this one's.
+  const frames = scene.groups.filter((g) => !g.overlay && !g.lane);
+  let beside = 0;
+  for (const n of scene.nodes) {
+    const f = c.foot.get(n.id) ?? n.box;
+    const hits: { g: SceneGroup; share: number; frac: number }[] = [];
+    for (const g of frames) {
+      const b = g.box;
+      if (c.isDescendant(n.id, g.id) || b.w >= 0.85 * W || b.w <= 160 || b.h <= 80) continue;
+      if (n.parent && !c.isDescendant(g.id, n.parent)) continue;
+      if (f.x + f.w > b.x && f.x < b.x + b.w) continue;
+      const share = Math.min(f.y + f.h, b.y + b.h) - Math.max(f.y, b.y);
+      const frac = share / Math.max(1, f.h);
+      if (frac > 0.2 && frac < 0.8) hits.push({ g, share, frac });
+    }
+    // Report the outermost frame: the ones inside it repeat the same misalignment.
+    const hit = hits.sort((x, y) => x.g.depth - y.g.depth)[0];
+    if (!hit) continue;
+    beside++;
+    add(
+      "layout.beside-group",
+      "minor",
+      [n.id, hit.g.id],
+      { node: n.id, group: hit.g.id, sharedPx: r1(hit.share), sharePct: r1(100 * hit.frac) },
+      `"${n.id}" sits beside group "${hit.g.id}" sharing ${r1(100 * hit.frac)}% of its height, so they read as one row of peers but "${n.id}" is outside it`,
+      [
+        `put "${n.id}" in "${hit.g.id}" (in: ${hit.g.id}) if it belongs there`,
+        `move "${n.id}" in the nodes list so it sits level with the whole of "${hit.g.id}" or clear of it`,
+      ],
+      3,
+    );
+  }
+
+  // Same-kind siblings, one size (check 10): boxes of one boundary type under one parent share a
+  // height in a row and a width in a column. Nearly equal reads as a mistake, clearly different as
+  // intended; two with the same role (Zone A and Zone B) must match either way.
+  const role = (g: SceneGroup) =>
+    g.label.lines
+      .join(" ")
+      .replace(/\b[A-Za-z0-9]\b/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  let siblings = 0;
+  const typed = frames.filter((g) => g.type.includes(":") && !TIER_GROUPS.has(g.type));
+  for (let i = 0; i < typed.length; i++)
+    for (let j = i + 1; j < typed.length; j++) {
+      const p = typed[i];
+      const q = typed[j];
+      if (!p || !q || p.type !== q.type || p.parent !== q.parent) continue;
+      const same = role(p) === role(q);
+      const row = p.box.y < q.box.y + q.box.h && q.box.y < p.box.y + p.box.h;
+      const col = p.box.x < q.box.x + q.box.w && q.box.x < p.box.x + p.box.w;
+      const dw = Math.abs(p.box.w - q.box.w) / Math.max(p.box.w, q.box.w);
+      const dh = Math.abs(p.box.h - q.box.h) / Math.max(p.box.h, q.box.h);
+      const near = (d: number) => d > 0.1 && (same || d <= 0.4);
+      const off = [
+        ...((same || col) && near(dw) ? [`width ${Math.round(100 * dw)}%`] : []),
+        ...((same || row) && near(dh) ? [`height ${Math.round(100 * dh)}%`] : []),
+      ];
+      if (!off.length) continue;
+      siblings++;
+      add(
+        "grid.uneven-siblings",
+        "minor",
+        [p.id, q.id],
+        {
+          a: `${Math.round(p.box.w)}x${Math.round(p.box.h)}`,
+          b: `${Math.round(q.box.w)}x${Math.round(q.box.h)}`,
+          apart: off.join(", "),
+        },
+        `"${p.id}" (${Math.round(p.box.w)}x${Math.round(p.box.h)}) and "${q.id}" (${Math.round(q.box.w)}x${Math.round(q.box.h)}) are ${off.join(" and ")} apart`,
+        [
+          `give "${p.id}" and "${q.id}" matching contents (the same nodes and label lengths) so they come out one size`,
+          `put them side by side in one parent with cols: so they share a grid`,
+        ],
+        3,
+      );
+    }
+
+  // Whitespace and padding (check 11), per frame on an 8px raster: own nodes with a margin, child
+  // frames and edge labels cover; the rest below the header is empty. The sample's 16px margin is
+  // two thirds of its 24px gap; orrery leaves 64px between layers, so the margin is half of that
+  // (scaled by layout.spacing) and the layout's own rhythm never counts as empty.
+  const margin = 32 * model.spacing;
+  let sparse = 0;
+  let padded = 0;
+  for (const g of frames) {
+    const own = scene.nodes.filter((n) => n.parent === g.id).map((n) => c.foot.get(n.id) ?? n.box);
+    const kids = frames.filter((x) => x.parent === g.id).map((x) => x.box);
+    if (!own.length && !kids.length) continue;
+    const start = contentStart(g);
+    const inner = {
+      x: start.x,
+      y: start.y,
+      w: g.box.x + g.box.w - start.x,
+      h: g.box.y + g.box.h - start.y,
+    };
+    if (inner.w <= 0 || inner.h <= 0) continue;
+    const labels = scene.edges
+      .map((e) => e.labelBox)
+      .filter((b): b is Box => real(b) && interArea(b, inner) > 0);
+    const cover = [
+      ...own.map((b) => ({
+        x: b.x - margin,
+        y: b.y - margin,
+        w: b.w + 2 * margin,
+        h: b.h + 2 * margin,
+      })),
+      ...kids,
+      ...labels,
+    ];
+    let total = 0;
+    let empty = 0;
+    for (let y = inner.y; y < inner.y + inner.h; y += 8)
+      for (let x = inner.x; x < inner.x + inner.w; x += 8) {
+        total++;
+        const cell = { x, y, w: 8, h: 8 };
+        if (!cover.some((b) => interArea(b, cell) > 0)) empty++;
+      }
+    const emptyPct = total ? (100 * empty) / total : 0;
+    if (emptyPct > 65) {
+      sparse++;
+      add(
+        "layout.sparse-group",
+        "minor",
+        [g.id],
+        { group: g.id, emptyPct: r1(emptyPct) },
+        `group "${g.id}" is ${Math.round(emptyPct)}% empty`,
+        [
+          `shorten the label of "${g.id}": a long header widens the frame past its content`,
+          `move a related node into "${g.id}", or drop the group if one node does not need a frame`,
+        ],
+        4,
+      );
+    }
+    const content = union([
+      ...own,
+      ...kids,
+      ...labels.filter((b) => interArea(b, inner) >= b.w * b.h - 1),
+    ]);
+    if (!content) continue;
+    const pads = {
+      top: content.y - inner.y,
+      bottom: g.box.y + g.box.h - (content.y + content.h),
+      left: content.x - g.box.x,
+      right: g.box.x + g.box.w - (content.x + content.w),
+    };
+    const lo = Math.max(8, Math.min(...Object.values(pads)));
+    // A frame layout sized to match a same-kind sibling pads out on purpose (the sample asks for the
+    // reason; here layout gave it), and one side much wider than the other is grid.off-center's.
+    const twin = (k: "w" | "h") =>
+      frames.some(
+        (o) =>
+          o !== g &&
+          o.type === g.type &&
+          o.parent === g.parent &&
+          Math.abs(o.box[k] - g.box[k]) < 1,
+      );
+    const u = union([...own, ...kids]);
+    const lopsided = !!u && Math.abs(u.x - g.box.x - (g.box.x + g.box.w - u.x - u.w)) > 6;
+    const skip = new Set([
+      ...(twin("w") || lopsided ? ["left", "right"] : []),
+      ...(twin("h") ? ["top", "bottom"] : []),
+    ]);
+    const worst = Object.entries(pads).filter(([k, v]) => !skip.has(k) && v > 80 && v > 3 * lo);
+    if (worst.length) {
+      padded++;
+      add(
+        "grid.padding",
+        "minor",
+        [g.id],
+        {
+          group: g.id,
+          ...Object.fromEntries(worst.map(([k, v]) => [`${k}Px`, r1(v)])),
+          tightestPx: r1(lo),
+        },
+        `group "${g.id}" pads ${worst.map(([k, v]) => `${k} ${Math.round(v)}px`).join(", ")} against ${Math.round(lo)}px elsewhere, so it does not hug its content`,
+        [
+          `shorten the label of "${g.id}" so the frame can hug its content`,
+          `move the nodes of "${g.id}" next to each other in the nodes list`,
+        ],
+        3,
+      );
+    }
+  }
+
+  Object.assign(c.metrics.grid, {
+    zigZags: zigs,
+    avoidableBends: bends,
+    unevenSiblings: siblings,
+    padding: padded,
+  });
+  Object.assign(c.metrics.layout, { sparseGroups: sparse, besideGroup: beside });
 }
 
 interface TextItem {
@@ -1981,6 +2514,32 @@ function aliasesFor(id: string): string[] {
   }
   return shortForms.get(id) ?? [];
 }
+
+/** What an AWS service goes by besides its full name: without Amazon or AWS, initials, aliases. */
+function shortFormsOf(info: { id: string; name: string }): string[] {
+  const core = info.name.replace(/^(Amazon|AWS)\s+/, "");
+  const acronym = core
+    .split(/\s+/)
+    .filter((w) => /^[A-Z]/.test(w))
+    .map((w) => w[0])
+    .join("");
+  return [core, acronym.length >= 2 ? acronym : "", ...aliasesFor(info.id)];
+}
+
+/** AWS boundary groups and the functional name their label carries (AWS-17). */
+const BOUNDARY_NAMES: Record<string, { name: string; test: RegExp }> = {
+  "aws:cloud": { name: "AWS Cloud", test: /\baws cloud\b/ },
+  "aws:cloud-alt": { name: "AWS Cloud", test: /\baws cloud\b/ },
+  "aws:account": { name: "Account", test: /\baccounts?\b/ },
+  // A Region code names the Region itself.
+  "aws:region": { name: "Region", test: /\bregion\b|\b[a-z]{2}(-gov)?-[a-z]+-\d\b/ },
+  "aws:az": { name: "Availability Zone", test: /\b(availability zone|az)\b/ },
+  "aws:vpc": { name: "VPC", test: /\b(vpc|virtual private cloud)\b/ },
+  "aws:public-subnet": { name: "Public subnet", test: /\bpublic subnets?\b/ },
+  "aws:private-subnet": { name: "Private subnet", test: /\bprivate subnets?\b/ },
+  "aws:auto-scaling": { name: "Auto Scaling group", test: /\bauto scaling\b/ },
+  "aws:corporate-dc": { name: "Corporate data center", test: /\bdata cent(er|re)\b/ },
+};
 
 const C4_TYPE =
   /\[(person|software system|external (software )?system|system|container|component|database|queue)\b([^\]]*)\]/i;
@@ -2413,15 +2972,7 @@ function measureConventions(c: Ctx): { vendors: string[]; rubrics: string[] } {
     const full = info.name;
     const label = norm(`${n.label} ${n.note ?? ""}`);
     if (!hasPhrase(allText, full)) {
-      const core = full.replace(/^(Amazon|AWS)\s+/, "");
-      const acronym = core
-        .split(/\s+/)
-        .filter((w) => /^[A-Z]/.test(w))
-        .map((w) => w[0])
-        .join("");
-      const form = [core, acronym.length >= 2 ? acronym : "", ...aliasesFor(info.id)].find((f) =>
-        hasPhrase(label, f),
-      );
+      const form = shortFormsOf(info).find((f) => hasPhrase(label, f));
       if (form) {
         shorts++;
         // Name where it was found: a short form only in the note is not the label's.
@@ -2450,6 +3001,105 @@ function measureConventions(c: Ctx): { vendors: string[]; rubrics: string[] } {
         3,
       );
     }
+  }
+
+  // AWS-17 (aws-archify composition.md): a boundary group says which boundary it is. Measured: the
+  // label does not name it at all ("Web subnet" on a private subnet); whether the name leads, with
+  // context after it in parentheses, is the reviewer's call.
+  let boundaries = 0;
+  for (const g of model.groups) {
+    const want = BOUNDARY_NAMES[g.type];
+    if (!want || !g.label || want.test.test(g.label.toLowerCase())) continue;
+    boundaries++;
+    const words = new Set(want.name.toLowerCase().split(/\s+/));
+    const rest = g.label
+      .split(/\s+/)
+      .filter((w) => !words.has(w.toLowerCase()))
+      .join(" ")
+      .trim();
+    const label = rest ? `${want.name} (${rest})` : want.name;
+    add(
+      "conventions.boundary-label",
+      "minor",
+      [g.id],
+      { group: g.id, type: g.type, label: g.label, expected: want.name },
+      `group "${g.id}" draws the ${g.type} boundary but its label "${g.label}" does not say ${want.name}`,
+      [`set label: ${label} on "${g.id}"`],
+      3,
+      [{ op: "set", path: `groups.${g.id}.label`, value: label }],
+    );
+  }
+
+  // AWS-18 (aws-archify composition.md): a group with a service's icon in its corner is that one
+  // service and holds only its parts. Measured on an icon: override; the presets (Step Functions
+  // workflow, EC2 instance contents) hold other services by the deck's own design.
+  let serviceGroups = 0;
+  for (const g of model.groups) {
+    const own = typeof g.icon === "string" ? iconInfo(g.icon) : undefined;
+    if (own?.pack !== "aws" || own.type !== "service") continue;
+    const others = model.nodes.filter((n) => {
+      const info = n.parent === g.id && n.icon ? iconInfo(n.icon) : undefined;
+      return info?.pack === "aws" && info.category !== "General" && !info.name.startsWith(own.name);
+    });
+    if (!others.length) continue;
+    serviceGroups++;
+    const names = [...new Set(others.map((n) => iconInfo(n.icon ?? "")?.name ?? n.id))];
+    add(
+      "conventions.service-group",
+      "minor",
+      [g.id, ...others.map((n) => n.id)],
+      { group: g.id, service: own.name, others: names.join(", ") },
+      `group "${g.id}" carries the ${own.name} icon but holds ${names.join(", ")}`,
+      [
+        `drop icon: from "${g.id}" and use type: aws:generic for a tier of different services`,
+        `keep only ${own.name} and its own parts in "${g.id}"`,
+      ],
+      4,
+      [{ op: "unset", path: `groups.${g.id}.icon` }],
+    );
+  }
+
+  // AWS-19 (aws-archify composition.md): a service icon's label is the official name and the role
+  // goes in note, so every tile reads as a real service. Measured: the label names the service in no
+  // form (full name, the name without Amazon or AWS, initials, catalog alias). A node inside a frame of
+  // its own service is one of that service's parts (pods in an EKS cluster) and takes a part name.
+  let serviceLabels = 0;
+  for (const n of model.nodes) {
+    const info = n.icon ? iconInfo(n.icon) : undefined;
+    if (info?.pack !== "aws" || info.type !== "service" || !/^(Amazon|AWS) /.test(info.name))
+      continue;
+    const forms = [info.name, ...shortFormsOf(info)];
+    // A label that opens with Amazon or AWS is meant as a service name (the catalog shortens some:
+    // "Amazon FSx for WFS"); AWS-08 and the reviewer judge whether it is the right one.
+    if (/^(Amazon|AWS)\s/.test(n.label) || forms.some((f) => hasPhrase(norm(n.label), f))) continue;
+    let part = false;
+    for (let p = n.parent; p && !part; p = c.parentOf(p)) {
+      const g = model.groups.find((x) => x.id === p);
+      const gi = typeof g?.icon === "string" ? iconInfo(g.icon) : undefined;
+      part =
+        !!gi?.name &&
+        (gi.id === info.id || info.name.startsWith(gi.name) || gi.name.startsWith(info.name));
+      part ||= !!g && forms.some((f) => hasPhrase(norm(g.label), f));
+    }
+    if (part) continue;
+    serviceLabels++;
+    const rest = (n.note ?? "")
+      .replace(new RegExp(escapeRe(info.name), "i"), "")
+      .replace(/^[\s,;:-]+|[\s,;:-]+$/g, "");
+    const note = rest ? `${n.label}, ${rest}` : n.label;
+    add(
+      "conventions.service-label",
+      "minor",
+      [n.id],
+      { label: n.label, service: info.name, note: n.note ?? "" },
+      `"${n.id}" is drawn with the ${info.name} icon but its label "${n.label}" does not name the service`,
+      [`set label: ${info.name} and note: ${note} on "${n.id}"`],
+      2,
+      [
+        { op: "set", path: `nodes.${n.id}.label`, value: info.name },
+        { op: "set", path: `nodes.${n.id}.note`, value: note },
+      ],
+    );
   }
 
   // Callouts in one size (deck slide 18).
@@ -2570,6 +3220,9 @@ function measureConventions(c: Ctx): { vendors: string[]; rubrics: string[] } {
     legendMissing: missing.length,
     shortNames: shorts,
     longAwsLabels: longAws,
+    boundaryLabels: boundaries,
+    serviceGroups,
+    serviceLabels,
     calloutSizes: callouts.size,
     c4Elements,
     c4Relations,
@@ -2623,7 +3276,7 @@ export function reviewScene(
       for (let p = parentOf(id); p; p = parentOf(p)) if (p === ancestor) return true;
       return false;
     },
-    add: (id, severity, subjects, evidence, claim, fixes, cost) => {
+    add: (id, severity, subjects, evidence, claim, fixes, cost, patches) => {
       const kind: FindingKind = FINDINGS[id];
       spent.set(id, (spent.get(id) ?? 0) + Math.max(0, cost));
       findings.push({
@@ -2634,6 +3287,7 @@ export function reviewScene(
         evidence,
         claim,
         fixes,
+        ...(patches?.length ? { patches } : {}),
         ...(kind.rule ? { rule: kind.rule } : {}),
       });
     },
@@ -2646,6 +3300,7 @@ export function reviewScene(
   measureFlow(ctx, diagnostics);
   measureLayout(ctx, diagnostics);
   measureGrid(ctx);
+  measureComposition(ctx);
   measureQuality(ctx, [scene, ...(opts.themes ?? []).filter((x) => x.theme !== scene.theme)]);
   const { vendors, rubrics } = measureConventions(ctx);
 
@@ -2758,10 +3413,15 @@ export interface ReviewRequest {
   png?: boolean;
 }
 
+/** Longest side of the look PNG: models stall on images over about 2000px a side. */
+export const LOOK_MAX = 1568;
+
 export interface ReviewRun {
   report: ReviewReport;
   /** Still PNG at the display width, one pixel per CSS px: what the reader sees. */
   png?: Uint8Array;
+  /** The same picture scaled to fit LOOK_MAX x LOOK_MAX, when the display PNG is larger. */
+  look?: Uint8Array;
   scenes: Partial<Record<ThemeName, Scene>>;
   diagnostics: Diagnostic[];
 }
@@ -2793,7 +3453,21 @@ export async function reviewModel(req: ReviewRequest): Promise<ReviewRun> {
     req.png !== false && typeof svg === "string"
       ? await renderPng(svg, { scale, fonts: req.fonts })
       : undefined;
-  return { report, ...(png ? { png } : {}), scenes: rendered.scenes, diagnostics };
+  // A tall diagram at a README width is still taller than a model can look at in one image. The
+  // margin keeps resvg's rounding inside the box.
+  const { width: dw, height: dh } = report.display;
+  const fit = Math.min(LOOK_MAX / scene.width, LOOK_MAX / scene.height) * (1 - 1e-6);
+  const look =
+    png && typeof svg === "string" && (dw > LOOK_MAX || dh > LOOK_MAX)
+      ? await renderPng(svg, { scale: fit, fonts: req.fonts })
+      : undefined;
+  return {
+    report,
+    ...(png ? { png } : {}),
+    ...(look ? { look } : {}),
+    scenes: rendered.scenes,
+    diagnostics,
+  };
 }
 
 /** The report as a terminal table plus one line per finding (the review command prints this). */
@@ -2814,9 +3488,17 @@ export function formatReview(report: ReviewReport, opts: { fixes?: boolean } = {
   ];
   if (report.rubrics.length) lines.push(`rubrics: ${report.rubrics.join(", ")}`);
   if (report.findings.length) lines.push("");
+  // Identical lines (the same claim on the same subjects) print once with a count.
+  const seen = new Map<string, { f: ReviewFinding; n: number }>();
   for (const f of report.findings) {
     const subjects = f.subjects.length ? ` [${f.subjects.join(", ")}]` : "";
-    lines.push(`${f.severity.padEnd(7)} ${f.id}${subjects} ${f.claim}`);
+    const line = `${f.severity.padEnd(7)} ${f.id}${subjects} ${f.claim}`;
+    const hit = seen.get(line);
+    if (hit) hit.n++;
+    else seen.set(line, { f, n: 1 });
+  }
+  for (const [line, { f, n }] of seen) {
+    lines.push(n > 1 ? `${line} (x${n})` : line);
     if (opts.fixes !== false)
       for (const fix of f.fixes.slice(0, 2)) lines.push(`        fix: ${fix}`);
   }

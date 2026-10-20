@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Backup and restore with AWS Backup
+subtitle: A backup plan protects production, copies each recovery point to a second Region and to a locked vault in a backup account, and restores into production
+direction: down
+layout: { merge: false }
+
+legend:
+  solid: Backup and copy jobs
+  dashed: Restore
+  dotted: Encryption key
+
+groups:
+  cloud: { type: aws:cloud }
+  prod: { type: aws:account, label: Production account, in: cloud }
+  prod-east: { type: aws:region, label: us-east-1, in: prod }
+  protected: { type: aws:generic, label: Protected resources, in: prod-east }
+  prod-west: { type: aws:region, label: us-west-2, in: prod }
+  # Cross-account copies need both accounts in one organization and a vault access policy on the
+  # destination vault.
+  backup: { type: aws:account, label: Backup account, in: cloud }
+  backup-east: { type: aws:region, label: us-east-1, in: backup }
+
+nodes:
+  ec2: { icon: aws:ec2, label: Amazon EC2, note: Instances and EBS volumes, in: protected }
+  rds: { icon: aws:rds, label: Amazon RDS, note: Databases, in: protected }
+  dynamodb: { icon: aws:dynamodb, label: Amazon DynamoDB, note: Advanced backup features, in: protected }
+  efs: { icon: aws:elastic-file-system-file-system, label: Amazon Elastic File System, note: File systems, in: protected }
+  plan: { icon: aws:backup-backup-plan, label: AWS Backup, note: Backup plan and rules, in: prod-east }
+  vault: { icon: aws:backup-backup-vault, label: Backup vault, note: Primary recovery points, in: prod-east }
+  kms: { icon: aws:key-management-service, label: AWS Key Management Service, note: Vault encryption key, in: prod-east }
+  copy: { icon: aws:backup-backup-vault, label: Backup vault, note: Cross-Region copy, in: prod-west }
+  locked: { icon: aws:backup-vault-lock, label: AWS Backup Vault Lock, note: Compliance-mode vault, in: backup-east }
+
+edges:
+  - protected -> plan: { label: back up, step: 1 }
+  - plan -> vault: { label: store, step: 2 }
+  - vault -> copy: { label: copy, step: 3 }
+  - vault -> locked: { label: copy, step: 4 }
+  # AWS Backup cannot restore across accounts, so restores leave the production vault. Written in
+  # layout order with the arrow at the start, so the resources stay ahead of the vault.
+  - { from: protected, to: vault, arrow: start, line: dashed, label: restore }
+  # Written key first with the arrow at the vault end, so KMS sits beside the plan instead of a row lower.
+  - { from: kms, to: vault, line: dotted, label: encrypt }

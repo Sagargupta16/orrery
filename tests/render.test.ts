@@ -68,10 +68,12 @@ describe("renderModel", () => {
       "svg:light",
       "png:light",
       "drawio:light",
+      "drawio.svg:light",
       "tsx:light",
       "svg:dark",
       "png:dark",
       "drawio:dark",
+      "drawio.svg:dark",
       "tsx:dark",
       "html:both",
     ]);

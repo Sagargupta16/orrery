@@ -49,6 +49,10 @@ Plain Markdown works too: `![Architecture](docs/architecture-light.svg)`.
 - A `legend:` becomes one group cell with a line cell and a text cell per style.
 - Works offline: nothing in the file points to the network.
 
+### drawio.svg
+
+`-f drawio.svg` writes one file that is both: the same SVG picture as `svg` (animated, embeddable in a README), with the whole draw.io model in the root element's `content` attribute and draw.io's own header, the way draw.io saves `.drawio.svg` files. Any viewer shows the picture; draw.io and the VS Code Draw.io extension open the file as the editable diagram. `-o docs/arch.drawio.svg` picks the format from the name.
+
 ## TSX
 
 ```tsx
@@ -67,6 +71,15 @@ A single file with no network requests: header with the title, Theme (light/dark
 
 - The SVG download is named for the theme on screen (`<name>-light.svg`, `<name>-dark.svg`) and follows the Theme button.
 - The PNG download is drawn by the browser from a still copy of the diagram at 3x, so it never shows a packet frozen mid-edge, as the animated view would.
+
+## Design documents
+
+`orrery doc <design.md> [-o out] [-f html,md,docx] [--theme light|dark] [--skin classic|stage]` builds a document from Markdown. A line `<!-- orrery: diagrams/overview.yaml | The request path from the browser to the database -->` (path relative to the document) becomes Figure N with that caption, numbered in document order; the caption is also the alt text, and the spec's title stands in when there is none. Documents default to the light theme.
+
+- `html`: one self-contained page, the Markdown (headings, lists, tables, code, quotes, links) converted with every text escaped, figures as inline SVG in `<figure>` with unique ids, and a print stylesheet.
+- `md`: the Markdown with each marker replaced by the figure image and an italic caption line; the SVGs and 2x PNGs go to a `figures/` folder next to it. It never overwrites its own source.
+- `docx`: a Word file with real headings, lists, tables, code paragraphs and the figures as inline pictures with alt text and numbered captions.
+- Nothing is written unless every output is complete: a missing spec (DG401), a spec with errors, or a marker that is not on its own line (DG402) fails with exit 1.
 
 ## Receipt
 

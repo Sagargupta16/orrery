@@ -13,7 +13,7 @@ One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML view
 **[sagargupta.online/orrery](https://sagargupta.online/orrery/)**: every example in light and dark, with its spec and downloads.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.8.0-2563eb)
+![Version](https://img.shields.io/badge/version-0.9.0-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-18%2C209-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
@@ -26,11 +26,11 @@ The diagram above is [docs/hero.yaml](docs/hero.yaml): 40 lines of YAML, laid ou
 - **Official, current icons only.** 18,209 icons: AWS (810), Azure (636), Google Cloud (233), Kubernetes (40), GitHub Octicons (399) and IBM Carbon (2,776), plus 5,502 tech logos, 6,286 neutral symbols and Phosphor (1,527) in six weights for system design and business flows; your own SVGs work too, as `local:` icons drawn and checked with `orrery icons new` and `icons check`. The cloud packs are rebuilt from each vendor's own download, pinned by checksum. Google Cloud products get the icon Google's 2026 guide assigns them; deprecated sets and unofficial redraws of cloud icons are left out.
 - **Official conventions.** AWS groups follow the AWS Architecture Icons deck (borders, dashes, corner tiles, label placement, open arrowheads, numbered callouts); Google Cloud and Azure groups are measured from their own reference diagrams. Every value cites its source in [styles.md](skills/orrery/references/styles.md).
 - **Business flows too.** `kind:` turns the same spec into an ISO 5807 flowchart, a BPMN 2.0 process with pools, lanes and message flows, a UML state machine, an org chart, a two-sided mind map or a customer journey map with an emotion curve. In the stage skin a process plays as a BPMN token: it splits at parallel gateways, waits at the join and follows the yes branch.
-- **Automatic layout.** The Eclipse Layout Kernel places nested boundaries, routes edges at right angles, joins fan-in and fan-out into trunks and keeps the order you wrote unless that would cross edges. No coordinates to write.
+- **Automatic layout you can steer.** The Eclipse Layout Kernel places nested boundaries, routes edges at right angles, joins fan-in and fan-out into trunks and keeps the order you wrote unless that would cross edges. No coordinates to write; when you want a say, `rank: first`, `align: <node>`, `cols: 2` on a group and `layout: { aspect: 4:3 }` pin a node's place in the flow, line nodes up, grid a group's children and keep a figure compact enough to read in a README.
 - **Diagrams that move.** Animated SVG by default: packets travel every edge at one speed, numbered steps play as a story, line styles stay as drawn. `animate: flow` for marching dashes, `--static` for a still file.
 - **Two skins, one layout.** The default `stage` skin draws every diagram as an animated scene, dark by default: a hairline grid with one tint, ink tiles with monochrome icons, mono caps labels, dim wires and one story that plays along them. `skin: classic` (or `--skin classic`) follows each vendor's own diagram style instead, for docs that must match the AWS, Azure or Google Cloud deck. Every position stays the same; dark and light.
-- **Five outputs from one spec.** SVG for READMEs and docs, PNG for slides and chat (3x by default, sharp when zoomed), `.drawio` you can keep editing, a TSX component for React sites, and a standalone HTML viewer with dark mode, pan and pinch zoom.
-- **Made for agents.** A skill with a fast path and authoring rules, a JSON Schema, 482 short aliases (`aws:s3`, `azure:aks`, `k8s:deploy`, and business names such as `generic:invoice` and `generic:approval`), ranked icon search, and a validator whose every finding names the subject and the fix.
+- **Six outputs from one spec.** SVG for READMEs and docs, PNG for slides and chat (3x by default, sharp when zoomed), `.drawio` you can keep editing, `.drawio.svg` (one file that shows as an image anywhere and opens as an editable diagram in draw.io), a TSX component for React sites, and a standalone HTML viewer with dark mode, pan and pinch zoom. `orrery doc` puts the figures into a design document as HTML, Markdown or Word.
+- **Made for agents.** A skill with a fast path and authoring rules, a JSON Schema, 482 short aliases (`aws:s3`, `azure:aks`, `k8s:deploy`, and business names such as `generic:invoice` and `generic:approval`), ranked icon search, a validator whose every finding names the subject and the fix, an MCP server for clients without skills, and agents that plan a diagram from your code and check it against it.
 - **No install.** The CLI, layout engine, PNG renderer, fonts and the official cloud packs ship in the skill folder (9 MB). Logo and glyph sets are not copied in: they load from their own npm libraries the first time a diagram uses them, verified by checksum and cached. Node.js 22 or newer is all it needs.
 
 ## How it works
@@ -66,6 +66,14 @@ npx @sagargupta1610/orrery render diagram.yaml -f all --theme both
 
 Or from a clone: `node orrery/skills/orrery/scripts/orrery.mjs doctor`.
 
+As an MCP server, for any client that speaks the Model Context Protocol (tools: authoring guide, validate, render, review, icon search, templates, patch candidates, draw.io link):
+
+```json
+{ "mcpServers": { "orrery": { "command": "npx", "args": ["-y", "@sagargupta1610/orrery", "mcp"] } } }
+```
+
+That block goes in `.mcp.json` for Claude Code, `~/.gemini/settings.json` for Gemini CLI, `.cursor/mcp.json` for Cursor and `.kiro/settings/mcp.json` for Kiro; Codex takes `[mcp_servers.orrery]` with `command = "npx"` and `args = ["-y", "@sagargupta1610/orrery", "mcp"]` in `~/.codex/config.toml`. On Windows, some clients need `"command": "cmd", "args": ["/c", "npx", ...]`. `orrery mcp --port 8765` serves the same tools over HTTP on 127.0.0.1, where specs are passed as text and nothing is read from or written to disk.
+
 ## Quick start
 
 Ask your agent for a diagram ("draw the architecture of this repo", "a three-tier web app on AWS across two Availability Zones", "turn this Mermaid flowchart into a Google Cloud diagram"). It writes a spec, validates it, renders it and checks the picture. Or write one yourself:
@@ -98,7 +106,7 @@ Labels default to the official service names, so `{ icon: aws:lambda }` reads "A
 
 <a href="examples/aws-three-tier.svg"><img src="examples/aws-three-tier.svg" alt="Three-tier web application on AWS across two Availability Zones"></a>
 
-That is one of 40 reference diagrams across AWS, Azure, Google Cloud, IBM Cloud, Kubernetes, AI and ML, data platforms, CI/CD, C4, system design and business flows (flowcharts, a BPMN process, swimlanes, a state machine, an org chart, a mind map and a customer journey), each rendered from a spec in [skills/orrery/examples](skills/orrery/examples) and checked against the renderer by CI. Browse them all in light and dark, with each spec and every output to download, at **[sagargupta.online/orrery/gallery](https://sagargupta.online/orrery/gallery/)**, or in [examples/README.md](examples/README.md) with the command that renders each one. `orrery init <name>` copies any of them as a starting point.
+That is one of 57 reference diagrams across AWS (from agents on Bedrock AgentCore to disaster recovery, threat detection, network inspection, migration and contact centers), Azure, Google Cloud, IBM Cloud, Kubernetes, AI and ML, data platforms, CI/CD, C4, system design and business flows (flowcharts, a BPMN process, swimlanes, a state machine, an org chart, a mind map and a customer journey), each rendered from a spec in [skills/orrery/examples](skills/orrery/examples) and checked against the renderer by CI. Browse them all in light and dark, with each spec and every output to download, at **[sagargupta.online/orrery/gallery](https://sagargupta.online/orrery/gallery/)**, or in [examples/README.md](examples/README.md) with the command that renders each one. `orrery init <name>` copies any of them as a starting point.
 
 ## Validation that tells you the fix
 
@@ -130,21 +138,34 @@ blocker quality.label-size node labels render at 5.82px at this width (1964px ca
 
 The review loop took that diagram to 98.5 and passing: it now runs top to bottom, so its labels show at full size in the README column.
 
-In Claude Code, `/orrery:review <spec>` runs the full loop. Code measures everything that can be counted: overlaps, crossings, alignment, text size and contrast at display width. Three read-only agents run in parallel and judge what cannot be counted:
+In Claude Code, `/orrery:review <spec>` runs the full loop. Code measures everything that can be counted: overlaps, crossings, alignment, zig-zags and avoidable bends, lines that skim an icon, empty or lopsided groups, text size and contrast at display width. Read-only agents run in parallel and judge what cannot be counted:
 
 - `conventions-reviewer` checks the vendor's own rules, quoted from the AWS deck, Azure Well-Architected, Google's icon guide and the C4 notation.
 - `flow-reviewer` checks the story the arrows tell.
 - `legibility-reviewer` reads the PNG at display size.
+- `accuracy-reviewer` checks the diagram against the code and infrastructure it shows, when there is any.
 
-A finding counts only if it cites a measured value or a vendor rule. Each round applies one to three spec patches, and a round is kept only when the score goes up and no hard count does; the loop stops after three rounds or two without progress. Vision models are weak at counting overlaps and intersections, so they never decide those. The rubrics live in [references/review](skills/orrery/references/review/loop.md), so the same passes run inline anywhere the skill is installed without subagents.
+A finding counts only if it cites a measured value, a vendor rule or a source line. Each round, `patch-proposer` agents write two to four candidate patch sets and `orrery patch` tries them all at once; a round is kept only when the best candidate raises the score and no hard count goes up; the loop stops after three rounds or two without progress. Vision models are weak at counting overlaps and intersections, so they never decide those. The rubrics live in [references/review](skills/orrery/references/review/loop.md), so the same passes run inline anywhere the skill is installed without subagents.
+
+## Agents that draw from your code
+
+In Claude Code, `/orrery:draw <what to draw>` starts from the system itself. The `planner` agent reads the infrastructure and code (Terraform, CloudFormation, SAM, CDK output, Kubernetes, Compose, the handlers) and returns every service, boundary and flow with the file and line it came from, marking which flows the infrastructure declares and which the code only implies, plus what it leaves out and why. You confirm that list before any spec exists. Then the spec is written, validated and run through the review board, where a fourth reviewer, `accuracy-reviewer`, checks the drawing against the sources on its own: invented nodes, dependencies drawn as traffic, arrows pointing the wrong way, services in the wrong subnet. It never sees the planner's reasoning, so it cannot inherit its mistakes.
+
+`/orrery:doc <topic>` writes a design document: the planner picks one figure per aspect (overview, request path, data, deployment, failure handling), `diagram-author` agents draw them in parallel, each is reviewed, and `orrery doc` builds the Markdown into HTML or Word with numbered figures.
+
+Fixes are measured, not argued: `patch-proposer` agents write candidate patch sets under different strategies (fewer arrows, a different structure, better words, the vendor's rules), and `orrery patch` reviews each candidate on its own copy and keeps only the one that scores best without making anything worse. A plugin hook validates every spec the moment an agent writes it, so errors come back with their fixes before anything renders. The planning and accuracy rules live in [planning.md](skills/orrery/references/planning.md) and [accuracy.md](skills/orrery/references/review/accuracy.md), so clients without subagents run the same passes in order.
 
 ## Commands
 
 | Command | Does |
 | --- | --- |
-| `render <spec> [-o base] [-f svg,png,drawio,tsx,html\|all] [--theme light\|dark\|both] [--skin classic\|stage] [--animate packets\|flow\|relay\|none] [--static]` | Validate, lay out, render. |
+| `render <spec> [-o base] [-f svg,png,drawio,drawio.svg,tsx,html\|all] [--theme light\|dark\|both] [--skin classic\|stage] [--animate packets\|flow\|relay\|none] [--static]` | Validate, lay out, render. |
+| `watch <spec> [-o base] [-f svg,png] [--review]` | Render again on every save of the spec or its local icons, and print the review score each time with `--review`. |
 | `validate <spec> [--strict] [--json]` | Spec errors and composition warnings, each with fixes. |
-| `review <spec> [--width 880] [--theme light\|dark] [--strict] [--json]` | Score the diagram at the width readers see it; writes `<base>.review.json` and a PNG at that width. |
+| `review <spec> [--width 880] [--theme light\|dark] [--strict] [--json]` | Score the diagram at the width readers see it; writes `<base>.review.json` and a PNG at that width (plus `<base>.review.look.png`, scaled to fit 1568 px, when that PNG is larger). |
+| `patch <spec> <candidates.json> [-o best.yaml] [--width 880]` | Try several candidate patch sets at once, each reviewed on its own copy; keeps the best one that improves the score, with comments and formatting untouched. |
+| `doc <design.md> [-f html,md,docx]` | Build a design document: each `<!-- orrery: spec.yaml \| Caption -->` line becomes a numbered figure (inline SVG in HTML, image files next to Markdown, a picture in Word). |
+| `mcp [--port 8765]` | Serve the commands as Model Context Protocol tools over stdio, or HTTP on 127.0.0.1. |
 | `icons search <words> [--pack aws]` | Ranked icon ids with official names. |
 | `icons show <id>`, `icons list`, `icons packs` | Browse the catalog and its sources. |
 | `icons fetch` | Download and cache the logo and glyph libraries for offline renders. |

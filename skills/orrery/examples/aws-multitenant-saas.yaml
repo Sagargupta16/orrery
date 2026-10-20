@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Multi-tenant SaaS with a shared ML pipeline on AWS
+subtitle: One control plane routes each tenant to its own Amazon Aurora database; all of them feed one shared Amazon SageMaker AI pipeline
+direction: down
+
+legend:
+  solid: Requests and data
+  dotted: Sign-in
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  control: { type: zone, label: Control plane, in: region }
+  # The silo model: every tenant keeps its own database, one box per tenant.
+  data: { type: zone, label: Tenant data silos, in: region }
+  tenant-a: { type: zone, label: Tenant A, in: data }
+  tenant-b: { type: zone, label: Tenant B, in: data }
+  tenant-c: { type: zone, label: Tenant C, in: data }
+  pipeline: { type: zone, label: Shared ML pipeline, in: region }
+  ingest: { type: aws:generic, label: Ingest and ETL, in: pipeline }
+  serve: { type: aws:generic, label: Train and serve, in: pipeline }
+
+nodes:
+  tenants: { icon: aws:users, label: Tenant users, note: Tenants A to C }
+  auth: { icon: aws:cognito, label: Amazon Cognito, note: Pool per tenant, in: control }
+  api: { icon: aws:api-gateway, label: Amazon API Gateway, in: control }
+  router: { icon: aws:lambda, label: Tenant router, note: AWS Lambda, in: region }
+  db-a: { icon: aws:aurora, label: Amazon Aurora, note: Tenant A data, in: tenant-a }
+  db-b: { icon: aws:aurora, label: Amazon Aurora, note: Tenant B data, in: tenant-b }
+  db-c: { icon: aws:aurora, label: Amazon Aurora, note: Tenant C data, in: tenant-c }
+  stream: { icon: aws:kinesis-data-streams, label: Amazon Kinesis Data Streams, note: Change events, in: ingest }
+  etl: { icon: aws:glue, label: AWS Glue, note: ETL jobs, in: ingest }
+  lake: { icon: aws:s3-bucket, label: Data lake, note: Amazon S3, in: ingest }
+  train: { icon: aws:sagemaker-ai-train, label: Training job, note: Amazon SageMaker AI, in: serve }
+  registry: { icon: aws:sagemaker-ai-model, label: Model registry, note: Versioned models, in: serve }
+  endpoint: { icon: aws:sagemaker-ai, label: Inference endpoint, note: Real-time predictions, in: serve }
+
+edges:
+  - tenants ..> auth: sign in
+  - tenants -> api: { label: requests, step: 1 }
+  # constraint: false keeps Cognito beside API Gateway and each pipeline row side by side.
+  - { from: auth, to: api, line: dotted, constraint: false }
+  - api -> router: { label: tenant context, step: 2 }
+  - router -> db-a, db-b, db-c
+  - db-a, db-b, db-c -> stream
+  - { from: stream, to: etl, constraint: false }
+  - { from: etl, to: lake, constraint: false }
+  - lake -> train: training data
+  - { from: train, to: registry, constraint: false }
+  - { from: registry, to: endpoint, constraint: false }
+  - router -> endpoint: { label: predict, step: 3 }

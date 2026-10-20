@@ -97,6 +97,32 @@ function segmentHitsBox(p: Point, q: Point, b: Box, inset = 3): boolean {
   return t0 < t1;
 }
 
+/** Shortest distance between segment pq and box b; 0 when they touch. */
+function segmentBoxDistance(p: Point, q: Point, b: Box): number {
+  if (segmentHitsBox(p, q, b, 0)) return 0;
+  const toSegment = (x: number, y: number) => {
+    const dx = q.x - p.x;
+    const dy = q.y - p.y;
+    const t = Math.max(
+      0,
+      Math.min(1, ((x - p.x) * dx + (y - p.y) * dy) / (dx * dx + dy * dy || 1)),
+    );
+    return Math.hypot(p.x + t * dx - x, p.y + t * dy - y);
+  };
+  const toBox = (x: number, y: number) =>
+    Math.hypot(Math.max(b.x - x, 0, x - (b.x + b.w)), Math.max(b.y - y, 0, y - (b.y + b.h)));
+  const corners: [number, number][] = [
+    [b.x, b.y],
+    [b.x + b.w, b.y],
+    [b.x, b.y + b.h],
+    [b.x + b.w, b.y + b.h],
+  ];
+  return Math.min(toBox(p.x, p.y), toBox(q.x, q.y), ...corners.map(([x, y]) => toSegment(x, y)));
+}
+
+/** Closer than this (canvas px) an edge reads as touching a node it passes (DG221). */
+const SKIM_PX = 10;
+
 export interface CheckOptions {
   /** Widest the diagram should be before a layout hint fires (px). */
   maxWidth?: number;
@@ -616,6 +642,98 @@ export function checkScene(scene: Scene, model: Model, opts: CheckOptions = {}):
         ],
       },
     );
+  }
+
+  // DG219: a setting layout could not honor (Scene.ignored), so the spec says more than the picture.
+  const kindOf = (id: string) =>
+    model.nodes.some((n) => n.id === id)
+      ? "node"
+      : model.groups.some((g) => g.id === id)
+        ? "group"
+        : model.edges.some((e) => e.id === id)
+          ? "edge"
+          : "layout";
+  for (const ig of scene.ignored ?? []) {
+    const kind = kindOf(ig.subject);
+    const what = ig.setting.startsWith(`${ig.subject}.`)
+      ? ig.setting
+      : `${ig.subject} ${ig.setting}`;
+    warn("DG219", `${what} had no effect: ${ig.reason}`, {
+      subject: { [kind]: ig.subject, setting: ig.setting },
+      evidence: { reason: ig.reason },
+      fixes: [
+        kind === "layout"
+          ? `remove ${ig.setting}, or change it so layout can honor it`
+          : `remove ${ig.setting} from "${ig.subject}", or change it so layout can honor it`,
+        "check the picture: the setting is not what placed it",
+      ],
+    });
+  }
+
+  // DG220: an edge label sits on a group's border line. Its chip paints over the line, so the frame
+  // looks broken there and the label belongs to neither side. A line along the chip's edge does not
+  // count; one more than 1px inside it does.
+  for (const e of scene.edges) {
+    const b = e.labelBox;
+    if (!b || !e.label) continue;
+    const inside = (v: number, lo: number, len: number) => v > lo + 1 && v < lo + len - 1;
+    const spans = (lo: number, len: number, a: number, alen: number) =>
+      lo < a + alen - EPS && a < lo + len - EPS;
+    for (const g of scene.groups) {
+      const r = g.box;
+      const sides = [
+        ["top", inside(r.y, b.y, b.h) && spans(r.x, r.w, b.x, b.w)],
+        ["bottom", inside(r.y + r.h, b.y, b.h) && spans(r.x, r.w, b.x, b.w)],
+        ["left", inside(r.x, b.x, b.w) && spans(r.y, r.h, b.y, b.h)],
+        ["right", inside(r.x + r.w, b.x, b.w) && spans(r.y, r.h, b.y, b.h)],
+      ] as const;
+      const on = sides.filter(([, hit]) => hit).map(([side]) => side);
+      if (!on.length) continue;
+      warn(
+        "DG220",
+        `label "${e.label.lines.join(" ")}" on ${e.from} -> ${e.to} sits on the ${on.join(" and ")} border of group "${g.id}"`,
+        {
+          subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
+          evidence: { label: boxOf(b), group: boxOf(r), sides: on.join(",") },
+          fixes: [
+            "shorten the label so it fits between the borders",
+            `move "${e.from}" or "${e.to}" in the nodes list so the edge's middle sits inside or outside "${g.id}"`,
+            "use layout: { spacing: loose }",
+          ],
+        },
+      );
+    }
+  }
+
+  // DG221: an edge runs within SKIM_PX of a node it does not connect, so it reads as touching it
+  // (aws-archify check-layout 14c). A run into the node's box itself is DG201. Canvas px: ELK keeps
+  // edges 18px off nodes at normal spacing, so a skim is a routing accident at any display width.
+  for (const e of scene.edges) {
+    for (const nb of nodeBoxes) {
+      if (nb.id === e.from || nb.id === e.to) continue;
+      let gap = Number.POSITIVE_INFINITY;
+      let through = false;
+      for (let i = 0; i + 1 < e.points.length; i++) {
+        const p = e.points[i];
+        const q = e.points[i + 1];
+        if (!p || !q) continue;
+        if (segmentHitsBox(p, q, nb.box)) through = true;
+        gap = Math.min(gap, segmentBoxDistance(p, q, nb.box));
+      }
+      if (through || gap >= SKIM_PX) continue;
+      warn(
+        "DG221",
+        `edge ${e.from} -> ${e.to} passes ${tenth(gap)}px from node "${nb.id}", so it reads as touching it`,
+        {
+          subject: { edge: e.id, from: e.from, to: e.to, node: nb.id },
+          evidence: { gapPx: tenth(gap), minPx: SKIM_PX, node: boxOf(nb.box) },
+          fixes: [
+            `move "${nb.id}" earlier or later in the nodes list`,
+            "use layout: { spacing: loose }",
+          ],
+        },
+      );
+    }
   }
   return out;
 }

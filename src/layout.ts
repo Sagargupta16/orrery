@@ -9,6 +9,19 @@ import { kindHooks } from "./kinds.ts";
 import { laneHooks } from "./lanes.ts";
 import { notationGeometry, notationHooks, placeNotation } from "./notation.ts";
 import { vendorDir } from "./paths.ts";
+import {
+  alongBorder,
+  detour,
+  edgesThroughNodes,
+  type GridCell,
+  gridCells,
+  laneRoutes,
+  layersOf,
+  planPlacement,
+  runsThrough,
+  sceneCrossings,
+  selfPlaced,
+} from "./placement.ts";
 import { stageColors } from "./skins.ts";
 import { resolveGroupStyle } from "./styles.ts";
 import { measure, textBlock } from "./text.ts";
@@ -16,6 +29,8 @@ import { THEME_TOKENS } from "./themes.ts";
 import type {
   AnimateMode,
   Box,
+  Direction,
+  IgnoredSetting,
   LegendEntry,
   Model,
   ModelEdge,
@@ -122,6 +137,9 @@ const ELK_ROUTING = {
 } as const;
 
 const round = (v: number) => Math.round(v * 100) / 100;
+
+/** rank: first and last (elkjs 0.12 honors it inside groups too). */
+const LAYER_CONSTRAINT = "elk.layered.layering.layerConstraint";
 
 /** The extension modules, in the order their hooks run: lanes and kinds place and route, then
  * notation moves edge ends from a box onto the outline drawn in it. */
@@ -270,13 +288,228 @@ export interface LayoutOptions {
   widen?: Set<string>;
   /** Extra top padding per group, so an overlay's header clears the headers above it (second pass). */
   room?: Map<string, number>;
+  /** Edges routed after ELK in the second pass: back edges of align blocks the first pass rerouted. */
+  loose?: Set<string>;
+  /** ELK layer wrapping (layout.aspect candidates): the strategy and the target width:height. */
+  wrap?: "SINGLE_EDGE" | "MULTI_EDGE";
+  ratio?: number;
 }
 
+/** The groups ELK never sees (pools and lanes). */
+const hiddenOf = (model: Model) =>
+  new Set(HOOKS.flatMap((h) => [...(h.hiddenGroups?.(model) ?? [])]));
+
 export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Scene> {
+  return model.aspect === undefined ? layoutRanked(model, opts) : layoutToAspect(model, opts);
+}
+
+const TURNED: Record<Direction, Direction> = {
+  right: "down",
+  down: "right",
+  left: "up",
+  up: "left",
+};
+
+/**
+ * layout.aspect: lays the diagram out as written, with the flow turned, and with ELK wrapping its
+ * layers in either direction, and keeps the one whose canvas lands nearest the target
+ * width:height without more edge crossings or edges through nodes than the layout as written,
+ * and whose mean edge stays under 0.6 of the canvas size (sqrt of its area): wrapping a chain
+ * stays below it, while wrapped groups join through loops around the whole picture.
+ */
+async function layoutToAspect(model: Model, opts: LayoutOptions): Promise<Scene> {
+  const target = model.aspect ?? 1;
+  if (model.kind === "journey") {
+    const scene = await layoutRanked(model, opts);
+    return withIgnored(scene, [
+      {
+        subject: "layout",
+        setting: "layout.aspect",
+        reason: "a journey keeps its stages in one row",
+      },
+    ]);
+  }
+  const turned = { ...model, direction: TURNED[model.direction] };
+  // Wrapping moves whole layers, which pools, lanes and the kinds that place nodes themselves undo.
+  const wraps =
+    hiddenOf(model).size === 0 && model.kind !== "tree" && model.kind !== "mindmap"
+      ? (["MULTI_EDGE", "SINGLE_EDGE"] as const)
+      : [];
+  const tries: [Model, LayoutOptions][] = [
+    [model, opts],
+    [turned, opts],
+    ...[model, turned].flatMap((m) =>
+      wraps.map((wrap): [Model, LayoutOptions] => [m, { ...opts, wrap, ratio: target }]),
+    ),
+  ];
+  const scenes: Scene[] = [];
+  for (const [m, o] of tries) {
+    try {
+      scenes.push(await layoutRanked(m, o));
+    } catch (e) {
+      if (!scenes.length) throw e;
+    }
+  }
+  const [first] = scenes;
+  if (!first) throw new Error("layout failed");
+  const crossings0 = sceneCrossings(first);
+  const through0 = edgesThroughNodes(first);
+  const ink = (s: Scene) =>
+    s.edges.reduce(
+      (t, e) =>
+        t +
+        e.points
+          .slice(1)
+          .reduce(
+            (u, q, i) =>
+              u + Math.abs(q.x - (e.points[i]?.x ?? q.x)) + Math.abs(q.y - (e.points[i]?.y ?? q.y)),
+            0,
+          ),
+      0,
+    );
+  const reach = (s: Scene) =>
+    ink(s) / Math.max(1, s.edges.length) / Math.sqrt(Math.max(1, s.width * s.height));
+  const most = Math.max(0.6, 1.25 * reach(first));
+  const off = (s: Scene) => Math.abs(Math.log(s.width / Math.max(1, s.height) / target));
+  const best =
+    scenes
+      .filter(
+        (s) =>
+          sceneCrossings(s) <= crossings0 && edgesThroughNodes(s) <= through0 && reach(s) <= most,
+      )
+      .sort((a, b) => off(a) - off(b))[0] ?? first;
+  if (off(best) <= Math.log(1.25)) return best;
+  const ratio = (v: number) => `${Math.round(v * 100) / 100}:1`;
+  return withIgnored(best, [
+    {
+      subject: "layout",
+      setting: "layout.aspect",
+      reason: `the nearest layout is ${ratio(best.width / Math.max(1, best.height))}, not ${ratio(target)}`,
+    },
+  ]);
+}
+
+const withIgnored = (scene: Scene, more: IgnoredSetting[]): Scene =>
+  more.length ? { ...scene, ignored: [...(scene.ignored ?? []), ...more] } : scene;
+
+/**
+ * rank: <n> puts a node in the nth layer of its group. ELK 0.12 has no layer number constraint
+ * (layerChoiceConstraint only works in its interactive editor, partitions not inside groups), so a
+ * first layout finds a node already in that layer and the ranked node aligns with it.
+ */
+async function layoutRanked(model: Model, opts: LayoutOptions): Promise<Scene> {
+  const asked = model.nodes.filter((n) => typeof n.rank === "number");
+  if (!asked.length) return layoutCore(model, opts);
+  const strip = (m: Model, keep: Map<string, string>): Model => ({
+    ...m,
+    nodes: m.nodes.map((n) => {
+      if (typeof n.rank !== "number") return n;
+      const { rank: _, ...rest } = n;
+      const anchor = keep.get(n.id);
+      return anchor ? { ...rest, align: anchor } : rest;
+    }),
+  });
+  const probe = await layoutCore(strip(model, new Map()), opts);
+  const ignored: IgnoredSetting[] = [];
+  const ignore = (subject: string, reason: string) =>
+    ignored.push({ subject, setting: "rank", reason });
+  const hidden = hiddenOf(model);
+  const plan = planPlacement(model, hidden);
+  const parent = new Map([...model.groups, ...model.nodes].map((x) => [x.id, x.parent]));
+  const host = (id: string) => {
+    let p = parent.get(id);
+    while (p && hidden.has(p)) p = parent.get(p);
+    return p;
+  };
+  const own = selfPlaced(model.kind);
+  /** Layers of the items that share the ELK graph of `id`, the node itself included or not. */
+  const layersAround = (scene: Scene, id: string, self: boolean) =>
+    layersOf(
+      [
+        ...scene.nodes.map((n) => ({ id: n.id, box: n.box })),
+        ...scene.groups
+          .filter((g) => !g.overlay && !hidden.has(g.id))
+          .map((g) => ({ id: g.id, box: g.box })),
+      ].filter((it) => (self || it.id !== id) && host(it.id) === host(id)),
+      scene.direction,
+    );
+  const anchors = new Map<string, string>();
+  const want = new Map<string, number>();
+  for (const n of asked) {
+    const rank = typeof n.rank === "number" ? n.rank : 1;
+    const p = parent.get(n.id);
+    if (own) {
+      ignore(n.id, own);
+      continue;
+    }
+    if (p && plan.grids.has(p)) {
+      ignore(n.id, `group "${p}" places its children in ${plan.grids.get(p)} columns`);
+      continue;
+    }
+    // Layers are counted with the node to see whether it is there already, and without it to find
+    // the layer it joins (leaving a layer of its own shifts the ones after it).
+    if (layersAround(probe, n.id, true).get(n.id) === rank - 1) continue;
+    const others = layersAround(probe, n.id, false);
+    const count = new Set(others.values()).size;
+    if (rank > count) {
+      ignore(n.id, `its group has ${count} layer${count === 1 ? "" : "s"} besides it`);
+      continue;
+    }
+    const linked = (id: string) =>
+      model.edges.some((e) => (e.from === n.id && e.to === id) || (e.to === n.id && e.from === id));
+    const order = new Map(model.nodes.map((x, i) => [x.id, i]));
+    const pick = [...others]
+      .filter(
+        ([id, l]) =>
+          l === rank - 1 &&
+          order.has(id) &&
+          !(parent.get(id) && plan.grids.has(parent.get(id) ?? "")),
+      )
+      .map(([id]) => id)
+      .sort(
+        (a, b) =>
+          Number(linked(a)) - Number(linked(b)) || (order.get(a) ?? 0) - (order.get(b) ?? 0),
+      )[0];
+    if (!pick) {
+      ignore(n.id, `layer ${rank} of its group holds only groups`);
+      continue;
+    }
+    anchors.set(n.id, pick);
+    want.set(n.id, rank - 1);
+  }
+  if (!anchors.size) return withIgnored(probe, ignored);
+  const scene = await layoutCore(strip(model, anchors), opts);
+  // A node whose links hold it elsewhere moves its anchor with it: drop that hint and say so.
+  const missed = [...anchors.keys()].filter(
+    (id) => layersAround(scene, id, true).get(id) !== want.get(id),
+  );
+  // The anchors' own align entries name the rank the author wrote.
+  const renamed = (s: Scene): Scene => ({
+    ...s,
+    ...(s.ignored
+      ? {
+          ignored: s.ignored.map((x) =>
+            anchors.has(x.subject) && x.setting === "align" ? { ...x, setting: "rank" } : x,
+          ),
+        }
+      : {}),
+  });
+  if (!missed.length) return withIgnored(renamed(scene), ignored);
+  for (const id of missed) {
+    anchors.delete(id);
+    ignore(id, `its links keep it out of layer ${(want.get(id) ?? 0) + 1}`);
+  }
+  if (!anchors.size) return withIgnored(probe, ignored);
+  return withIgnored(renamed(await layoutCore(strip(model, anchors), opts)), ignored);
+}
+
+async function layoutCore(model: Model, opts: LayoutOptions = {}): Promise<Scene> {
   const theme = opts.theme ?? model.theme;
   // A journey is a grid of stages and lanes with its own layout.
   if (model.kind === "journey") {
-    const grid = await journeyLayout(model, theme);
+    const laid = await journeyLayout(model, theme);
+    // Its stages and lanes place every step, so each rank, align and cols is reported unused.
+    const grid = laid && withIgnored(laid, planPlacement(model, hiddenOf(model)).ignored);
     if (grid) return model.skin === "stage" ? stageColors(grid) : grid;
   }
   const t = THEME_TOKENS[theme];
@@ -319,10 +552,18 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     "elk.layered.unnecessaryBendpoints": "true",
     "elk.layered.thoroughness": "12",
     ...Object.assign({}, ...HOOKS.map((h) => h.elkOptions?.(model) ?? {})),
+    ...(opts.wrap
+      ? {
+          "elk.layered.wrapping.strategy": opts.wrap,
+          "elk.aspectRatio": String(opts.ratio ?? 1),
+        }
+      : {}),
   };
   // Groups ELK never sees (pools and lanes): their members join the nearest group it lays out.
-  const hidden = new Set(HOOKS.flatMap((h) => [...(h.hiddenGroups?.(model) ?? [])]));
+  const hidden = hiddenOf(model);
   const order = new Map(HOOKS.flatMap((h) => [...(h.order?.(model) ?? [])]));
+  // rank, align and cols: what holds, and what the scene reports as ignored.
+  const plan = planPlacement(model, hidden);
 
   const nodeGeom = new Map<string, NodeGeom>();
   const groupGeom = new Map<string, GroupGeom>();
@@ -331,12 +572,16 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   for (const n of model.nodes) {
     const g = nodeGeometry(n, horizontal);
     nodeGeom.set(n.id, g);
+    const end = plan.blockOf.has(n.id) ? undefined : plan.ends.get(n.id);
     // Centered in its layer, so a column of different sizes shares one center line.
     const node: ElkNode = {
       id: n.id,
       width: g.w,
       height: g.h,
-      layoutOptions: { "elk.alignment": "CENTER" },
+      layoutOptions: {
+        "elk.alignment": "CENTER",
+        ...(end ? { [LAYER_CONSTRAINT]: end } : {}),
+      },
     };
     if (g.outside) {
       node.labels = [
@@ -412,6 +657,38 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       },
     });
   }
+  // align: the nodes that share a layer sit in an invisible compound with no edges inside, so ELK
+  // puts them all in its one layer, stacked across the flow in spec order. Edges between them are
+  // drawn after layout, and the compound is gone from the scene.
+  for (const id of plan.blocks.keys()) {
+    const end = plan.ends.get(id);
+    // An edge between two members is drawn between them. In a vertical flow it is a short level
+    // run with its label above it: the members sit far enough apart for the label and an arrow.
+    const room = Math.max(
+      Math.round(40 * s),
+      ...model.edges
+        .filter((e) => plan.blockOf.get(e.from) === id && plan.blockOf.get(e.to) === id)
+        .map((e) => {
+          if (horizontal) return 0;
+          const step = e.step !== undefined ? SIZES.step + 2 : 0;
+          const text = e.label
+            ? textBlock(e.label, SIZES.edgeLabel, SIZES.edgeLabelMax)
+            : undefined;
+          return Math.ceil((text ? text.width + 12 : 0) + step + 32);
+        }),
+    );
+    elkNodes.set(id, {
+      id,
+      children: [],
+      layoutOptions: {
+        ...base,
+        "elk.padding": "[top=0,left=0,bottom=0,right=0]",
+        "elk.alignment": "CENTER",
+        "elk.spacing.nodeNode": String(room),
+        ...(end ? { [LAYER_CONSTRAINT]: end } : {}),
+      },
+    });
+  }
 
   const titleBlock = model.title ? textBlock(model.title, SIZES.title, 1400, 600, 1.25) : undefined;
   const subtitleBlock = model.subtitle
@@ -433,12 +710,30 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     while (p && hidden.has(p)) p = model.groups.find((g) => g.id === p)?.parent;
     return p ? elkNodes.get(p) : root;
   };
-  // Children keep spec order: groups first, then nodes, each under its parent.
+  // Children keep spec order: groups first, then nodes, each under its parent. A grid's children
+  // wait for their cells; an aligned node goes into its block, which takes its first member's place.
+  const cells = new Map<string, string[]>();
   for (const item of [...model.groups, ...model.nodes]) {
     const el = elkNodes.get(item.id);
     if (!el) continue;
+    if (item.parent && plan.grids.has(item.parent)) {
+      cells.set(item.parent, [...(cells.get(item.parent) ?? []), item.id]);
+      continue;
+    }
+    const block = elkNodes.get(plan.blockOf.get(item.id) ?? "");
     const parent = host(item.parent);
-    (parent?.children ?? root.children)?.push(el);
+    if (block && !block.children?.length) {
+      const into = parent ?? root;
+      into.children?.push(block);
+      // A block sums its members' links, which misleads ELK's greedy cycle breaker into turning
+      // the main flow around; a depth-first walk in spec order keeps the back edges the author
+      // wrote as back edges (the model-order breakers crash elkjs 0.12 inside groups).
+      into.layoutOptions = {
+        ...into.layoutOptions,
+        "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
+      };
+    }
+    (block?.children ?? parent?.children ?? root.children)?.push(el);
   }
   // Spec-order hints along the cross axis for semi-interactive crossing minimization; a hook's
   // order (lanes) goes first, spec order breaks ties.
@@ -477,12 +772,52 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   const overlays = new Map(
     model.groups.filter((g) => g.around?.length).map((g) => [g.id, g.around ?? []]),
   );
+  // A grid (cols) is one fixed box to ELK, so an edge to anything in it, or between two of its
+  // cells, is routed after layout too; so is an edge between two nodes of one align block. An
+  // edge inside one child group of a grid belongs to that group's own ELK run.
+  const parentOf = new Map([...model.groups, ...model.nodes].map((x) => [x.id, x.parent]));
+  const above = (id: string): string[] => {
+    const out: string[] = [];
+    for (let p = parentOf.get(id); p; p = parentOf.get(p)) out.push(p);
+    return out;
+  };
+  const lowest = (a: string, b: string): string | undefined => {
+    const up = new Set([a, ...above(a)]);
+    return [b, ...above(b)].find((g) => up.has(g) && groupIds.has(g));
+  };
+  /** The child group of a grid an item sits in (itself included), innermost first. */
+  const cellOf = (id: string | undefined): string | undefined =>
+    id === undefined
+      ? undefined
+      : [id, ...above(id)].find((g) => groupIds.has(g) && plan.grids.has(parentOf.get(g) ?? ""));
+  const gridBetween = (e: ModelEdge): boolean => {
+    if (!plan.grids.size) return false;
+    const l = lowest(e.from, e.to);
+    if (l && plan.grids.has(l)) return true;
+    return [e.from, e.to].some((id) => {
+      if (id === l) return false;
+      for (const g of above(id)) {
+        if (g === l) return false;
+        if (plan.grids.has(g)) return true;
+      }
+      return false;
+    });
+  };
+  const inBlock = (e: ModelEdge) => {
+    const b = plan.blockOf.get(e.from);
+    return b !== undefined && b === plan.blockOf.get(e.to);
+  };
   const free = (e: ModelEdge) =>
     !e.constraint ||
     overlays.has(e.from) ||
     overlays.has(e.to) ||
     hidden.has(e.from) ||
-    hidden.has(e.to);
+    hidden.has(e.to) ||
+    inBlock(e) ||
+    gridBetween(e) ||
+    !!opts.loose?.has(e.id);
+  /** What stands for an item in the main graph: the outermost grid it is in, else itself. */
+  const rep = (id: string) => [id, ...above(id)].filter((g) => plan.grids.has(g)).at(-1) ?? id;
   /** The nodes a group ELK does not see stands for: an overlay's members, a lane's contents. */
   const inside = (id: string): string[] =>
     [...model.nodes, ...model.groups]
@@ -499,8 +834,10 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
         ? e.arrow === "end" || e.arrow === "both"
         : e.arrow === "start" || e.arrow === "both";
     // Flows of different kinds (a gateway's default and conditional branches) keep their own
-    // trunks, so their start markers do not overlap.
-    const id = `${nodeId}::${side}::${e.line}::${head ? 1 : 0}::${e.color ?? ""}${e.flow ? `::${e.flow}` : ""}`;
+    // trunks, so their start markers do not overlap. An edge to an align block keeps its own
+    // port: blocks close cycles, and a back edge sharing a trunk drags the forward edges with it.
+    const own = plan.blockOf.has(e.from) || plan.blockOf.has(e.to) ? `::${e.id}` : "";
+    const id = `${nodeId}::${side}::${e.line}::${head ? 1 : 0}::${e.color ?? ""}${e.flow ? `::${e.flow}` : ""}${own}`;
     el.ports ??= [];
     if (!el.ports.some((p) => p.id === id)) el.ports.push({ id, width: 0, height: 0 });
     el.layoutOptions = { ...el.layoutOptions, "elk.portConstraints": "FREE" };
@@ -512,12 +849,17 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     model.edges.filter((e) => !free(e) && (e.label || e.step !== undefined)).map((e) => e.from),
   );
   const edgeLabels = new Map<string, { block: TextBlock; w: number; h: number; stepW: number }>();
+  /** Edges inside one child group of a grid, by that group: its own ELK run routes them. */
+  const cellEdges = new Map<string, ElkEdge[]>();
   for (const e of model.edges) {
     if (free(e)) {
-      if (!e.constraint) continue;
+      // A loose back edge gets no copy: ELK would route the copy around the block again.
+      if (!e.constraint || inBlock(e) || opts.loose?.has(e.id)) continue;
+      // Grid cells are not in the main graph: the hidden copies run to the grid that holds them.
+      const ends = (id: string) => [...new Set(members(id).map(rep))];
       let i = 0;
-      for (const s of members(e.from))
-        for (const t of members(e.to))
+      for (const s of ends(e.from))
+        for (const t of ends(e.to))
           if (s !== t) root.edges?.push({ id: `${e.id}__via${i++}`, sources: [s], targets: [t] });
       continue;
     }
@@ -544,10 +886,111 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
         },
       ];
     }
-    root.edges?.push(elkEdge);
+    const cell = plan.grids.size ? cellOf(lowest(e.from, e.to)) : undefined;
+    if (cell) cellEdges.set(cell, [...(cellEdges.get(cell) ?? []), elkEdge]);
+    else root.edges?.push(elkEdge);
   }
 
-  let { graph: result, fallback } = await runElk(root);
+  // ELK rejects some first and last layer combinations (two such nodes linked through a group's
+  // border): lay out without them and report each.
+  const ranked = async (graph: ElkNode) => {
+    try {
+      return await runElk(graph);
+    } catch (err) {
+      const stripped = new Set<string>();
+      const strip = (n: ElkNode) => {
+        if (n.layoutOptions?.[LAYER_CONSTRAINT]) {
+          delete n.layoutOptions[LAYER_CONSTRAINT];
+          stripped.add(n.id);
+        }
+        for (const c of n.children ?? []) strip(c);
+      };
+      strip(graph);
+      if (!stripped.size) throw err;
+      for (const n of model.nodes)
+        if (
+          stripped.has(plan.blockOf.get(n.id) ?? n.id) &&
+          (n.rank === "first" || n.rank === "last")
+        )
+          plan.ignored.push({
+            subject: n.id,
+            setting: "rank",
+            reason: "the layout engine cannot keep it there with its links",
+          });
+      return runElk(graph);
+    }
+  };
+
+  // Grids, innermost first: each child group is laid out on its own, then the grid becomes one
+  // box of fixed size whose cells are filled in after ELK.
+  const gridPlans = new Map<string, { cells: GridCell[]; at: Point[]; w: number; top: number }>();
+  const cellRuns = new Map<string, ElkNode>();
+  for (const gid of [...plan.grids.keys()].sort((a, b) => above(b).length - above(a).length)) {
+    const el = elkNodes.get(gid);
+    const gg = groupGeom.get(gid);
+    if (!el || !gg) continue;
+    const list: GridCell[] = [];
+    for (const id of cells.get(gid) ?? []) {
+      const g = nodeGeom.get(id);
+      if (g) {
+        const w = Math.max(g.w, g.outside?.w ?? 0);
+        const h = g.h + (g.outside ? 6 + g.outside.h : 0);
+        list.push({ id, w, h, box: { x: (w - g.w) / 2, y: 0, w: g.w, h: g.h } });
+        continue;
+      }
+      const child = elkNodes.get(id);
+      if (!child) continue;
+      if (!plan.grids.has(id) && child.children?.length) {
+        const run: ElkNode = {
+          id: `__cell:${id}`,
+          layoutOptions: { ...base, "elk.padding": "[top=0,left=0,bottom=0,right=0]" },
+          children: [child],
+          edges: cellEdges.get(id) ?? [],
+        };
+        const { graph } = await ranked(run);
+        const laid = graph.children?.[0];
+        if (laid) {
+          cellRuns.set(id, graph);
+          child.width = laid.width;
+          child.height = laid.height;
+        }
+      }
+      const w = child.width ?? 0;
+      const h = child.height ?? 0;
+      list.push({ id, w, h, box: { x: 0, y: 0, w, h } });
+    }
+    if (!list.length) continue;
+    // Edges between cells are drawn in the gaps, a level run with its label above it or a
+    // vertical one with the label beside it: the gaps fit the widest of those labels.
+    const inner = new Set(list.map((c) => c.id));
+    const cellOfGrid = (id: string) => [id, ...above(id)].find((x) => inner.has(x));
+    const labels = model.edges
+      .filter((e) => {
+        const [f, t] = [cellOfGrid(e.from), cellOfGrid(e.to)];
+        return f && t && f !== t && (e.label || e.step !== undefined);
+      })
+      .map((e) => {
+        const text = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+        const step = e.step !== undefined ? SIZES.step + 2 : 0;
+        return { w: (e.label ? text.width + 12 : 0) + step, h: Math.max(text.height + 6, step) };
+      });
+    const gap = Math.round(Math.max(40 * s, ...labels.map((l) => (horizontal ? l.h : l.w) + 32)));
+    const grid = gridCells(list, plan.grids.get(gid) ?? 1, gap);
+    const top = gg.header + 18 + (opts.room?.get(gid) ?? 0);
+    const position = el.layoutOptions?.["elk.position"];
+    Object.assign(el, {
+      width: Math.max(minWidthOf(gid, gg), grid.w + 40),
+      height: Math.max(gg.header + 60, top + grid.h + 20),
+      children: [],
+      layoutOptions: {
+        "elk.alignment": horizontal ? "CENTER" : "TOP",
+        ...(position ? { "elk.position": position } : {}),
+      },
+    });
+    gridPlans.set(gid, { cells: list, at: grid.at, w: grid.w, top });
+  }
+
+  let { graph: result, fallback } = await ranked(root);
   // Spec order holds wherever it costs no crossing: when the ordered layout crosses edges, the
   // nodes at the ends of those edges (never groups) may reorder, and fewer crossings win.
   const strict = crossings(result);
@@ -561,6 +1004,52 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     unpin(free);
     const alt = await runElk(free);
     if (crossings(alt.graph).count < strict.count) ({ graph: result, fallback } = alt);
+  }
+  // Fill each grid's cells, outermost first (an inner grid is placed with its cell), then drop the
+  // align blocks, so the rest of layout sees plain nodes, groups and edges.
+  for (const gid of [...gridPlans.keys()].sort((a, b) => above(a).length - above(b).length)) {
+    const el = findNode(result, gid);
+    const gp = gridPlans.get(gid);
+    if (!el || !gp) continue;
+    const ox = (el.x ?? 0) + ((el.width ?? 0) - gp.w) / 2;
+    const oy = (el.y ?? 0) + gp.top;
+    el.children = gp.cells.map((c, i): ElkNode => {
+      const at = gp.at[i] ?? { x: 0, y: 0 };
+      const x = round(ox + at.x + c.box.x);
+      const y = round(oy + at.y + c.box.y);
+      const g = nodeGeom.get(c.id);
+      if (g?.outside)
+        return {
+          id: c.id,
+          x,
+          y,
+          width: c.box.w,
+          height: c.box.h,
+          labels: [
+            {
+              id: `${c.id}__label`,
+              text: " ",
+              x: round(x + (c.box.w - g.outside.w) / 2),
+              y: y + c.box.h + 6,
+              width: g.outside.w,
+              height: g.outside.h,
+            },
+          ],
+        };
+      const run = cellRuns.get(c.id);
+      const laid = run?.children?.[0];
+      if (!run || !laid) return { id: c.id, x, y, width: c.box.w, height: c.box.h };
+      laid.edges = run.edges ?? [];
+      return moveElk(laid, x - (laid.x ?? 0), y - (laid.y ?? 0));
+    });
+  }
+  if (plan.blocks.size) {
+    const hoist = (n: ElkNode) => {
+      if (!n.children) return;
+      n.children = n.children.flatMap((c) => (plan.blocks.has(c.id) ? (c.children ?? []) : [c]));
+      for (const c of n.children) hoist(c);
+    };
+    hoist(result);
   }
 
   // ------------------------------------------------------------- scene
@@ -983,10 +1472,8 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     const nd = nodes.find((x) => x.id === id);
     if (nd) {
       const side = nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
-      return {
-        side,
-        full: union([nd.box, nd.iconBox, nd.labelBox, nd.noteBox]),
-      };
+      const parts = [nd.box, nd.iconBox, nd.labelBox, nd.noteBox].filter((b): b is Box => !!b);
+      return { side, full: union(parts), parts };
     }
     const g = groups.find((x) => x.id === id);
     if (!g) return undefined;
@@ -1015,23 +1502,185 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
       return Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
     });
   };
+  /**
+   * Every segment of a candidate stays off the lines other free edges claimed. Edges that share a
+   * node may share a trunk; a new route (block, grid) shares no run with any line.
+   */
+  const unclaimed = (points: Point[], e: ModelEdge, strict = false): boolean =>
+    points.slice(1).every((q, i) => {
+      const p = points[i] ?? q;
+      const v = Math.abs(p.x - q.x) < 0.5;
+      const at = v ? p.x : p.y;
+      const [a0 = 0, a1 = 0] = (v ? [p.y, q.y] : [p.x, q.x]).sort((m, n) => m - n);
+      return !claimed.some((c) => {
+        if ((related(c.e, e) && !strict) || c.e === e || Math.abs(c.p.x - c.q.x) < 0.5 !== v)
+          return false;
+        if (Math.abs((v ? c.p.x : c.p.y) - at) >= 6) return false;
+        const [b0 = 0, b1 = 0] = (v ? [c.p.y, c.q.y] : [c.p.x, c.q.x]).sort((m, n) => m - n);
+        return Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
+      });
+    });
+  // What a free edge must not run through: each node it does not connect, with its text, the
+  // group headers (an overlay it ends on steers clear itself), and the labels and steps of the
+  // edges ELK routed.
+  const elkMarks = model.edges.flatMap((e) => {
+    const lab = edgeLabels.get(e.id);
+    const at = free(e) || !lab ? undefined : findEdge(result, e.id)?.labels?.[0];
+    return at?.x === undefined || at.y === undefined
+      ? []
+      : [
+          {
+            id: e.id,
+            box: { x: round(at.x), y: round(at.y + top), w: lab?.w ?? 0, h: lab?.h ?? 0 },
+          },
+        ];
+  });
+  const headers = groups.flatMap((g) => {
+    const parts = [g.label.lines.length ? g.labelBox : undefined, g.iconBox].filter(
+      (b): b is Box => !!b && b.w > 0 && b.h > 0,
+    );
+    if (!parts.length) return [];
+    const u = union(parts);
+    return [{ id: g.id, box: { x: u.x - 4, y: u.y - 1, w: u.w + 8, h: u.h + 2 } }];
+  });
+  const ends = (e: ModelEdge) => nodes.filter((n) => n.id === e.from || n.id === e.to);
+  const others = (e: ModelEdge): Box[] => [
+    ...nodes
+      .filter((n) => n.id !== e.from && n.id !== e.to)
+      .map((n) => union([n.box, n.iconBox, n.labelBox, n.noteBox])),
+    ...headers
+      .filter((h) => !(overlays.has(h.id) && (h.id === e.from || h.id === e.to)))
+      .map((h) => h.box),
+    ...elkMarks.filter((m) => m.id !== e.id).map((m) => m.box),
+  ];
+  // Its own ends too, piece by piece and without a margin: a line arriving from outside only
+  // touches them, one that runs through its own node does not.
+  const own = (e: ModelEdge): Box[] =>
+    ends(e).flatMap((n) => [n.box, n.labelBox, n.noteBox].filter((b): b is Box => !!b && b.w > 0));
+  const walls = (e: ModelEdge): Box[] => [...others(e), ...own(e)];
+  /** Walls with a margin, for new routes: 4px off text and headers, 10px off node boxes (DG221). */
+  const roomyWalls = (e: ModelEdge): Box[] => [
+    ...others(e).map((b) => ({ x: b.x - 4, y: b.y - 4, w: b.w + 8, h: b.h + 8 })),
+    ...nodes
+      .filter((n) => n.id !== e.from && n.id !== e.to)
+      .map((n) => ({ x: n.box.x - 10, y: n.box.y - 10, w: n.box.w + 20, h: n.box.h + 20 })),
+    ...own(e),
+  ];
+  const borders = groups.filter((g) => !g.overlay).map((g) => g.box);
+  const elkRoute = (e: ModelEdge) => {
+    const sec = free(e) ? undefined : findEdge(result, e.id)?.sections?.[0];
+    return sec
+      ? dropStraightPoints([sec.startPoint, ...(sec.bendPoints ?? []), sec.endPoint].map(shift))
+      : undefined;
+  };
+  /** The lines ELK drew, which a new free route must not run on top of. */
+  const elkLines =
+    plan.blocks.size || plan.grids.size || opts.loose
+      ? model.edges.flatMap((o) => {
+          const pts = elkRoute(o);
+          return pts ? pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q })) : [];
+        })
+      : [];
   for (const straight of [true, false]) {
     for (const e of model.edges) {
       const a = attachBox(e.from);
       const b = attachBox(e.to);
       if (!free(e) || !a || !b) continue;
-      const route = (d: number) =>
-        steer(steer(freeRoute(a, b, d), "to", b.avoid, b.full), "from", a.avoid, a.full);
+      const steered = (p: Point[]) =>
+        steer(steer(p, "to", b.avoid, b.full), "from", a.avoid, a.full);
+      const route = (d: number) => steered(freeRoute(a, b, d));
       let points = route(0);
       if ((points.length === 2) !== straight) continue;
-      if (!straight)
-        points = [0, 12, -12, 24, -24, 36, -36].map(route).find((p) => fits(p, e)) ?? points;
+      const shifts = [0, 12, -12, 24, -24, 36, -36].map(route);
+      if (!straight) points = shifts.find((p) => fits(p, e)) ?? points;
+      // An edge that was free before rank, align and cols keeps today's route when it clears
+      // everything. Otherwise the first lane clear of the walls with a margin, off group borders
+      // and off ELK's lines wins, then a detour around them, then any lane that clears the walls.
+      const w = walls(e);
+      const known = !inBlock(e) && !gridBetween(e) && !opts.loose?.has(e.id);
+      if (!known || runsThrough(points, w)) {
+        const roomy = roomyWalls(e);
+        const heads = {
+          start: e.arrow === "start" || e.arrow === "both",
+          end: e.arrow !== "none" && e.arrow !== "start",
+        };
+        const lanes = [
+          ...(straight ? [points] : shifts.filter((p) => fits(p, e))),
+          ...laneRoutes(a, b, heads, borders, horizontal).map(steered),
+        ].filter(
+          (p) =>
+            unclaimed(p, e, !known) &&
+            !elkLines.some((c) => collinear(p, c.p, c.q)) &&
+            (known || headRoom(p, heads)),
+        );
+        // The detour treats the lines already drawn like borders: it may cross them, not run on them.
+        const drawn = [...claimed.filter((c) => c.e !== e), ...elkLines].map((c) => ({
+          x: Math.min(c.p.x, c.q.x),
+          y: Math.min(c.p.y, c.q.y),
+          w: Math.abs(c.q.x - c.p.x),
+          h: Math.abs(c.q.y - c.p.y),
+        }));
+        const taken = [...claimed.filter((c) => c.e !== e), ...elkLines].flatMap((c) => [c.p, c.q]);
+        const around = () => {
+          const path = detour(a, b, roomy, [...borders, ...drawn], taken);
+          return path && !runsThrough(steered(path), w) ? steered(path) : undefined;
+        };
+        points =
+          lanes.find((p) => !runsThrough(p, roomy) && !alongBorder(p, borders)) ??
+          around() ??
+          lanes.find((p) => !runsThrough(p, w)) ??
+          points;
+      }
       freeRoutes.set(e.id, points);
       claimed.push(...points.slice(1).map((q, i) => ({ e, p: points[i] ?? q, q })));
     }
   }
+  // ELK takes a back edge into or out of an align block around the whole block, often right on a
+  // group border. A shorter route clear of the walls with a margin, off the borders and off every
+  // other line replaces it, its label placed like a free edge's; the second pass then lays out
+  // without it, so the loop's room goes too.
+  const rerouted = new Set<string>();
+  if (plan.blocks.size) {
+    const length = (pts: Point[]) =>
+      pts
+        .slice(1)
+        .reduce(
+          (t, q, i) => t + Math.abs(q.x - (pts[i]?.x ?? q.x)) + Math.abs(q.y - (pts[i]?.y ?? q.y)),
+          0,
+        );
+    for (const e of model.edges) {
+      const elk = plan.blockOf.has(e.from) || plan.blockOf.has(e.to) ? elkRoute(e) : undefined;
+      const a = attachBox(e.from);
+      const b = attachBox(e.to);
+      if (!elk || !a || !b || elk.length < 3) continue;
+      // A loop (four bends) or a run along a border gives way to any shorter clear route, a
+      // plain elbow only to one under 0.7 of its length.
+      const loop = elk.length >= 6 || alongBorder(elk, borders);
+      const most = length(elk) * (loop ? 1 : 0.7);
+      const roomy = roomyWalls(e);
+      const others = model.edges.flatMap((o) => {
+        const pts = o === e ? undefined : (freeRoutes.get(o.id) ?? elkRoute(o));
+        return pts ? pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q })) : [];
+      });
+      const clear = (pts: Point[]) =>
+        !runsThrough(pts, roomy) &&
+        !alongBorder(pts, borders) &&
+        length(pts) < most &&
+        others.every((c) => !collinear(pts, c.p, c.q));
+      const heads = {
+        start: e.arrow === "start" || e.arrow === "both",
+        end: e.arrow !== "none" && e.arrow !== "start",
+      };
+      const better =
+        [freeRoute(a, b, 0), ...laneRoutes(a, b, heads, borders, horizontal)].find(clear) ??
+        [detour(a, b, roomy, borders)].find((p): p is Point[] => !!p && clear(p));
+      if (!better) continue;
+      freeRoutes.set(e.id, better);
+      rerouted.add(e.id);
+    }
+  }
   for (const e of model.edges) {
-    if (free(e)) {
+    if (free(e) || rerouted.has(e.id)) {
       const points = freeRoutes.get(e.id);
       if (points)
         edges.push({
@@ -1114,15 +1763,26 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
   const footprints = nodes.map((n) => union([n.box, n.iconBox, n.labelBox, n.noteBox]));
   for (const e of model.edges) {
     const edge = edges.find((x) => x.id === e.id);
-    if (!free(e) || !edge || (!e.label && e.step === undefined)) continue;
+    if (!(free(e) || rerouted.has(e.id)) || !edge || (!e.label && e.step === undefined)) continue;
     const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
     const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
     const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
     const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
+    // Edges routed after ELK since rank, align and cols also keep their label off group borders.
+    const fresh = inBlock(e) || gridBetween(e) || rerouted.has(e.id) || !!opts.loose?.has(e.id);
     const box = freeLabelBox(edge.points, w, h, [
       ...footprints,
       ...edges.flatMap((x) => [x.labelBox, x.stepBox]),
       ...groups.map((g) => g.labelBox),
+      ...(fresh ? nodes.map((n) => n.badgeBox) : []),
+      ...(fresh
+        ? groups.flatMap((g) => [
+            { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
+            { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
+            { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
+            { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 },
+          ])
+        : []),
     ]);
     if (e.step !== undefined)
       edge.stepBox = {
@@ -1220,11 +1880,12 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     }
   }
   const wider = !horizontal && widen.length > 0;
-  if (!opts.widen && !opts.room && (wider || room.size))
-    return layout(model, {
+  if (!opts.widen && !opts.room && !opts.loose && (wider || room.size || rerouted.size))
+    return layoutCore(model, {
       ...opts,
       widen: wider ? new Set(widen) : undefined,
       room: room.size ? room : undefined,
+      loose: rerouted.size ? rerouted : undefined,
     });
 
   // Overlay legends (a tile on the top border) and free-edge labels are placed after ELK and can
@@ -1331,6 +1992,7 @@ export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Sc
     description: describe(model),
     kind: model.kind,
     ...(model.story ? { story: model.story } : {}),
+    ...(plan.ignored.length ? { ignored: plan.ignored } : {}),
   };
   // The skin only recolors: every box and point above is the same for classic and stage.
   return model.skin === "stage" ? stageColors(scene) : scene;
@@ -1562,6 +2224,8 @@ interface Attach {
   full: Box;
   /** An overlay's header (tile and label) on its border: a line ends beside it, not under it. */
   avoid?: Box;
+  /** What is drawn at a node end (icon, label, note), for the detour router. */
+  parts?: Box[];
 }
 
 const contains = (outer: Box, b: Box): boolean =>
@@ -1733,6 +2397,33 @@ function dropStraightPoints(points: Point[]): Point[] {
   return out.length >= 2 ? out : points;
 }
 
+/** A straight run of 16px in front of each arrowhead, so the head does not sit on a bend. */
+function headRoom(points: Point[], heads: { start: boolean; end: boolean }): boolean {
+  const run = (p: Point | undefined, q: Point | undefined) =>
+    p && q ? Math.abs(p.x - q.x) + Math.abs(p.y - q.y) : 0;
+  const n = points.length;
+  return (
+    n < 3 ||
+    ((!heads.start || run(points[0], points[1]) >= 16) &&
+      (!heads.end || run(points[n - 2], points[n - 1]) >= 16))
+  );
+}
+
+/** Whether a segment of the path runs on top of segment pq (parallel, within 6px, overlapping). */
+function collinear(points: Point[], p: Point, q: Point): boolean {
+  const v = Math.abs(p.x - q.x) < 0.5;
+  if (!v && Math.abs(p.y - q.y) >= 0.5) return false;
+  const at = v ? p.x : p.y;
+  const [b0, b1] = (v ? [p.y, q.y] : [p.x, q.x]).sort((m, n) => m - n);
+  return points.slice(1).some((s, i) => {
+    const r = points[i] ?? s;
+    if (Math.abs(r.x - s.x) < 0.5 !== v || (!v && Math.abs(r.y - s.y) >= 0.5)) return false;
+    if (Math.abs((v ? r.x : r.y) - at) >= 6) return false;
+    const [a0, a1] = (v ? [r.y, s.y] : [r.x, s.x]).sort((m, n) => m - n);
+    return Math.min(a1 ?? 0, b1 ?? 0) - Math.max(a0 ?? 0, b0 ?? 0) > 0.5;
+  });
+}
+
 function midpoint(points: Point[]): Point {
   const i = Math.max(0, Math.floor((points.length - 1) / 2));
   const a = points[i] ?? { x: 0, y: 0 };
@@ -1772,6 +2463,40 @@ function freeLabelBox(points: Point[], w: number, h: number, avoid: (Box | undef
   return pick(inside({ x: p.x + 6, y, w, h }), inside({ x: p.x - 6 - w, y, w, h }));
 }
 
+function findNode(n: ElkNode, id: string): ElkNode | undefined {
+  if (n.id === id) return n;
+  for (const c of n.children ?? []) {
+    const f = findNode(c, id);
+    if (f) return f;
+  }
+  return undefined;
+}
+
+/** Moves a laid-out ELK node with everything in it: children, labels, ports and edges. */
+function moveElk(n: ElkNode, dx: number, dy: number): ElkNode {
+  const at = <T extends { x?: number; y?: number }>(p: T): T => ({
+    ...p,
+    x: round((p.x ?? 0) + dx),
+    y: round((p.y ?? 0) + dy),
+  });
+  const pt = (p: Point): Point => ({ x: round(p.x + dx), y: round(p.y + dy) });
+  return {
+    ...at(n),
+    labels: n.labels?.map(at),
+    ports: n.ports?.map(at),
+    children: n.children?.map((c) => moveElk(c, dx, dy)),
+    edges: n.edges?.map((e) => ({
+      ...e,
+      labels: e.labels?.map(at),
+      sections: e.sections?.map((s) => ({
+        startPoint: pt(s.startPoint),
+        endPoint: pt(s.endPoint),
+        bendPoints: s.bendPoints?.map(pt),
+      })),
+    })),
+  };
+}
+
 function findEdge(n: ElkNode, id: string): ElkEdge | undefined {
   for (const e of n.edges ?? []) if (e.id === id) return e;
   for (const c of n.children ?? []) {
@@ -1785,7 +2510,8 @@ function findEdge(n: ElkNode, id: string): ElkEdge | undefined {
  * ELK occasionally throws on unusual graphs; retry with simpler placement strategies before
  * giving up. `fallback` names the strategy that worked when it was not the first.
  */
-// Every theme (and review's extra one) lays out the same graph, so ELK runs once per graph.
+// Every theme (and review's extra one) lays out the same graph, so ELK runs once per graph. An
+// aspect search lays out six candidates, each with its own passes, so the cache keeps 64 runs.
 const elkRuns = new Map<string, Promise<{ graph: ElkNode; fallback?: string }>>();
 
 async function runElk(root: ElkNode): Promise<{ graph: ElkNode; fallback?: string }> {
@@ -1795,7 +2521,7 @@ async function runElk(root: ElkNode): Promise<{ graph: ElkNode; fallback?: strin
     run = runElkUncached(root);
     elkRuns.set(key, run);
     run.catch(() => elkRuns.delete(key));
-    if (elkRuns.size > 16) {
+    if (elkRuns.size > 64) {
       const oldest = elkRuns.keys().next().value;
       if (oldest !== undefined) elkRuns.delete(oldest);
     }

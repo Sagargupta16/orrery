@@ -68,7 +68,7 @@ edges:
   - router --- vpn: IPsec
   - vpn --- tgw-east: VPN attachment
   # The two Regions sit side by side; constraint: false keeps the peering link from stacking them.
-  - { from: tgw-east, to: tgw-west, arrow: none, label: inter-Region peering, constraint: false }
+  - { from: tgw-east, to: tgw-west, arrow: none, constraint: false }
   - tgw-east -- nfw-east: inspection
   - tgw-east -- dns-east
   - tgw-west -- nfw-west: inspection

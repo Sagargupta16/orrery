@@ -54,6 +54,11 @@ npx -y @sagargupta1610/skillcheck lint skills
 - `src/render/*.ts` -- svg, png, drawio, tsx, html; `stage.ts` is the stage skin's renderer and story planner
 - `src/hooks.ts` -- the extension points layout() calls; each diagram kind lives in its own module: `src/lanes.ts` + `src/render/lanes.ts` (pools and swimlanes), `src/kinds.ts` (tree, mindmap, state), `src/notation.ts` + `src/render/notation.ts` (BPMN and flowchart symbols, flow markers), `src/journey.ts` + `src/render/journey.ts` (journey grids, their own layout)
 - `src/local-icons.ts` -- `icons:` SVG files: reader, sanitizer, `icons new|check|adopt` and rules IC01..IC10 (references/icons.md)
+- `src/patch.ts` -- the review loop's patch ops applied to the YAML text by splicing at parsed positions (comments and formatting stay byte for byte), and `tryCandidates`/`orrery patch` (every candidate reviewed on its own copy, kept by `improves()`)
+- `src/mcp.ts` -- `orrery mcp`: hand-written JSON-RPC over stdio and stateless HTTP on 127.0.0.1, nine tools; MCP `2026-07-28` per-request versions plus the `2025-11-25` and older handshake
+- `src/doc.ts` + `src/docx.ts` -- `orrery doc`: Markdown with figure markers to HTML, Markdown plus figure files, or Word (own OOXML and zip writer, byte-reproducible)
+- `src/watch.ts` -- `orrery watch`: one fs.watch per file (spec plus its local icons), re-armed after rename saves
+- `agents/*.md`, `commands/*.md`, `hooks/` -- planner, diagram-author, patch-proposer and four reviewers (conventions, flow, legibility, accuracy); `/orrery:review`, `/orrery:draw`, `/orrery:doc`; a PostToolUse hook that validates a spec after Write or Edit (`hooks/validate-spec.mjs`, uses the bundled CLI)
 - `scripts/sync-icons.mjs` -- official packs -> `skills/orrery/assets/icons/*.json`; npm-published sets get only index rows and a `lib` pin
 - `src/review.ts` -- `orrery review`: six scored dimensions at a display width; overlap findings map from `checkScene` diagnostics, so geometry rules live once in `src/check.ts`
 - `agents/*.md`, `commands/review.md` -- the three read-only reviewer agents and `/orrery:review`; their rubrics and the loop protocol are in `skills/orrery/references/review/`
@@ -85,6 +90,9 @@ npx -y @sagargupta1610/skillcheck lint skills
 - `local:<name>` icons exist only after `loadLocalIcons(model)`, which renderModel runs before layout; parseSpec resolves `icons:` paths against the spec file's folder, so pass it the real path.
 - Hooks run in `HOOKS` order: lanes, then kinds, then notation (`fitNotationEnds` moves edge ends from a box onto the drawn outline, so it must run after anything that reroutes). Pool and lane groups are hidden from ELK (`hiddenGroups`) and placed as bands in `after`; a hook that redraws edges as curves sets `AfterLayout.routing`, never `model.routing` (the model is shared by both themes).
 - ELK `mrtree` throws on the free ports layout() makes when `merge` is on ("Label and node size calculator can only be used with ports that have port sides assigned"), and `fixed` needs edge sections: trees and mind maps keep `layered` with `elk.nodeSize.fixedGraphSize` and kinds.ts places every node itself.
+- Command placeholders count from 0 (`$0` is the first argument) and an unmatched `$N` stays in the text verbatim; the commands use named `arguments:` (`$spec`, `$width`) or the whole `$ARGUMENTS`. Never write `$1` for the first argument.
+- `src/patch.ts`, `src/mcp.ts`, `src/doc.ts` and `src/watch.ts` import helpers from `src/cli.ts`, which imports them back; that cycle is fine because nothing runs at import time. Keep it that way.
+- `orrery review` writes `<base>.review.look.png` (scaled to fit 1568 x 1568) only when the display PNG is larger; the agents and loop.md read that name.
 - SVGs animate by default (`animate: packets` for classic, `relay` for stage, SMIL). PNG and draw.io always get a still scene (`animate: "none"`); keep it that way, resvg would draw packets at the origin.
 
 ## Repo-specific rules

@@ -33,9 +33,15 @@ const CATEGORIES = [
   ["azure", "Azure", (n) => n.startsWith("azure-")],
   ["gcp", "Google Cloud", (n) => n.startsWith("gcp-")],
   ["ibm", "IBM Cloud", (n) => n.startsWith("ibm-")],
-  ["kubernetes", "Kubernetes", (n, packs) => packs.includes("k8s") || /k8s|kubernetes|aks|gke/.test(n)],
-  ["ai", "AI and ML", (n) => /rag|ml|genai|vertex|agent|openai/.test(n)],
-  ["data", "Data", (n) => /data|lake|streaming-analytics/.test(n)],
+  ["kubernetes", "Kubernetes", (n, packs) => packs.includes("k8s") || /k8s|kubernetes|aks|gke|eks/.test(n)],
+  ["ai", "AI and ML", (n) => /rag|ml|genai|vertex|agent|openai|llm|sagemaker|multitenant/.test(n)],
+  ["data", "Data", (n) => /data|lake|streaming-analytics|iot-analytics/.test(n)],
+  [
+    "security",
+    "Security and resilience",
+    (n) => /threat|central-logging|backup|multi-region-dr|network-inspection|org-ou-tree/.test(n),
+  ],
+  ["network", "Networking", (n) => /network|hub-spoke|landing-zone/.test(n)],
   ["devops", "CI/CD and ops", (n) => /cicd|gitops|observability/.test(n)],
   ["system-design", "System design", (n) => n.startsWith("system-design-") || n === "c4-container"],
   [
@@ -44,7 +50,7 @@ const CATEGORIES = [
     (n) => /^(flowchart|process|swimlane|state|tree|mindmap|journey|local-icons)-/.test(n),
   ],
   ["multi-cloud", "Multi-cloud", (n) => n === "multi-cloud"],
-  ["web", "Web apps", (n) => /web|three-tier|serverless|starter|modern/.test(n)],
+  ["web", "Web apps", (n) => /web|three-tier|serverless|starter|modern|ecommerce|media/.test(n)],
 ];
 
 // Captions and alt text come from examples/README.md, which already describes every example.

@@ -98,6 +98,23 @@ for (const f of ["plugin.json", "gemini-extension.json"]) {
   const v = JSON.parse(readFileSync(join(root, f), "utf8")).version;
   if (v !== pkg.version) fail(f, `version ${v} != package.json ${pkg.version}`);
 }
+// Example counts quoted in the manifests and docs follow the examples folder.
+const exampleCount = files.filter((f) => /^skills\/orrery\/examples\/[^/]+\.ya?ml$/.test(f)).length;
+for (const f of [
+  "plugin.json",
+  ".claude-plugin/plugin.json",
+  ".claude-plugin/marketplace.json",
+  "gemini-extension.json",
+  "package.json",
+  "README.md",
+  "examples/README.md",
+  "skills/orrery/SKILL.md",
+]) {
+  const text = readFileSync(join(root, f), "utf8");
+  for (const m of text.matchAll(/\b(\d+) (?:reference )?(?:architectures|diagrams)\b/g))
+    if (Number(m[1]) !== exampleCount)
+      fail(f, `says "${m[0]}" but skills/orrery/examples has ${exampleCount} specs`);
+}
 const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
 const top = changelog.match(/^## \[([^\]]+)\] - (\d{4}-\d{2}-\d{2})/m);
 if (!top) fail("CHANGELOG.md", 'top entry must be "## [x.y.z] - YYYY-MM-DD"');

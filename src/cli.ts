@@ -32,7 +32,7 @@ import {
 import { cmdMcp } from "./mcp.ts";
 import { cmdPatch } from "./patch.ts";
 import { examplesDir, skillRoot } from "./paths.ts";
-import { FORMATS, type Format, renderModel } from "./render/index.ts";
+import { FORMATS, type Format, formatOf, renderModel } from "./render/index.ts";
 import { renderPng } from "./render/png.ts";
 import { DEFAULT_REVIEW_WIDTH, formatReview, reviewModel } from "./review.ts";
 import { distance, parseSpec } from "./spec.ts";
@@ -55,7 +55,7 @@ const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "dev";
 const HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
-  orrery render <spec.yaml> [-o out] [-f svg,png,drawio,tsx,html|all] [--theme light|dark|both]
+  orrery render <spec.yaml> [-o out] [-f svg,png,drawio,drawio.svg,tsx,html|all] [--theme light|dark|both]
                     [--scale 3] [--skin classic|stage] [--animate packets|flow|relay|none]
                     [--static] [--font extra.ttf]
                     [--strict] [--force] [--json]
@@ -70,9 +70,12 @@ Usage:
   orrery icons new <name> [--dir icons] [--force]
   orrery icons check <icon.svg> [-o sheet.png]
   orrery icons adopt <file.svg> --name <name> [--dir icons] [--force]
-  orrery watch <spec.yaml> [-o out] [-f svg,png] [--theme dark] [--skin stage] [--review]
-  orrery patch <spec.yaml> <candidates.json|-> [-o best.yaml] [--width 880] [--theme dark] [--json]
+  orrery watch <spec.yaml> [-o out] [-f svg,png] [--theme dark] [--skin stage] [--animate ...]
+                    [--scale 3] [--review] [--width 880]
+  orrery patch <spec.yaml> <candidates.json|-> [-o best.yaml] [--width 880] [--theme dark]
+                    [--skin classic|stage] [--json]
   orrery doc <design.md> [-o out.html|out.md|out.docx] [-f html,md,docx] [--theme light]
+                    [--skin classic|stage]
   orrery mcp [--port 8765]
   orrery styles [--json]
   orrery import mermaid <flowchart.mmd|-> [-o diagram.yaml]
@@ -262,7 +265,7 @@ async function cmdRender(args: Args, validateOnly: boolean) {
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : undefined;
   let formats: Format[];
   const fmtFlag = typeof args.flags.format === "string" ? args.flags.format : undefined;
-  const outExt = outFlag ? extname(outFlag).slice(1).toLowerCase() : "";
+  const outExt = outFlag ? (formatOf(outFlag) ?? extname(outFlag).slice(1).toLowerCase()) : "";
   if (fmtFlag) {
     formats =
       fmtFlag === "all" ? [...FORMATS] : (fmtFlag.split(",").map((f) => f.trim()) as Format[]);
@@ -747,10 +750,15 @@ async function cmdReview(args: Args) {
   }
   writeAtomic(`${base}.review.json`, `${JSON.stringify(run.report, null, 2)}\n`);
   if (run.png) writeAtomic(`${base}.review.png`, run.png);
+  // A display PNG over 1568 px a side also gets a copy that fits, for reviewers that view images.
+  if (run.look) writeAtomic(`${base}.review.look.png`, run.look);
+  const pngs = [run.png && `${base}.review.png`, run.look && `${base}.review.look.png`].filter(
+    Boolean,
+  );
   if (args.flags.json === true) process.stdout.write(`${JSON.stringify(run.report, null, 2)}\n`);
   else
     process.stdout.write(
-      `${formatReview(run.report)}\n\nwrote ${base}.review.json${run.png ? ` and ${base}.review.png` : ""}\n`,
+      `${formatReview(run.report)}\n\nwrote ${[`${base}.review.json`, ...pngs].join(", ")}\n`,
     );
   // The report carries the verdict; --strict turns a failing review into a failing exit code.
   process.exitCode = args.flags.strict === true && !run.report.pass ? 1 : 0;

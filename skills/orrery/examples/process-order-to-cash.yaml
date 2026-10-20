@@ -44,7 +44,7 @@ edges:
   - split -> pick -> ship -> join
   - split -> invoice -> payment -> join
   - join -> closed
-  - place -> received: { flow: message, label: Purchase order }
+  - place -> received: { flow: message, label: Order }
   - invoice -> pay: { flow: message, label: Invoice }
   - pay -> payment: { flow: message, label: Payment }
   - ship -> receive: { flow: message, label: Goods }

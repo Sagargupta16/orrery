@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: IoT streaming analytics on AWS
+subtitle: Sensor telemetry flows through AWS IoT Core into Amazon Kinesis Data Streams, which feeds real-time alerts, a data lake and a time-series store
+direction: down
+
+groups:
+  # Greengrass runs on a gateway at the site, outside the AWS Cloud.
+  site: { type: aws:iot-greengrass, label: Factory site }
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  ingestion: { type: zone, label: Ingestion, in: region }
+  realtime: { type: zone, label: Real time, in: region }
+  storage: { type: zone, label: Storage, in: region }
+  timeseries: { type: zone, label: Time series, in: region }
+  insights: { type: zone, label: Insights, in: region }
+
+nodes:
+  sensors: { icon: aws:iot-thing-generic, label: Sensors, note: Device fleet, in: site }
+  greengrass: { icon: aws:iot-greengrass, label: AWS IoT Greengrass, note: Gateway core device, in: site }
+  iotcore: { icon: aws:iot-core, label: AWS IoT Core, note: MQTT broker and rules, in: ingestion }
+  stream: { icon: aws:kinesis-data-streams, label: Amazon Kinesis Data Streams, note: Telemetry stream, in: ingestion }
+  flink: { icon: aws:flink, label: Anomaly detection, note: Amazon Managed Service for Apache Flink, in: realtime }
+  alerts: { icon: aws:sns-topic, label: Alerts topic, note: Amazon SNS, in: realtime }
+  firehose: { icon: aws:firehose, label: Amazon Data Firehose, note: Batch delivery, in: storage }
+  lake: { icon: aws:s3-bucket, label: Data lake, note: Amazon S3 bucket, in: storage }
+  tsdb: { icon: aws:timestream, label: Amazon Timestream, note: Device metrics, in: timeseries }
+  search: { icon: aws:opensearch, label: Amazon OpenSearch Service, note: Event index, in: insights }
+  dash: { icon: aws:grafana, label: Amazon Managed Grafana, note: Dashboards, in: insights }
+
+edges:
+  # constraint: false keeps each zone's steps side by side in one row.
+  - { from: sensors, to: greengrass, constraint: false }
+  - greengrass -> iotcore: MQTT
+  - { from: iotcore, to: stream, constraint: false }
+  - stream -> flink, firehose, tsdb
+  - { from: flink, to: alerts, constraint: false }
+  - { from: firehose, to: lake, constraint: false }
+  - lake -> search: index
+  - tsdb -> dash: query
+  - { from: search, to: dash, constraint: false }

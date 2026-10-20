@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: MCP tools and a hosted agent on Amazon Bedrock AgentCore
+subtitle: Clients call the tools through an IAM gateway with Cedar rules; ask_architect hands a whole request to the hosted agent
+direction: down
+layout: { spacing: compact }
+
+legend:
+  solid: MCP tool calls and requests
+  dotted: Policy check, memory and traces
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+
+nodes:
+  clients: { icon: aws:users, label: MCP clients, note: "Coding agents and IDEs, SigV4-signed" }
+  gateway: { icon: aws:bedrock-agentcore, label: AgentCore Gateway, note: IAM authorization, in: region }
+  policy: { icon: aws:bedrock-agentcore, label: AgentCore Policy, note: Cedar rules per tool, in: region }
+  tools: { icon: aws:bedrock-agentcore, label: Tools runtime, note: "AgentCore Runtime, MCP server", in: region }
+  harness: { icon: aws:bedrock-agentcore, label: AgentCore harness, note: Managed agent loop, in: region }
+  outputs: { icon: aws:simple-storage-service-bucket, label: Outputs bucket, note: Figures and documents, in: region }
+  bedrock: { icon: aws:bedrock, label: Amazon Bedrock, note: "Claude model, guardrail", in: region }
+  memory: { icon: aws:bedrock-agentcore, label: AgentCore Memory, note: Session context, in: region }
+  logs: { icon: aws:cloudwatch, label: Amazon CloudWatch, note: Traces and alarms, in: region }
+  # The AWS Knowledge MCP server is a global AWS endpoint: in the AWS Cloud, outside the Region.
+  knowledge: { icon: aws:document, label: AWS Knowledge MCP server, note: AWS documentation, in: cloud }
+
+edges:
+  - clients -> gateway: { label: tool calls, step: 1 }
+  - gateway ..> policy: authorize
+  - gateway -> tools: { label: MCP, step: 2 }
+  - tools -> harness: { label: ask_architect, step: 3 }
+  - tools -> outputs: save
+  - harness -> bedrock: { label: reason, step: 4 }
+  - harness -> knowledge: { label: read docs, step: 5 }
+  # The harness calls the tools back through the gateway, as often as the turn needs; written gateway
+  # first with the arrow at the start, so the loop does not reorder the layers.
+  - { from: gateway, to: harness, arrow: start, label: tool calls }
+  - harness ..> memory
+  - tools, harness ..> logs: traces

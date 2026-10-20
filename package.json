@@ -1,8 +1,8 @@
 {
   "name": "orrery",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
-  "description": "Architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes and GitHub icons, rendered to SVG, PNG, draw.io, TSX and HTML.",
+  "description": "Architecture, system design and business flow diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons, auto-laid out and rendered to SVG, PNG, draw.io, React TSX and HTML.",
   "license": "MIT",
   "author": "Sagar Gupta (https://github.com/Sagargupta16)",
   "repository": {

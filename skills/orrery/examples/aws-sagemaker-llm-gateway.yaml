@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Amazon SageMaker AI as the LLM gateway
+subtitle: Every inference call goes through a self-hosted model on an Amazon SageMaker AI endpoint, with retrieval, chat history and a prompt cache
+direction: down
+
+legend:
+  solid: Request path
+  dotted: Security and operations
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  api-tier: { type: zone, label: API, in: region }
+  retrieval: { type: zone, label: Retrieval, in: region }
+  ops: { type: zone, label: Security and operations, in: region }
+
+nodes:
+  users: { icon: aws:users, label: Users, note: Chat and app clients }
+  # CloudFront and AWS WAF are global services: they sit in the AWS Cloud group, outside the Region.
+  cdn: { icon: aws:cloudfront, label: Amazon CloudFront, in: cloud }
+  waf: { icon: aws:waf, label: AWS WAF, note: Web ACL, in: cloud }
+  auth: { icon: aws:cognito, label: Amazon Cognito, note: User pool, in: api-tier }
+  api: { icon: aws:api-gateway, label: Amazon API Gateway, note: Inference API, in: api-tier }
+  cache: { icon: aws:elasticache, label: Amazon ElastiCache, note: Prompt cache, in: api-tier }
+  orch: { icon: aws:lambda, label: RAG orchestrator, note: AWS Lambda, in: region }
+  embed: { icon: aws:sagemaker-ai, label: Embeddings endpoint, note: Amazon SageMaker AI, in: retrieval }
+  vector: { icon: aws:opensearch-service-index, label: Vector index, note: Amazon OpenSearch Service, in: retrieval }
+  corpus: { icon: aws:s3-bucket, label: Corpus and model artifacts, note: Amazon S3, in: retrieval }
+  llm: { icon: aws:sagemaker-ai, label: LLM endpoint, note: SageMaker JumpStart model, in: region }
+  sessions: { icon: aws:dynamodb, label: Amazon DynamoDB, note: Chat history, in: region }
+  secrets: { icon: aws:secrets-manager, label: AWS Secrets Manager, note: Endpoint credentials, in: ops }
+  cw: { icon: aws:cloudwatch, label: Amazon CloudWatch, note: Model latency, in: ops }
+  kms: { icon: aws:kms, label: AWS Key Management Service, note: Encryption keys, in: ops }
+
+edges:
+  - users -> cdn: { label: HTTPS, step: 1 }
+  # constraint: false keeps WAF beside CloudFront, Cognito and the cache beside API Gateway, and
+  # the corpus beside the index it feeds.
+  - { from: waf, to: cdn, line: dotted, constraint: false }
+  - cdn -> api: { label: /chat, step: 2 }
+  - { from: auth, to: api, line: dotted, constraint: false }
+  - { from: api, to: cache, arrow: both, constraint: false }
+  - api -> orch: { label: invoke, step: 3 }
+  - orch -> embed: { label: embed query, step: 4 }
+  - orch -> vector: { label: retrieve, step: 5 }
+  - orch -> llm: { label: generate, step: 6 }
+  - orch -> sessions: history
+  - { from: corpus, to: vector, constraint: false }
+  # The security and operations services are written from their users, so their row sits last.
+  - { from: llm, to: secrets, arrow: start, line: dotted, label: credentials }
+  - { from: llm, to: cw, line: dotted, label: metrics }
+  - { from: sessions, to: kms, arrow: start, line: dotted, label: encryption keys }

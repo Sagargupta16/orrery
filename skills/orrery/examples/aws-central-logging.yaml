@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Centralized logging across accounts on AWS
+subtitle: Workload accounts send CloudWatch Logs through a subscription and CloudTrail through the organization trail to one Log Archive account
+direction: down
+
+legend:
+  solid: Log delivery
+  dotted: Encryption and queries
+
+groups:
+  cloud: { type: aws:cloud }
+  workloads: { type: aws:generic-dashed, icon: aws:organizations-organizational-unit, label: Workloads OU, in: cloud }
+  account-a: { type: aws:account, label: Workload account A, in: workloads }
+  account-b: { type: aws:account, label: Workload account B, in: workloads }
+  archive: { type: aws:account, label: Log Archive account, in: cloud }
+
+nodes:
+  flow-a: { icon: aws:vpc-flow-logs, label: Amazon VPC Flow Logs, note: Network traffic, in: account-a }
+  logs-a: { icon: aws:cloudwatch-logs, label: Amazon CloudWatch Logs, note: Subscription filter, in: account-a }
+  trail-a: { icon: aws:cloudtrail, label: AWS CloudTrail, note: Organization trail, in: account-a }
+  flow-b: { icon: aws:vpc-flow-logs, label: Amazon VPC Flow Logs, note: Network traffic, in: account-b }
+  logs-b: { icon: aws:cloudwatch-logs, label: Amazon CloudWatch Logs, note: Subscription filter, in: account-b }
+  trail-b: { icon: aws:cloudtrail, label: AWS CloudTrail, note: Organization trail, in: account-b }
+  firehose: { icon: aws:data-firehose, label: Amazon Data Firehose, note: Delivery stream, in: archive }
+  search: { icon: aws:opensearch-service, label: Amazon OpenSearch Service, note: Search and dashboards, in: archive }
+  bucket: { icon: aws:simple-storage-service-bucket, label: Central log bucket, note: "Object Lock, lifecycle rules", in: archive }
+  athena: { icon: aws:athena, label: Amazon Athena, note: SQL over the logs, in: archive }
+  kms: { icon: aws:key-management-service, label: AWS Key Management Service, note: Log encryption key, in: archive }
+
+edges:
+  - flow-a -> logs-a: publish
+  - flow-b -> logs-b: publish
+  - logs-a, logs-b -> firehose: subscription
+  - trail-a, trail-b -> bucket: deliver
+  - firehose -> search: index
+  - firehose -> bucket: back up
+  - athena ..> bucket: query
+  # The bucket asks KMS for data keys; written key first so KMS sits on the Firehose row.
+  - { from: kms, to: bucket, arrow: start, line: dotted, label: SSE-KMS }
