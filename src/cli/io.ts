@@ -1,6 +1,6 @@
 // Shared CLI plumbing: usage errors, spec input, atomic writes and diagnostics on stderr.
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { LibraryError } from "../libraries.ts";
 import { LocalIconError } from "../local-icons.ts";
@@ -15,11 +15,29 @@ export function usage(message: string): never {
 
 export const sha = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
 
+// Windows refuses to replace a file another process has open (a preview, an editor, a reader
+// racing `orrery watch`) with EPERM, EACCES or EBUSY; the lock lasts milliseconds, so the rename
+// is retried for up to about two seconds, as graceful-fs does.
+const BUSY = new Set(["EPERM", "EACCES", "EBUSY"]);
+const pause = new Int32Array(new SharedArrayBuffer(4));
+
 export function writeAtomic(path: string, data: string | Uint8Array) {
   mkdirSync(dirname(path), { recursive: true });
   const tmp = `${path}.${process.pid}.tmp`;
   writeFileSync(tmp, data);
-  renameSync(tmp, path);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      renameSync(tmp, path);
+      return;
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code ?? "";
+      if (process.platform !== "win32" || !BUSY.has(code) || attempt >= 40) {
+        rmSync(tmp, { force: true });
+        throw e;
+      }
+      Atomics.wait(pause, 0, 0, 50);
+    }
+  }
 }
 
 export function printDiagnostics(list: Diagnostic[], json: boolean) {

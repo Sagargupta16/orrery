@@ -26412,7 +26412,7 @@ async function cmdWatch(args) {
 
 // src/cli/io.ts
 import { createHash as createHash2 } from "node:crypto";
-import { existsSync as existsSync13, mkdirSync as mkdirSync2, readFileSync as readFileSync13, renameSync as renameSync2, writeFileSync as writeFileSync2 } from "node:fs";
+import { existsSync as existsSync13, mkdirSync as mkdirSync2, readFileSync as readFileSync13, renameSync as renameSync2, rmSync, writeFileSync as writeFileSync2 } from "node:fs";
 import { basename as basename5, dirname as dirname5, resolve as resolve8 } from "node:path";
 
 // src/cli/help.ts
@@ -26460,11 +26460,25 @@ ${HELP}
   process.exit(2);
 }
 var sha = (data) => createHash2("sha256").update(data).digest("hex");
+var BUSY = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
+var pause = new Int32Array(new SharedArrayBuffer(4));
 function writeAtomic(path, data) {
   mkdirSync2(dirname5(path), { recursive: true });
   const tmp = `${path}.${process.pid}.tmp`;
   writeFileSync2(tmp, data);
-  renameSync2(tmp, path);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      renameSync2(tmp, path);
+      return;
+    } catch (e) {
+      const code = e.code ?? "";
+      if (process.platform !== "win32" || !BUSY.has(code) || attempt >= 40) {
+        rmSync(tmp, { force: true });
+        throw e;
+      }
+      Atomics.wait(pause, 0, 0, 50);
+    }
+  }
 }
 function printDiagnostics(list, json2) {
   if (json2) return;
