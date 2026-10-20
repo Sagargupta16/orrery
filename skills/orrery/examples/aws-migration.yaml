@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Data center migration to AWS
+subtitle: Servers, a PostgreSQL database and a file share move over one AWS Direct Connect link, each with its own migration service
+direction: down
+
+legend:
+  solid: Migration traffic
+  dotted: Planning and tracking
+
+groups:
+  dc: { type: aws:corporate-dc, label: Corporate data center }
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  vpc: { type: aws:vpc, label: Migration VPC, in: region }
+  staging: { type: aws:private-subnet, label: Staging subnet, in: vpc }
+  target: { type: aws:private-subnet, label: Target subnet, in: vpc }
+  # AWS Transform, DataSync and S3 are Regional services, so they sit outside the VPC.
+  regional: { type: aws:generic, label: Regional services, in: region }
+
+nodes:
+  servers: { icon: aws:servers, label: VMware servers, note: Replication agent, in: dc }
+  db: { icon: aws:database, label: PostgreSQL, note: Source database, in: dc }
+  share: { icon: aws:folders, label: File share, note: "NFS, DataSync agent", in: dc }
+  dx: { icon: aws:direct-connect, label: AWS Direct Connect, note: Private connection }
+  # AWS Transform stands in for AWS Migration Hub, which is closed to new customers.
+  transform: { icon: aws:transform, label: AWS Transform, note: Plans and tracks waves, in: regional }
+  mgn: { icon: aws:application-migration-service, label: AWS Transform MGN, note: AWS Application Migration Service, in: staging }
+  dms: { icon: aws:database-migration-service, label: AWS Database Migration Service, note: Replication instance, in: staging }
+  ec2: { icon: aws:ec2, label: Amazon EC2, note: Cutover instances, in: target }
+  aurora: { icon: aws:aurora, label: Amazon Aurora, note: PostgreSQL-compatible, in: target }
+  datasync: { icon: aws:datasync, label: AWS DataSync, note: Transfer task, in: regional }
+  bucket: { icon: aws:simple-storage-service-bucket, label: Files bucket, note: Migrated file share, in: regional }
+
+edges:
+  - servers -> dx: replicate
+  - db -> dx: replicate
+  - share -> dx: copy
+  - dx -> mgn: block replication
+  - dx -> dms: change data capture
+  - dx -> datasync: file transfer
+  - mgn -> ec2: launch
+  - dms -> aurora: load
+  - datasync -> bucket: write
+  # constraint: false keeps AWS Transform beside DataSync instead of a row above the VPC.
+  - { from: transform, to: staging, line: dotted, constraint: false }

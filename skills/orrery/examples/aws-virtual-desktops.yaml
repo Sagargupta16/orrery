@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Virtual desktops with Amazon WorkSpaces
+subtitle: Desktops in two Availability Zones sign in through AWS Managed Microsoft AD, which trusts the corporate domain
+direction: down
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  vpc: { type: aws:vpc, in: region }
+  # One private subnet per Availability Zone holds that zone's desktops, domain controller and file server.
+  subnet-a: { type: aws:private-subnet, label: Private subnet AZ a, in: vpc }
+  subnet-b: { type: aws:private-subnet, label: Private subnet AZ b, in: vpc }
+  corp: { type: aws:corporate-dc, label: Corporate data center }
+
+nodes:
+  client: { icon: aws:client, label: WorkSpaces client, note: Remote staff }
+  ws-a: { icon: aws:workspaces, label: Amazon WorkSpaces, note: Virtual desktops, in: subnet-a }
+  ad-a: { icon: aws:directory-service-managed-microsoft-ad, label: AWS Managed Microsoft AD, note: Domain controller, in: subnet-a }
+  fsx-a: { icon: aws:fsx-for-wfs, label: Amazon FSx for Windows File Server, note: Preferred file server, in: subnet-a }
+  ws-b: { icon: aws:workspaces, label: Amazon WorkSpaces, note: Virtual desktops, in: subnet-b }
+  ad-b: { icon: aws:directory-service-managed-microsoft-ad, label: AWS Managed Microsoft AD, note: Domain controller, in: subnet-b }
+  fsx-b: { icon: aws:fsx-for-wfs, label: Amazon FSx for Windows File Server, note: Standby file server, in: subnet-b }
+  vpn: { icon: aws:site-to-site-vpn, label: AWS Site-to-Site VPN, note: Or AWS Direct Connect, in: region }
+  onprem-ad: { icon: aws:servers, label: Active Directory, note: On-premises domain, in: corp }
+
+edges:
+  - client -> ws-a, ws-b: stream
+  - ws-a -> ad-a: sign in
+  - ws-b -> ad-b: sign in
+  - ws-a -> fsx-a: home folders
+  - ws-b -> fsx-b: home folders
+  - ad-a, ad-b -> vpn
+  - vpn -> onprem-ad: AD trust

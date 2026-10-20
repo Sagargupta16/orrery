@@ -119,6 +119,8 @@ describe("CLI", () => {
     expect(receipt.ok).toBe(true);
     expect(receipt.spec.sha256).toBe(sha256(readFileSync(join(dir, "good.yaml"))));
     expect(receipt.outputs.map((o) => `${o.format}:${o.theme}`).sort()).toEqual([
+      "drawio.svg:dark",
+      "drawio.svg:light",
       "drawio:dark",
       "drawio:light",
       "html:light+dark",
@@ -140,10 +142,12 @@ describe("CLI", () => {
     const names = receipt.outputs.map((o) => o.path.slice(out.length + 1)).sort();
     expect(names).toEqual([
       "good-dark.drawio",
+      "good-dark.drawio.svg",
       "good-dark.png",
       "good-dark.svg",
       "good-dark.tsx",
       "good-light.drawio",
+      "good-light.drawio.svg",
       "good-light.png",
       "good-light.svg",
       "good-light.tsx",

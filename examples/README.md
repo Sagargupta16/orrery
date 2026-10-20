@@ -1,6 +1,6 @@
 # Example gallery
 
-Forty diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The pictures here are the default `stage` skin in the dark theme; add `--skin classic` to any command below for the same layout in each vendor's own style, `--theme light` for the light theme, or switch between them on the [website gallery](https://sagargupta.online/orrery/gallery/). The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
+57 diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The pictures here are the default `stage` skin in the dark theme; add `--skin classic` to any command below for the same layout in each vendor's own style, `--theme light` for the light theme, or switch between them on the [website gallery](https://sagargupta.online/orrery/gallery/). The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
 
 Run the commands from the repository root; `orrery` stands for `node skills/orrery/scripts/orrery.mjs`. `pnpm gallery` re-renders every picture here, and `node scripts/gallery.mjs --check` (run by CI) fails when a committed picture no longer matches its spec.
 
@@ -195,6 +195,112 @@ Run the commands from the repository root; `orrery` stands for `node skills/orre
 <a href="github-actions-cicd.svg"><img src="github-actions-cicd.svg" alt="CI/CD from GitHub Actions to AWS with OIDC, ECR, CloudFormation and ECS"></a>
 
 `orrery render skills/orrery/examples/github-actions-cicd.yaml -o examples/github-actions-cicd -f svg,png`
+
+## More AWS reference architectures
+
+Agents on Bedrock AgentCore, resilience, security, networking, migration, containers, CI/CD, IoT, media, contact centers, end-user computing, HPC and multi-tenant ML, each checked against the AWS Architecture Icons deck rules.
+
+[`aws-agentcore-mcp`](../skills/orrery/examples/aws-agentcore-mcp.yaml): MCP clients call the tools through an AgentCore Gateway with Cedar rules from AgentCore Policy; `ask_architect` hands a whole request to an AgentCore harness that reasons with Bedrock, reads the AWS Knowledge MCP server and keeps memory, with traces in CloudWatch.
+
+<a href="aws-agentcore-mcp.svg"><img src="aws-agentcore-mcp.svg" alt="MCP clients call tools through an AgentCore Gateway with Cedar policy; a tools runtime hands ask_architect to an AgentCore harness using Bedrock"></a>
+
+`orrery render skills/orrery/examples/aws-agentcore-mcp.yaml -o examples/aws-agentcore-mcp -f svg,png`
+
+[`aws-multi-region-dr`](../skills/orrery/examples/aws-multi-region-dr.yaml): multi-Region active-active: Route 53 and Global Accelerator send users to the nearest healthy Region; each Region runs an ALB, EKS, Aurora, DynamoDB and S3 stack, and the data tiers replicate both ways.
+
+<a href="aws-multi-region-dr.svg"><img src="aws-multi-region-dr.svg" alt="Active-active on AWS: Route 53 and Global Accelerator route users to two Regions with ALB, EKS, Aurora, DynamoDB and S3, replicated both ways"></a>
+
+`orrery render skills/orrery/examples/aws-multi-region-dr.yaml -o examples/aws-multi-region-dr -f svg,png`
+
+[`aws-backup-restore`](../skills/orrery/examples/aws-backup-restore.yaml): an AWS Backup plan backs up EC2, RDS, DynamoDB and EFS into a vault in us-east-1, copies it to us-west-2 and to a Vault Lock vault in a separate backup account, and restores into production.
+
+<a href="aws-backup-restore.svg"><img src="aws-backup-restore.svg" alt="AWS Backup plan backs up EC2, RDS, DynamoDB and EFS to a vault, copies to us-west-2 and a Vault Lock vault in a backup account, restores to production"></a>
+
+`orrery render skills/orrery/examples/aws-backup-restore.yaml -o examples/aws-backup-restore -f svg,png`
+
+[`aws-central-logging`](../skills/orrery/examples/aws-central-logging.yaml): two workload accounts in a Workloads OU send CloudWatch Logs through a subscription to Data Firehose, and CloudTrail through the organization trail, into a Log Archive account with OpenSearch, an S3 log bucket, Athena and KMS.
+
+<a href="aws-central-logging.svg"><img src="aws-central-logging.svg" alt="Two workload accounts send CloudWatch Logs via Firehose and CloudTrail to a Log Archive account with OpenSearch, S3, Athena and KMS"></a>
+
+`orrery render skills/orrery/examples/aws-central-logging.yaml -o examples/aws-central-logging -f svg,png`
+
+[`aws-threat-detection`](../skills/orrery/examples/aws-threat-detection.yaml): GuardDuty, Inspector, Macie and Config send findings to Security Hub, EventBridge rules invoke Lambda, SNS and Systems Manager in response, and Security Lake archives every finding to S3.
+
+<a href="aws-threat-detection.svg"><img src="aws-threat-detection.svg" alt="GuardDuty, Inspector, Macie and Config findings flow to Security Hub; EventBridge invokes Lambda, SNS and Systems Manager; Security Lake archives"></a>
+
+`orrery render skills/orrery/examples/aws-threat-detection.yaml -o examples/aws-threat-detection -f svg,png`
+
+[`aws-network-inspection`](../skills/orrery/examples/aws-network-inspection.yaml): hub and spoke with central inspection: three workload VPCs attach to a Transit Gateway that sends their internet traffic through Network Firewall, a NAT gateway and an internet gateway in an inspection VPC, with the data center on Site-to-Site VPN.
+
+<a href="aws-network-inspection.svg"><img src="aws-network-inspection.svg" alt="Three workload VPCs attach to a Transit Gateway that routes egress through Network Firewall, NAT and an internet gateway; a data center joins over VPN"></a>
+
+`orrery render skills/orrery/examples/aws-network-inspection.yaml -o examples/aws-network-inspection -f svg,png`
+
+[`aws-org-ou-tree`](../skills/orrery/examples/aws-org-ou-tree.yaml): a `kind: tree` chart of the recommended AWS Organizations OUs (Security and Infrastructure inside a dashed Foundational OUs box, then Workloads with Prod and Test, Sandbox and Suspended) and their accounts, under the management account.
+
+<a href="aws-org-ou-tree.svg"><img src="aws-org-ou-tree.svg" alt="AWS Organizations OU tree: management account over Security, Infrastructure, Workloads (Prod, Test), Sandbox and Suspended OUs with their accounts"></a>
+
+`orrery render skills/orrery/examples/aws-org-ou-tree.yaml -o examples/aws-org-ou-tree -f svg,png`
+
+[`aws-migration`](../skills/orrery/examples/aws-migration.yaml): servers, a PostgreSQL database and a file share cross one Direct Connect link: AWS Transform MGN (formerly AWS Application Migration Service) launches EC2, DMS loads Aurora and DataSync writes S3, with AWS Transform, the successor of AWS Migration Hub, tracking the waves.
+
+<a href="aws-migration.svg"><img src="aws-migration.svg" alt="Servers, PostgreSQL and a file share migrate over Direct Connect via AWS Transform MGN to EC2, DMS to Aurora and DataSync to S3, tracked by AWS Transform"></a>
+
+`orrery render skills/orrery/examples/aws-migration.yaml -o examples/aws-migration -f svg,png`
+
+[`aws-eks-ecommerce`](../skills/orrery/examples/aws-eks-ecommerce.yaml): Route 53, CloudFront and AWS WAF in front of an ALB and six EKS microservices in private subnets, with ElastiCache and Aurora in data subnets, DynamoDB, an S3 assets bucket, an SNS topic fanning out to an SQS shipping queue, and Cognito, ECR and Secrets Manager as dotted platform links.
+
+<a href="aws-eks-ecommerce.svg"><img src="aws-eks-ecommerce.svg" alt="Microservices e-commerce on Amazon EKS: CloudFront, WAF and an ALB in front of six EKS services, with Aurora, ElastiCache, DynamoDB, SNS and SQS"></a>
+
+`orrery render skills/orrery/examples/aws-eks-ecommerce.yaml -o examples/aws-eks-ecommerce -f svg,png`
+
+[`aws-codepipeline-cicd`](../skills/orrery/examples/aws-codepipeline-cicd.yaml): a GitHub push runs through AWS CodePipeline: CodeBuild pushes the image to ECR, CodeDeploy releases to staging, an SNS approval gate holds production, and CloudWatch alarms let CodeDeploy roll back.
+
+<a href="aws-codepipeline-cicd.svg"><img src="aws-codepipeline-cicd.svg" alt="AWS CodePipeline with CodeBuild, ECR, CodeDeploy to staging and production ECS on Fargate, an SNS approval gate and CloudWatch alarms"></a>
+
+`orrery render skills/orrery/examples/aws-codepipeline-cicd.yaml -o examples/aws-codepipeline-cicd -f svg,png`
+
+[`aws-iot-analytics`](../skills/orrery/examples/aws-iot-analytics.yaml): sensors behind an IoT Greengrass gateway publish over MQTT to IoT Core and Kinesis Data Streams, which feeds Flink anomaly alerts on SNS, a Firehose data lake indexed in OpenSearch, and Timestream, with Managed Grafana dashboards.
+
+<a href="aws-iot-analytics.svg"><img src="aws-iot-analytics.svg" alt="IoT streaming analytics: Greengrass, IoT Core and Kinesis feeding Flink and SNS alerts, a Firehose and S3 lake, Timestream, OpenSearch and Grafana"></a>
+
+`orrery render skills/orrery/examples/aws-iot-analytics.yaml -o examples/aws-iot-analytics -f svg,png`
+
+[`aws-media-streaming`](../skills/orrery/examples/aws-media-streaming.yaml): a video-on-demand lane (S3, MediaConvert) and a live lane (MediaLive, MediaPackage, MediaTailor) converge on CloudFront, next to a serverless playback API on API Gateway, Lambda and DynamoDB.
+
+<a href="aws-media-streaming.svg"><img src="aws-media-streaming.svg" alt="VOD and live streaming on AWS Elemental MediaConvert, MediaLive, MediaPackage and MediaTailor, delivered through CloudFront to viewers"></a>
+
+`orrery render skills/orrery/examples/aws-media-streaming.yaml -o examples/aws-media-streaming -f svg,png`
+
+[`aws-contact-center`](../skills/orrery/examples/aws-contact-center.yaml): voice, chat and app contacts reach Amazon Connect, which hands them to Lex and Polly self-service, a Lambda and DynamoDB screen pop, or live agents with AWS End User Messaging follow-ups (Pinpoint's successor for SMS), and streams them to Contact Lens analytics (Kinesis, Transcribe, Comprehend, Quick Sight).
+
+<a href="aws-contact-center.svg"><img src="aws-contact-center.svg" alt="Amazon Connect contact center with Lex, Polly, a Lambda CRM lookup, live agents and a Kinesis, Transcribe, Comprehend and Quick Sight band"></a>
+
+`orrery render skills/orrery/examples/aws-contact-center.yaml -o examples/aws-contact-center -f svg,png`
+
+[`aws-virtual-desktops`](../skills/orrery/examples/aws-virtual-desktops.yaml): WorkSpaces in one private subnet per Availability Zone sign in to AWS Managed Microsoft AD and keep home folders on FSx for Windows File Server, with an AD trust over Site-to-Site VPN to the corporate domain.
+
+<a href="aws-virtual-desktops.svg"><img src="aws-virtual-desktops.svg" alt="Amazon WorkSpaces in two AZs with Managed Microsoft AD, FSx for Windows File Server and a Site-to-Site VPN trust to on-premises AD"></a>
+
+`orrery render skills/orrery/examples/aws-virtual-desktops.yaml -o examples/aws-virtual-desktops -f svg,png`
+
+[`aws-hpc-batch`](../skills/orrery/examples/aws-hpc-batch.yaml): an upload to S3 fires an EventBridge rule that starts Step Functions, which submits AWS Batch jobs to a Spot compute environment; the jobs mount an FSx for Lustre file system linked to the bucket and log to CloudWatch.
+
+<a href="aws-hpc-batch.svg"><img src="aws-hpc-batch.svg" alt="HPC batch on AWS: S3, EventBridge, Step Functions and AWS Batch running Spot Instances over FSx for Lustre, with CloudWatch logs"></a>
+
+`orrery render skills/orrery/examples/aws-hpc-batch.yaml -o examples/aws-hpc-batch -f svg,png`
+
+[`aws-sagemaker-llm-gateway`](../skills/orrery/examples/aws-sagemaker-llm-gateway.yaml): a self-hosted model on a SageMaker AI endpoint behind CloudFront, WAF, Cognito and API Gateway with an ElastiCache prompt cache; a Lambda orchestrator embeds, retrieves from OpenSearch, generates and keeps history in DynamoDB, with KMS, Secrets Manager and CloudWatch below.
+
+<a href="aws-sagemaker-llm-gateway.svg"><img src="aws-sagemaker-llm-gateway.svg" alt="RAG on SageMaker AI endpoints: CloudFront, API Gateway, a Lambda orchestrator, OpenSearch vector index, DynamoDB history and an ElastiCache cache"></a>
+
+`orrery render skills/orrery/examples/aws-sagemaker-llm-gateway.yaml -o examples/aws-sagemaker-llm-gateway -f svg,png`
+
+[`aws-multitenant-saas`](../skills/orrery/examples/aws-multitenant-saas.yaml): a Cognito and API Gateway control plane routes each tenant through a Lambda router to its own Aurora silo; all silos stream through Kinesis, Glue and an S3 lake into SageMaker AI training, a model registry and the endpoint the router calls.
+
+<a href="aws-multitenant-saas.svg"><img src="aws-multitenant-saas.svg" alt="Multi-tenant SaaS: Cognito, API Gateway and a tenant router over three Aurora silos feeding Kinesis, Glue, S3 and SageMaker AI training and inference"></a>
+
+`orrery render skills/orrery/examples/aws-multitenant-saas.yaml -o examples/aws-multitenant-saas -f svg,png`
 
 ## Business flows
 

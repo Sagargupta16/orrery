@@ -1,0 +1,17 @@
+{
+  "description": "Validate an orrery spec right after an agent writes or edits it, so diagram errors come back with their fixes before anything is rendered.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/validate-spec.mjs\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

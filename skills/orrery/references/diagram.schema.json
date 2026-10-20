@@ -67,7 +67,11 @@
         },
         "routing": { "enum": ["orthogonal", "polyline", "spline"] },
         "layering": { "enum": ["source", "simplex"] },
-        "merge": { "type": "boolean", "default": true, "description": "Join edges that share an endpoint into one trunk." }
+        "merge": { "type": "boolean", "default": true, "description": "Join edges that share an endpoint into one trunk." },
+        "aspect": {
+          "oneOf": [{ "type": "number", "minimum": 0.25, "maximum": 4 }, { "type": "string", "pattern": "^\\s*\\d+(\\.\\d+)?\\s*[:/x]\\s*\\d+(\\.\\d+)?\\s*$" }],
+          "description": "Target width:height of the canvas, such as 4:3 or 16:9; layout wraps long flows and turns branches to land near it."
+        }
       }
     },
     "nodes": {
@@ -128,6 +132,9 @@
         },
         "stage": { "type": "string", "description": "Journey column this step sits in (one of stages)." },
         "score": { "type": "number", "minimum": -2, "maximum": 2, "description": "Journey emotion at this step, from -2 (very negative) to 2 (very positive)." },
+        "rank": { "oneOf": [{ "enum": ["first", "last"] }, { "type": "integer", "minimum": 1 }], "description": "Place along the flow: the first or last layer, or the nth layer." },
+        "layer": { "oneOf": [{ "enum": ["first", "last"] }, { "type": "integer", "minimum": 1 }] },
+        "align": { "type": "string", "description": "Share this node's layer: one row across the flow." },
         "color": { "$ref": "#/$defs/hex" },
         "badge": { "type": "string" },
         "url": { "type": "string" },
@@ -151,6 +158,8 @@
         "parent": { "type": "string" },
         "contains": { "type": "array", "items": { "type": "string" } },
         "around": { "type": "array", "items": { "type": "string" }, "description": "Outline these ids after layout without moving them (overlay)." },
+        "cols": { "type": "integer", "minimum": 1, "maximum": 12, "description": "Lay the direct children out in this many columns, row by row in spec order." },
+        "columns": { "type": "integer", "minimum": 1, "maximum": 12 },
         "children": { "type": "array", "items": { "type": "string" } },
         "nodes": { "type": "array", "items": { "type": "string" } },
         "color": { "$ref": "#/$defs/hex" },

@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: HPC batch processing with AWS Batch
+subtitle: New input in Amazon S3 starts a workflow that runs AWS Batch jobs on Spot capacity over Amazon FSx for Lustre
+direction: down
+
+legend:
+  solid: Data and control
+  dashed: Job logs
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  control: { type: zone, label: Workflow, in: region }
+  vpc: { type: aws:vpc, in: region }
+  compute: { type: aws:spot-fleet, label: AWS Batch compute environment, in: vpc }
+
+nodes:
+  users: { icon: aws:users, label: Researchers }
+  input: { icon: aws:s3-bucket, label: Input and results, note: Amazon S3 bucket, in: region }
+  events: { icon: aws:eventbridge-rule, label: Object created rule, note: Amazon EventBridge, in: control }
+  workflow: { icon: aws:step-functions, label: AWS Step Functions, note: Run workflow, in: control }
+  batch: { icon: aws:batch, label: AWS Batch, note: Job queue, in: control }
+  fsx: { icon: aws:fsx-lustre, label: Amazon FSx for Lustre, note: Scratch file system mounted by jobs, in: vpc }
+  spot-1: { icon: aws:ec2-spot-instance, label: Spot Instance, note: Amazon EC2, in: compute }
+  spot-2: { icon: aws:ec2-spot-instance, label: Spot Instance, note: Amazon EC2, in: compute }
+  logs: { icon: aws:cloudwatch, label: Amazon CloudWatch, note: Job logs, in: region }
+
+edges:
+  - users -> input: { label: upload, step: 1 }
+  - input -> events: { label: object created, step: 2 }
+  # constraint: false keeps the workflow steps side by side in one row.
+  - { from: events, to: workflow, constraint: false }
+  - { from: workflow, to: batch, constraint: false }
+  - batch -> compute: { label: run jobs, step: 3 }
+  - input <-> fsx: import and export
+  - { from: fsx, to: compute, arrow: both, constraint: false }
+  - batch --> logs

@@ -1,7 +1,7 @@
 // The diagram model at three stages: what the author writes (Spec*), what the parser hands to
 // layout (Model*), and what layout hands to every renderer (Scene*).
 
-import type { SceneJourney } from "./journey.ts";
+import type { SceneJourney } from "./layout/journey/index.ts";
 
 export type Direction = "right" | "down" | "left" | "up";
 export type ThemeName = "light" | "dark";
@@ -227,6 +227,10 @@ export interface ModelNode {
   stage?: string;
   /** Journey emotion at this step, -2 (very negative) to 2 (very positive). */
   score?: number;
+  /** Place along the flow: the first or last layer, or the nth layer (1 is the first). */
+  rank?: "first" | "last" | number;
+  /** Sit in the same layer as this node: one row across the flow. */
+  align?: string;
 }
 
 export interface ModelGroup {
@@ -240,6 +244,8 @@ export interface ModelGroup {
   dashed?: boolean;
   /** Overlay group: drawn around these ids after layout, without moving them. */
   around?: string[];
+  /** Lay the direct children out in this many columns, row by row in spec order. */
+  cols?: number;
 }
 
 export interface ModelEdge {
@@ -275,6 +281,8 @@ export interface Model {
   layering: "source" | "simplex";
   /** Join edges that share an endpoint into one trunk. */
   merge: boolean;
+  /** Target width:height of the canvas; layout wraps and turns the flow to land near it. */
+  aspect?: number;
   /** "open" chevrons (AWS and Google decks) or "filled" triangles (Azure). */
   arrowhead: "open" | "filled";
   /** Unset: the skin's default (packets for classic, relay for stage). */
@@ -399,6 +407,15 @@ export interface SceneLegend {
   items: SceneLegendItem[];
 }
 
+/** A setting the layout could not honor, reported by check as DG219. */
+export interface IgnoredSetting {
+  /** The node, group or edge id, or "layout" for a diagram-wide setting. */
+  subject: string;
+  /** The spec key, for example "rank" or "layout.aspect". */
+  setting: string;
+  reason: string;
+}
+
 export interface Scene {
   width: number;
   height: number;
@@ -426,4 +443,6 @@ export interface Scene {
   story?: string[];
   /** Journey grid: stage columns, lane rows and the emotion curve. */
   journey?: SceneJourney;
+  /** Settings that had no effect, with why. */
+  ignored?: IgnoredSetting[];
 }

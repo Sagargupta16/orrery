@@ -1,6 +1,6 @@
 import { transform } from "esbuild";
 import { beforeAll, describe, expect, it } from "vitest";
-import { layout } from "../src/layout.ts";
+import { layout } from "../src/layout/index.ts";
 import { renderDrawio } from "../src/render/drawio.ts";
 import { FORMATS, type RenderResult, renderModel } from "../src/render/index.ts";
 import { renderPng } from "../src/render/png.ts";
@@ -68,10 +68,12 @@ describe("renderModel", () => {
       "svg:light",
       "png:light",
       "drawio:light",
+      "drawio.svg:light",
       "tsx:light",
       "svg:dark",
       "png:dark",
       "drawio:dark",
+      "drawio.svg:dark",
       "tsx:dark",
       "html:both",
     ]);

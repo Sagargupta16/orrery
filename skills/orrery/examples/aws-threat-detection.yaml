@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Threat detection and automated response on AWS
+subtitle: Four detectors send findings to Security Hub, EventBridge rules start the response, and Security Lake keeps every finding
+direction: right
+layout: { spacing: compact }
+
+legend:
+  solid: Findings and response
+  dashed: Archive
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  detection: { type: aws:generic, label: Detection, in: region }
+  response: { type: aws:generic, label: Automated response, in: region }
+
+nodes:
+  guardduty: { icon: aws:guardduty, label: Amazon GuardDuty, note: Threat detection, in: detection }
+  inspector: { icon: aws:inspector, label: Amazon Inspector, note: Vulnerabilities, in: detection }
+  macie: { icon: aws:macie, label: Amazon Macie, note: Sensitive data, in: detection }
+  config: { icon: aws:config, label: AWS Config, note: Compliance drift, in: detection }
+  hub: { icon: aws:security-hub, label: AWS Security Hub, note: Normalize and score, in: region }
+  events: { icon: aws:eventbridge, label: Amazon EventBridge, note: Finding rules, in: region }
+  remediate: { icon: aws:lambda, label: AWS Lambda, note: Auto-remediate, in: response }
+  notify: { icon: aws:simple-notification-service, label: Amazon Simple Notification Service, note: Page the SOC, in: response }
+  runbook: { icon: aws:systems-manager, label: AWS Systems Manager, note: Automation runbook, in: response }
+  lake: { icon: aws:security-lake, label: Amazon Security Lake, note: OCSF findings archive, in: region }
+  bucket: { icon: aws:simple-storage-service-bucket, label: Security Lake bucket, note: Long-term retention, in: region }
+
+edges:
+  - guardduty, inspector, config -> hub
+  - macie -> hub: findings
+  - hub -> events: imported findings
+  # The three rules fire in parallel, so their edges carry actions, not step numbers.
+  - events -> remediate: invoke
+  - events -> notify: publish
+  - events -> runbook: start
+  - hub --> lake: archive
+  - lake --> bucket

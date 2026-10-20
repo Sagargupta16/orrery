@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderModel } from "../src/render/index.ts";
-import { parseSpec } from "../src/spec.ts";
+import { parseSpec } from "../src/spec/index.ts";
 import type { Diagnostic } from "../src/types.ts";
 import { EXAMPLES_DIR, listDiagnostics } from "./helpers.ts";
 

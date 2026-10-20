@@ -2,7 +2,7 @@
 // under the cards and edges, in classic and in stage.
 
 import { contrast, ensureContrast, mixHex } from "../color.ts";
-import type { JourneyCurve } from "../journey.ts";
+import type { JourneyCurve } from "../layout/journey/index.ts";
 import type { StageInk, Theme } from "../themes.ts";
 import type { Box, Point, Scene, TextBlock } from "../types.ts";
 import { esc, n } from "./svg.ts";

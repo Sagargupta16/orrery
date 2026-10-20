@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Multi-Region active-active on AWS
+subtitle: Route 53 and Global Accelerator send users to the nearest healthy Region; each Region runs the full stack and its data replicates to the other
+direction: down
+
+legend:
+  solid: Request path
+  dashed: Cross-Region replication (both ways)
+
+groups:
+  cloud: { type: aws:cloud }
+  east: { type: aws:region, label: us-east-1, in: cloud }
+  west: { type: aws:region, label: us-west-2, in: cloud }
+  data-east: { type: aws:generic, label: Data tier, in: east }
+  data-west: { type: aws:generic, label: Data tier, in: west }
+
+nodes:
+  users: { icon: aws:users, label: Users, note: Worldwide }
+  # Route 53 and Global Accelerator are global services: in the AWS Cloud, outside both Regions.
+  dns: { icon: aws:route-53, label: Amazon Route 53, note: "Latency routing, health checks", in: cloud }
+  accel: { icon: aws:global-accelerator, label: AWS Global Accelerator, note: Anycast entry points, in: cloud }
+  alb-east: { icon: aws:elastic-load-balancing-application-load-balancer, label: Application Load Balancer, in: east }
+  eks-east: { icon: aws:elastic-kubernetes-service, label: Amazon Elastic Kubernetes Service, note: App pods, in: east }
+  aurora-east: { icon: aws:aurora, label: Amazon Aurora, note: Global database, in: data-east }
+  table-east: { icon: aws:dynamodb, label: Amazon DynamoDB, note: Global table, in: data-east }
+  bucket-east: { icon: aws:simple-storage-service-bucket, label: Assets bucket, note: Cross-Region Replication, in: data-east }
+  alb-west: { icon: aws:elastic-load-balancing-application-load-balancer, label: Application Load Balancer, in: west }
+  eks-west: { icon: aws:elastic-kubernetes-service, label: Amazon Elastic Kubernetes Service, note: App pods, in: west }
+  aurora-west: { icon: aws:aurora, label: Amazon Aurora, note: Global database, in: data-west }
+  table-west: { icon: aws:dynamodb, label: Amazon DynamoDB, note: Global table, in: data-west }
+  bucket-west: { icon: aws:simple-storage-service-bucket, label: Assets bucket, note: Cross-Region Replication, in: data-west }
+
+edges:
+  - users -> dns: resolve
+  - dns -> accel: route
+  - accel -> alb-east, alb-west: healthy Region
+  - alb-east -> eks-east -> aurora-east, table-east, bucket-east
+  - alb-west -> eks-west -> aurora-west, table-west, bucket-west
+  # The two Regions sit side by side; constraint: false keeps the replication link from stacking them.
+  - { from: data-east, to: data-west, line: dashed, arrow: both, constraint: false }

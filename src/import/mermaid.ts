@@ -1,7 +1,7 @@
 // Mermaid flowchart -> orrery spec (YAML text). Keeps the topology, labels, subgraphs, edge
 // styles and shapes; guesses an official icon only when a label names a product exactly.
 import { stringify } from "yaml";
-import { iconInfo, searchIcons } from "../icons.ts";
+import { iconInfo, searchIcons } from "../icons/index.ts";
 import type { ShapeKind } from "../types.ts";
 
 interface MNode {

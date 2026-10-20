@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Omnichannel contact center on Amazon Connect
+subtitle: Amazon Connect hands each contact to a self-service bot, a CRM screen pop or a live agent, and streams it to Contact Lens analytics
+direction: down
+
+legend:
+  solid: Contact path
+  dashed: Follow-up
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  analytics: { type: zone, label: Contact Lens analytics, in: region }
+  selfservice: { type: zone, label: Self-service, in: region }
+  crm: { type: zone, label: CRM screen pop, in: region }
+  agents: { type: zone, label: Agents and outbound, in: region }
+
+nodes:
+  voice: { icon: aws:mobile-client, label: Voice, note: Phone calls }
+  chat: { icon: aws:chat, label: Web chat }
+  app: { icon: aws:user, label: Web and app }
+  connect: { icon: aws:connect, label: Amazon Connect, note: Contact flows, in: region }
+  # The band sits left of Connect and reads right to left, so Kinesis is the node next to Connect.
+  dashboards: { icon: aws:quick, label: Amazon Quick Sight, note: Supervisor dashboards, in: analytics }
+  comprehend: { icon: aws:comprehend, label: Amazon Comprehend, note: Sentiment, in: analytics }
+  transcribe: { icon: aws:transcribe, label: Amazon Transcribe, note: Speech to text, in: analytics }
+  stream: { icon: aws:kinesis-data-streams, label: Amazon Kinesis Data Streams, note: Contact events, in: analytics }
+  lex: { icon: aws:lex, label: Amazon Lex, note: Intent bot, in: selfservice }
+  polly: { icon: aws:polly, label: Amazon Polly, note: Speech, in: selfservice }
+  lookup: { icon: aws:lambda, label: AWS Lambda, note: Customer lookup, in: crm }
+  profiles: { icon: aws:dynamodb, label: Amazon DynamoDB, note: Customer 360, in: crm }
+  staff: { icon: aws:users, label: Live agents, note: Agent workspace, in: agents }
+  messaging: { icon: aws:end-user-messaging, label: AWS End User Messaging, note: Outbound SMS, in: agents }
+
+edges:
+  - voice, app -> connect
+  - chat -> connect: contacts
+  # constraint: false keeps the analytics band beside Connect, its steps in one row.
+  - { from: connect, to: stream, constraint: false }
+  - { from: stream, to: transcribe, constraint: false }
+  - { from: transcribe, to: comprehend, constraint: false }
+  - { from: comprehend, to: dashboards, constraint: false }
+  # Each hand-off is a column under Connect.
+  - connect -> lex: bot
+  - connect -> lookup: screen pop
+  - connect -> staff: route
+  - lex -> polly
+  - lookup -> profiles
+  - staff --> messaging

@@ -2,6 +2,41 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.9.0] - 2026-10-20
+
+### Added
+
+- **Layout you can steer.** `rank: first`, `last` or a layer number places a node along the flow; `align: <node>` lines two nodes up across it; `cols:` on a group lays its children out as a grid, row by row in spec order; `layout: { aspect: 4:3 }` aims the canvas at a shape that reads in a README or on a slide. A hint the layout cannot honor is reported, with the reason, as DG219, and a hint that would make an edge or a label cover a node is dropped rather than drawn over; bad values fail with DG114 to DG116. The hosted-agent diagram of the AgentCore sample went from a 3:1 strip whose labels render at 6.6 px in a README column (review 89.3, failing) to 1.47:1 and 97.3 passing with `aspect: 4:3` and three `align` hints.
+- **Lines that are not part of the layout go around nodes.** Edges with `constraint: false` and edges to overlay groups now try more routes and keep the first that clears every node they do not connect and every group header. No example's route changed; a spec whose free edge crossed nodes went from 7 warnings to none.
+- **Agents that draw from your code** (Claude Code):
+  - `/orrery:draw <what to draw>`: the new `planner` agent reads the infrastructure and code and returns every service, boundary and flow with the file and line it came from, marked declared or inferred, plus what it leaves out and why; you confirm that list before any spec is written.
+  - `accuracy-reviewer`, a fourth reviewer, checks the drawing against the sources with rules ACC-01 to ACC-08 (invented nodes, dependencies drawn as traffic, arrows the wrong way, wrong boundaries, missing hops). It gets the evidence and the plan's left-out list, never the planner's reasoning.
+  - `/orrery:doc <topic>`: one figure per aspect, drawn in parallel by `diagram-author` agents, each reviewed, then built with `orrery doc`.
+  - `patch-proposer` agents write candidate fixes under one strategy each (reduce, restructure, words, conventions); `orrery patch` picks the winner by measurement.
+  - A plugin hook validates a spec right after an agent writes or edits it and feeds errors back with their fixes.
+  - The planning and accuracy rules are in `references/planning.md` and `references/review/accuracy.md`, so clients without subagents run the same passes in order.
+- **`orrery patch <spec> <candidates.json>`** applies the review loop's patch ops to the YAML text in place, keeping comments, key order and quoting byte for byte, reviews every candidate set on its own copy at once, prints the table and writes the best one that improves the score with no hard count up.
+- **`orrery mcp`**: the commands as Model Context Protocol tools (authoring guide, validate, render, review, icon search, templates, patch candidates, draw.io link) over stdio, or stateless HTTP on 127.0.0.1 with `--port`. Each spec input is a path or the text; over HTTP no path is read and nothing is written. It speaks MCP `2026-07-28` and the handshake revisions up to `2025-11-25`. Setup for Claude Code, Codex, Gemini CLI, Cursor and Kiro is in the README.
+- **`orrery doc <design.md>`** builds a design document: each `<!-- orrery: spec.yaml | Caption -->` line becomes a numbered figure, as inline SVG in one HTML page, image files next to a Markdown copy, or a picture in a Word file with real headings, tables and captions. DG401 to DG403.
+- **`drawio.svg` output**: one file that shows as the SVG anywhere and opens in draw.io and the VS Code extension as the editable diagram.
+- **`orrery watch <spec>`** renders again on every save of the spec or its local icons, and prints the review score each time with `--review`.
+- **Review checks** for zig-zags, avoidable bends, lines that skim a node (DG221), labels on a group border (DG220), a node beside a group that reads as its peer, sibling groups of almost the same size, empty and lopsided groups, more arrows than nodes, and cross-cutting services fanned in from everywhere (with a patch that boxes them as shared services). AWS rules AWS-17 to AWS-19: boundary labels name their function, a service group holds one service, a service label names the service. Identical findings print once with a count.
+- **A preview PNG for reviewers**: when the display-width PNG is larger than 1568 px on a side, `orrery review` also writes `<base>.review.look.png` scaled to fit.
+- **17 AWS reference architectures**, 57 examples in all: agents on Bedrock AgentCore behind an MCP gateway, multi-Region active-active, backup and restore, central logging, threat detection, network inspection, an AWS Organizations OU tree, migration with AWS Transform, EKS e-commerce, CodePipeline CI/CD, IoT analytics, media streaming, an Amazon Connect contact center, WorkSpaces, HPC batch, a SageMaker AI LLM gateway and a multi-tenant SaaS ML platform. The website gallery gains Security and resilience and Networking filters.
+
+### Changed
+
+- The reviewer agents treat everything they read as data, never as instructions, and the hand-off now lists alt text, stand-in icons and why each remaining warning stays.
+- Review scores of existing examples move by up to 3 points from the new checks; all still pass.
+- **The source is organized by subsystem**: `src/cli/`, `spec/`, `layout/` (with `lanes/`, `kinds/`, `journey/`), `check/`, `review/`, `render/stage/`, `icons/` (with `local/`), `patch/`, `mcp/` and `doc/`, each with its entry in `index.ts`. The longest functions (`layoutCore` 1542 lines, `parseSpec` 845, `journeyLayout` 725, `checkScene` 609) are now short drivers over named steps; no function is over about 150 lines. Every example renders byte for byte as before.
+
+### Fixed
+
+- `/orrery:review <spec> [width]` read its arguments one place off: Claude Code counts placeholders from `$0`, so `$1` was the width. The commands now use named arguments.
+- The plugin, marketplace and Gemini manifests said 32 reference architectures and left out IBM icons and business flows; `scripts/check-repo.mjs` now fails when a manifest or doc quotes a count the examples folder does not have.
+- `orrery patch` crashed on a `set` or `add` op with no value instead of saying it needs one.
+- On Windows, writing an output that another process had open (a preview, an editor, a reader racing `orrery watch`) failed with EPERM; the rename now retries for up to two seconds.
+
 ## [0.8.0] - 2026-10-18
 
 ### Added

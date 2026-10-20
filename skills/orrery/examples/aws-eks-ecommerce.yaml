@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Microservices e-commerce on Amazon EKS
+subtitle: Edge services in front of an ALB and Amazon Elastic Kubernetes Service microservices, with data stores, order events and platform services
+direction: down
+layout: { layering: simplex }
+
+legend:
+  solid: Request path
+  dashed: Order events
+  dotted: Supporting services
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  vpc: { type: aws:vpc, in: region }
+  private: { type: aws:private-subnet, label: Private subnets, in: vpc }
+  cluster: { type: aws:generic, label: Amazon EKS cluster, icon: aws:elastic-kubernetes-service, in: private }
+  data: { type: aws:private-subnet, label: Data subnets, in: vpc }
+  messaging: { type: aws:generic, label: Async messaging, in: region }
+
+nodes:
+  shoppers: { icon: aws:users, label: Shoppers, note: Web and mobile }
+  # Route 53, CloudFront and AWS WAF are global services: they sit in the AWS Cloud group, outside the Region.
+  dns: { icon: aws:route-53, label: Amazon Route 53, note: DNS, in: cloud }
+  cdn: { icon: aws:cloudfront, label: Amazon CloudFront, in: cloud }
+  waf: { icon: aws:waf, label: AWS WAF, note: Web ACL, in: cloud }
+  alb: { icon: aws:alb, label: Application Load Balancer, note: Public subnets, in: vpc }
+  storefront: { icon: aws:eks, label: Storefront, note: Web front end, in: cluster }
+  cart: { icon: aws:eks, label: Cart, in: cluster }
+  catalog: { icon: aws:eks, label: Catalog, in: cluster }
+  orders: { icon: aws:eks, label: Orders, note: Checkout, in: cluster }
+  payments: { icon: aws:eks, label: Payments, in: cluster }
+  shipping: { icon: aws:eks, label: Shipping, in: cluster }
+  cache: { icon: aws:elasticache, label: Amazon ElastiCache, note: Cart sessions, in: data }
+  aurora: { icon: aws:aurora, label: Amazon Aurora, note: Orders database, in: data }
+  # Regional services below the VPC. Every edge into this row carries a label, so ELK gives them all
+  # the same depth and they share one row.
+  assets: { icon: aws:simple-storage-service-bucket, label: Assets bucket, note: Amazon S3, in: region }
+  cognito: { icon: aws:cognito, label: Amazon Cognito, note: Customer sign-in, in: region }
+  ecr: { icon: aws:ecr, label: Amazon Elastic Container Registry, note: Service images, in: region }
+  secrets: { icon: aws:secrets-manager, label: AWS Secrets Manager, note: Database credentials, in: region }
+  ddb: { icon: aws:dynamodb, label: Amazon DynamoDB, note: Product catalog, in: region }
+  topic: { icon: aws:sns-topic, label: Order events, note: Amazon SNS topic, in: messaging }
+  queue: { icon: aws:sqs-queue, label: Shipping jobs, note: Amazon SQS queue, in: messaging }
+
+edges:
+  - shoppers -> dns: { label: DNS query, step: 1 }
+  - shoppers -> cdn: { label: HTTPS, step: 2 }
+  # AWS WAF is attached to the distribution; constraint: false keeps it beside CloudFront.
+  - { from: waf, to: cdn, line: dotted, constraint: false }
+  - cdn -> alb: { label: origin requests, step: 3 }
+  - alb -> storefront: { step: 4 }
+  - storefront -> cart, catalog, orders, payments
+  - cart -> cache
+  - orders -> aurora
+  - { from: storefront, to: cognito, line: dotted, label: verify tokens }
+  - { from: cluster, to: ecr, arrow: start, line: dotted, label: pull images }
+  - { from: cluster, to: secrets, arrow: start, line: dotted, label: credentials }
+  - catalog -> ddb: products
+  - catalog -> assets: product images
+  - orders --> topic: OrderPlaced
+  # constraint: false puts the queue beside its topic in one row; Shipping polls it.
+  - { from: topic, to: queue, line: dashed, constraint: false }
+  - { from: shipping, to: queue, arrow: start, line: dashed, label: poll }

@@ -2,7 +2,7 @@
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseSpec } from "../src/spec.ts";
+import { parseSpec } from "../src/spec/index.ts";
 import type { Box, Diagnostic, Model, Point } from "../src/types.ts";
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");

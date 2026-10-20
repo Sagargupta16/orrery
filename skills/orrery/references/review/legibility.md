@@ -2,6 +2,8 @@
 
 For the legibility reviewer: can a reader take in the diagram at the width it is shown? The review PNG is the diagram at that width, one pixel per CSS pixel, so judge the PNG as it is, without zooming in. The review JSON gives `width`, `scale` (every length shrinks by it), `display` (the PNG size) and `elements` (each spec id with its box in PNG pixels).
 
+When the display PNG is over 1568 px on a side, view the look PNG (`<base>.review.look.png`) instead. It is smaller than what readers see, so text in it looks smaller than it is: judge hierarchy, density and fit from it, and every size from the JSON (`nodeLabelPx`, `smallestTextPx`, `iconPx`). Its boxes are the `elements` boxes times look width over `display.width`.
+
 Rule ids are LEG-nn. **[measured]** rules are checked by `orrery review`; cite their numbers, do not re-measure. **[judged]** rules are yours; cite an `elements` box for the region you mean.
 
 Never report overlaps, crossings, cut-off content or contrast from the image: vision models get line intersections right 56.84% of the time ([VLMs are blind](https://arxiv.org/html/2407.06581)) and agree with people at 0.428 on visualization quality ([VisJudge-Bench](https://arxiv.org/abs/2510.22373)). Those come from the measurement only.

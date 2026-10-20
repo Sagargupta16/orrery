@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { animateOf } from "../src/layout.ts";
-import { parseEdgeExpression, parseSpec } from "../src/spec.ts";
+import { animateOf } from "../src/layout/index.ts";
+import { parseEdgeExpression } from "../src/spec/edges.ts";
+import { parseSpec } from "../src/spec/index.ts";
 import type { Diagnostic } from "../src/types.ts";
 import { listDiagnostics, model, must } from "./helpers.ts";
 
@@ -145,7 +146,7 @@ describe("edge expressions", () => {
   });
 
   it("keeps constraint: false edges out of the layout but draws them", async () => {
-    const { layout } = await import("../src/layout.ts");
+    const { layout } = await import("../src/layout/index.ts");
     const m = model(
       `${NODES}edges:\n  - a -> b\n  - b --> c: { label: replica, constraint: false }\n`,
     );
@@ -157,7 +158,7 @@ describe("edge expressions", () => {
   });
 
   it("leaves a stacked icon node below its label and note, not through them", async () => {
-    const { layout } = await import("../src/layout.ts");
+    const { layout } = await import("../src/layout/index.ts");
     const scene = await layout(
       model(
         "direction: right\ngroups: { z: { type: zone } }\nnodes:\n  a: { icon: generic:server, label: Scheduler, note: Orchestration, in: z }\n  b: { icon: generic:database, label: Models, in: z }\n  c: { icon: generic:api, label: Engine }\nedges:\n  - a --> b: { constraint: false }\n  - b -> c\n",

@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Hub-and-spoke network with central inspection on AWS
+subtitle: Workload VPCs attach to a Transit Gateway that sends their internet traffic through Network Firewall in an inspection VPC; the data center joins the same hub over VPN
+direction: down
+
+legend:
+  solid: Egress traffic, inspected
+  dashed: Site-to-Site VPN path (both ways)
+
+groups:
+  cloud: { type: aws:cloud }
+  region: { type: aws:region, label: us-east-1, in: cloud }
+  spokes: { type: aws:generic, label: Workload VPCs, in: region }
+  vpc-a: { type: aws:vpc, label: VPC A 10.1.0.0/16, in: spokes }
+  vpc-b: { type: aws:vpc, label: VPC B 10.2.0.0/16, in: spokes }
+  vpc-c: { type: aws:vpc, label: VPC C 10.3.0.0/16, in: spokes }
+  inspection: { type: aws:vpc, label: Inspection VPC, in: region }
+  firewall-subnet: { type: aws:private-subnet, label: Firewall subnet, in: inspection }
+  public-subnet: { type: aws:public-subnet, label: Public subnet, in: inspection }
+  dc: { type: aws:corporate-dc, label: Corporate data center }
+
+nodes:
+  app-a: { icon: aws:ec2, label: Amazon EC2, note: Workload A, in: vpc-a }
+  app-b: { icon: aws:ec2, label: Amazon EC2, note: Workload B, in: vpc-b }
+  app-c: { icon: aws:ec2, label: Amazon EC2, note: Workload C, in: vpc-c }
+  tgw: { icon: aws:transit-gateway, label: AWS Transit Gateway, note: Spoke and inspection route tables, in: region }
+  firewall: { icon: aws:network-firewall-endpoints, label: AWS Network Firewall, note: Allows or drops each flow, in: firewall-subnet }
+  nat: { icon: aws:vpc-nat-gateway, label: NAT gateway, in: public-subnet }
+  igw: { icon: aws:vpc-internet-gateway, label: Internet gateway, in: inspection }
+  vpn: { icon: aws:site-to-site-vpn, label: AWS Site-to-Site VPN, note: Two IPsec tunnels, in: region }
+  internet: { icon: aws:internet, label: Internet }
+  cgw: { icon: aws:vpc-customer-gateway, label: Customer gateway, note: On-premises router, in: dc }
+  servers: { icon: aws:servers, label: Corporate servers, note: 172.16.0.0/16, in: dc }
+
+edges:
+  - spokes -> tgw: { label: VPC attachments, step: 1 }
+  - tgw -> firewall: { label: inspect, step: 2 }
+  # constraint: false keeps the inspection VPC one row deep: firewall, NAT and internet gateway side by side.
+  - firewall -> nat: { step: 3, constraint: false }
+  - nat -> igw: { step: 4, constraint: false }
+  - igw -> internet: { label: public, step: 5 }
+  - tgw --- vpn: VPN attachment
+  - vpn --- cgw: IPsec
+  - { from: cgw, to: servers, line: dashed, arrow: none, label: LAN, constraint: false }

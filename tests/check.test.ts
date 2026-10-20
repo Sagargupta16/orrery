@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { type CheckOptions, checkScene } from "../src/check.ts";
-import { layout } from "../src/layout.ts";
+import { type CheckOptions, checkScene } from "../src/check/index.ts";
+import { layout } from "../src/layout/index.ts";
 import type { Scene } from "../src/types.ts";
 import { model, must, SAMPLE } from "./helpers.ts";
 

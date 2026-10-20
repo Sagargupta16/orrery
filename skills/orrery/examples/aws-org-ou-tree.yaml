@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Multi-account OU structure on AWS
+subtitle: The organizational units the AWS multi-account guidance recommends, with their accounts, under the management account
+kind: tree
+
+groups:
+  org: { type: aws:generic, icon: aws:organizations, label: AWS Organizations }
+  # The guidance groups Security and Infrastructure as the foundational OUs.
+  foundation: { type: aws:generic-dashed, label: Foundational OUs, in: org }
+
+nodes:
+  root: { icon: aws:organizations-management-account, label: Management account, note: Organization root, in: org }
+  security: { icon: aws:organizations-organizational-unit, label: Security OU, in: foundation }
+  infra: { icon: aws:organizations-organizational-unit, label: Infrastructure OU, in: foundation }
+  workloads: { icon: aws:organizations-organizational-unit, label: Workloads OU, in: org }
+  sandbox: { icon: aws:organizations-organizational-unit, label: Sandbox OU, in: org }
+  suspended: { icon: aws:organizations-organizational-unit, label: Suspended OU, note: Closed accounts, in: org }
+  log-archive: { icon: aws:organizations-account, label: Log Archive, note: Central logs, in: foundation }
+  tooling: { icon: aws:organizations-account, label: Security Tooling, note: Delegated administrator, in: foundation }
+  network: { icon: aws:organizations-account, label: Network, note: Transit and DNS, in: foundation }
+  shared: { icon: aws:organizations-account, label: Shared Services, note: Platform tooling, in: foundation }
+  prod: { icon: aws:organizations-organizational-unit, label: Prod OU, in: org }
+  test: { icon: aws:organizations-organizational-unit, label: Test OU, in: org }
+  developer: { icon: aws:organizations-account, label: Developer A, note: Sandbox account, in: org }
+  workload-prod: { icon: aws:organizations-account, label: Workload A, note: Production account, in: org }
+  workload-test: { icon: aws:organizations-account, label: Workload A, note: Test account, in: org }
+
+edges:
+  - root -> security, infra, workloads, sandbox, suspended
+  - security -> log-archive, tooling
+  - infra -> network, shared
+  - workloads -> prod, test
+  - sandbox -> developer
+  - prod -> workload-prod
+  - test -> workload-test

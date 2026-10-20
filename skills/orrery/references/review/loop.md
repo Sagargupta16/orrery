@@ -7,7 +7,7 @@ How a rendered diagram gets reviewed and improved: **measure, critique, patch, r
 | Role | Who | Writes | Reads |
 | --- | --- | --- | --- |
 | Orchestrator | the main session | the spec, and nothing else | everything below |
-| Measurer | `orrery review` (`src/review.ts`) | `<base>.review.json`, `<base>.review.png` | the spec |
+| Measurer | `orrery review` (`src/review/`) | `<base>.review.json`, `<base>.review.png` | the spec |
 | Conventions reviewer | `orrery:conventions-reviewer`, or an inline pass | one JSON findings array | the rubric files named in `rubrics` of the review JSON |
 | Flow reviewer | `orrery:flow-reviewer`, or an inline pass | one JSON findings array | [flow.md](flow.md) |
 | Legibility reviewer | `orrery:legibility-reviewer`, or an inline pass | one JSON findings array | [legibility.md](legibility.md) |
@@ -38,6 +38,7 @@ A process drawn with AWS icons gets both `conventions-aws.md` and `conventions-b
 - **Separate numeric, lexical and visual feedback** ([PlotGen](https://arxiv.org/html/2502.00988v1)): conventions (names and vendor rules), flow (structure and story), legibility (the picture at display width).
 - **Few edits per round, revert when nothing improves, three rounds** ([See it. Say it. Sorted](https://arxiv.org/html/2508.15222); [MatPlotAgent](https://arxiv.org/html/2402.11453) and [PaperBanana](https://arxiv.org/html/2601.23265) both stop at 3 rounds; PaperBanana's critics miss connectivity, so the flow reviewer checks it from the spec, not the image).
 - **Progress ledger with a stall threshold of 2** ([Magentic-One](https://arxiv.org/html/2411.04468)).
+- **Reduce before nudging, then try candidates in one batch** ([aws-archify review and fix](https://github.com/aws-samples/sample-agentcore-harness-agent-terraform/blob/main/skills/aws-archify/references/review-and-fix.md)): an overlap is often a symptom of too many arrows, and one batch of candidates replaces several fix, render and look cycles.
 
 ## Steps
 
@@ -51,7 +52,9 @@ One line: what the diagram must show, for whom, and where it is shown. The place
 orrery review docs/architecture.yaml --width 880 --json -o docs/architecture
 ```
 
-It lays out the spec in both themes, writes `docs/architecture.review.json` and `docs/architecture.review.png` (a still PNG at the display width, one pixel per CSS pixel: what the reader sees) and prints the report (`--json`) or a table. `--theme dark` reviews the dark scene's geometry; contrast is checked in both themes either way. Read from the JSON: `score`, `pass`, `hard`, `dimensions.*.score` and `metrics`, `findings`, `elements` (every node, group and edge with its box in PNG pixels), `rubrics`.
+It lays out the spec in both themes, writes `docs/architecture.review.json` and `docs/architecture.review.png` (a still PNG at the display width, one pixel per CSS pixel: what the reader sees) and prints the report (`--json`) or a table, where identical finding lines print once with a count (`(x3)`). `--theme dark` reviews the dark scene's geometry; contrast is checked in both themes either way. Read from the JSON: `score`, `pass`, `hard`, `dimensions.*.score` and `metrics`, `findings` (with `patches` when a fix can be written as one), `elements` (every node, group and edge with its box in PNG pixels), `rubrics`.
+
+When the display PNG is taller or wider than 1568 px (a tall diagram at a README width), the review also writes the **look PNG**, `docs/architecture.review.look.png`: the same picture scaled to fit inside 1568 x 1568. Models stall on images over about 2000 px a side, and a rejected image stays in the conversation, so whoever looks (the orchestrator or a reviewer) views the look PNG when it exists, never the full one, and takes every size from the JSON.
 
 ### 2. Scale the effort
 
@@ -66,11 +69,12 @@ With subagents (the Claude Code plugin), spawn the three reviewers **in one mess
 ```text
 Spec: <spec path>. Brief: <one line>. Review JSON: <base>.review.json.
 Display PNG: <base>.review.png (<display.width>x<display.height>, the diagram as readers see it at <width>px).
+Look PNG: <base>.review.look.png (only when the review wrote one; view it instead of the display PNG).
 Rubrics: <rubrics from the JSON, for the conventions reviewer>.
 Return only the JSON findings array.
 ```
 
-Without subagents (the Agent Skills install, or a client with no agent tool), run three passes inline, one after another. In each pass read only that pass's rubric, the spec, the review JSON and the PNG, write that pass's findings array down, and only then start the next pass, so one rubric does not color another.
+Without subagents (the Agent Skills install, or a client with no agent tool), run three passes inline, one after another. In each pass read only that pass's rubric, the spec, the review JSON and the PNG (the look PNG when there is one), write that pass's findings array down, and only then start the next pass, so one rubric does not color another.
 
 ### 4. Merge
 
@@ -78,13 +82,28 @@ Without subagents (the Agent Skills install, or a client with no agent tool), ru
 2. **Dedupe** by dimension plus sorted subjects. Keep the higher priority finding; union the fixes and patches.
 3. **Rank**: measured blocker > cited vendor rule > brief and audience > taste. Within a level: higher severity, then measured before judged, then the patch that touches fewer elements.
 
-### 5. Patch
+### 5. Patch: reduce, then candidates, then restructure
 
-Take 1 to 3 non-overlapping patches from the top of the ranking. Keep a copy of the spec text, apply the patches, and render again. Never patch away something the brief asks for (a node, an edge, a label) to silence a finding.
+Climb this ladder one rung at a time, and stop on the rung that clears the top findings.
+
+1. **Reduce first.** An overlap, a crossing or a shared line is often a symptom of too many edges (`flow.edge-budget` fires when edges outnumber nodes). Before any geometry patch, question the edges behind the finding, in this order:
+   - Parallel edges into members of one group become one edge to the group (`to: <group id>`), with one label that says what the several edges said.
+   - Echo, reply and callback edges go: the forward edge already says it.
+   - Edges from every node into a cross-cutting service (logs, metrics, tracing, audit, identity, keys) go, and the service moves into a group labelled Shared services with no edges to it; `flow.cross-cutting` carries that patch.
+2. **Candidates.** Write 2 to 4 candidate patch sets, each a different hypothesis (move a node in the nodes list, a `rank:` or `align:` hint, `direction`, `layout.spacing`, a shorter label) and each 1 to 3 non-overlapping patches from the top of the ranking, and try them all in one call:
+
+   ```bash
+   orrery patch docs/architecture.yaml candidates.json --width 880 -o docs/architecture.best.yaml --json
+   ```
+
+   `candidates.json` is an array of patch sets: `[[{ "op": "move", "path": "nodes.db", "after": "api" }], [{ "op": "set", "path": "direction", "value": "down" }]]`. Each set is reviewed on its own copy of the spec and kept only when step 6's ratchet passes; keep only the best kept one (`best` in the output), drop the rest without looking at them, and look once at the winner's PNG.
+3. **Restructure** when no candidate is kept, or the best one trades one finding for another: the composition is wrong, not the edge. Put connected nodes next to each other in the nodes list, move a group next to the tier that feeds it, change `direction`, or split the diagram, then start again from step 1.
+
+Never patch away something the brief asks for (a node, an edge, a label) to silence a finding; dropping an echo or cross-cutting edge on rung 1 is not that, since the layout still says it.
 
 ### 6. Ratchet
 
-Re-run step 1. Keep the round only when it was reviewed at the same width and theme, **no hard count went up, blockers plus majors did not go up, no node was removed (dropping an edge is fine) and the score went up** (`improves(before, after)` in `src/review.ts`); otherwise restore the copy and do not propose the same patch again.
+Keep a round only when it was reviewed at the same width and theme, **no hard count went up, blockers plus majors did not go up, no node was removed (dropping an edge is fine) and the score went up** (`improves(before, after)` in `src/review/index.ts`). `orrery patch` applies it to every candidate; a patch applied by hand needs step 1 again. Otherwise restore the copy and do not propose the same patch again.
 
 | Round | Patches | Score | Hard (overlaps/nodes/headers/labels/canvas/contrast) | Kept |
 | --- | --- | --- | --- | --- |
@@ -102,7 +121,7 @@ The final table (the CLI prints it), each kept patch with its score change, what
 
 ## Finding format
 
-Measured findings (in the review JSON) and reviewer findings share one shape; reviewers add `patches`.
+Measured findings (in the review JSON) and reviewer findings share one shape. Reviewers always add `patches`; a measured finding carries them when its first fix can be written as one.
 
 ```json
 [
@@ -145,7 +164,9 @@ Two patches overlap when they touch the same node, group or edge, or one path is
 
 Each dimension starts at 100; every finding kind takes off its cost, at most its cap. The total is the weighted sum: conventions 0.15, layout 0.15, grid 0.10, flow 0.20, overlap 0.20, quality 0.20. **Pass** means a score of 85 or more and no blocker or major finding.
 
-**Hard counts** must never go up: `overlaps` (labels over nodes, colliding nodes or labels, badges, hidden arrowheads, groups out of place), `edgesThroughNodes`, `edgesThroughHeaders`, `edgesThroughLabels`, `offCanvas`, `contrastFailures` (both themes).
+**Hard counts** must never go up: `overlaps` (labels over nodes, colliding nodes or labels, badges, hidden arrowheads, groups out of place), `edgesThroughNodes`, `edgesThroughHeaders`, `edgesThroughLabels`, `offCanvas`, `contrastFailures` (both themes). Near misses (`overlap.label-on-border`, `overlap.edge-skims-node`) cost points but raise no hard count.
+
+The composition findings ported from aws-archify's `check-layout.ts` (zig-zag, avoidable bend, beside a group, uneven siblings, sparse group, padding, and DG221's 10px) measure canvas px, not display px: they say how far layout put two ends out of line or how loosely a frame fits, in the units layout works in, and a narrower column shrinks the defect and its fix alike. A sparse group's nodes cover 32px around them (times `layout.spacing`), half of orrery's gap between layers, so the layout's own spacing never counts as empty.
 
 ## Measured finding ids
 
@@ -160,8 +181,11 @@ Each dimension starts at 100; every finding kind takes off its cost, at most its
 | `overlap.off-canvas` | DG210 | 60 | something is drawn outside the canvas and gets cut off |
 | `overlap.badge` | DG211 | 40 | a step badge or node badge covers a node, a label or another badge |
 | `overlap.overlay-encloses` | DG213 | 30 | an overlay (around:) group draws around a node that is not a member |
+| `overlap.overlay-header` | DG214 | 30 | an overlay (around:) group's header covers another group's header or a node |
 | `overlap.outside-group` |  | 30 | a node or group sticks out of its parent group or into its header |
 | `overlap.groups-collide` |  | 30 | two groups that do not nest overlap |
+| `overlap.label-on-border` | DG220 | 16 | an edge label sits on a group's border line, so the frame looks broken there |
+| `overlap.edge-skims-node` | DG221 | 16 | an edge passes within 10px of a node it does not connect, so it reads as touching it |
 | `flow.head-hidden` |  | 40 | an arrowhead sits under a label, badge, header or node, so the direction is lost |
 | `flow.shared-trunk` |  | 32 | two unrelated edges run on the same line, so readers cannot tell them apart |
 | `flow.step-order` | AWS-14 | 32 | step numbers do not follow reading order (left to right, top to bottom, or clockwise) |
@@ -172,6 +196,8 @@ Each dimension starts at 100; every finding kind takes off its cost, at most its
 | `flow.head-on-bend` |  | 15 | the last straight run is shorter than the arrowhead, so the head sits on the bend |
 | `flow.arrow-short` |  | 10 | an edge stops short of the drawn icon glyph |
 | `flow.unconnected` | DG208 | 12 | a node nothing connects to |
+| `flow.edge-budget` |  | 6 | an architecture diagram with more edges than nodes, which reads as a call sequence |
+| `flow.cross-cutting` |  | 12 | four or more edges into a monitoring, logging, audit, identity or key service from outside its family; a shared services group says it without arrows |
 | `layout.against-flow` |  | 30 | an arrowhead points against the diagram direction |
 | `layout.crossings` |  | 30 | edges cross each other |
 | `layout.empty-space` |  | 25 | a large empty rectangle inside the content |
@@ -180,10 +206,17 @@ Each dimension starts at 100; every finding kind takes off its cost, at most its
 | `layout.long-edge` |  | 15 | an edge is far longer than the median edge |
 | `layout.fallback` | DG218 | 5 | ELK needed a fallback strategy, so spec order may not be kept |
 | `layout.empty-group` | DG207 | 10 | a group with nothing in it |
+| `layout.ignored` | DG219 | 9 | a setting layout could not honor (for example `rank:`, `align:`, `cols:` or `layout.aspect`); the patch unsets it |
+| `layout.sparse-group` |  | 12 | a group more than 65% empty (8px raster below its header) |
+| `layout.beside-group` |  | 12 | a node outside a group shares 20 to 80% of its height with it, so the two read as one row of peers |
 | `grid.ragged` |  | 24 | items in one layer share no start, center or end line |
 | `grid.jog` |  | 24 | an edge has a tiny step (under 6px) where it could run straight |
 | `grid.off-center` |  | 21 | a group's content is off its center by more than 6px |
 | `grid.uneven-gaps` |  | 15 | gaps between layers vary a lot |
+| `grid.zig-zag` |  | 15 | a one-to-one edge steps 12 to 180px between two parallel runs (a Z): its ends are out of line |
+| `grid.avoidable-bend` |  | 15 | a one-to-one edge turns once with a leg of 240px or less: its ends are out of line |
+| `grid.uneven-siblings` |  | 12 | same-kind boundary groups under one parent differ 10 to 40% in height in a row or width in a column (any amount over 10% when their labels differ only by a letter or digit) |
+| `grid.padding` |  | 12 | one side of a group's padding is over 80px and over 3x its tightest side, so the box does not hug its content |
 | `quality.label-size` | LEG-01 | 60 | node labels are too small at the display width |
 | `quality.text-size` | LEG-02 | 20 | the smallest text (notes, edge labels, badges) is too small at the display width |
 | `quality.icon-size` | LEG-03 | 15 | icons are too small to recognize at the display width |
@@ -197,6 +230,9 @@ Each dimension starts at 100; every finding kind takes off its cost, at most its
 | `conventions.short-name` | AWS-08 | 20 | an AWS short form with no full service name anywhere in the diagram |
 | `conventions.label-lines` | AWS-07 | 15 | an AWS service label runs over two lines |
 | `conventions.callout-sizes` | AWS-13 | 5 | step callouts come in more than one size |
+| `conventions.boundary-label` | AWS-17 | 12 | an AWS boundary group's label does not name the boundary (Private subnet, VPC, Region) |
+| `conventions.service-group` | AWS-18 | 12 | a group with an AWS service icon holds other services |
+| `conventions.service-label` | AWS-19 | 15 | an AWS service icon's label does not name the service; the role belongs in note |
 | `conventions.c4-element` | C4-04 | 24 | a C4 element lacks its type, description or technology |
 | `conventions.c4-relationship` | C4-07 | 15 | a C4 relationship lacks a specific label or its technology |
 | `conventions.icon-recolored` | AZ-06 | 15 | a brand mark is recolored |
