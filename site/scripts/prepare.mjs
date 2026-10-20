@@ -59,7 +59,8 @@ const captions = new Map();
 for (const m of examplesReadme.matchAll(
   /\[`([\w-]+)`\]\([^)]*\): (.+)\n\n<a href="[^"]+"><img src="[^"]+" alt="([^"]+)"/g,
 ))
-  captions.set(m[1], { caption: m[2].trim(), alt: m[3] });
+  // The README writes captions as the second half of a sentence; a card starts one.
+  captions.set(m[1], { caption: m[2].trim().replace(/^[a-z]/, (c) => c.toUpperCase()), alt: m[3] });
 
 const prefixOf = (id) => (typeof id === "string" && id.includes(":") ? id.split(":")[0] : undefined);
 

@@ -196,6 +196,10 @@ describe("applyPatches", () => {
       /^op 1 \(unset nodes\.api\.note\): nodes\.api\.note is not set/,
     );
     fails(
+      [{ op: "set", path: "direction" }],
+      /^op 1 \(set direction undefined\): set needs a value$/,
+    );
+    fails(
       [{ op: "move", path: "nodes.db", after: "cache" }],
       /^op 1 \(move nodes\.db after cache\): no node "cache" to move after/,
     );

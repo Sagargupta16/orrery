@@ -1,0 +1,67 @@
+// Shared CLI plumbing: usage errors, spec input, atomic writes and diagnostics on stderr.
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
+import { LibraryError } from "../libraries.ts";
+import { LocalIconError } from "../local-icons.ts";
+import type { Diagnostic } from "../types.ts";
+import type { Args } from "./args.ts";
+import { HELP } from "./help.ts";
+
+export function usage(message: string): never {
+  process.stderr.write(`orrery: ${message}\n\n${HELP}\n`);
+  process.exit(2);
+}
+
+export const sha = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
+
+export function writeAtomic(path: string, data: string | Uint8Array) {
+  mkdirSync(dirname(path), { recursive: true });
+  const tmp = `${path}.${process.pid}.tmp`;
+  writeFileSync(tmp, data);
+  renameSync(tmp, path);
+}
+
+export function printDiagnostics(list: Diagnostic[], json: boolean) {
+  if (json) return;
+  for (const d of list) {
+    const where = d.subject ? ` ${JSON.stringify(d.subject)}` : "";
+    process.stderr.write(
+      `${d.severity === "error" ? "error" : "warn "} ${d.code} ${d.message}${where}\n`,
+    );
+    for (const fix of d.fixes ?? []) process.stderr.write(`      fix: ${fix}\n`);
+  }
+}
+
+/** A render stopped by a library download or a bad local icon file, as a diagnostic. */
+export function renderFailure(e: unknown): Diagnostic | undefined {
+  if (e instanceof LibraryError)
+    return { severity: "error", code: "DG301", message: e.message, fixes: e.fixes };
+  if (e instanceof LocalIconError)
+    return {
+      severity: "error",
+      code: "DG111",
+      message: `icon file ${e.file} ${e.problem}`,
+      subject: { where: "icons", file: e.file },
+      fixes: [e.fix],
+    };
+  return undefined;
+}
+
+export function readSpec(path: string): { text: string; name: string; path: string } {
+  if (path === "-") return { text: readFileSync(0, "utf8"), name: "diagram", path: "stdin.yaml" };
+  const full = resolve(path);
+  if (!existsSync(full)) usage(`no such spec file: ${path}`);
+  return {
+    text: readFileSync(full, "utf8"),
+    name: basename(full).replace(/\.(ya?ml|json)$/i, ""),
+    path: full,
+  };
+}
+
+/** The --font files (the flag repeats), each of which must exist. */
+export function fontFiles(args: Args): string[] {
+  const fonts = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
+  for (const f of fonts) if (!existsSync(f)) usage(`no such file: ${f} (from --font)`);
+  return fonts;
+}

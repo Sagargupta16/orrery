@@ -17,7 +17,23 @@ const REARM_MS = 50;
 /** Re-arm attempts while a rename-style save has the path missing for a moment. */
 const RETRIES = 20;
 
-export async function cmdWatch(args: Args): Promise<void> {
+interface WatchOptions {
+  spec: ReturnType<typeof readSpec>;
+  /** light, dark or both; undefined renders the spec's own theme. */
+  theme?: string;
+  fonts: string[];
+  formats: Format[];
+  /** Output path without extension, as render names it. */
+  base: string;
+  scale: number;
+  animate?: AnimateMode;
+  skin?: Skin;
+  width: number;
+  review: boolean;
+}
+
+/** The command line, checked in order; a bad flag exits with usage before anything is watched. */
+function watchOptions(args: Args): WatchOptions {
   const [specPath] = args._;
   if (!specPath) usage("watch needs a spec file");
   if (specPath === "-") usage("watch needs a spec file it can watch, not stdin");
@@ -58,82 +74,104 @@ export async function cmdWatch(args: Args): Promise<void> {
   const width = args.flags.width === undefined ? DEFAULT_REVIEW_WIDTH : Number(args.flags.width);
   if (!(width > 0)) usage("--width must be a positive number of px");
   const review = args.flags.review === true;
+  return { spec, theme: themeFlag, fonts, formats, base, scale, animate, skin, width, review };
+}
 
-  /** Every file this watch has written; a change to one of them is never a reason to render. */
-  const written = new Set<string>();
+/** What one run found and wrote. */
+interface Run {
+  diagnostics: Diagnostic[];
+  outputs: { path: string; bytes: number }[];
+  /** The score and pass line of `orrery review`, with --review. */
+  score?: string;
+}
 
-  async function renderOnce(): Promise<void> {
-    const started = performance.now();
-    const diagnostics: Diagnostic[] = [];
-    const outputs: { path: string; bytes: number }[] = [];
-    let crashed = false;
-    let score: string | undefined;
-    try {
-      const parsed = parseSpec(readFileSync(spec.path, "utf8"), spec.path);
-      diagnostics.push(...parsed.diagnostics);
-      if (parsed.model && !diagnostics.some((d) => d.severity === "error")) {
-        follow([spec.path, ...(parsed.model.icons ?? []).map((i) => i.path)]);
-        const theme = themeFlag ?? parsed.model.theme;
-        const themes: ThemeName[] = theme === "both" ? ["light", "dark"] : [theme as ThemeName];
-        const result = await renderModel({
-          model: parsed.model,
-          formats,
-          themes,
-          name: spec.name,
-          scale,
-          fonts,
-          animate,
-          skin,
-        });
-        diagnostics.push(...result.diagnostics);
-        for (const a of result.artifacts) {
-          const suffix = themes.length > 1 && a.format !== "html" ? `-${a.theme}` : "";
-          const path = `${base}${suffix}.${a.format}`;
-          written.add(path);
-          writeAtomic(path, a.data);
-          outputs.push({
-            path,
-            bytes: typeof a.data === "string" ? Buffer.byteLength(a.data) : a.data.length,
-          });
-        }
-        if (review) {
-          const run = await reviewModel({
-            model: skin ? { ...parsed.model, skin } : parsed.model,
-            name: spec.name,
-            width,
-            theme: themes[0],
-            fonts,
-            diagnostics: parsed.diagnostics,
-            png: false,
-          });
-          // The score and pass line of `orrery review`.
-          score = formatReview(run.report).split("\n")[1];
-        }
-      }
-    } catch (e) {
-      const failure = renderFailure(e);
-      if (failure) diagnostics.push(failure);
-      else {
-        crashed = true;
-        process.stderr.write(`error ${(e as Error)?.message ?? e}\n`);
-      }
-    }
-    printDiagnostics(diagnostics, false);
-    const errors = diagnostics.filter((d) => d.severity === "error").length + (crashed ? 1 : 0);
-    const warnings = diagnostics.filter((d) => d.severity !== "error").length;
-    const counts = `${errors} error(s), ${warnings} warning(s)`;
-    const ms = Math.round(performance.now() - started);
-    const bytes = outputs.reduce((s, o) => s + o.bytes, 0);
-    const time = new Date().toTimeString().slice(0, 8);
-    process.stdout.write(
-      outputs.length
-        ? `${time} wrote ${outputs.map((o) => shownPath(o.path)).join(", ")} (${(bytes / 1024).toFixed(1)} KB) in ${ms} ms; ${counts}\n`
-        : `${time} failed in ${ms} ms: ${counts}; still watching\n`,
-    );
-    if (score) process.stdout.write(`         ${score}\n`);
+/** Parses the spec as saved now, writes every output, and reviews it when asked. */
+async function renderSpec(
+  opts: WatchOptions,
+  run: Run,
+  written: Set<string>,
+  follow: (files: string[]) => void,
+): Promise<void> {
+  const { spec, formats, base, scale, fonts, animate, skin, width } = opts;
+  const parsed = parseSpec(readFileSync(spec.path, "utf8"), spec.path);
+  run.diagnostics.push(...parsed.diagnostics);
+  if (!parsed.model || run.diagnostics.some((d) => d.severity === "error")) return;
+  follow([spec.path, ...(parsed.model.icons ?? []).map((i) => i.path)]);
+  const theme = opts.theme ?? parsed.model.theme;
+  const themes: ThemeName[] = theme === "both" ? ["light", "dark"] : [theme as ThemeName];
+  const result = await renderModel({
+    model: parsed.model,
+    formats,
+    themes,
+    name: spec.name,
+    scale,
+    fonts,
+    animate,
+    skin,
+  });
+  run.diagnostics.push(...result.diagnostics);
+  for (const a of result.artifacts) {
+    const suffix = themes.length > 1 && a.format !== "html" ? `-${a.theme}` : "";
+    const path = `${base}${suffix}.${a.format}`;
+    written.add(path);
+    writeAtomic(path, a.data);
+    run.outputs.push({
+      path,
+      bytes: typeof a.data === "string" ? Buffer.byteLength(a.data) : a.data.length,
+    });
   }
+  if (opts.review) {
+    const reviewed = await reviewModel({
+      model: skin ? { ...parsed.model, skin } : parsed.model,
+      name: spec.name,
+      width,
+      theme: themes[0],
+      fonts,
+      diagnostics: parsed.diagnostics,
+      png: false,
+    });
+    // The score and pass line of `orrery review`.
+    run.score = formatReview(reviewed.report).split("\n")[1];
+  }
+}
 
-  // One render at a time; saves that land during a render queue exactly one more.
+/** One run, reported in one line; a broken spec is reported and the watch goes on. */
+async function renderOnce(
+  opts: WatchOptions,
+  written: Set<string>,
+  follow: (files: string[]) => void,
+): Promise<void> {
+  const started = performance.now();
+  const run: Run = { diagnostics: [], outputs: [] };
+  let crashed = false;
+  try {
+    await renderSpec(opts, run, written, follow);
+  } catch (e) {
+    const failure = renderFailure(e);
+    if (failure) run.diagnostics.push(failure);
+    else {
+      crashed = true;
+      process.stderr.write(`error ${(e as Error)?.message ?? e}\n`);
+    }
+  }
+  const { diagnostics, outputs, score } = run;
+  printDiagnostics(diagnostics, false);
+  const errors = diagnostics.filter((d) => d.severity === "error").length + (crashed ? 1 : 0);
+  const warnings = diagnostics.filter((d) => d.severity !== "error").length;
+  const counts = `${errors} error(s), ${warnings} warning(s)`;
+  const ms = Math.round(performance.now() - started);
+  const bytes = outputs.reduce((s, o) => s + o.bytes, 0);
+  const time = new Date().toTimeString().slice(0, 8);
+  process.stdout.write(
+    outputs.length
+      ? `${time} wrote ${outputs.map((o) => shownPath(o.path)).join(", ")} (${(bytes / 1024).toFixed(1)} KB) in ${ms} ms; ${counts}\n`
+      : `${time} failed in ${ms} ms: ${counts}; still watching\n`,
+  );
+  if (score) process.stdout.write(`         ${score}\n`);
+}
+
+/** `job` one at a time; calls that land while it runs queue exactly one more run. */
+function serialized(job: () => Promise<void>): () => Promise<void> {
   let busy = false;
   let again = false;
   const rerender = async (): Promise<void> => {
@@ -142,19 +180,18 @@ export async function cmdWatch(args: Args): Promise<void> {
       return;
     }
     busy = true;
-    await renderOnce();
+    await job();
     busy = false;
     if (again) {
       again = false;
       await rerender();
     }
   };
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const changed = () => {
-    clearTimeout(timer);
-    timer = setTimeout(rerender, DEBOUNCE_MS);
-  };
+  return rerender;
+}
 
+/** One fs.watch handle per followed file; a change to a file this watch wrote is ignored. */
+function fileWatcher(written: Set<string>, changed: () => void) {
   /** The watched files; a file's handle is undefined while it is being re-armed. */
   const watched = new Map<string, FSWatcher | undefined>();
   const arm = (file: string, retries = RETRIES): void => {
@@ -197,15 +234,33 @@ export async function cmdWatch(args: Args): Promise<void> {
       arm(file);
     }
   };
+  const close = () => {
+    for (const watcher of watched.values()) watcher?.close();
+  };
+  return { follow, close };
+}
+
+export async function cmdWatch(args: Args): Promise<void> {
+  const opts = watchOptions(args);
+  /** Every file this watch has written; a change to one of them is never a reason to render. */
+  const written = new Set<string>();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const changed = () => {
+    clearTimeout(timer);
+    timer = setTimeout(rerender, DEBOUNCE_MS);
+  };
+  const files = fileWatcher(written, changed);
+  // One render at a time; saves that land during a render queue exactly one more.
+  const rerender = serialized(() => renderOnce(opts, written, files.follow));
 
   const stop = () => {
-    for (const watcher of watched.values()) watcher?.close();
+    files.close();
     process.exit(0);
   };
   process.on("SIGINT", stop);
   process.on("SIGTERM", stop);
 
-  process.stdout.write(`watching ${shownPath(spec.path)}; Ctrl-C to stop\n`);
-  follow([spec.path]);
+  process.stdout.write(`watching ${shownPath(opts.spec.path)}; Ctrl-C to stop\n`);
+  files.follow([opts.spec.path]);
   await rerender();
 }

@@ -1,7 +1,8 @@
-// Word output for `orrery doc`: WordprocessingML parts built from the parsed Markdown, packed by a
-// small zip writer (deflated or stored entries, one central directory), so Word needs no library.
-import { deflateRawSync } from "node:zlib";
-import type { Block, DocFigure, Inline } from "./doc.ts";
+// Word output for `orrery doc`: WordprocessingML parts from the parsed Markdown, packed by zip.ts.
+import type { DocFigure } from "./figures.ts";
+import type { Inline } from "./inline.ts";
+import type { Block } from "./markdown.ts";
+import { zip } from "./zip.ts";
 
 /** A4 with one inch margins, in twentieths of a point. */
 const PAGE = { w: 11906, h: 16838, margin: 1440 };
@@ -101,6 +102,13 @@ interface Fmt {
   style?: string;
 }
 
+/** What the body collects while it is written: relationships and media, numbered in call order. */
+interface Parts {
+  input: DocxInput;
+  rels: string[];
+  media: [string, Uint8Array][];
+}
+
 const para = (pPr: string, content: string) =>
   `<w:p>${pPr ? `<w:pPr>${pPr}</w:pPr>` : ""}${content}</w:p>`;
 const style = (id: string) => `<w:pStyle w:val="${id}"/>`;
@@ -113,117 +121,122 @@ function run(text: string, f: Fmt = {}): string {
   return `<w:r>${rPr}<w:t xml:space="preserve">${x(text)}</w:t></w:r>`;
 }
 
+function rel(p: Parts, type: string, target: string, external = false): string {
+  const id = `rId${p.rels.length + 1}`;
+  p.rels.push(
+    `<Relationship Id="${id}" Type="${R}/${type}" Target="${x(target)}"${external ? ' TargetMode="External"' : ""}/>`,
+  );
+  return id;
+}
+
+function picture(p: Parts, img: DocxImage, name: string, alt: string, fill: boolean): string {
+  const n = p.media.length + 1;
+  const file = `image${n}.png`;
+  p.media.push([`word/media/${file}`, img.data]);
+  const id = rel(p, "image", `media/${file}`);
+  const [cx, cy] = extent(img, fill);
+  return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${n}" name="${x(name)}" descr="${x(alt)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="${PIC}"><pic:pic><pic:nvPicPr><pic:cNvPr id="${n}" name="${file}" descr="${x(alt)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+}
+
+function runs(p: Parts, list: Inline[], f: Fmt = {}): string {
+  return list
+    .map((n) => {
+      switch (n.t) {
+        case "text":
+          return run(n.s, f);
+        case "code":
+          return run(n.s, { ...f, style: "CodeChar" });
+        case "strong":
+          return runs(p, n.c, { ...f, b: true });
+        case "em":
+          return runs(p, n.c, { ...f, i: true });
+        case "link":
+          return /^(https?|mailto):/i.test(n.href)
+            ? `<w:hyperlink r:id="${rel(p, "hyperlink", n.href, true)}" w:history="1">${runs(p, n.c, { ...f, style: "Hyperlink" })}</w:hyperlink>`
+            : runs(p, n.c, f);
+        case "img": {
+          const img = p.input.image(n.src);
+          return img
+            ? picture(p, img, `Image ${p.media.length + 1}`, n.alt, false)
+            : run(`[${n.alt || n.src}]`, { ...f, i: true });
+        }
+        default:
+          return "<w:r><w:br/></w:r>";
+      }
+    })
+    .join("");
+}
+
+function table(p: Parts, b: Extract<Block, { t: "table" }>): string {
+  const w = Math.floor(TEXT_W / Math.max(1, b.head.length));
+  // Keep-with-next on every row but the last holds a short table on one page.
+  const cell = (c: Inline[], k: number, head: boolean, last: boolean) => {
+    const jc = b.align[k] ? `<w:jc w:val="${b.align[k]}"/>` : "";
+    return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${head ? SOFT : ""}</w:tcPr>${para(`${last ? "" : "<w:keepNext/>"}<w:spacing w:after="0"/>${jc}`, runs(p, c, head ? { b: true } : {}))}</w:tc>`;
+  };
+  const row = (cells: Inline[][], head: boolean, last: boolean) =>
+    `<w:tr>${head ? "<w:trPr><w:tblHeader/></w:trPr>" : ""}${cells.map((c, k) => cell(c, k, head, last)).join("")}</w:tr>`;
+  const rows = b.rows.map((r, k) => row(r, false, k === b.rows.length - 1)).join("");
+  // The empty paragraph keeps two tables apart and gives the one before the section a successor.
+  return `<w:tbl><w:tblPr><w:tblStyle w:val="DocTable"/><w:tblW w:w="5000" w:type="pct"/></w:tblPr><w:tblGrid>${b.head.map(() => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${row(b.head, true, !b.rows.length)}${rows}</w:tbl>${para("", "")}`;
+}
+
+function block(p: Parts, b: Block, quote: boolean): string {
+  switch (b.t) {
+    case "heading":
+      return para(style(quote ? "Quote" : `Heading${Math.min(b.level, 3)}`), runs(p, b.c));
+    case "para":
+      return para(quote ? style("Quote") : "", runs(p, b.c));
+    case "list":
+      return b.items
+        .map((it, k) => {
+          const left = 720 + it.depth * 360 + (quote ? 288 : 0);
+          const mark = it.ordered ? `${it.num}.` : (BULLETS[it.depth % BULLETS.length] ?? "");
+          const end = k === b.items.length - 1 ? '<w:spacing w:after="160"/>' : "";
+          return para(
+            `${style("ListParagraph")}${end}<w:ind w:left="${left}" w:hanging="360"/>`,
+            `${run(mark)}<w:r><w:tab/></w:r>${runs(p, it.c)}`,
+          );
+        })
+        .join("");
+    case "code": {
+      const lines = b.s.split("\n");
+      return lines
+        .map((l, k) =>
+          para(
+            `${style("Code")}${k === lines.length - 1 ? '<w:spacing w:after="160"/>' : ""}`,
+            l ? run(l.replaceAll("\t", "    ")) : "",
+          ),
+        )
+        .join("");
+    }
+    case "table":
+      return table(p, b);
+    case "quote":
+      return b.c.map((c) => block(p, c, true)).join("");
+    case "hr":
+      return para(
+        '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="D1D9E0"/></w:pBdr>',
+        "",
+      );
+    case "figure": {
+      const f = p.input.figures.get(b.n);
+      if (!f?.png) return "";
+      const img = { data: f.png, width: f.width, height: f.height };
+      return `${para(style("Figure"), picture(p, img, `Figure ${b.n}`, f.caption, true))}${para(style("Caption"), `${run("Figure ")}<w:fldSimple w:instr=" SEQ Figure \\* ARABIC "><w:r><w:t>${b.n}</w:t></w:r></w:fldSimple>${run(`: ${f.caption}`)}`)}`;
+    }
+  }
+}
+
 /** The .docx file and the number of figure pictures its document.xml holds. */
 export function renderDocx(input: DocxInput): { data: Uint8Array; figures: number } {
-  const rels = [`<Relationship Id="rId1" Type="${R}/styles" Target="styles.xml"/>`];
-  const media: [string, Uint8Array][] = [];
-  const rel = (type: string, target: string, external = false) => {
-    const id = `rId${rels.length + 1}`;
-    rels.push(
-      `<Relationship Id="${id}" Type="${R}/${type}" Target="${x(target)}"${external ? ' TargetMode="External"' : ""}/>`,
-    );
-    return id;
+  const p: Parts = {
+    input,
+    rels: [`<Relationship Id="rId1" Type="${R}/styles" Target="styles.xml"/>`],
+    media: [],
   };
-  const picture = (img: DocxImage, name: string, alt: string, fill: boolean) => {
-    const n = media.length + 1;
-    const file = `image${n}.png`;
-    media.push([`word/media/${file}`, img.data]);
-    const id = rel("image", `media/${file}`);
-    const [cx, cy] = extent(img, fill);
-    return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${n}" name="${x(name)}" descr="${x(alt)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="${PIC}"><pic:pic><pic:nvPicPr><pic:cNvPr id="${n}" name="${file}" descr="${x(alt)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
-  };
-
-  const runs = (list: Inline[], f: Fmt = {}): string =>
-    list
-      .map((n) => {
-        switch (n.t) {
-          case "text":
-            return run(n.s, f);
-          case "code":
-            return run(n.s, { ...f, style: "CodeChar" });
-          case "strong":
-            return runs(n.c, { ...f, b: true });
-          case "em":
-            return runs(n.c, { ...f, i: true });
-          case "link":
-            return /^(https?|mailto):/i.test(n.href)
-              ? `<w:hyperlink r:id="${rel("hyperlink", n.href, true)}" w:history="1">${runs(n.c, { ...f, style: "Hyperlink" })}</w:hyperlink>`
-              : runs(n.c, f);
-          case "img": {
-            const img = input.image(n.src);
-            return img
-              ? picture(img, `Image ${media.length + 1}`, n.alt, false)
-              : run(`[${n.alt || n.src}]`, { ...f, i: true });
-          }
-          default:
-            return "<w:r><w:br/></w:r>";
-        }
-      })
-      .join("");
-
-  const table = (b: Extract<Block, { t: "table" }>) => {
-    const w = Math.floor(TEXT_W / Math.max(1, b.head.length));
-    // Keep-with-next on every row but the last holds a short table on one page.
-    const cell = (c: Inline[], k: number, head: boolean, last: boolean) => {
-      const jc = b.align[k] ? `<w:jc w:val="${b.align[k]}"/>` : "";
-      return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${head ? SOFT : ""}</w:tcPr>${para(`${last ? "" : "<w:keepNext/>"}<w:spacing w:after="0"/>${jc}`, runs(c, head ? { b: true } : {}))}</w:tc>`;
-    };
-    const row = (cells: Inline[][], head: boolean, last: boolean) =>
-      `<w:tr>${head ? "<w:trPr><w:tblHeader/></w:trPr>" : ""}${cells.map((c, k) => cell(c, k, head, last)).join("")}</w:tr>`;
-    const rows = b.rows.map((r, k) => row(r, false, k === b.rows.length - 1)).join("");
-    // The empty paragraph keeps two tables apart and gives the one before the section a successor.
-    return `<w:tbl><w:tblPr><w:tblStyle w:val="DocTable"/><w:tblW w:w="5000" w:type="pct"/></w:tblPr><w:tblGrid>${b.head.map(() => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${row(b.head, true, !b.rows.length)}${rows}</w:tbl>${para("", "")}`;
-  };
-
-  const block = (b: Block, quote: boolean): string => {
-    switch (b.t) {
-      case "heading":
-        return para(style(quote ? "Quote" : `Heading${Math.min(b.level, 3)}`), runs(b.c));
-      case "para":
-        return para(quote ? style("Quote") : "", runs(b.c));
-      case "list":
-        return b.items
-          .map((it, k) => {
-            const left = 720 + it.depth * 360 + (quote ? 288 : 0);
-            const mark = it.ordered ? `${it.num}.` : (BULLETS[it.depth % BULLETS.length] ?? "");
-            const end = k === b.items.length - 1 ? '<w:spacing w:after="160"/>' : "";
-            return para(
-              `${style("ListParagraph")}${end}<w:ind w:left="${left}" w:hanging="360"/>`,
-              `${run(mark)}<w:r><w:tab/></w:r>${runs(it.c)}`,
-            );
-          })
-          .join("");
-      case "code": {
-        const lines = b.s.split("\n");
-        return lines
-          .map((l, k) =>
-            para(
-              `${style("Code")}${k === lines.length - 1 ? '<w:spacing w:after="160"/>' : ""}`,
-              l ? run(l.replaceAll("\t", "    ")) : "",
-            ),
-          )
-          .join("");
-      }
-      case "table":
-        return table(b);
-      case "quote":
-        return b.c.map((c) => block(c, true)).join("");
-      case "hr":
-        return para(
-          '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="D1D9E0"/></w:pBdr>',
-          "",
-        );
-      case "figure": {
-        const f = input.figures.get(b.n);
-        if (!f?.png) return "";
-        const img = { data: f.png, width: f.width, height: f.height };
-        return `${para(style("Figure"), picture(img, `Figure ${b.n}`, f.caption, true))}${para(style("Caption"), `${run("Figure ")}<w:fldSimple w:instr=" SEQ Figure \\* ARABIC "><w:r><w:t>${b.n}</w:t></w:r></w:fldSimple>${run(`: ${f.caption}`)}`)}`;
-      }
-    }
-  };
-
   const m = PAGE.margin;
-  const body = input.blocks.map((b) => block(b, false)).join("") || "<w:p/>";
+  const body = input.blocks.map((b) => block(p, b, false)).join("") || "<w:p/>";
   const document = `${DECL}<w:document xmlns:w="${W}" xmlns:r="${R}" xmlns:wp="${WP}" xmlns:a="${A}" xmlns:pic="${PIC}"><w:body>${body}<w:sectPr><w:pgSz w:w="${PAGE.w}" w:h="${PAGE.h}"/><w:pgMar w:top="${m}" w:right="${m}" w:bottom="${m}" w:left="${m}" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
   const core = `${DECL}<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>${x(input.title)}</dc:title></cp:coreProperties>`;
   const data = zip([
@@ -234,73 +247,9 @@ export function renderDocx(input: DocxInput): { data: Uint8Array; figures: numbe
     ["word/styles.xml", STYLES],
     [
       "word/_rels/document.xml.rels",
-      `${DECL}<Relationships xmlns="${REL}">${rels.join("")}</Relationships>`,
+      `${DECL}<Relationships xmlns="${REL}">${p.rels.join("")}</Relationships>`,
     ],
-    ...media,
+    ...p.media,
   ]);
   return { data, figures: document.match(/<wp:docPr id="\d+" name="Figure \d+"/g)?.length ?? 0 };
-}
-
-// ---------------------------------------------------------------- zip
-
-const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
-  let c = n;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-
-/** zlib.crc32 arrived in Node 22.2; the table keeps 22.0 and 22.1 working. */
-function crc32(data: Uint8Array): number {
-  let c = 0xffffffff;
-  for (const byte of data) c = (CRC_TABLE[(c ^ byte) & 0xff] ?? 0) ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
-
-/** 1980-01-01 00:00 in DOS form, so the same document always zips to the same bytes. */
-const DOS_DATE = (1 << 5) | 1;
-
-/** A zip archive of the files in order: deflated, or stored when deflate does not shrink one. */
-export function zip(files: [name: string, data: string | Uint8Array][]): Uint8Array {
-  const parts: Uint8Array[] = [];
-  const central: Uint8Array[] = [];
-  let offset = 0;
-  for (const [name, content] of files) {
-    const raw = typeof content === "string" ? Buffer.from(content, "utf8") : content;
-    const deflated = deflateRawSync(raw, { level: 9 });
-    const stored = deflated.length >= raw.length;
-    const body = stored ? raw : deflated;
-    const file = Buffer.from(name, "utf8");
-    const crc = crc32(raw);
-    const local = Buffer.alloc(30);
-    local.writeUInt32LE(0x04034b50, 0);
-    local.writeUInt16LE(20, 4);
-    local.writeUInt16LE(stored ? 0 : 8, 8);
-    local.writeUInt16LE(DOS_DATE, 12);
-    local.writeUInt32LE(crc, 14);
-    local.writeUInt32LE(body.length, 18);
-    local.writeUInt32LE(raw.length, 22);
-    local.writeUInt16LE(file.length, 26);
-    parts.push(local, file, body);
-    const entry = Buffer.alloc(46);
-    entry.writeUInt32LE(0x02014b50, 0);
-    entry.writeUInt16LE(20, 4);
-    entry.writeUInt16LE(20, 6);
-    entry.writeUInt16LE(stored ? 0 : 8, 10);
-    entry.writeUInt16LE(DOS_DATE, 14);
-    entry.writeUInt32LE(crc, 16);
-    entry.writeUInt32LE(body.length, 20);
-    entry.writeUInt32LE(raw.length, 24);
-    entry.writeUInt16LE(file.length, 28);
-    entry.writeUInt32LE(offset, 42);
-    central.push(entry, file);
-    offset += local.length + file.length + body.length;
-  }
-  const size = central.reduce((s, b) => s + b.length, 0);
-  const end = Buffer.alloc(22);
-  end.writeUInt32LE(0x06054b50, 0);
-  end.writeUInt16LE(files.length, 8);
-  end.writeUInt16LE(files.length, 10);
-  end.writeUInt32LE(size, 12);
-  end.writeUInt32LE(offset, 16);
-  return Buffer.concat([...parts, ...central, end]);
 }
