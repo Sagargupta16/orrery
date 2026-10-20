@@ -1,7 +1,11 @@
 // The CLI entry: parse the command line and hand it to the command it names.
+import { cmdDescribe } from "../describe.ts";
+import { cmdDiff } from "../diff.ts";
 import { cmdDoc } from "../doc/index.ts";
+import { cmdLsp } from "../lsp/index.ts";
 import { cmdMcp } from "../mcp/index.ts";
 import { cmdPatch } from "../patch/index.ts";
+import { cmdVerify } from "../verify.ts";
 import { cmdWatch } from "../watch.ts";
 import { parseArgs } from "./args.ts";
 import { cmdDemo, cmdDoctor } from "./doctor.ts";
@@ -44,6 +48,14 @@ export async function main(argv = process.argv.slice(2)) {
       return cmdDoc(args);
     case "mcp":
       return cmdMcp(args);
+    case "diff":
+      return cmdDiff(args);
+    case "verify":
+      return cmdVerify(args);
+    case "describe":
+      return cmdDescribe(args);
+    case "lsp":
+      return cmdLsp(args);
     case "doctor":
       return cmdDoctor();
     case "demo":

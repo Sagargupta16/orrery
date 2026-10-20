@@ -26,6 +26,8 @@ const KNOWN_FLAGS = new Set([
   "dir",
   "name",
   "port",
+  "view",
+  "commit",
 ]);
 const SHORT_FLAGS: Record<string, string> = {
   o: "out",

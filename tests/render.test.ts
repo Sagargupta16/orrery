@@ -70,11 +70,15 @@ describe("renderModel", () => {
       "drawio:light",
       "drawio.svg:light",
       "tsx:light",
+      "mmd:light",
+      "sequence.svg:light",
       "svg:dark",
       "png:dark",
       "drawio:dark",
       "drawio.svg:dark",
       "tsx:dark",
+      "mmd:dark",
+      "sequence.svg:dark",
       "html:both",
     ]);
   });

@@ -12,6 +12,7 @@ import {
 } from "../render/index.ts";
 import { parseSpec } from "../spec/index.ts";
 import type { AnimateMode, Diagnostic, Model, Scene, Skin, ThemeName } from "../types.ts";
+import { viewsOf } from "../views.ts";
 import type { Args } from "./args.ts";
 import {
   fontFiles,
@@ -71,25 +72,31 @@ export async function cmdRender(args: Args, validateOnly: boolean) {
         : args.flags.animate === true
           ? "packets"
           : args.flags.animate;
-    const result = await renderOrFail(
-      {
-        model: parsed.model,
-        formats: validateOnly ? [] : formats,
-        themes: validateOnly ? [themes[0] ?? "light"] : themes,
-        name: spec.name,
-        scale,
-        fonts,
-        animate: animateFlag as AnimateMode | undefined,
-        skin: args.flags.skin as Skin | undefined,
-      },
-      diagnostics,
-    );
-    diagnostics.push(...result.diagnostics);
-    receipt.stats = renderStats(parsed.model, result.scenes[themes[0] ?? "light"]);
-    const blocked = strict && diagnostics.some((d) => d.severity === "warning");
-    if (!validateOnly && (!blocked || args.flags.force === true))
-      receipt.outputs.push(...writeArtifacts(result.artifacts, themes, base));
-    ok = !blocked;
+    // The whole diagram, or with --view one figure per named view (`<base>.<view>.<format>`).
+    for (const view of viewsOf(parsed.model, args.flags.view)) {
+      const result = await renderOrFail(
+        {
+          model: view.model,
+          formats: validateOnly ? [] : formats,
+          themes: validateOnly ? [themes[0] ?? "light"] : themes,
+          name: view.name ? `${spec.name}.${view.name}` : spec.name,
+          scale,
+          fonts,
+          animate: animateFlag as AnimateMode | undefined,
+          skin: args.flags.skin as Skin | undefined,
+          source: spec.text,
+        },
+        diagnostics,
+      );
+      diagnostics.push(...result.diagnostics);
+      receipt.stats ??= renderStats(view.model, result.scenes[themes[0] ?? "light"]);
+      const blocked = strict && diagnostics.some((d) => d.severity === "warning");
+      if (!validateOnly && (!blocked || args.flags.force === true))
+        receipt.outputs.push(
+          ...writeArtifacts(result.artifacts, themes, view.name ? `${base}.${view.name}` : base),
+        );
+      ok = ok && !blocked;
+    }
   }
   receipt.ok = ok && !diagnostics.some((d) => d.severity === "error");
   printReceipt(receipt, json);

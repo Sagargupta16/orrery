@@ -29,8 +29,13 @@ Usage:
   orrery doc <design.md> [-o out.html|out.md|out.docx] [-f html,md,docx] [--theme light]
                     [--skin classic|stage]
   orrery mcp [--port 8765]
+  orrery mcp install <claude-code|claude-desktop|cursor|vscode|gemini|codex|kiro> [--force]
+  orrery diff <before.yaml> <after.yaml> [-o changes.svg] [--json]
+  orrery verify <spec.yaml> [--link] [--commit <sha>] [--json]
+  orrery describe <spec.yaml> [--json]
+  orrery lsp
   orrery styles [--json]
-  orrery import mermaid <flowchart.mmd|-> [-o diagram.yaml]
+  orrery import <mermaid|terraform|cloudformation|compose|kubernetes|picture> <file> [-o diagram.yaml]
   orrery init [template] [-o diagram.yaml] [--list]
   orrery doctor
   orrery demo [out-dir]

@@ -5,6 +5,7 @@ import { newContext } from "./context.ts";
 import { parseEdges } from "./edges.ts";
 import { applyContains, checkAround, checkCycles, checkParents, parseGroups } from "./groups.ts";
 import { TOP_KEYS } from "./keys.ts";
+import { checkBorders, checkViews, parseTagStyles, parseViews } from "./meta.ts";
 import { checkAlign, parseNodes } from "./nodes.ts";
 import { parseLegend, parseLocalIcons, parseSettings, parseStages, parseStory } from "./top.ts";
 import { isObj, type Obj, type Report, reporter, str, unknownKeys } from "./values.ts";
@@ -37,6 +38,10 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
 
   parseEdges(ctx);
   const story = parseStory(ctx);
+  checkBorders(ctx);
+  const tagStyles = parseTagStyles(ctx);
+  const views = parseViews(ctx);
+  checkViews(ctx, views);
 
   const { nodes, groups, edges, stages, localIcons } = ctx;
   if (!nodes.length) {
@@ -67,6 +72,8 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     ...(stages.length ? { stages } : {}),
     ...(story.length ? { story } : {}),
     ...(localIcons.length ? { icons: localIcons } : {}),
+    ...(views.length ? { views } : {}),
+    ...(Object.keys(tagStyles).length ? { tagStyles } : {}),
   };
   return { model, diagnostics };
 }

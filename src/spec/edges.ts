@@ -9,6 +9,7 @@ import {
 } from "../types.ts";
 import type { Ctx } from "./context.ts";
 import { EDGE_KEYS, EDGE_SYNONYMS } from "./keys.ts";
+import { metaOf } from "./meta.ts";
 import { suggestIds } from "./suggest.ts";
 import { hexColor, isObj, type Obj, oneOf, pick, str, unknownKeys } from "./values.ts";
 
@@ -298,5 +299,6 @@ function push(
     step: step !== undefined && Number.isInteger(step) ? step : undefined,
     constraint: pick(extra, "constraint", EDGE_SYNONYMS) !== false,
     ...(flow && flow !== "sequence" ? { flow } : {}),
+    ...metaOf(ctx, extra, where, { edge: where }),
   });
 }

@@ -7369,6 +7369,16 @@ var require_dist = __commonJS({
   }
 });
 
+// src/describe.ts
+async function cmdDescribe(_args) {
+  throw new Error("orrery describe is not built yet");
+}
+
+// src/diff.ts
+async function cmdDiff(_args) {
+  throw new Error("orrery diff is not built yet");
+}
+
 // src/doc/index.ts
 import { existsSync as existsSync9, readFileSync as readFileSync9, statSync as statSync4 } from "node:fs";
 import { basename as basename4, dirname as dirname5, extname as extname3, join as join7, resolve as resolve5 } from "node:path";
@@ -9258,8 +9268,13 @@ Usage:
   orrery doc <design.md> [-o out.html|out.md|out.docx] [-f html,md,docx] [--theme light]
                     [--skin classic|stage]
   orrery mcp [--port 8765]
+  orrery mcp install <claude-code|claude-desktop|cursor|vscode|gemini|codex|kiro> [--force]
+  orrery diff <before.yaml> <after.yaml> [-o changes.svg] [--json]
+  orrery verify <spec.yaml> [--link] [--commit <sha>] [--json]
+  orrery describe <spec.yaml> [--json]
+  orrery lsp
   orrery styles [--json]
-  orrery import mermaid <flowchart.mmd|-> [-o diagram.yaml]
+  orrery import <mermaid|terraform|cloudformation|compose|kubernetes|picture> <file> [-o diagram.yaml]
   orrery init [template] [-o diagram.yaml] [--list]
   orrery doctor
   orrery demo [out-dir]
@@ -20448,6 +20463,14 @@ function renderDrawio(scene, name = "Diagram") {
   ].join("\n");
 }
 
+// src/render/embed.ts
+function embedSvgSpec(svg, _source) {
+  return svg;
+}
+function embedPngSpec(png2, _source) {
+  return png2;
+}
+
 // src/render/html.ts
 function renderHtml(input) {
   const b64 = (svg) => Buffer.from(svg).toString("base64");
@@ -20541,6 +20564,11 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
 `;
 }
 
+// src/render/mermaid.ts
+function renderMermaid(_model, _scene) {
+  return "flowchart LR\n";
+}
+
 // src/render/png.ts
 import { existsSync as existsSync5, readFileSync as readFileSync6 } from "node:fs";
 import { createRequire as createRequire2 } from "node:module";
@@ -20589,6 +20617,11 @@ async function renderPng(svg, opts = {}) {
     imageRendering: 0
   });
   return r4.render().asPng();
+}
+
+// src/render/sequence.ts
+function renderSequence(_scene, _model, _opts = {}) {
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>';
 }
 
 // src/render/tsx.ts
@@ -20698,7 +20731,16 @@ function renderTsx(scene, name) {
 }
 
 // src/render/index.ts
-var FORMATS = ["svg", "png", "drawio", "drawio.svg", "tsx", "html"];
+var FORMATS = [
+  "svg",
+  "png",
+  "drawio",
+  "drawio.svg",
+  "tsx",
+  "html",
+  "mmd",
+  "sequence.svg"
+];
 function formatOf(path) {
   const name = path.toLowerCase();
   return [...FORMATS].sort((a, b) => b.length - a.length).find((f) => name.endsWith(`.${f}`));
@@ -20738,7 +20780,7 @@ async function renderModel(req) {
   for (const theme of req.themes) {
     const scene = scenes[theme];
     if (!scene || !req.formats.length) continue;
-    const svg = svgOf2(theme, scene);
+    const svg = embedSvgSpec(svgOf2(theme, scene), req.source);
     let mxfile;
     const drawio = () => mxfile ??= renderDrawio({ ...scene, animate: "none" }, model.title ?? req.name);
     for (const format of req.formats) {
@@ -20748,7 +20790,10 @@ async function renderModel(req) {
         const still = stillOf(theme, scene) ?? svg;
         artifacts.push({
           ...base,
-          data: await renderPng(still, { scale: req.scale, fonts: req.fonts }),
+          data: embedPngSpec(
+            await renderPng(still, { scale: req.scale, fonts: req.fonts }),
+            req.source
+          ),
           width: Math.round(scene.width * (req.scale ?? 3)),
           height: Math.round(scene.height * (req.scale ?? 3))
         });
@@ -20757,6 +20802,12 @@ async function renderModel(req) {
       if (format === "drawio.svg") artifacts.push({ ...base, data: editableSvg(svg, drawio()) });
       if (format === "tsx")
         artifacts.push({ ...base, data: renderTsx(scene, componentName(model.title, req.name)) });
+      if (format === "mmd") artifacts.push({ ...base, data: renderMermaid(model, scene) });
+      if (format === "sequence.svg")
+        artifacts.push({
+          ...base,
+          data: renderSequence(scene, model, { idPrefix: idPrefix(theme) })
+        });
     }
   }
   if (req.formats.includes("html") && scenes.light && scenes.dark) {
@@ -20801,6 +20852,10 @@ var TOP_KEYS = [
   "icons",
   "stages",
   "story",
+  "tags",
+  "views",
+  "classes",
+  "include",
   "nodes",
   "groups",
   "edges"
@@ -20821,7 +20876,11 @@ var NODE_KEYS = [
   "stage",
   "score",
   "rank",
-  "align"
+  "align",
+  "on",
+  "tags",
+  "evidence",
+  "class"
 ];
 var NODE_SYNONYMS = {
   sublabel: "note",
@@ -20844,7 +20903,10 @@ var GROUP_KEYS = [
   "dashed",
   "contains",
   "around",
-  "cols"
+  "cols",
+  "tags",
+  "evidence",
+  "class"
 ];
 var GROUP_SYNONYMS = {
   style: "type",
@@ -20863,7 +20925,10 @@ var EDGE_KEYS = [
   "color",
   "step",
   "constraint",
-  "flow"
+  "flow",
+  "tags",
+  "evidence",
+  "class"
 ];
 var EDGE_SYNONYMS = {
   style: "line",
@@ -21047,6 +21112,139 @@ function entries(ctx, value, what) {
     fixes: [`write ${what}: { my-id: { ... } }`]
   });
   return [];
+}
+
+// src/spec/meta.ts
+var TAG2 = /^[a-z0-9][a-z0-9_-]*$/i;
+function metaOf(ctx, item, where, subject) {
+  const out = {};
+  const tags = listOf(item.tags);
+  if (tags === null || tags?.some((t) => !TAG2.test(t)))
+    ctx.err("DG117", `${where} tags must be a list of short names (letters, digits, - and _)`, {
+      subject,
+      fixes: ["write tags: [payments, pci]"]
+    });
+  else if (tags?.length) out.tags = tags;
+  const evidence = listOf(item.evidence);
+  if (evidence === null || evidence?.some((e) => !e.trim()))
+    ctx.err("DG119", `${where} evidence must be a file and line (infra/main.tf:40) or a list`, {
+      subject,
+      fixes: ["write evidence: infra/main.tf:40, or evidence: [src/api.ts:12, infra/api.tf:8]"]
+    });
+  else if (evidence?.length) out.evidence = evidence.map((e) => e.trim());
+  return out;
+}
+function listOf(value) {
+  if (value === void 0 || value === null) return void 0;
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value) && value.every((v) => typeof v === "string" || typeof v === "number"))
+    return value.map(String);
+  return null;
+}
+function parseTagStyles(ctx) {
+  const raw = ctx.raw.tags;
+  if (raw === void 0 || raw === null) return {};
+  if (!isObj(raw)) {
+    ctx.err("DG117", "tags must be a mapping of a tag name to its style", {
+      subject: { where: "tags" },
+      fixes: ['write tags: { pci: { color: "#C7243A", label: Card data } }']
+    });
+    return {};
+  }
+  const styles = {};
+  for (const [name, value] of Object.entries(raw)) {
+    if (!TAG2.test(name) || !isObj(value)) {
+      ctx.err("DG117", `tag "${name}" needs a style mapping`, {
+        subject: { where: "tags", tag: name },
+        fixes: [`write ${TAG2.test(name) ? name : "pci"}: { color: "#C7243A", label: Card data }`]
+      });
+      continue;
+    }
+    const style3 = {};
+    const color = hexColor(ctx, value.color, "color", `tag "${name}"`, { tag: name });
+    if (color) style3.color = color;
+    if (value.line !== void 0) {
+      if (EDGE_LINES.includes(value.line)) style3.line = value.line;
+      else
+        ctx.err("DG117", `tag "${name}" line must be ${EDGE_LINES.join(", ")}`, {
+          subject: { where: "tags", tag: name },
+          fixes: ["use line: dashed"]
+        });
+    }
+    const label = str(value.label);
+    if (label) style3.label = label;
+    styles[name] = style3;
+  }
+  return styles;
+}
+function parseViews(ctx) {
+  const raw = ctx.raw.views;
+  if (raw === void 0 || raw === null) return [];
+  if (!isObj(raw)) {
+    ctx.err("DG118", "views must be a mapping of a view name to what it shows", {
+      subject: { where: "views" },
+      fixes: ["write views: { request: { include: [api, db], title: Request path } }"]
+    });
+    return [];
+  }
+  const views = [];
+  for (const [name, value] of Object.entries(raw)) {
+    const v = isObj(value) ? value : {};
+    if (!TAG2.test(name) || !isObj(value)) {
+      ctx.err("DG118", `view "${name}" needs a mapping with include, exclude, depth or title`, {
+        subject: { where: "views", view: name },
+        fixes: [`write ${TAG2.test(name) ? name : "overview"}: { include: [api, db] }`]
+      });
+      continue;
+    }
+    const include = listOf(v.include);
+    const exclude = listOf(v.exclude);
+    const depth = v.depth;
+    if (include === null || exclude === null)
+      ctx.err("DG118", `view "${name}" include and exclude must be lists of ids or tag:<name>`, {
+        subject: { where: "views", view: name },
+        fixes: ["write include: [api, tag:payments, group:vpc]"]
+      });
+    if (depth !== void 0 && !(typeof depth === "number" && Number.isInteger(depth) && depth >= 0))
+      ctx.err("DG118", `view "${name}" depth must be a whole number from 0`, {
+        subject: { where: "views", view: name },
+        fixes: ["use depth: 1 to show the top-level groups and what sits directly in them"]
+      });
+    views.push({
+      name,
+      ...str(v.title) ? { title: str(v.title) } : {},
+      ...str(v.subtitle) ? { subtitle: str(v.subtitle) } : {},
+      ...include?.length ? { include } : {},
+      ...exclude?.length ? { exclude } : {},
+      ...typeof depth === "number" ? { depth } : {}
+    });
+  }
+  return views;
+}
+function checkViews(ctx, views) {
+  const tags = /* @__PURE__ */ new Set();
+  for (const x2 of [...ctx.nodes, ...ctx.groups, ...ctx.edges])
+    for (const t of x2.tags ?? []) tags.add(t);
+  for (const v of views)
+    for (const entry of [...v.include ?? [], ...v.exclude ?? []]) {
+      const [kind, rest] = entry.includes(":") ? entry.split(/:(.*)/s) : ["", entry];
+      const ok = kind === "tag" ? tags.has(rest ?? "") : kind === "group" ? ctx.groups.some((g) => g.id === rest) : kind === "" ? ctx.ids.has(entry) : false;
+      if (!ok)
+        ctx.warn("DG118", `view "${v.name}" names "${entry}", which is no node, group or tag`, {
+          subject: { where: "views", view: v.name, entry },
+          fixes: ["use a node or group id, group:<id> or tag:<name>"]
+        });
+    }
+}
+function checkBorders(ctx) {
+  for (const n4 of ctx.nodes) {
+    if (!n4.on) continue;
+    if (!ctx.groups.some((g) => g.id === n4.on))
+      ctx.err("DG120", `node "${n4.id}" sits on "${n4.on}", which is not a group`, {
+        subject: { node: n4.id, on: n4.on },
+        fixes: ["name the group whose border the node sits on: on: vpc"]
+      });
+  }
 }
 
 // src/spec/edges.ts
@@ -21261,7 +21459,8 @@ function push2(ctx, from, to, op, label, extra, where) {
     color,
     step: step !== void 0 && Number.isInteger(step) ? step : void 0,
     constraint: pick(extra, "constraint", EDGE_SYNONYMS) !== false,
-    ...flow && flow !== "sequence" ? { flow } : {}
+    ...flow && flow !== "sequence" ? { flow } : {},
+    ...metaOf(ctx, extra, where, { edge: where })
   });
 }
 
@@ -21533,7 +21732,8 @@ function parseGroup(ctx, id, value) {
     fill: fill2,
     icon: icon2,
     dashed: typeof dashed === "boolean" ? dashed : void 0,
-    ...cols ? { cols } : {}
+    ...cols ? { cols } : {},
+    ...metaOf(ctx, g, `group "${id}"`, { group: id })
   });
   const containsRaw = pick(g, "contains", GROUP_SYNONYMS);
   const contains2 = typeof containsRaw === "string" ? [containsRaw] : containsRaw;
@@ -21673,6 +21873,7 @@ function parseNode(ctx, settings, id, value) {
   const iconSize = nodeSize(ctx, id, n4, look);
   const label = str(pick(n4, "label", NODE_SYNONYMS)) ?? (bpmn && (isBpmnEvent(bpmn) || isBpmnGateway(bpmn)) || !bpmn && (shape === "initial" || shape === "final") ? "" : void 0) ?? (icon2 ? iconInfo(icon2)?.name : void 0) ?? id;
   const { rank, align } = nodeRank(ctx, id, n4);
+  const on = str(pick(n4, "on", NODE_SYNONYMS));
   ctx.nodes.push({
     id,
     label,
@@ -21689,7 +21890,9 @@ function parseNode(ctx, settings, id, value) {
     ...stage !== void 0 ? { stage } : {},
     ...score !== void 0 ? { score } : {},
     ...rank !== void 0 ? { rank } : {},
-    ...align !== void 0 ? { align } : {}
+    ...align !== void 0 ? { align } : {},
+    ...on ? { on } : {},
+    ...metaOf(ctx, n4, `node "${id}"`, { node: id })
   });
 }
 function nodeObject(value) {
@@ -21855,6 +22058,10 @@ function parseSpec(source, filename = "diagram.yaml") {
   checkCycles(ctx);
   parseEdges(ctx);
   const story = parseStory(ctx);
+  checkBorders(ctx);
+  const tagStyles = parseTagStyles(ctx);
+  const views = parseViews(ctx);
+  checkViews(ctx, views);
   const { nodes, groups, edges, stages, localIcons } = ctx;
   if (!nodes.length) {
     ctx.err("DG100", "the diagram has no nodes", { fixes: ["add at least one entry under nodes"] });
@@ -21882,7 +22089,9 @@ function parseSpec(source, filename = "diagram.yaml") {
     kind: settings.kind,
     ...stages.length ? { stages } : {},
     ...story.length ? { story } : {},
-    ...localIcons.length ? { icons: localIcons } : {}
+    ...localIcons.length ? { icons: localIcons } : {},
+    ...views.length ? { views } : {},
+    ...Object.keys(tagStyles).length ? { tagStyles } : {}
   };
   return { model, diagnostics };
 }
@@ -22571,6 +22780,11 @@ async function cmdDoc(args) {
 `
   );
   process.exitCode = errors2 ? 1 : 0;
+}
+
+// src/lsp/index.ts
+async function cmdLsp(_args) {
+  throw new Error("orrery lsp is not built yet");
 }
 
 // src/mcp/http.ts
@@ -27647,6 +27861,11 @@ function serveHttp(port) {
   });
 }
 
+// src/mcp/install.ts
+async function cmdMcpInstall(_args) {
+  throw new Error("orrery mcp install is not built yet");
+}
+
 // src/mcp/stdio.ts
 import { createInterface } from "node:readline";
 function serveStdio() {
@@ -27683,7 +27902,8 @@ function serveStdio() {
 
 // src/mcp/index.ts
 async function cmdMcp(args) {
-  if (args._.length) usage(`mcp takes no arguments (got ${args._.join(" ")})`);
+  if (args._[0] === "install") return cmdMcpInstall({ ...args, _: args._.slice(1) });
+  if (args._.length) usage(`mcp takes no arguments but install (got ${args._.join(" ")})`);
   const port = args.flags.port;
   if (port === void 0) return serveStdio();
   if (!/^\d{1,5}$/.test(String(port)) || Number(port) > 65535)
@@ -27798,6 +28018,11 @@ ${wrote}
 `);
   }
   process.exitCode = best ? 0 : 1;
+}
+
+// src/verify.ts
+async function cmdVerify(_args) {
+  throw new Error("orrery verify is not built yet");
 }
 
 // src/watch.ts
@@ -28017,7 +28242,9 @@ var KNOWN_FLAGS = /* @__PURE__ */ new Set([
   "width",
   "dir",
   "name",
-  "port"
+  "port",
+  "view",
+  "commit"
 ]);
 var SHORT_FLAGS = {
   o: "out",
@@ -28096,6 +28323,21 @@ import { join as join13, resolve as resolve10 } from "node:path";
 // src/cli/templates.ts
 import { existsSync as existsSync14, readdirSync as readdirSync2, readFileSync as readFileSync14 } from "node:fs";
 import { basename as basename6, dirname as dirname6, join as join12, relative as relative3, resolve as resolve9 } from "node:path";
+
+// src/import/cloudformation.ts
+async function importCloudFormation(_path) {
+  throw new Error("orrery import cloudformation is not built yet");
+}
+
+// src/import/compose.ts
+async function importCompose(_path) {
+  throw new Error("orrery import compose is not built yet");
+}
+
+// src/import/kubernetes.ts
+async function importKubernetes(_path) {
+  throw new Error("orrery import kubernetes is not built yet");
+}
 
 // src/import/mermaid.ts
 var import_yaml6 = __toESM(require_dist(), 1);
@@ -28337,6 +28579,16 @@ function guessIcon(label) {
   return iconInfo(top.id)?.id;
 }
 
+// src/import/picture.ts
+async function importPicture(_path) {
+  throw new Error("orrery import picture is not built yet");
+}
+
+// src/import/terraform.ts
+async function importTerraform(_path) {
+  throw new Error("orrery import terraform is not built yet");
+}
+
 // src/cli/templates.ts
 function cmdStyles(args) {
   if (args.flags.json === true) {
@@ -28392,13 +28644,26 @@ function cmdInit(args) {
   process.stdout.write(`next: orrery render ${basename6(out)}
 `);
 }
-function cmdImport(args) {
+var IMPORTERS = {
+  mermaid: (file) => {
+    const text4 = file === "-" ? readFileSync14(0, "utf8") : readFileSync14(resolve9(file), "utf8");
+    return importMermaid(text4.replace(/^```mermaid\s*|```\s*$/gm, ""));
+  },
+  terraform: importTerraform,
+  cloudformation: importCloudFormation,
+  cdk: importCloudFormation,
+  compose: importCompose,
+  kubernetes: importKubernetes,
+  k8s: importKubernetes,
+  picture: importPicture
+};
+async function cmdImport(args) {
   const [kind, file] = args._;
-  if (kind !== "mermaid") usage('import supports "mermaid" (flowchart and graph diagrams)');
-  if (!file) usage("import mermaid needs a file, or - for stdin");
+  const importer = kind ? IMPORTERS[kind] : void 0;
+  if (!importer) usage(`import supports ${Object.keys(IMPORTERS).join(", ")}`);
+  if (!file) usage(`import ${kind} needs a file${kind === "mermaid" ? ", or - for stdin" : ""}`);
   if (file !== "-" && !existsSync14(resolve9(file))) usage(`no such file: ${file}`);
-  const text4 = file === "-" ? readFileSync14(0, "utf8") : readFileSync14(resolve9(file), "utf8");
-  const result2 = importMermaid(text4.replace(/^```mermaid\s*|```\s*$/gm, ""));
+  const result2 = await importer(file);
   for (const w of result2.warnings) process.stderr.write(`warn  ${w}
 `);
   const out = typeof args.flags.out === "string" ? resolve9(args.flags.out) : void 0;
@@ -28410,7 +28675,7 @@ function cmdImport(args) {
     return;
   }
   writeAtomic(out, result2.yaml);
-  const guessed = Object.keys(result2.guessed).length;
+  const guessed = Object.keys(result2.guessed ?? {}).length;
   process.stdout.write(
     `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}
 next: add icons, then orrery validate ${basename6(out)}
@@ -28815,6 +29080,13 @@ async function iconSheet(path) {
 // src/cli/render.ts
 import { existsSync as existsSync17, statSync as statSync7 } from "node:fs";
 import { extname as extname5, join as join15, resolve as resolve12 } from "node:path";
+
+// src/views.ts
+function viewsOf(model, _flag) {
+  return [{ model }];
+}
+
+// src/cli/render.ts
 async function cmdRender(args, validateOnly) {
   const [specPath] = args._;
   if (!specPath) usage(`${validateOnly ? "validate" : "render"} needs a spec file`);
@@ -28837,25 +29109,30 @@ async function cmdRender(args, validateOnly) {
     const scale = args.flags.scale !== void 0 ? Number(args.flags.scale) : 3;
     if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
     const animateFlag = args.flags.static === true ? "none" : args.flags.animate === true ? "packets" : args.flags.animate;
-    const result2 = await renderOrFail(
-      {
-        model: parsed.model,
-        formats: validateOnly ? [] : formats,
-        themes: validateOnly ? [themes[0] ?? "light"] : themes,
-        name: spec.name,
-        scale,
-        fonts: fonts2,
-        animate: animateFlag,
-        skin: args.flags.skin
-      },
-      diagnostics
-    );
-    diagnostics.push(...result2.diagnostics);
-    receipt.stats = renderStats(parsed.model, result2.scenes[themes[0] ?? "light"]);
-    const blocked = strict && diagnostics.some((d) => d.severity === "warning");
-    if (!validateOnly && (!blocked || args.flags.force === true))
-      receipt.outputs.push(...writeArtifacts(result2.artifacts, themes, base));
-    ok = !blocked;
+    for (const view of viewsOf(parsed.model, args.flags.view)) {
+      const result2 = await renderOrFail(
+        {
+          model: view.model,
+          formats: validateOnly ? [] : formats,
+          themes: validateOnly ? [themes[0] ?? "light"] : themes,
+          name: view.name ? `${spec.name}.${view.name}` : spec.name,
+          scale,
+          fonts: fonts2,
+          animate: animateFlag,
+          skin: args.flags.skin,
+          source: spec.text
+        },
+        diagnostics
+      );
+      diagnostics.push(...result2.diagnostics);
+      receipt.stats ??= renderStats(view.model, result2.scenes[themes[0] ?? "light"]);
+      const blocked = strict && diagnostics.some((d) => d.severity === "warning");
+      if (!validateOnly && (!blocked || args.flags.force === true))
+        receipt.outputs.push(
+          ...writeArtifacts(result2.artifacts, themes, view.name ? `${base}.${view.name}` : base)
+        );
+      ok = ok && !blocked;
+    }
   }
   receipt.ok = ok && !diagnostics.some((d) => d.severity === "error");
   printReceipt(receipt, json2);
@@ -29041,6 +29318,14 @@ async function main(argv = process.argv.slice(2)) {
       return cmdDoc(args);
     case "mcp":
       return cmdMcp(args);
+    case "diff":
+      return cmdDiff(args);
+    case "verify":
+      return cmdVerify(args);
+    case "describe":
+      return cmdDescribe(args);
+    case "lsp":
+      return cmdLsp(args);
     case "doctor":
       return cmdDoctor();
     case "demo":

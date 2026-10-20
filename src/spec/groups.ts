@@ -3,6 +3,7 @@ import { resolveIcon, suggestIcons } from "../icons/index.ts";
 import { groupStyleKeys, resolveGroupStyle } from "../styles.ts";
 import { type Ctx, claim, entries } from "./context.ts";
 import { GROUP_KEYS, GROUP_SYNONYMS } from "./keys.ts";
+import { metaOf } from "./meta.ts";
 import { closest, suggestIds } from "./suggest.ts";
 import { localFix, localIcon } from "./top.ts";
 import { hexColor, isObj, type Obj, pick, str, unknownKeys } from "./values.ts";
@@ -72,6 +73,7 @@ function parseGroup(ctx: Ctx, id: string, value: unknown) {
     icon,
     dashed: typeof dashed === "boolean" ? dashed : undefined,
     ...(cols ? { cols } : {}),
+    ...metaOf(ctx, g, `group "${id}"`, { group: id }),
   });
   const containsRaw = pick(g, "contains", GROUP_SYNONYMS);
   const contains = typeof containsRaw === "string" ? [containsRaw] : containsRaw;

@@ -231,6 +231,12 @@ export interface ModelNode {
   rank?: "first" | "last" | number;
   /** Sit in the same layer as this node: one row across the flow. */
   align?: string;
+  /** Sit on this group's border, as the deck draws gateways and endpoints. */
+  on?: string;
+  /** Free-form names for views and tag styles (`tags:`). */
+  tags?: string[];
+  /** Where it comes from: `path:line`, `path:line#name` or a resource address (`orrery verify`). */
+  evidence?: string[];
 }
 
 export interface ModelGroup {
@@ -246,6 +252,10 @@ export interface ModelGroup {
   around?: string[];
   /** Lay the direct children out in this many columns, row by row in spec order. */
   cols?: number;
+  /** Free-form names for views and tag styles (`tags:`). */
+  tags?: string[];
+  /** Where it comes from: `path:line`, `path:line#name` or a resource address (`orrery verify`). */
+  evidence?: string[];
 }
 
 export interface ModelEdge {
@@ -261,6 +271,29 @@ export interface ModelEdge {
   constraint: boolean;
   /** Process flow kind; unset is a sequence flow. */
   flow?: EdgeFlow;
+  /** Free-form names for views and tag styles (`tags:`). */
+  tags?: string[];
+  /** Where it comes from: `path:line`, `path:line#name` or a resource address (`orrery verify`). */
+  evidence?: string[];
+}
+
+/** A named subset of the diagram (spec `views:`), drawn as its own figure. */
+export interface ModelView {
+  name: string;
+  title?: string;
+  subtitle?: string;
+  /** Node or group ids, `group:<id>` (the group and everything in it) or `tag:<name>`. */
+  include?: string[];
+  exclude?: string[];
+  /** How many group levels to keep below the top; deeper content folds into its group. */
+  depth?: number;
+}
+
+/** How a tag draws (spec `tags:`): a color, a line style, and its row in the legend. */
+export interface TagStyle {
+  color?: string;
+  line?: EdgeLine;
+  label?: string;
 }
 
 /** What one line style means in this diagram (spec `legend:`), drawn as a key. */
@@ -300,6 +333,10 @@ export interface Model {
   story?: string[];
   /** SVG files registered as `local:<name>` icons. */
   icons?: LocalIcon[];
+  /** Named subsets of the diagram (`views:`). */
+  views?: ModelView[];
+  /** Styles per tag name (`tags:`). */
+  tagStyles?: Record<string, TagStyle>;
 }
 
 export interface Point {
