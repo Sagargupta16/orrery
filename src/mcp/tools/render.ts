@@ -1,6 +1,6 @@
 // render: every output format, written to out_dir (stdio only) or returned in the result.
 import { isAbsolute, join } from "node:path";
-import { writeAtomic } from "../../cli.ts";
+import { writeAtomic } from "../../cli/io.ts";
 import { FORMATS, type Format } from "../../render/index.ts";
 import { ANIMATE_MODES, SKINS, THEMES, type ThemeName } from "../../types.ts";
 import {

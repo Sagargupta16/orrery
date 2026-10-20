@@ -1,6 +1,6 @@
 // review: the measured review at a display width, with the PNG the reader sees.
-import { renderFailure } from "../../cli.ts";
-import { DEFAULT_REVIEW_WIDTH, reviewModel } from "../../review.ts";
+import { renderFailure } from "../../cli/io.ts";
+import { DEFAULT_REVIEW_WIDTH, reviewModel } from "../../review/index.ts";
 import { SKINS, THEMES } from "../../types.ts";
 import {
   json,

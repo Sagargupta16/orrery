@@ -1,9 +1,9 @@
 // Where lane edges leave and arrive: each end's box, the ports on its sides and their costs.
 
+import { type Box, isBpmnEvent, isBpmnGateway, type ModelEdge, type Point } from "../../types.ts";
 import { symbolBox } from "../notation.ts";
-import { type Box, isBpmnEvent, isBpmnGateway, type ModelEdge, type Point } from "../types.ts";
-import { type Dir, flip, type Port, STEPS } from "./lane-grid.ts";
-import { type Band, cuts, type Routing, union } from "./lane-shared.ts";
+import { type Dir, flip, type Port, STEPS } from "./grid.ts";
+import { type Band, cuts, type Routing, union } from "./shared.ts";
 
 /** An edge end: a node's attach box, a group's box, or a band's border. */
 export interface End {

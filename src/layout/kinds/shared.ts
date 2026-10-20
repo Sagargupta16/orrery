@@ -1,8 +1,8 @@
 // What the tree, mind map and state layouts share: box geometry, edge labels and final placement.
 
+import { textBlock } from "../../text.ts";
+import type { Box, ModelEdge, Point, SceneEdge, SceneNode } from "../../types.ts";
 import type { AfterLayout } from "../hooks.ts";
-import { textBlock } from "../text.ts";
-import type { Box, ModelEdge, Point, SceneEdge, SceneNode } from "../types.ts";
 
 // As SIZES in layout.ts: the page margin, edge label text and the step badge.
 const PAD = 28;

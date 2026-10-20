@@ -1,9 +1,9 @@
 // Renders each figure marker's spec to the SVG and PNG the document formats embed.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, resolve } from "node:path";
-import { renderFailure } from "../cli.ts";
+import { renderFailure } from "../cli/io.ts";
 import { type Format, renderModel } from "../render/index.ts";
-import { parseSpec } from "../spec.ts";
+import { parseSpec } from "../spec/index.ts";
 import type { Diagnostic, Skin, ThemeName } from "../types.ts";
 import type { Marker } from "./markdown.ts";
 

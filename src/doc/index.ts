@@ -6,12 +6,15 @@
 // them all and is the `orrery doc` command.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
-import { type Args, printDiagnostics, usage, writeAtomic } from "./cli.ts";
-import { renderDocx } from "./doc/docx.ts";
-import { type DocFigure, isError, renderFigure } from "./doc/figures.ts";
-import { renderDocHtml } from "./doc/html.ts";
-import { wordImage } from "./doc/images.ts";
-import { type Inline, inline, plain } from "./doc/inline.ts";
+import type { Args } from "../cli/args.ts";
+import { printDiagnostics, usage, writeAtomic } from "../cli/io.ts";
+import type { Format } from "../render/index.ts";
+import type { Diagnostic, Skin, ThemeName } from "../types.ts";
+import { renderDocx } from "./docx.ts";
+import { type DocFigure, isError, renderFigure } from "./figures.ts";
+import { renderDocHtml } from "./html.ts";
+import { wordImage } from "./images.ts";
+import { type Inline, inline, plain } from "./inline.ts";
 import {
   type Align,
   type Block,
@@ -19,10 +22,8 @@ import {
   type Marker,
   type ParsedDoc,
   parseDoc,
-} from "./doc/markdown.ts";
-import { renderDocMarkdown } from "./doc/md.ts";
-import type { Format } from "./render/index.ts";
-import type { Diagnostic, Skin, ThemeName } from "./types.ts";
+} from "./markdown.ts";
+import { renderDocMarkdown } from "./md.ts";
 
 export {
   type Align,

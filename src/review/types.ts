@@ -1,5 +1,5 @@
 // The review report's shapes, its options and the context every measure writes findings into.
-import type { PatchOp } from "../patch.ts";
+import type { PatchOp } from "../patch/index.ts";
 import type { Box, Direction, Model, Scene, SceneGroup, SceneNode, ThemeName } from "../types.ts";
 import type { FindingId, ReviewDimension, ReviewSeverity } from "./findings.ts";
 

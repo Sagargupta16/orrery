@@ -1,7 +1,7 @@
 // The flow dimension: arrowheads, shared trunks, step order, arrow semantics, boundary labels,
 // the edge budget and cross-cutting services.
-import { iconAspect, iconInfo } from "../icons.ts";
-import type { PatchOp } from "../patch.ts";
+import { iconAspect, iconInfo } from "../icons/index.ts";
+import type { PatchOp } from "../patch/index.ts";
 import type { Box, Diagnostic, ModelEdge, ModelNode, Point, SceneEdge } from "../types.ts";
 import {
   along,

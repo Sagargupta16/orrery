@@ -1,9 +1,9 @@
 // What every MCP tool shares: the Tool shape, content builders, argument readers and spec input.
 import { existsSync, statSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
-import { readSpec, renderFailure } from "../cli.ts";
+import { readSpec, renderFailure } from "../cli/io.ts";
 import { type RenderRequest, renderModel } from "../render/index.ts";
-import { parseSpec } from "../spec.ts";
+import { parseSpec } from "../spec/index.ts";
 import { type Diagnostic, type Model, type Scene, SKINS, THEMES } from "../types.ts";
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;

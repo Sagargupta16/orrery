@@ -1,9 +1,9 @@
 // The reader: loads the spec's icon files and converts each to the catalog form renderIcon draws.
 
 import { readFileSync, statSync } from "node:fs";
-import { type LocalArt, registerLocalIcon } from "../icons.ts";
+import type { Model } from "../../types.ts";
+import { type LocalArt, registerLocalIcon } from "../index.ts";
 import { allDark } from "../libraries.ts";
-import type { Model } from "../types.ts";
 import { badFor, LocalIconError, shownPath } from "./errors.ts";
 import { NOT_PAINT, normalizeColor, paintsOf } from "./paint.ts";
 import { sanitize, viewBoxOf } from "./sanitize.ts";

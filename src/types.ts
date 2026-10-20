@@ -1,7 +1,7 @@
 // The diagram model at three stages: what the author writes (Spec*), what the parser hands to
 // layout (Model*), and what layout hands to every renderer (Scene*).
 
-import type { SceneJourney } from "./journey.ts";
+import type { SceneJourney } from "./layout/journey/index.ts";
 
 export type Direction = "right" | "down" | "left" | "up";
 export type ThemeName = "light" | "dark";

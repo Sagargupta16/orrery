@@ -1,9 +1,9 @@
 // Trees and mind maps as tidy trees: the spanning hierarchy, packed subtree contours, node
 // measures and the levels along the flow.
 
+import type { Box, SceneEdge, SceneNode } from "../../types.ts";
 import type { AfterLayout } from "../hooks.ts";
-import type { Box, SceneEdge, SceneNode } from "../types.ts";
-import { bodyOf, footOf, moveNode } from "./kind-shared.ts";
+import { bodyOf, footOf, moveNode } from "./shared.ts";
 
 // ---------------------------------------------------------------- hierarchy
 

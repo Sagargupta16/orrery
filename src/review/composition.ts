@@ -1,6 +1,6 @@
 // Composition checks ported from aws-archify: zig-zags and avoidable bends, nodes beside groups,
 // uneven same-kind siblings, and sparse or loosely padded frames (grid and layout findings).
-import type { PatchOp } from "../patch.ts";
+import type { PatchOp } from "../patch/index.ts";
 import type { Box, SceneGroup } from "../types.ts";
 import {
   contentStart,

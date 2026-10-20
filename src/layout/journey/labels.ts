@@ -1,9 +1,9 @@
 // Journey cards as scene nodes, and edge labels beside (or on) the lines between them.
 
-import { SIZES } from "../layout.ts";
-import { measure } from "../text.ts";
-import type { Box, Point, SceneEdge, SceneNode } from "../types.ts";
-import { ARROW, type Grid, round } from "./journey-grid.ts";
+import { measure } from "../../text.ts";
+import type { Box, Point, SceneEdge, SceneNode } from "../../types.ts";
+import { SIZES } from "../sizes.ts";
+import { ARROW, type Grid, round } from "./grid.ts";
 
 interface Segment {
   p: Point;

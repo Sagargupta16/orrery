@@ -1,6 +1,6 @@
 import { transform } from "esbuild";
 import { beforeAll, describe, expect, it } from "vitest";
-import { layout } from "../src/layout.ts";
+import { layout } from "../src/layout/index.ts";
 import { renderDrawio } from "../src/render/drawio.ts";
 import { FORMATS, type RenderResult, renderModel } from "../src/render/index.ts";
 import { renderPng } from "../src/render/png.ts";

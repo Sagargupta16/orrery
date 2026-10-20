@@ -1,5 +1,5 @@
 // The version stamp and the help text that --help and every usage error print.
-import { PACK_ORDER } from "../icons.ts";
+import { PACK_ORDER } from "../icons/index.ts";
 
 declare const __VERSION__: string;
 export const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "dev";

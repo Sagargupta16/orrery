@@ -16,7 +16,7 @@ Node.js 22 or newer and pnpm (the version in `package.json` `packageManager`).
 
 | Path | What |
 | --- | --- |
-| `src/` | TypeScript source: `spec.ts` (parse + validate), `icons.ts` (catalog, aliases, search), `libraries.ts` (logo and glyph sets loaded from npm at render time), `layout.ts` (ELK), `check.ts` (composition warnings), `render/` (one file per format), `cli.ts`. |
+| `src/` | TypeScript source, one folder per subsystem with its entry in `index.ts`: `cli/` (one file per command), `spec/` (parse + validate), `layout/` (ELK and the phases after it, with `lanes/`, `kinds/` and `journey/` for the diagram kinds), `check/` (composition warnings, one function per rule), `review/` (one file per scored dimension), `render/` (one file per format, `stage/` for the stage skin), `icons/` (catalog, search, npm-loaded sets, `local/` icons), `patch/`, `mcp/`, `doc/`. Shared basics (`types.ts`, `themes.ts`, `styles.ts` ...) sit at the top. |
 | `skills/orrery/` | What ships: `SKILL.md`, `references/`, `examples/` (specs), `assets/` (icons, fonts), `scripts/orrery.mjs` (the built CLI) and `scripts/vendor/` (ELK, resvg). Generated files here are committed so the skill runs without an install. |
 | `scripts/` | Development scripts: `build.mjs`, `sync-icons.mjs`, `build-fonts.mjs`, `gallery.mjs`, `check-repo.mjs`, plus `icon-sources.json` (pinned downloads) and `icon-aliases.json`. |
 | `examples/` | The gallery: SVG and PNG for every spec in `skills/orrery/examples/`. |

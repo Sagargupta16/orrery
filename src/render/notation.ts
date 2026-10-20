@@ -2,7 +2,7 @@
 // start of message, default and conditional flows. Every function returns SVG elements without
 // a fill or stroke of their own unless a marker needs one, so the caller's <g> paints them.
 
-import { BAR, hasSubMarker, slant, symbolBox, symbolSize } from "../notation.ts";
+import { BAR, hasSubMarker, slant, symbolBox, symbolSize } from "../layout/notation.ts";
 import {
   type Box,
   type BpmnKind,

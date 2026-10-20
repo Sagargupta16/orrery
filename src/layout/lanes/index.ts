@@ -11,9 +11,9 @@
 // lane-routes.ts and lane-ports.ts (edge routing), lane-grid.ts (the grid router) and
 // lane-labels.ts (edge labels).
 
-import type { LayoutHooks } from "./hooks.ts";
-import { bandLayout } from "./layout-kinds/lane-bands.ts";
-import type { Model, ModelGroup } from "./types.ts";
+import type { Model, ModelGroup } from "../../types.ts";
+import type { LayoutHooks } from "../hooks.ts";
+import { bandLayout } from "./bands.ts";
 
 const isBandType = (g: ModelGroup | undefined): g is ModelGroup =>
   !!g && !g.around && (g.type === "pool" || g.type === "lane");

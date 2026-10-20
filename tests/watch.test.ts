@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { starterIcon } from "../src/local-icons.ts";
+import { starterIcon } from "../src/icons/local/index.ts";
 import { ROOT } from "./helpers.ts";
 
 const spec = (label: string) =>

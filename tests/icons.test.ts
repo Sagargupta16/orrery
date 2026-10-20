@@ -14,8 +14,8 @@ import {
   resolveIcon,
   searchIcons,
   suggestIcons,
-} from "../src/icons.ts";
-import { librarySource } from "../src/libraries.ts";
+} from "../src/icons/index.ts";
+import { librarySource } from "../src/icons/libraries.ts";
 import { THEME_TOKENS } from "../src/themes.ts";
 import type { ThemeName } from "../src/types.ts";
 import { SKILL_DIR } from "./helpers.ts";

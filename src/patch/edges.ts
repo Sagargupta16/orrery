@@ -1,6 +1,6 @@
 // The edge op: edge items read the way parseSpec reads them, matched by their ends, written back.
 import { isSeq, type ParsedNode } from "yaml";
-import { parseEdgeExpression } from "../spec.ts";
+import { parseEdgeExpression } from "../spec/edges.ts";
 import { editMap } from "./ops.ts";
 import {
   type Ctx,

@@ -1,11 +1,11 @@
 // doctor and demo: check the install end to end, and render every template as a smoke test.
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { packInfo } from "../icons.ts";
-import { LibraryError, librarySource } from "../libraries.ts";
+import { packInfo } from "../icons/index.ts";
+import { LibraryError, librarySource } from "../icons/libraries.ts";
 import { examplesDir, skillRoot } from "../paths.ts";
 import { renderModel } from "../render/index.ts";
-import { parseSpec } from "../spec.ts";
+import { parseSpec } from "../spec/index.ts";
 import type { Args } from "./args.ts";
 import { renderFailure, writeAtomic } from "./io.ts";
 import { templates } from "./templates.ts";

@@ -12,9 +12,10 @@
 //
 // mcp/protocol.ts answers the JSON-RPC methods, mcp/stdio.ts and mcp/http.ts carry them,
 // mcp/tools/ holds one file per tool and mcp/kit.ts what the tools share.
-import { type Args, usage } from "./cli.ts";
-import { serveHttp } from "./mcp/http.ts";
-import { serveStdio } from "./mcp/stdio.ts";
+import type { Args } from "../cli/args.ts";
+import { usage } from "../cli/io.ts";
+import { serveHttp } from "./http.ts";
+import { serveStdio } from "./stdio.ts";
 
 export async function cmdMcp(args: Args): Promise<void> {
   if (args._.length) usage(`mcp takes no arguments (got ${args._.join(" ")})`);

@@ -1,9 +1,9 @@
 // Scene -> diagrams.net (.drawio) file. Every group, node and edge becomes an editable cell with
 // the same geometry as the SVG; official icons are embedded as SVG data, so the file opens offline.
 import { ensureContrast, mixHex } from "../color.ts";
-import { renderIcon } from "../icons.ts";
-import type { JourneyCurve, SceneJourney } from "../journey.ts";
-import { BAR, slant, symbolBox } from "../notation.ts";
+import { renderIcon } from "../icons/index.ts";
+import type { JourneyCurve, SceneJourney } from "../layout/journey/index.ts";
+import { BAR, slant, symbolBox } from "../layout/notation.ts";
 import { type Theme, tokensFor } from "../themes.ts";
 import {
   type Box,

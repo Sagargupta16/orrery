@@ -1,6 +1,6 @@
 // Icons in one color: one shared <symbol> per glyph, painted by one filter per tone and color.
 
-import { type IconTone, iconTone, renderIcon } from "../../icons.ts";
+import { type IconTone, iconTone, renderIcon } from "../../icons/index.ts";
 import type { Box } from "../../types.ts";
 import { n, SYMBOL_ID } from "../svg.ts";
 import type { Ctx } from "./ctx.ts";

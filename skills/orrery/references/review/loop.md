@@ -7,7 +7,7 @@ How a rendered diagram gets reviewed and improved: **measure, critique, patch, r
 | Role | Who | Writes | Reads |
 | --- | --- | --- | --- |
 | Orchestrator | the main session | the spec, and nothing else | everything below |
-| Measurer | `orrery review` (`src/review.ts`) | `<base>.review.json`, `<base>.review.png` | the spec |
+| Measurer | `orrery review` (`src/review/`) | `<base>.review.json`, `<base>.review.png` | the spec |
 | Conventions reviewer | `orrery:conventions-reviewer`, or an inline pass | one JSON findings array | the rubric files named in `rubrics` of the review JSON |
 | Flow reviewer | `orrery:flow-reviewer`, or an inline pass | one JSON findings array | [flow.md](flow.md) |
 | Legibility reviewer | `orrery:legibility-reviewer`, or an inline pass | one JSON findings array | [legibility.md](legibility.md) |
@@ -103,7 +103,7 @@ Never patch away something the brief asks for (a node, an edge, a label) to sile
 
 ### 6. Ratchet
 
-Keep a round only when it was reviewed at the same width and theme, **no hard count went up, blockers plus majors did not go up, no node was removed (dropping an edge is fine) and the score went up** (`improves(before, after)` in `src/review.ts`). `orrery patch` applies it to every candidate; a patch applied by hand needs step 1 again. Otherwise restore the copy and do not propose the same patch again.
+Keep a round only when it was reviewed at the same width and theme, **no hard count went up, blockers plus majors did not go up, no node was removed (dropping an edge is fine) and the score went up** (`improves(before, after)` in `src/review/index.ts`). `orrery patch` applies it to every candidate; a patch applied by hand needs step 1 again. Otherwise restore the copy and do not propose the same patch again.
 
 | Round | Patches | Score | Hard (overlaps/nodes/headers/labels/canvas/contrast) | Kept |
 | --- | --- | --- | --- | --- |

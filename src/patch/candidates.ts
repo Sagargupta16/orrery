@@ -6,8 +6,8 @@ import {
   improves,
   type ReviewReport,
   reviewModel,
-} from "../review.ts";
-import { parseSpec } from "../spec.ts";
+} from "../review/index.ts";
+import { parseSpec } from "../spec/index.ts";
 import type { Diagnostic, Model, Skin, ThemeName } from "../types.ts";
 import { applyPatches } from "./apply.ts";
 import { PatchError, type PatchOp } from "./types.ts";

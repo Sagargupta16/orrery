@@ -1,10 +1,6 @@
 // What layout's phases share: the options, the hooks, and one context that grows phase by phase
 // (Setup, then Graph, Laid, Placed and Routed), each phase reading the one before it.
 
-import type { LayoutHooks, NodeGeom } from "../hooks.ts";
-import { kindHooks } from "../kinds.ts";
-import { laneHooks } from "../lanes.ts";
-import { notationHooks } from "../notation.ts";
 import { THEME_TOKENS, type Theme } from "../themes.ts";
 import type {
   Box,
@@ -20,7 +16,11 @@ import type {
 } from "../types.ts";
 import { ELK_DIRECTION, ELK_ROUTING, type ElkEdge, type ElkNode } from "./elk.ts";
 import type { HeaderRoom } from "./groups.ts";
+import type { LayoutHooks, NodeGeom } from "./hooks.ts";
+import { kindHooks } from "./kinds/index.ts";
+import { laneHooks } from "./lanes/index.ts";
 import type { GroupGeom } from "./measure.ts";
+import { notationHooks } from "./notation.ts";
 import { type Plan, planPlacement } from "./plan.ts";
 import type { Relations } from "./relations.ts";
 

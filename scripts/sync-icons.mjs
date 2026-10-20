@@ -183,7 +183,7 @@ function normalize(svg) {
 }
 
 // True when every painted color in an icon is near black, so a dark theme must recolor it. An icon
-// with no paint at all counts: unpainted shapes fill black. Same rule as src/libraries.ts.
+// with no paint at all counts: unpainted shapes fill black. Same rule as src/icons/libraries.ts.
 function allDark(body) {
   if (/Gradient|<image|style="[^"]*(?:fill|stroke)\s*:/.test(body)) return false;
   const colors = [...body.matchAll(/(?:fill|stroke|stop-color)="([^"]+)"/g)]
@@ -617,7 +617,7 @@ function pkgVersion(name) {
 }
 
 // These packs are not bundled: the renderer loads them from the npm library itself at the pinned
-// version (src/libraries.ts). The catalog only records names, search keywords and the pin.
+// version (src/icons/libraries.ts). The catalog only records names, search keywords and the pin.
 function librarySource(npm, file, extra = {}) {
   const buf = readFileSync(join(nodeModules, npm, file));
   return { npm, version: pkgVersion(npm), file, sha256: sha256(buf), bytes: buf.length, ...extra };
@@ -758,7 +758,7 @@ function buildIconify(
     ...(variants ? { variants } : {}),
   });
   // A weight the set names by suffix ("cube-bold") is left out of the index; the renderer resolves
-  // it from the plain name (src/icons.ts), so the catalog grows by one row per icon, not six.
+  // it from the plain name (src/icons/index.ts), so the catalog grows by one row per icon, not six.
   const variant = (name) =>
     variants?.some((w) => {
       const base = name.slice(0, -w.length - 1);

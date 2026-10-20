@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { checkScene } from "../src/check.ts";
-import { layout } from "../src/layout.ts";
+import { checkScene } from "../src/check/index.ts";
+import { layout } from "../src/layout/index.ts";
 import { renderDrawio } from "../src/render/drawio.ts";
 import { renderPng } from "../src/render/png.ts";
 import { renderSvg } from "../src/render/svg.ts";

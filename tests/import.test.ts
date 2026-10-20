@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 import { importMermaid } from "../src/import/mermaid.ts";
-import { parseSpec } from "../src/spec.ts";
+import { parseSpec } from "../src/spec/index.ts";
 import { listDiagnostics, runCli } from "./helpers.ts";
 
 const FLOW = `flowchart LR

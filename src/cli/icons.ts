@@ -9,8 +9,8 @@ import {
   packInfo,
   renderIcon,
   searchIcons,
-} from "../icons.ts";
-import { cachePath, librarySource, loadLibrary } from "../libraries.ts";
+} from "../icons/index.ts";
+import { cachePath, librarySource, loadLibrary } from "../icons/libraries.ts";
 import {
   adoptIcon,
   checkIcon,
@@ -18,10 +18,10 @@ import {
   LocalIconError,
   shownPath,
   starterIcon,
-} from "../local-icons.ts";
+} from "../icons/local/index.ts";
 import { renderModel } from "../render/index.ts";
 import { renderPng } from "../render/png.ts";
-import { parseSpec } from "../spec.ts";
+import { parseSpec } from "../spec/index.ts";
 import { THEME_TOKENS } from "../themes.ts";
 import { SKINS, type ThemeName } from "../types.ts";
 import { type Args, closest } from "./args.ts";

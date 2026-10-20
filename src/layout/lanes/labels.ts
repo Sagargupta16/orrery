@@ -1,7 +1,7 @@
 // Edge labels and step badges beside the routed lane edges.
 
-import { textBlock } from "../text.ts";
-import type { Box, SceneEdge } from "../types.ts";
+import { textBlock } from "../../text.ts";
+import type { Box, SceneEdge } from "../../types.ts";
 import {
   cuts,
   EDGE_LABEL,
@@ -12,7 +12,7 @@ import {
   type Routing,
   round,
   STEP,
-} from "./lane-shared.ts";
+} from "./shared.ts";
 
 /**
  * Edge labels (and step badges) go beside a segment of the new route: above a run along the flow

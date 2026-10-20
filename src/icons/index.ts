@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
-import { contrast, mixHex } from "./color.ts";
+import { contrast, mixHex } from "../color.ts";
+import { iconsDir } from "../paths.ts";
+import type { ThemeName } from "../types.ts";
 import {
   allDark,
   type LibrarySource,
@@ -8,8 +10,6 @@ import {
   loadedLibrary,
   loadLibrary,
 } from "./libraries.ts";
-import { iconsDir } from "./paths.ts";
-import type { ThemeName } from "./types.ts";
 
 export interface PackInfo {
   title: string;

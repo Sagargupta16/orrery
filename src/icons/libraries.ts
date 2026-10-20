@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { luminance } from "./color.ts";
+import { luminance } from "../color.ts";
 
 export interface LibrarySource {
   npm: string;

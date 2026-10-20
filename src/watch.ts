@@ -5,11 +5,12 @@
 // watched file and kill its handle, so a rename re-arms the watch.
 import { existsSync, type FSWatcher, readFileSync, statSync, watch } from "node:fs";
 import { join, resolve } from "node:path";
-import { type Args, printDiagnostics, readSpec, renderFailure, usage, writeAtomic } from "./cli.ts";
-import { shownPath } from "./local-icons.ts";
+import type { Args } from "./cli/args.ts";
+import { printDiagnostics, readSpec, renderFailure, usage, writeAtomic } from "./cli/io.ts";
+import { shownPath } from "./icons/local/index.ts";
 import { FORMATS, type Format, formatOf, renderModel } from "./render/index.ts";
-import { DEFAULT_REVIEW_WIDTH, formatReview, reviewModel } from "./review.ts";
-import { parseSpec } from "./spec.ts";
+import { DEFAULT_REVIEW_WIDTH, formatReview, reviewModel } from "./review/index.ts";
+import { parseSpec } from "./spec/index.ts";
 import type { AnimateMode, Diagnostic, Skin, ThemeName } from "./types.ts";
 
 const DEBOUNCE_MS = 120;

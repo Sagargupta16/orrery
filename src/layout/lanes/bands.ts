@@ -1,14 +1,14 @@
 // Pools and lanes as bands: the band tree, the items that move into it, band sizes, strips and
 // placement, and the scene groups the bands paint. Edges are routed again at the end.
 
-import { contrast, ensureContrast, luminance, mixHex } from "../color.ts";
+import { contrast, ensureContrast, luminance, mixHex } from "../../color.ts";
+import { resolveGroupStyle } from "../../styles.ts";
+import { textBlock } from "../../text.ts";
+import { THEME_TOKENS } from "../../themes.ts";
+import type { Box, Model, ModelGroup, SceneGroup, SceneNode } from "../../types.ts";
 import type { AfterLayout } from "../hooks.ts";
 import { symbolBox } from "../notation.ts";
-import { resolveGroupStyle } from "../styles.ts";
-import { textBlock } from "../text.ts";
-import { THEME_TOKENS } from "../themes.ts";
-import type { Box, Model, ModelGroup, SceneGroup, SceneNode } from "../types.ts";
-import { routeEdges } from "./lane-routes.ts";
+import { routeEdges } from "./routes.ts";
 import {
   type Axis,
   type Band,
@@ -32,7 +32,7 @@ import {
   STEP,
   STRIP,
   union,
-} from "./lane-shared.ts";
+} from "./shared.ts";
 
 /** What every phase of the band layout reads. */
 interface Scope {

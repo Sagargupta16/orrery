@@ -1,5 +1,5 @@
 import { mixHex } from "../color.ts";
-import { renderIcon } from "../icons.ts";
+import { renderIcon } from "../icons/index.ts";
 import { FONT_STACK, type Theme, tokensFor } from "../themes.ts";
 import type {
   Box,
@@ -15,7 +15,7 @@ import type {
 import { journeyClassic } from "./journey.ts";
 import { laneClassic } from "./lanes.ts";
 import { flowMarks, notationMarks, notationShape, shapeOutline } from "./notation.ts";
-import { renderStage } from "./stage.ts";
+import { renderStage } from "./stage/index.ts";
 
 // Inter's vertical metrics (ascender 1984, descender -494 at 2048 units per em).
 const ASCENT = 0.96875;

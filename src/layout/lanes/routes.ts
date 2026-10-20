@@ -1,10 +1,10 @@
 // Routes every lane edge again on a grid of the gaps between layers and the bands' lines.
 
-import { textBlock } from "../text.ts";
-import type { Box, ModelEdge, Point, SceneEdge } from "../types.ts";
-import { elbow, flip, gridRoute, type Obstacle, type Port, STEPS } from "./lane-grid.ts";
-import { placeLabels } from "./lane-labels.ts";
-import { type End, endOf, type Ports, portsFor, portsOf } from "./lane-ports.ts";
+import { textBlock } from "../../text.ts";
+import type { Box, ModelEdge, Point, SceneEdge } from "../../types.ts";
+import { elbow, flip, gridRoute, type Obstacle, type Port, STEPS } from "./grid.ts";
+import { placeLabels } from "./labels.ts";
+import { type End, endOf, type Ports, portsFor, portsOf } from "./ports.ts";
 import {
   type Band,
   CHANNEL,
@@ -18,7 +18,7 @@ import {
   grow,
   type Routing,
   round,
-} from "./lane-shared.ts";
+} from "./shared.ts";
 
 interface Placed {
   edge: SceneEdge;

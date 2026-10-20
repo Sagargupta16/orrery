@@ -2,8 +2,8 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
-import { LibraryError } from "../libraries.ts";
-import { LocalIconError } from "../local-icons.ts";
+import { LibraryError } from "../icons/libraries.ts";
+import { LocalIconError } from "../icons/local/index.ts";
 import type { Diagnostic } from "../types.ts";
 import type { Args } from "./args.ts";
 import { HELP } from "./help.ts";

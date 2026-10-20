@@ -1,6 +1,6 @@
 // The conventions dimension: which rubrics apply, legend and title, the AWS naming, boundary and
 // service rules, step callouts, C4 notation, brand marks, Google Cloud icons, and notation checks.
-import { aliases, iconInfo, resolveIcon } from "../icons.ts";
+import { aliases, iconInfo, resolveIcon } from "../icons/index.ts";
 import { r1, real } from "./geometry.ts";
 import { edgeName, escapeRe, hasPhrase, norm } from "./names.ts";
 import { NOTATION_CHECKS, NOTATIONS } from "./notations.ts";

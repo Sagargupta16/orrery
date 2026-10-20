@@ -1,5 +1,5 @@
 // Nodes: icon, look and shape, BPMN, journey stage and score, link, size, label, rank and align.
-import { iconInfo, resolveIcon, suggestIcons } from "../icons.ts";
+import { iconInfo, resolveIcon, suggestIcons } from "../icons/index.ts";
 import {
   BPMN_KINDS,
   type BpmnKind,

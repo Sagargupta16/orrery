@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { examplesDir } from "../../paths.ts";
-import { parseSpec } from "../../spec.ts";
+import { parseSpec } from "../../spec/index.ts";
 import { json, str, type Tool, ToolError, text } from "../kit.ts";
 
 function templates(): string[] {

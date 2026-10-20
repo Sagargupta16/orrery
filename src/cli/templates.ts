@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { importMermaid } from "../import/mermaid.ts";
 import { examplesDir } from "../paths.ts";
-import { parseSpec } from "../spec.ts";
+import { parseSpec } from "../spec/index.ts";
 import { GROUP_STYLES } from "../styles.ts";
 import { SHAPES } from "../types.ts";
 import type { Args } from "./args.ts";

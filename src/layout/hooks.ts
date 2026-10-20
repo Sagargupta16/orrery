@@ -12,7 +12,7 @@ import type {
   SceneNode,
   TextBlock,
   ThemeName,
-} from "./types.ts";
+} from "../types.ts";
 
 /** A node's size as ELK lays it out, and its measured text. */
 export interface NodeGeom {

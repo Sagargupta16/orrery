@@ -1,8 +1,8 @@
 // The rules ported from the aws-archify sample: one spec that triggers each, one that does not.
 import { describe, expect, it } from "vitest";
-import { checkScene } from "../src/check.ts";
-import { layout } from "../src/layout.ts";
-import { formatReview, LOOK_MAX, reviewModel, reviewScene } from "../src/review.ts";
+import { checkScene } from "../src/check/index.ts";
+import { layout } from "../src/layout/index.ts";
+import { formatReview, LOOK_MAX, reviewModel, reviewScene } from "../src/review/index.ts";
 import type { Box, Model, Scene } from "../src/types.ts";
 import { model, must, pngSize } from "./helpers.ts";
 

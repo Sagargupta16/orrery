@@ -1,5 +1,5 @@
 // Groups, then the nesting checks that need every node and group: contains, around, in, cycles.
-import { resolveIcon, suggestIcons } from "../icons.ts";
+import { resolveIcon, suggestIcons } from "../icons/index.ts";
 import { groupStyleKeys, resolveGroupStyle } from "../styles.ts";
 import { type Ctx, claim, entries } from "./context.ts";
 import { GROUP_KEYS, GROUP_SYNONYMS } from "./keys.ts";

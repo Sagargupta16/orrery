@@ -1,7 +1,7 @@
 // The path ops (set, unset, add) and move, as text edits on the spec's root mapping.
 import { isMap, isScalar, isSeq } from "yaml";
-import { resolveIcon } from "../icons.ts";
-import { distance } from "../spec.ts";
+import { resolveIcon } from "../icons/index.ts";
+import { distance } from "../spec/suggest.ts";
 import {
   type Edit,
   insertPair,

@@ -1,8 +1,7 @@
 // Geometry for nodes drawn in notation: BPMN 2.0 elements (bpmn:) and the flowchart and state
 // shapes (parallelogram, subroutine, trapezoid, delay, initial, final).
 
-import type { LayoutHooks, NodeGeom, PlaceContext } from "./hooks.ts";
-import { textBlock } from "./text.ts";
+import { textBlock } from "../text.ts";
 import {
   type Box,
   type BpmnKind,
@@ -13,7 +12,8 @@ import {
   type SceneEdge,
   type SceneNode,
   type ShapeKind,
-} from "./types.ts";
+} from "../types.ts";
+import type { LayoutHooks, NodeGeom, PlaceContext } from "./hooks.ts";
 
 // Text sizes match SIZES in layout.ts (nodeLabel, note, shapeLabelMax).
 const LABEL = 13;

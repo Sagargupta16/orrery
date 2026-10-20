@@ -1,10 +1,10 @@
 // Edges outside a tree's or mind map's hierarchy: orthogonal links across it, then loops.
 
+import type { Box, Point } from "../../types.ts";
 import type { AfterLayout } from "../hooks.ts";
-import type { Box, Point } from "../types.ts";
-import { crosses, footOf, labelSize, r, segments, setLabel, tidyPoints } from "./kind-shared.ts";
-import { selfLoops } from "./kind-state.ts";
-import type { Hierarchy } from "./kind-tidy.ts";
+import { crosses, footOf, labelSize, r, segments, setLabel, tidyPoints } from "./shared.ts";
+import { selfLoops } from "./state.ts";
+import type { Hierarchy } from "./tidy.ts";
 
 /**
  * Orthogonal connectors between two boxes, for links outside the hierarchy, best first: an elbow

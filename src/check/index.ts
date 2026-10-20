@@ -1,24 +1,20 @@
 // Composition checks on a laid-out scene: what a reviewer would flag by eye, as data an agent can act on.
-import { canvasShape, longLabels, nodeCount, offCanvas } from "./checks/canvas.ts";
+
+import type { Diagnostic, Model, Scene } from "../types.ts";
+import { canvasShape, longLabels, nodeCount, offCanvas } from "./canvas.ts";
 import {
   emptyGroups,
   ignoredSettings,
   layoutFallback,
   lonelyNodes,
   unexplainedLines,
-} from "./checks/composition.ts";
-import { type CheckOptions, checkContext, type Rule } from "./checks/context.ts";
-import {
-  edgeSkimsNode,
-  edgeThroughHeader,
-  edgeThroughLabel,
-  edgeThroughNode,
-} from "./checks/edges.ts";
-import { badgesCover, edgeLabelCovers, labelOnBorder, nodesOverlap } from "./checks/overlaps.ts";
-import { overlayEncloses, overlayHeaderCovers } from "./checks/overlays.ts";
-import type { Diagnostic, Model, Scene } from "./types.ts";
+} from "./composition.ts";
+import { type CheckOptions, checkContext, type Rule } from "./context.ts";
+import { edgeSkimsNode, edgeThroughHeader, edgeThroughLabel, edgeThroughNode } from "./edges.ts";
+import { badgesCover, edgeLabelCovers, labelOnBorder, nodesOverlap } from "./overlaps.ts";
+import { overlayEncloses, overlayHeaderCovers } from "./overlays.ts";
 
-export type { CheckOptions } from "./checks/context.ts";
+export type { CheckOptions } from "./context.ts";
 
 /** Every rule, in the order its findings are reported. */
 const RULES: Rule[] = [

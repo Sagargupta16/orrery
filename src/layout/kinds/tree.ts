@@ -1,8 +1,8 @@
 // Trees (org charts, decision trees, taxonomies): a tidy tree with org-chart connectors.
 
 import type { AfterLayout } from "../hooks.ts";
-import { clearHeaders, frames, refit, room, snapshot } from "./kind-frames.ts";
-import { routeRest } from "./kind-links.ts";
+import { clearHeaders, frames, refit, room, snapshot } from "./frames.ts";
+import { routeRest } from "./links.ts";
 import {
   LABEL_GAP,
   type LabelSize,
@@ -13,7 +13,7 @@ import {
   setLabel,
   settle,
   tidyPoints,
-} from "./kind-shared.ts";
+} from "./shared.ts";
 import {
   depths,
   grow,
@@ -24,7 +24,7 @@ import {
   type Reach,
   spread,
   tidy,
-} from "./kind-tidy.ts";
+} from "./tidy.ts";
 
 /**
  * Org chart: levels along the flow, siblings evenly spaced, each parent centered over its

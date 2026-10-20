@@ -3,14 +3,14 @@
 // to its glyph once the icon libraries are loaded.
 
 import { ensureContrast } from "../color.ts";
-import type { NodeGeom } from "../hooks.ts";
-import { iconAspect } from "../icons.ts";
-import { placeNotation } from "../notation.ts";
+import { iconAspect } from "../icons/index.ts";
 import type { Box, ModelNode, Scene, SceneGroup, SceneNode } from "../types.ts";
 import type { Laid } from "./context.ts";
 import type { ElkNode } from "./elk.ts";
 import { round } from "./geometry.ts";
+import type { NodeGeom } from "./hooks.ts";
 import { badgePill } from "./measure.ts";
+import { placeNotation } from "./notation.ts";
 
 export function sceneNodes(
   ctx: Laid,

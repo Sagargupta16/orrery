@@ -1,7 +1,7 @@
 // review: the measured review of a spec at the width readers see it.
 import { resolve } from "node:path";
-import { DEFAULT_REVIEW_WIDTH, formatReview, reviewModel } from "../review.ts";
-import { parseSpec } from "../spec.ts";
+import { DEFAULT_REVIEW_WIDTH, formatReview, reviewModel } from "../review/index.ts";
+import { parseSpec } from "../spec/index.ts";
 import type { Skin } from "../types.ts";
 import type { Args } from "./args.ts";
 import { fontFiles, printDiagnostics, readSpec, renderFailure, usage, writeAtomic } from "./io.ts";

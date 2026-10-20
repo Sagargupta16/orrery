@@ -1,11 +1,11 @@
 // Mind maps: the root in the middle, its branches split between two halves, each half a tidy
 // tree growing away from it, joined by curves in one color per branch.
 
+import { textBlock } from "../../text.ts";
+import type { SceneNode } from "../../types.ts";
 import type { AfterLayout } from "../hooks.ts";
-import { textBlock } from "../text.ts";
-import type { SceneNode } from "../types.ts";
-import { clearHeaders, type Frames, frames, refit, room, snapshot } from "./kind-frames.ts";
-import { routeRest } from "./kind-links.ts";
+import { clearHeaders, type Frames, frames, refit, room, snapshot } from "./frames.ts";
+import { routeRest } from "./links.ts";
 import {
   LABEL_GAP,
   type LabelSize,
@@ -16,7 +16,7 @@ import {
   restoreEdges,
   setLabel,
   settle,
-} from "./kind-shared.ts";
+} from "./shared.ts";
 import {
   depths,
   type Gap,
@@ -30,7 +30,7 @@ import {
   spread,
   type Tidy,
   tidy,
-} from "./kind-tidy.ts";
+} from "./tidy.ts";
 
 /**
  * First-level branch colors of a mind map, in order. Each keeps 3:1 against the light, dark,

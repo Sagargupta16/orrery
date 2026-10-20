@@ -1,10 +1,10 @@
 // The journey canvas around the grid: title, subtitle and legend boxes, and the alt text.
 
-import type { JourneyCurve } from "../journey.ts";
-import { SIZES } from "../layout.ts";
-import { textBlock } from "../text.ts";
-import type { Box, LegendEntry, Model, SceneLegend, TextBlock } from "../types.ts";
-import { type Grid, round } from "./journey-grid.ts";
+import { textBlock } from "../../text.ts";
+import type { Box, LegendEntry, Model, SceneLegend, TextBlock } from "../../types.ts";
+import { SIZES } from "../sizes.ts";
+import { type Grid, round } from "./grid.ts";
+import type { JourneyCurve } from "./index.ts";
 
 export interface Canvas {
   width: number;

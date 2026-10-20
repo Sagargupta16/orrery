@@ -1,7 +1,7 @@
 // The router lane edges run on: cheapest orthogonal paths over a grid of lines, around obstacles.
 
-import type { Box, Point } from "../types.ts";
-import { BEND, cuts } from "./lane-shared.ts";
+import type { Box, Point } from "../../types.ts";
+import { BEND, cuts } from "./shared.ts";
 
 /** Directions of travel in screen space. */
 export type Dir = 0 | 1 | 2 | 3;

@@ -1,7 +1,7 @@
 // State machines: every self-transition redrawn as a loop on a corner of its state, label beside it.
 
+import type { Box, Point } from "../../types.ts";
 import type { AfterLayout } from "../hooks.ts";
-import type { Box, Point } from "../types.ts";
 import {
   crosses,
   dot,
@@ -13,7 +13,7 @@ import {
   segments,
   setLabel,
   union,
-} from "./kind-shared.ts";
+} from "./shared.ts";
 
 interface Corner {
   right: boolean;

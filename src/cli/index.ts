@@ -1,7 +1,7 @@
 // The CLI entry: parse the command line and hand it to the command it names.
-import { cmdDoc } from "../doc.ts";
-import { cmdMcp } from "../mcp.ts";
-import { cmdPatch } from "../patch.ts";
+import { cmdDoc } from "../doc/index.ts";
+import { cmdMcp } from "../mcp/index.ts";
+import { cmdPatch } from "../patch/index.ts";
 import { cmdWatch } from "../watch.ts";
 import { parseArgs } from "./args.ts";
 import { cmdDemo, cmdDoctor } from "./doctor.ts";

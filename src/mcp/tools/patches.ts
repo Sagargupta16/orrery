@@ -1,8 +1,8 @@
 // try_patches: candidate fix sets reviewed on copies of the spec, kept only when they improve it.
-import { renderFailure } from "../../cli.ts";
+import { renderFailure } from "../../cli/io.ts";
 import { tryCandidates } from "../../patch/candidates.ts";
 import { PatchError, type PatchOp } from "../../patch/types.ts";
-import { DEFAULT_REVIEW_WIDTH } from "../../review.ts";
+import { DEFAULT_REVIEW_WIDTH } from "../../review/index.ts";
 import { SKINS, THEMES } from "../../types.ts";
 import {
   isObj,

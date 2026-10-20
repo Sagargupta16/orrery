@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { crc32, inflateRawSync } from "node:zlib";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { buildDoc, type DocFormat, parseDoc } from "../src/doc.ts";
+import { buildDoc, type DocFormat, parseDoc } from "../src/doc/index.ts";
 import { PNG_SIGNATURE, pngSize, xmlProblems } from "./helpers.ts";
 
 const TINY = "title: Two boxes\nnodes: { a: Alpha, b: Beta }\nedges:\n  - a -> b\n";

@@ -1,8 +1,8 @@
 // Journey edges: each link planned across the stages, down a column or bridged over the cards
 // between, its ports spread along the card sides, then routed, lines sharing a gutter on own tracks.
 
-import type { Box, ModelEdge, Point, SceneEdge } from "../types.ts";
-import { type Card, type Grid, round } from "./journey-grid.ts";
+import type { Box, ModelEdge, Point, SceneEdge } from "../../types.ts";
+import { type Card, type Grid, round } from "./grid.ts";
 
 type Side = "left" | "right" | "top" | "bottom";
 

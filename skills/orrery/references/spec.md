@@ -116,7 +116,7 @@ groups:
 | `fill` | Quoted hex override for the background, or `none`. |
 | `icon` | Override the header icon with any icon id, or `false` to hide it. |
 | `dashed` | `true` or `false` to override the style's border. |
-| `cols` (`columns`) | A whole number 1 to 12: the group's direct children (nodes and groups) form a grid of that many columns, row by row in spec order, each centered in a cell as wide as the widest child and as tall as the tallest. Edges route around the grid as usual. DG115 for anything else. |
+| `cols` (`columns`) | A whole number 1 to 12: the group's direct children (nodes and groups) form a grid of that many columns, row by row in spec order, each centered in a cell as wide as the widest child and as tall as the tallest. Edges route around the grid as usual; when an edge or its label would still cover a node or another label inside the grid, the group is laid out without it and DG219 says so. DG115 for anything else. |
 
 ### Pools and lanes
 

@@ -9,8 +9,12 @@
 // the `orrery patch` command.
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { type Args, printDiagnostics, readSpec, renderFailure, usage, writeAtomic } from "./cli.ts";
-import { applyPatches, describeOp } from "./patch/apply.ts";
+import type { Args } from "../cli/args.ts";
+import { printDiagnostics, readSpec, renderFailure, usage, writeAtomic } from "../cli/io.ts";
+import { DEFAULT_REVIEW_WIDTH } from "../review/index.ts";
+import { parseSpec } from "../spec/index.ts";
+import type { Skin } from "../types.ts";
+import { applyPatches, describeOp } from "./apply.ts";
 import {
   type CandidateRequest,
   type CandidateResult,
@@ -19,11 +23,8 @@ import {
   HARD_KEYS,
   serious,
   tryCandidates,
-} from "./patch/candidates.ts";
-import { PatchError, type PatchOp } from "./patch/types.ts";
-import { DEFAULT_REVIEW_WIDTH } from "./review.ts";
-import { parseSpec } from "./spec.ts";
-import type { Skin } from "./types.ts";
+} from "./candidates.ts";
+import { PatchError, type PatchOp } from "./types.ts";
 
 export {
   applyPatches,

@@ -1,13 +1,13 @@
 // What each node and group measures before ELK sees it: box size, label and note text, an outside
 // label's room, a group's header height and minimum width, and a badge pill's box.
 
-import type { NodeGeom } from "../hooks.ts";
-import { notationGeometry } from "../notation.ts";
 import { resolveGroupStyle } from "../styles.ts";
 import { measure, textBlock } from "../text.ts";
 import type { Box, ModelGroup, ModelNode, TextBlock } from "../types.ts";
 import type { Setup } from "./context.ts";
 import { round } from "./geometry.ts";
+import type { NodeGeom } from "./hooks.ts";
+import { notationGeometry } from "./notation.ts";
 import { SIZES } from "./sizes.ts";
 
 export function nodeGeometry(n: ModelNode, horizontal: boolean): NodeGeom {

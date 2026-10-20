@@ -1,10 +1,10 @@
 // Groups around tree and mind map nodes: the margins they keep, the room they need between
 // neighbors, and how they follow their members and clear their headers once the nodes moved.
 
+import type { Box, SceneGroup } from "../../types.ts";
 import type { AfterLayout } from "../hooks.ts";
-import type { Box, SceneGroup } from "../types.ts";
-import { crosses, footOf, r, segments, union } from "./kind-shared.ts";
-import type { Hierarchy } from "./kind-tidy.ts";
+import { crosses, footOf, r, segments, union } from "./shared.ts";
+import type { Hierarchy } from "./tidy.ts";
 
 interface Margin {
   l: number;

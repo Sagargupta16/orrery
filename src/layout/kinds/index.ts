@@ -7,11 +7,11 @@
 // kind; kind-tidy.ts (hierarchy, contours, levels), kind-frames.ts (groups around the nodes),
 // kind-links.ts (edges outside the hierarchy) and kind-shared.ts (geometry, labels) serve them.
 
-import type { LayoutHooks } from "./hooks.ts";
-import { placeMindmap } from "./layout-kinds/kind-mindmap.ts";
-import { restoreEdges } from "./layout-kinds/kind-shared.ts";
-import { selfLoops } from "./layout-kinds/kind-state.ts";
-import { placeTree } from "./layout-kinds/kind-tree.ts";
+import type { LayoutHooks } from "../hooks.ts";
+import { placeMindmap } from "./mindmap.ts";
+import { restoreEdges } from "./shared.ts";
+import { selfLoops } from "./state.ts";
+import { placeTree } from "./tree.ts";
 
 export const kindHooks: LayoutHooks = {
   elkOptions(model): Record<string, string> {

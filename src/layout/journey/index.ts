@@ -5,12 +5,12 @@
 // journey-edges.ts (planning, ports and tracks), journey-labels.ts (nodes and edge labels) and
 // journey-canvas.ts (title, legend and alt text).
 
-import { animateOf } from "./layout.ts";
-import { canvasOf, describe } from "./layout-kinds/journey-canvas.ts";
-import { journeyEdges } from "./layout-kinds/journey-edges.ts";
-import { emotionCurve, measureGrid, rowBands, stageHeaders } from "./layout-kinds/journey-grid.ts";
-import { journeyNodes, placeEdgeLabels } from "./layout-kinds/journey-labels.ts";
-import type { Box, Model, Point, Scene, TextBlock, ThemeName } from "./types.ts";
+import type { Box, Model, Point, Scene, TextBlock, ThemeName } from "../../types.ts";
+import { animateOf } from "../sizes.ts";
+import { canvasOf, describe } from "./canvas.ts";
+import { journeyEdges } from "./edges.ts";
+import { emotionCurve, measureGrid, rowBands, stageHeaders } from "./grid.ts";
+import { journeyNodes, placeEdgeLabels } from "./labels.ts";
 
 export interface JourneyStage {
   /** The stage name, beside its number. */

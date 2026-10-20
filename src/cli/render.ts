@@ -10,7 +10,7 @@ import {
   type RenderResult,
   renderModel,
 } from "../render/index.ts";
-import { parseSpec } from "../spec.ts";
+import { parseSpec } from "../spec/index.ts";
 import type { AnimateMode, Diagnostic, Model, Scene, Skin, ThemeName } from "../types.ts";
 import type { Args } from "./args.ts";
 import {

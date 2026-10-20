@@ -1,7 +1,7 @@
-import { checkScene } from "../check.ts";
-import { loadIconLibraries } from "../icons.ts";
-import { fitIcons, layout } from "../layout.ts";
-import { loadLocalIcons } from "../local-icons.ts";
+import { checkScene } from "../check/index.ts";
+import { loadIconLibraries } from "../icons/index.ts";
+import { loadLocalIcons } from "../icons/local/index.ts";
+import { fitIcons, layout } from "../layout/index.ts";
 import type { AnimateMode, Diagnostic, Model, Scene, Skin, ThemeName } from "../types.ts";
 import { renderDrawio } from "./drawio.ts";
 import { renderHtml } from "./html.ts";

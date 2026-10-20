@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { layout } from "../src/layout.ts";
-import { sceneDefects, segmentHits } from "../src/placement.ts";
+import { sceneDefects } from "../src/layout/defects.ts";
+import { segmentHits } from "../src/layout/geometry.ts";
+import { layout } from "../src/layout/index.ts";
 import type { Box, Scene } from "../src/types.ts";
 import { model, must } from "./helpers.ts";
 

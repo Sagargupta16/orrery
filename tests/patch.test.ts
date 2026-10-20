@@ -5,8 +5,8 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { applyPatches, PatchError, type PatchOp, tryCandidates } from "../src/patch.ts";
-import { parseSpec } from "../src/spec.ts";
+import { applyPatches, PatchError, type PatchOp, tryCandidates } from "../src/patch/index.ts";
+import { parseSpec } from "../src/spec/index.ts";
 import type { Model } from "../src/types.ts";
 import { EXAMPLES_DIR, model, must, ROOT } from "./helpers.ts";
 

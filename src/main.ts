@@ -1,5 +1,5 @@
-import { main } from "./cli.ts";
-import { LibraryError } from "./libraries.ts";
+import { main } from "./cli/index.ts";
+import { LibraryError } from "./icons/libraries.ts";
 
 main().catch((e: unknown) => {
   // An icon library that cannot be loaded is an environment problem with known fixes, not a crash.

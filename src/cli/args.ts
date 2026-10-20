@@ -1,5 +1,5 @@
 // Command line parsing: the flag tables, value checks and did-you-mean for typos.
-import { distance } from "../spec.ts";
+import { distance } from "../spec/suggest.ts";
 import { ANIMATE_MODES, type AnimateMode, SKINS, type Skin } from "../types.ts";
 import { usage } from "./io.ts";
 

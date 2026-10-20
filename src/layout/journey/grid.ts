@@ -1,10 +1,10 @@
 // The journey grid: a card per step, stage columns and lane rows sized to fit them, the header
 // cells, and the emotion curve under the rows.
 
-import type { JourneyCurve, JourneyRow, JourneyStage } from "../journey.ts";
-import { SIZES } from "../layout.ts";
-import { textBlock } from "../text.ts";
-import type { Box, Model, ModelNode, Point, TextBlock } from "../types.ts";
+import { textBlock } from "../../text.ts";
+import type { Box, Model, ModelNode, Point, TextBlock } from "../../types.ts";
+import { SIZES } from "../sizes.ts";
+import type { JourneyCurve, JourneyRow, JourneyStage } from "./index.ts";
 
 // Grid metrics in px before layout.spacing scales the gaps.
 const GUTTER = 14;

@@ -2,12 +2,12 @@
 // group ELK sees and per align block, children in spec order with cross-axis order hints, then the
 // edges (graph-edges.ts).
 
-import type { NodeGeom } from "../hooks.ts";
 import { textBlock } from "../text.ts";
 import type { Box, ModelNode } from "../types.ts";
 import type { Graph, Setup } from "./context.ts";
 import { type ElkNode, LAYER_CONSTRAINT } from "./elk.ts";
 import { addEdges } from "./graph-edges.ts";
+import type { NodeGeom } from "./hooks.ts";
 import { badgePill, type GroupGeom, groupGeometry, minWidthOf, nodeGeometry } from "./measure.ts";
 import { relations } from "./relations.ts";
 import { SIZES } from "./sizes.ts";

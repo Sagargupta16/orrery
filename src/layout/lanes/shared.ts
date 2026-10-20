@@ -1,6 +1,5 @@
 // What the pool and swimlane modules share: sizes, the flow's axes, box geometry and the bands.
 
-import type { AfterLayout } from "../hooks.ts";
 import type {
   Box,
   ModelGroup,
@@ -9,7 +8,8 @@ import type {
   SceneGroup,
   SceneNode,
   TextBlock,
-} from "../types.ts";
+} from "../../types.ts";
+import type { AfterLayout } from "../hooks.ts";
 
 // Sizes in px. Group labels match layout's (13px semibold); bpmn-js draws pool and lane names in
 // a 30px strip.

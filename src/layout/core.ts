@@ -1,7 +1,6 @@
 // One run of the core layout: the phases in order, then at most one second pass with what the
 // first learned. This is layout's single recursion: a second pass never starts a third.
 
-import { journeyLayout } from "../journey.ts";
 import { stageColors } from "../skins.ts";
 import type { Model, Scene } from "../types.ts";
 import { sizeCanvas } from "./canvas.ts";
@@ -17,6 +16,7 @@ import { sceneDefects } from "./defects.ts";
 import { sceneEdges, tidyEdges } from "./edges.ts";
 import { rerouteBlocks, routeFree } from "./free-edges.ts";
 import { buildGraph } from "./graph.ts";
+import { journeyLayout } from "./journey/index.ts";
 import { placeFreeLabels } from "./labels.ts";
 import { clearOverlayBorders } from "./overlays.ts";
 import { secondPass } from "./passes.ts";

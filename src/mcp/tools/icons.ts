@@ -1,5 +1,5 @@
 // icons_search: icon ids for a spec's icon: field, ranked best first.
-import { PACK_ORDER, searchIcons } from "../../icons.ts";
+import { PACK_ORDER, searchIcons } from "../../icons/index.ts";
 import { json, num, oneOf, str, type Tool, ToolError } from "../kit.ts";
 
 const ICON_TYPES = ["service", "resource", "group", "category", "logo", "glyph"];
