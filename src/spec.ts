@@ -76,6 +76,8 @@ const NODE_KEYS = [
   "bpmn",
   "stage",
   "score",
+  "rank",
+  "align",
 ];
 const NODE_SYNONYMS: Record<string, string> = {
   sublabel: "note",
@@ -85,6 +87,7 @@ const NODE_SYNONYMS: Record<string, string> = {
   link: "url",
   href: "url",
   style: "look",
+  layer: "rank",
 };
 const GROUP_KEYS = [
   "id",
@@ -97,6 +100,7 @@ const GROUP_KEYS = [
   "dashed",
   "contains",
   "around",
+  "cols",
 ];
 const GROUP_SYNONYMS: Record<string, string> = {
   style: "type",
@@ -104,6 +108,7 @@ const GROUP_SYNONYMS: Record<string, string> = {
   parent: "in",
   children: "contains",
   nodes: "contains",
+  columns: "cols",
 };
 const EDGE_KEYS = ["from", "to", "label", "line", "arrow", "color", "step", "constraint", "flow"];
 const EDGE_SYNONYMS: Record<string, string> = {
@@ -112,7 +117,7 @@ const EDGE_SYNONYMS: Record<string, string> = {
   target: "to",
   text: "label",
 };
-const LAYOUT_KEYS = ["spacing", "routing", "layering", "merge"];
+const LAYOUT_KEYS = ["spacing", "routing", "layering", "merge", "aspect"];
 /** Flowchart and state names for shapes, after ISO 5807 and UML. */
 const SHAPE_SYNONYMS: Record<string, ShapeKind> = {
   terminator: "pill",
@@ -466,6 +471,12 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     });
   }
   const merge = layout.merge !== false;
+  const aspect = aspectOf(layout.aspect);
+  if (aspect === null)
+    err("DG116", "layout.aspect must be a width:height ratio such as 4:3, 16:9 or 1.5", {
+      subject: { where: "layout.aspect", value: layout.aspect },
+      fixes: ["use layout: { aspect: 4:3 } for a compact figure, 16:9 for a slide"],
+    });
   const arrowhead = oneOf(
     raw.arrowhead,
     ["open", "filled"] as const,
@@ -606,6 +617,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
   const groups: ModelGroup[] = [];
   const ids = new Map<string, "node" | "group">();
   const pendingContains: [string, string[]][] = [];
+  const pendingAlign: [string, string][] = [];
 
   const claim = (id: string, kind: "node" | "group") => {
     if (!ID_RE.test(id)) {
@@ -661,6 +673,16 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
       "none",
     ]);
     const dashed = pick(g, "dashed", GROUP_SYNONYMS);
+    const colsRaw = pick(g, "cols", GROUP_SYNONYMS);
+    const cols =
+      typeof colsRaw === "number" && Number.isInteger(colsRaw) && colsRaw >= 1 && colsRaw <= 12
+        ? colsRaw
+        : undefined;
+    if (colsRaw !== undefined && cols === undefined)
+      err("DG115", `group "${id}" cols must be a whole number from 1 to 12`, {
+        subject: { group: id, cols: colsRaw },
+        fixes: ["use cols: 2 for a 2 x 2 grid of four children"],
+      });
     groups.push({
       id,
       type: style?.key ?? "box",
@@ -670,6 +692,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
       fill,
       icon,
       dashed: typeof dashed === "boolean" ? dashed : undefined,
+      ...(cols ? { cols } : {}),
     });
     const containsRaw = pick(g, "contains", GROUP_SYNONYMS);
     const contains = typeof containsRaw === "string" ? [containsRaw] : containsRaw;
@@ -818,6 +841,25 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
         : undefined) ??
       (icon ? iconInfo(icon)?.name : undefined) ??
       id;
+    const rankRaw = pick(n, "rank", NODE_SYNONYMS);
+    const rank =
+      rankRaw === "first" || rankRaw === "last"
+        ? rankRaw
+        : typeof rankRaw === "number" && Number.isInteger(rankRaw) && rankRaw >= 1
+          ? rankRaw
+          : undefined;
+    if (rankRaw !== undefined && rank === undefined)
+      err("DG114", `node "${id}" rank must be first, last or a layer number from 1`, {
+        subject: { node: id, rank: rankRaw },
+        fixes: ["use rank: first to start the flow here, rank: last to end it"],
+      });
+    const align = str(pick(n, "align", NODE_SYNONYMS));
+    if (align !== undefined) pendingAlign.push([id, align]);
+    if (align !== undefined && rank !== undefined)
+      err("DG114", `node "${id}" uses both rank and align`, {
+        subject: { node: id },
+        fixes: [`keep align: ${align} to share that node's layer, or rank: ${rank}, not both`],
+      });
     nodes.push({
       id,
       label,
@@ -833,7 +875,23 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
       ...(bpmn ? { bpmn } : {}),
       ...(stage !== undefined ? { stage } : {}),
       ...(score !== undefined ? { score } : {}),
+      ...(rank !== undefined ? { rank } : {}),
+      ...(align !== undefined ? { align } : {}),
     });
+  }
+
+  // `align` names another node: the two share one layer of the flow.
+  for (const [id, target] of pendingAlign) {
+    if (target === id)
+      err("DG114", `node "${id}" aligns with itself`, {
+        subject: { node: id },
+        fixes: ["name another node: align: <id>"],
+      });
+    else if (ids.get(target) !== "node")
+      err("DG114", `node "${id}" aligns with "${target}", which is not a node`, {
+        subject: { node: id, align: target },
+        fixes: suggestIds(target, ids, "node").map((x) => `use align: ${x}`),
+      });
   }
 
   // `contains` on a group is the same as `in` on each child.
@@ -1102,6 +1160,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     spacing,
     layering,
     merge,
+    ...(aspect ? { aspect } : {}),
     arrowhead,
     ...(animate ? { animate } : {}),
     skin,
@@ -1116,6 +1175,18 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     ...(localIcons.length ? { icons: localIcons } : {}),
   };
   return { model, diagnostics };
+}
+
+/** layout.aspect as width / height: undefined when unset, null when it cannot be read. */
+function aspectOf(value: unknown): number | undefined | null {
+  if (value === undefined || value === null) return undefined;
+  let ratio = Number.NaN;
+  if (typeof value === "number") ratio = value;
+  else if (typeof value === "string") {
+    const m = /^\s*(\d+(?:\.\d+)?)\s*[:/x]\s*(\d+(?:\.\d+)?)\s*$/.exec(value);
+    ratio = m ? Number(m[1]) / Number(m[2]) : Number(value);
+  }
+  return Number.isFinite(ratio) && ratio >= 0.25 && ratio <= 4 ? ratio : null;
 }
 
 function suggestIds(id: string, ids: Map<string, string>, kind?: string): string[] {

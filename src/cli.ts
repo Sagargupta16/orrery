@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
+import { cmdDoc } from "./doc.ts";
 import {
   allIcons,
   iconInfo,
@@ -28,6 +29,8 @@ import {
   shownPath,
   starterIcon,
 } from "./local-icons.ts";
+import { cmdMcp } from "./mcp.ts";
+import { cmdPatch } from "./patch.ts";
 import { examplesDir, skillRoot } from "./paths.ts";
 import { FORMATS, type Format, renderModel } from "./render/index.ts";
 import { renderPng } from "./render/png.ts";
@@ -44,6 +47,7 @@ import {
   type Skin,
   type ThemeName,
 } from "./types.ts";
+import { cmdWatch } from "./watch.ts";
 
 declare const __VERSION__: string;
 const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "dev";
@@ -66,6 +70,10 @@ Usage:
   orrery icons new <name> [--dir icons] [--force]
   orrery icons check <icon.svg> [-o sheet.png]
   orrery icons adopt <file.svg> --name <name> [--dir icons] [--force]
+  orrery watch <spec.yaml> [-o out] [-f svg,png] [--theme dark] [--skin stage] [--review]
+  orrery patch <spec.yaml> <candidates.json|-> [-o best.yaml] [--width 880] [--theme dark] [--json]
+  orrery doc <design.md> [-o out.html|out.md|out.docx] [-f html,md,docx] [--theme light]
+  orrery mcp [--port 8765]
   orrery styles [--json]
   orrery import mermaid <flowchart.mmd|-> [-o diagram.yaml]
   orrery init [template] [-o diagram.yaml] [--list]
@@ -75,12 +83,12 @@ Usage:
 Packs: ${PACK_ORDER.join(", ")}. Spec reference: references/spec.md in the skill folder.
 Exit codes: 0 ok, 1 diagram errors (or warnings with --strict), 2 bad command line.`;
 
-interface Args {
+export interface Args {
   _: string[];
   flags: Record<string, string | boolean>;
 }
 
-const BOOL = new Set(["json", "strict", "force", "static", "list", "help", "version"]);
+const BOOL = new Set(["json", "strict", "force", "static", "list", "help", "version", "review"]);
 const KNOWN_FLAGS = new Set([
   ...BOOL,
   "out",
@@ -97,6 +105,7 @@ const KNOWN_FLAGS = new Set([
   "width",
   "dir",
   "name",
+  "port",
 ]);
 
 /** The option a typo most likely meant: a prefix match (--formats, --output) or a near spelling. */
@@ -182,21 +191,21 @@ function parseArgs(argv: string[]): Args {
   return out;
 }
 
-function usage(message: string): never {
+export function usage(message: string): never {
   process.stderr.write(`orrery: ${message}\n\n${HELP}\n`);
   process.exit(2);
 }
 
 const sha = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
 
-function writeAtomic(path: string, data: string | Uint8Array) {
+export function writeAtomic(path: string, data: string | Uint8Array) {
   mkdirSync(dirname(path), { recursive: true });
   const tmp = `${path}.${process.pid}.tmp`;
   writeFileSync(tmp, data);
   renameSync(tmp, path);
 }
 
-function printDiagnostics(list: Diagnostic[], json: boolean) {
+export function printDiagnostics(list: Diagnostic[], json: boolean) {
   if (json) return;
   for (const d of list) {
     const where = d.subject ? ` ${JSON.stringify(d.subject)}` : "";
@@ -208,7 +217,7 @@ function printDiagnostics(list: Diagnostic[], json: boolean) {
 }
 
 /** A render stopped by a library download or a bad local icon file, as a diagnostic. */
-function renderFailure(e: unknown): Diagnostic | undefined {
+export function renderFailure(e: unknown): Diagnostic | undefined {
   if (e instanceof LibraryError)
     return { severity: "error", code: "DG301", message: e.message, fixes: e.fixes };
   if (e instanceof LocalIconError)
@@ -222,7 +231,7 @@ function renderFailure(e: unknown): Diagnostic | undefined {
   return undefined;
 }
 
-function readSpec(path: string): { text: string; name: string; path: string } {
+export function readSpec(path: string): { text: string; name: string; path: string } {
   if (path === "-") return { text: readFileSync(0, "utf8"), name: "diagram", path: "stdin.yaml" };
   const full = resolve(path);
   if (!existsSync(full)) usage(`no such spec file: ${path}`);
@@ -863,6 +872,14 @@ export async function main(argv = process.argv.slice(2)) {
       return cmdInit(args);
     case "import":
       return cmdImport(args);
+    case "watch":
+      return cmdWatch(args);
+    case "patch":
+      return cmdPatch(args);
+    case "doc":
+      return cmdDoc(args);
+    case "mcp":
+      return cmdMcp(args);
     case "doctor":
       return cmdDoctor();
     case "demo":
