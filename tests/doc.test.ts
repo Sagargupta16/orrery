@@ -142,7 +142,7 @@ describe("orrery doc", () => {
     );
     expect(r.diagnostics).toEqual([]);
     const html = readFileSync(join(r.out, "design.html"), "utf8");
-    expect(html).not.toMatch(/<script|<b>|<i>|<u>|<s>|javascript:/);
+    expect(html).not.toMatch(/<script|<b>|<i>|<u>|<s>|javascript:/i);
     expect(html).toContain("<title>Title &lt;b&gt;bold&lt;/b&gt; &amp; co</title>");
     expect(html).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; and a &amp; b");
     expect(html).toContain('<a href="#">click</a> <code>&lt;i&gt;code&lt;/i&gt;</code>');

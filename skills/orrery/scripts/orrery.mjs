@@ -28292,7 +28292,11 @@ function measureConventions(c) {
     c4Relations,
     recolored,
     gcpIconMismatches: gcpWrong,
-    ...notation ? { notation, ...NOTATION_CHECKS[model.kind]?.(c) } : {}
+    // Only the table's own entries: a kind is never looked up on the object's prototype.
+    ...notation ? {
+      notation,
+      ...Object.hasOwn(NOTATION_CHECKS, model.kind) ? NOTATION_CHECKS[model.kind]?.(c) : void 0
+    } : {}
   });
   return { vendors, rubrics };
 }
