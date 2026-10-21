@@ -25,6 +25,8 @@ export interface Plan {
   ends: Map<string, "FIRST" | "LAST">;
   /** Groups whose children sit in a grid, with the column count. */
   grids: Map<string, number>;
+  /** Nodes that sit on a group's border (on:), with that group, in spec order. */
+  seats: Map<string, string>;
 }
 
 /** Diagram kinds that place every node themselves, so layer hints have nothing to steer. */
@@ -48,6 +50,7 @@ export function planPlacement(model: Model, hidden: Set<string>): Plan {
     blockOf: new Map(),
     ends: new Map(),
     grids: new Map(),
+    seats: new Map(),
   };
   const ignore = (subject: string, setting: string, reason: string) =>
     plan.ignored.push({ subject, setting, reason });
@@ -156,6 +159,37 @@ export function planPlacement(model: Model, hidden: Set<string>): Plan {
         "rank",
         `it links to "${rankedBy.get(first)?.[0]}", also ranked ${end.toLowerCase()}`,
       );
+  }
+
+  // on: ELK lays the node out beside its group, in the group's parent, and layout moves it onto
+  // the border once both are placed (layout/seats.ts).
+  const above = (id: string | undefined) => {
+    const out: string[] = [];
+    for (let p = id; p; p = groups.get(p)?.parent) out.push(p);
+    return out;
+  };
+  for (const n of model.nodes) {
+    const g = n.on === undefined ? undefined : groups.get(n.on);
+    if (!g) continue;
+    const grid = g.parent && plan.grids.has(g.parent) ? g.parent : undefined;
+    if (own) ignore(n.id, "on", own);
+    else if (g.around)
+      ignore(n.id, "on", `"${g.id}" is drawn around its members, so it has no border of its own`);
+    else if (above(g.id).some((id) => hidden.has(id)))
+      ignore(n.id, "on", `"${g.id}" is laid out as a pool or lane band`);
+    else if (above(n.parent).includes(g.id))
+      ignore(n.id, "on", `it is inside "${g.id}"; a node on the border sits in its parent`);
+    else if (n.parent !== g.parent)
+      ignore(
+        n.id,
+        "on",
+        g.parent
+          ? `it must be in "${g.parent}", the group "${g.id}" is in`
+          : `"${g.id}" is at the top level, so the node must be too`,
+      );
+    else if (grid)
+      ignore(n.id, "on", `group "${grid}" places its children in ${plan.grids.get(grid)} columns`);
+    else plan.seats.set(n.id, g.id);
   }
   return plan;
 }

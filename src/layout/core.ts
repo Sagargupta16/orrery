@@ -25,6 +25,7 @@ import { planPlacement } from "./plan.ts";
 import { readBack } from "./read.ts";
 import { runLayout } from "./run.ts";
 import { assemble } from "./scene.ts";
+import { straighten } from "./straighten.ts";
 import { wallsOf } from "./walls.ts";
 
 export async function layoutCore(model: Model, opts: LayoutOptions = {}): Promise<Scene> {
@@ -44,7 +45,10 @@ export async function layoutCore(model: Model, opts: LayoutOptions = {}): Promis
   const rerouted = rerouteBlocks(placed, walls, freeRoutes);
   const edges = sceneEdges(placed, freeRoutes, rerouted);
   tidyEdges(placed, edges);
-  const routed: Routed = { ...placed, edges, freeRoutes, rerouted, headers: walls.headers };
+  const drawn = edges.map((e) => ({ ...e, points: e.points.map((p) => ({ ...p })) }));
+  // Fewer bends and ends on the icons, before the labels of free edges are placed on them.
+  straighten(placed, edges, new Set(freeRoutes.keys()));
+  const routed: Routed = { ...placed, edges, freeRoutes, rerouted, headers: walls.headers, drawn };
   placeFreeLabels(routed);
   // After every label is placed, so a run that moves keeps off them all.
   clearBorders(placed, edges);

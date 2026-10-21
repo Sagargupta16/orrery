@@ -1,22 +1,28 @@
-// Nodes: ink tiles holding monochrome glyphs, cards, shapes and BPMN symbols, with their labels.
+// Nodes: ink tiles holding glyphs in a muted share of their own color, cards, shapes and BPMN
+// symbols, with their labels.
 
 import type { Box, SceneNode } from "../../types.ts";
 import { notationMarks, notationShape } from "../notation.ts";
 import { esc, shapePath } from "../svg.ts";
 import { type Ctx, fill, rect, stroke } from "./ctx.ts";
-import { glyph } from "./filters.ts";
+import { glyph, iconInk } from "./filters.ts";
 import { block, KEY, LABEL, mono, monoWidth, NOTE, sizeFor } from "./text.ts";
 import { lit, TILES_ON } from "./timing.ts";
 
-/** An ink tile with its glyph, lit with the node's tint. */
+/** Alpha of a tile frame drawn in its icon's own color; the lit tint covers it. */
+const OWN_FRAME = 0.35;
+
+/** An ink tile with its glyph, framed faintly in the glyph's color and lit with the node's tint. */
 function tile(ctx: Ctx, nd: SceneNode, b: Box): string {
   const { k, h } = ctx;
   const rx = 0.17 * Math.min(b.w, b.h);
   const tint = nd.color ?? k.tint;
+  const ink = nd.icon ? iconInk(ctx, nd.icon) : k.glyph;
+  const frame = ink === k.glyph ? stroke(k.line, k.frame, h) : stroke(ink, OWN_FRAME, h);
   return (
-    rect(b, rx, `${fill(k.tile)} ${stroke(k.line, k.frame, h)}`) +
+    rect(b, rx, `${fill(k.tile)} ${frame}`) +
     lit(ctx, rect(b, rx, `${fill(tint, 0.15)} ${stroke(tint, 0.65, h)}`), TILES_ON) +
-    (nd.icon ? glyph(ctx, nd.icon, b, k.glyph) : "")
+    (nd.icon ? glyph(ctx, nd.icon, b, ink) : "")
   );
 }
 
@@ -97,7 +103,8 @@ export function node(ctx: Ctx, nd: SceneNode): string {
         TILES_ON,
       ),
     );
-    if (nd.icon && nd.iconBox) parts.push(glyph(ctx, nd.icon, nd.iconBox, k.glyph, 1.5));
+    if (nd.icon && nd.iconBox)
+      parts.push(glyph(ctx, nd.icon, nd.iconBox, iconInk(ctx, nd.icon), 1.5));
     parts.push(labels(ctx, nd, "middle", room));
     if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box, nd.badgeBox));
   }

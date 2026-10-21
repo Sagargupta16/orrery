@@ -7,6 +7,7 @@ import type { ElkEdge, ElkNode } from "./elk.ts";
 import { contains, dropStraightPoints, overlaps, segmentBox, union } from "./geometry.ts";
 import { minWidthOf } from "./measure.ts";
 import { depthOf } from "./relations.ts";
+import { seatPadding } from "./seats.ts";
 
 /**
  * ELK counts the bend point it puts 5px outside a nested border as content, so a group an edge
@@ -14,7 +15,7 @@ import { depthOf } from "./relations.ts";
  * drawn (child, edge point, edge label) ends up outside and the header still fits.
  */
 export function trimGroups(ctx: Laid, placed: Map<string, ElkNode>, elkEdges: ElkEdge[]): void {
-  const { model, opts, groupGeom } = ctx;
+  const { model, opts, groupGeom, plan, horizontal } = ctx;
   const edgeMarks: Box[] = elkEdges.flatMap((e) => [
     ...(e.sections ?? []).flatMap((s) =>
       [s.startPoint, ...(s.bendPoints ?? []), s.endPoint].map((p) => ({
@@ -53,12 +54,15 @@ export function trimGroups(ctx: Laid, placed: Map<string, ElkNode>, elkEdges: El
       h: el.height ?? 0,
     };
     const k = union(kids);
-    let x0 = Math.max(old.x, k.x - 20);
+    const pad = seatPadding(model, plan, grp.id, horizontal) ?? 20;
+    let x0 = Math.max(old.x, k.x - pad);
     let y0 = Math.max(old.y, k.y - gg.header - 18 - (opts.room?.get(grp.id) ?? 0));
-    let x1 = Math.min(old.x + old.w, k.x + k.w + 20);
-    let y1 = Math.min(old.y + old.h, k.y + k.h + 20);
-    if (x1 - x0 < minWidthOf(ctx, grp.id, gg)) [x0, x1] = [old.x, old.x + old.w];
-    if (y1 - y0 < gg.header + 42) [y0, y1] = [old.y, old.y + old.h];
+    let x1 = Math.min(old.x + old.w, k.x + k.w + pad);
+    let y1 = Math.min(old.y + old.h, k.y + k.h + pad);
+    const grow = opts.grow?.get(grp.id);
+    if (x1 - x0 < Math.max(minWidthOf(ctx, grp.id, gg), grow?.w ?? 0))
+      [x0, x1] = [old.x, old.x + old.w];
+    if (y1 - y0 < Math.max(gg.header + 42, grow?.h ?? 0)) [y0, y1] = [old.y, old.y + old.h];
     for (const b of edgeMarks) {
       if (!contains(old, b)) continue;
       if (b.x < x0) x0 = old.x;

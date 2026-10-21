@@ -33,12 +33,12 @@ nodes:
   servers: { icon: aws:servers, label: Corporate servers, note: 172.16.0.0/16, in: dc }
 
 edges:
-  - spokes -> tgw: { label: VPC attachments, step: 1 }
-  - tgw -> firewall: { label: inspect, step: 2 }
+  - spokes -> tgw: { label: VPC attachments }
+  - tgw -> firewall: { label: inspect }
   # constraint: false keeps the inspection VPC one row deep: firewall, NAT and internet gateway side by side.
-  - firewall -> nat: { step: 3, constraint: false }
-  - nat -> igw: { step: 4, constraint: false }
-  - igw -> internet: { label: public, step: 5 }
+  - firewall -> nat: { constraint: false }
+  - nat -> igw: { constraint: false }
+  - igw -> internet: { label: public }
   - tgw --- vpn: VPN attachment
   - vpn --- cgw: IPsec
   - { from: cgw, to: servers, line: dashed, arrow: none, label: LAN, constraint: false }

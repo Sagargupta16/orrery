@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Multi-tenant cluster with a namespace per team
+subtitle: Each team gets a namespace with its own RBAC, a ResourceQuota, a LimitRange and a default-deny NetworkPolicy; only the ingress controller reaches their pods
+direction: down
+layout: { spacing: compact }
+
+legend:
+  solid: Traffic and references
+  dotted: Policy applies to the pods
+  dashed: Denied by NetworkPolicy
+
+groups:
+  cluster: { type: k8s:cluster, label: Kubernetes cluster }
+  ingress-ns: { type: k8s:namespace, label: Namespace ingress-nginx, in: cluster }
+  team-a: { type: k8s:namespace, label: Namespace team-a, in: cluster }
+  team-b: { type: k8s:namespace, label: Namespace team-b, in: cluster }
+
+nodes:
+  # Each team's group sits above the outer side of its namespace, so its access path stays clear of the traffic.
+  group-a: { icon: k8s:group, label: Group team-a, note: From the OIDC provider }
+  users: { icon: generic:users, label: Users }
+  group-b: { icon: k8s:group, label: Group team-b, note: From the OIDC provider }
+  ingress: { icon: logos:nginx, label: Ingress controller, in: ingress-ns }
+  rb-a: { icon: k8s:rolebinding, label: RoleBinding, note: team-a-devs, in: team-a }
+  np-a: { icon: k8s:networkpolicy, label: NetworkPolicy, note: Default deny, in: team-a }
+  rq-a: { icon: k8s:resourcequota, label: ResourceQuota, note: "8 CPU, 16Gi", in: team-a }
+  lr-a: { icon: k8s:limitrange, label: LimitRange, note: Container defaults, in: team-a }
+  role-a: { icon: k8s:role, label: Role, note: Edit workloads, in: team-a }
+  pods-a: { icon: k8s:pod, label: Pods, note: team-a apps, in: team-a }
+  # team-b lists the same objects in mirror order, so its RoleBinding is on the outer side too.
+  lr-b: { icon: k8s:limitrange, label: LimitRange, note: Container defaults, in: team-b }
+  rq-b: { icon: k8s:resourcequota, label: ResourceQuota, note: "4 CPU, 8Gi", in: team-b }
+  np-b: { icon: k8s:networkpolicy, label: NetworkPolicy, note: Default deny, in: team-b }
+  rb-b: { icon: k8s:rolebinding, label: RoleBinding, note: team-b-devs, in: team-b }
+  pods-b: { icon: k8s:pod, label: Pods, note: team-b apps, in: team-b }
+  role-b: { icon: k8s:role, label: Role, note: Edit workloads, in: team-b }
+
+edges:
+  - users -> ingress: HTTPS
+  - ingress -> pods-a, pods-b
+  - group-a -> rb-a: subject
+  - rb-a -> role-a
+  - group-b -> rb-b: subject
+  - rb-b -> role-b
+  - np-a, rq-a, lr-a ..> pods-a
+  - lr-b, rq-b, np-b ..> pods-b
+  # A path blocked on purpose is dashed red. Drawn after layout, so the two namespaces stay side by side.
+  - pods-b --> pods-a: { label: denied, color: "#C7243A", constraint: false }

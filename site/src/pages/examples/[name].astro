@@ -53,7 +53,10 @@ const downloads = [
     <figure class="panel mt-10 overflow-hidden">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
         <DiagramTheme />
-        <a class="font-mono text-xs text-accent-soft hover:text-ink" href={file("-dark.svg")}>Open full size</a>
+        <span class="flex flex-wrap items-center gap-4">
+          <a class="font-mono text-xs text-accent-soft hover:text-ink" href={url(`play/#example=${e.name}`)}>Edit in the playground</a>
+          <a class="font-mono text-xs text-accent-soft hover:text-ink" href={file("-dark.svg")}>Open full size</a>
+        </span>
       </div>
       <img src={file("-dark.svg")} alt={e.alt} class="thumb thumb-stage-dark w-full bg-[#0b1012] p-3 sm:p-6" />
       <img src={file("-light.svg")} alt={e.alt} class="thumb thumb-stage-light w-full bg-[#eef2f6] p-3 sm:p-6" loading="lazy" />

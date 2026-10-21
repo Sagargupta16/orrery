@@ -11,7 +11,7 @@ legend:
 groups:
   repo: { type: box, label: GitHub repository web-app, icon: github:mark-github }
   cloud: { type: aws:cloud }
-  # IAM is a global service, so its role sits in the cloud but outside the Region. Declared before the Region so step 3 reads first.
+  # IAM is a global service, so its role sits in the cloud but outside the Region. Declared before the Region so the role reads first.
   global: { type: aws:generic-dashed, label: Global service, in: cloud }
   region: { type: aws:region, label: us-east-1, in: cloud }
 
@@ -25,12 +25,12 @@ nodes:
   service: { icon: aws:elastic-container-service, label: Amazon ECS, note: Amazon Elastic Container Service on Fargate, in: region }
 
 edges:
-  - dev -> pr: { label: open, step: 1 }
-  - pr -> actions: { label: merge to main, step: 2 }
+  - dev -> pr: { label: open }
+  - pr -> actions: { label: merge to main }
   # The job calls sts:AssumeRoleWithWebIdentity with its OIDC token, then pushes and deploys with the temporary credentials.
-  - actions -> global: { label: assume role with OIDC, step: 3 }
-  - actions -> ecr: { label: push image, step: 4 }
-  - actions -> stack: { label: deploy, step: 5 }
-  - stack -> service: { label: update service, step: 6 }
+  - actions -> global: { label: assume role with OIDC }
+  - actions -> ecr: { label: push image }
+  - actions -> stack: { label: deploy }
+  - stack -> service: { label: update service }
   # The service pulls from the registry; laid out ecr -> service, with the arrowhead on the registry.
   - { from: ecr, to: service, arrow: start, line: dotted, label: pull image }

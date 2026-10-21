@@ -647,6 +647,30 @@ function badge(ctx: Ctx, label: string, anchor: Box, placed?: Box): string {
   return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(h / 2)}" fill="${ctx.t.stepFill}"/><text x="${n(x + w / 2)}" y="${n(y + h / 2 + 3.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
 }
 
+/**
+ * A plate of the canvas color under an icon centered on a group's border line (a node with
+ * on:), drawn over the frames and under the edges, so the border stops at the icon instead of
+ * running through its glyph. Empty for every other node.
+ */
+function borderPlate(ctx: Ctx, nd: SceneNode): string {
+  const b = nd.look === "icon" && nd.icon ? nd.iconBox : undefined;
+  if (!b) return "";
+  const cx = b.x + b.w / 2;
+  const cy = b.y + b.h / 2;
+  const near = (v: number, line: number) => Math.abs(v - line) <= 1;
+  const seated = ctx.scene.groups.some(
+    ({ box: g }) =>
+      ((near(cx, g.x) || near(cx, g.x + g.w)) && cy > g.y && cy < g.y + g.h) ||
+      ((near(cy, g.y) || near(cy, g.y + g.h)) && cx > g.x && cx < g.x + g.w),
+  );
+  if (!seated) return "";
+  const bg =
+    ctx.scene.background && ctx.scene.background !== "transparent"
+      ? ctx.scene.background
+      : ctx.t.background;
+  return `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" fill="${bg}"/>`;
+}
+
 function node(ctx: Ctx, nd: SceneNode): string {
   const parts: string[] = [];
   const bg =
@@ -761,6 +785,10 @@ export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
   const lanes = new Map(scene.groups.map((g) => [g.id, g.lane ? laneClassic(g, t) : undefined]));
   for (const g of scene.groups)
     out.push(`<g id="${ctx.prefix}g-${g.id}">${lanes.get(g.id)?.frame ?? groupFrame(g)}</g>`);
+  for (const nd of scene.nodes) {
+    const under = borderPlate(ctx, nd);
+    if (under) out.push(under);
+  }
   for (const e of scene.edges) out.push(edge(ctx, e, scene.routing));
   for (const e of scene.edges) {
     const label = edgeLabel(ctx, e);

@@ -33,17 +33,17 @@ nodes:
   kms: { icon: aws:kms, label: AWS Key Management Service, note: Encryption keys, in: ops }
 
 edges:
-  - users -> cdn: { label: HTTPS, step: 1 }
+  - users -> cdn: { label: HTTPS }
   # constraint: false keeps WAF beside CloudFront, Cognito and the cache beside API Gateway, and
   # the corpus beside the index it feeds.
   - { from: waf, to: cdn, line: dotted, constraint: false }
-  - cdn -> api: { label: /chat, step: 2 }
+  - cdn -> api: { label: /chat }
   - { from: auth, to: api, line: dotted, constraint: false }
   - { from: api, to: cache, arrow: both, constraint: false }
-  - api -> orch: { label: invoke, step: 3 }
-  - orch -> embed: { label: embed query, step: 4 }
-  - orch -> vector: { label: retrieve, step: 5 }
-  - orch -> llm: { label: generate, step: 6 }
+  - api -> orch: { label: invoke }
+  - orch -> embed: { label: embed query }
+  - orch -> vector: { label: retrieve }
+  - orch -> llm: { label: generate }
   - orch -> sessions: history
   - { from: corpus, to: vector, constraint: false }
   # The security and operations services are written from their users, so their row sits last.

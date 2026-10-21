@@ -2,13 +2,13 @@
 import type { EdgeLine, Model } from "../types.ts";
 import type { CheckContext } from "./context.ts";
 
-/** DG207: empty groups. */
+/** DG207: empty groups. A node on a group's border (on:) is one of its members. */
 export function emptyGroups({ model, warn }: CheckContext): void {
   for (const g of model.groups) {
     // An empty pool that exchanges messages is a black-box participant (BPMN), not a leftover.
     const used =
       !!g.around?.length ||
-      model.nodes.some((x) => x.parent === g.id) ||
+      model.nodes.some((x) => x.parent === g.id || x.on === g.id) ||
       model.groups.some((x) => x.parent === g.id) ||
       (g.type === "pool" && model.edges.some((e) => e.from === g.id || e.to === g.id));
     if (!used) {

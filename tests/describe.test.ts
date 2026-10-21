@@ -115,7 +115,13 @@ describe("describe", () => {
   });
 
   it("numbers the steps and turns an arrow at the start around", async () => {
-    const { text, data } = await laidOut(example("aws-eks-ecommerce"));
+    // The examples carry no step numbers; put the walkthrough back on the main path.
+    const stepped = example("aws-eks-ecommerce")
+      .replace("{ label: DNS query }", "{ label: DNS query, step: 1 }")
+      .replace("{ label: HTTPS }", "{ label: HTTPS, step: 2 }")
+      .replace("{ label: origin requests }", "{ label: origin requests, step: 3 }")
+      .replace(/^ {2}- alb -> storefront$/m, "  - alb -> storefront: { step: 4 }");
+    const { text, data } = await laidOut(stepped);
     expect(data.story).toEqual([
       { step: 1, from: "shoppers", to: "dns", label: "DNS query" },
       { step: 2, from: "shoppers", to: "cdn", label: "HTTPS" },

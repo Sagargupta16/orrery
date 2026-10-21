@@ -37,10 +37,10 @@ nodes:
 
 edges:
   - tenants ..> auth: sign in
-  - tenants -> api: { label: requests, step: 1 }
+  - tenants -> api: { label: requests }
   # constraint: false keeps Cognito beside API Gateway and each pipeline row side by side.
   - { from: auth, to: api, line: dotted, constraint: false }
-  - api -> router: { label: tenant context, step: 2 }
+  - api -> router: { label: tenant context }
   - router -> db-a, db-b, db-c
   - db-a, db-b, db-c -> stream
   - { from: stream, to: etl, constraint: false }
@@ -48,4 +48,4 @@ edges:
   - lake -> train: training data
   - { from: train, to: registry, constraint: false }
   - { from: registry, to: endpoint, constraint: false }
-  - router -> endpoint: { label: predict, step: 3 }
+  - router -> endpoint: { label: predict }

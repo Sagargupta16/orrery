@@ -20,6 +20,8 @@ export interface Relations {
   gridBetween(e: ModelEdge): boolean;
   /** An edge between two nodes of one align block. */
   inBlock(e: ModelEdge): boolean;
+  /** An edge to or from a node on a group's border (on:), which moves once ELK placed it. */
+  seated(e: ModelEdge): boolean;
   /** An edge routed after ELK instead of by it. */
   free(e: ModelEdge): boolean;
   /** What stands for an item in the main graph: the outermost grid it is in, else itself. */
@@ -76,6 +78,7 @@ export function relations(
     const b = plan.blockOf.get(e.from);
     return b !== undefined && b === plan.blockOf.get(e.to);
   };
+  const seated = (e: ModelEdge) => plan.seats.has(e.from) || plan.seats.has(e.to);
   const free = (e: ModelEdge) =>
     !e.constraint ||
     overlays.has(e.from) ||
@@ -84,6 +87,7 @@ export function relations(
     hidden.has(e.to) ||
     inBlock(e) ||
     gridBetween(e) ||
+    seated(e) ||
     !!opts.loose?.has(e.id);
   const rep = (id: string) => [id, ...above(id)].filter((g) => plan.grids.has(g)).at(-1) ?? id;
   const inside = (id: string): string[] =>
@@ -101,6 +105,7 @@ export function relations(
     cellOf,
     gridBetween,
     inBlock,
+    seated,
     free,
     rep,
     inside,

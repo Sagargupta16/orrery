@@ -7,8 +7,8 @@ export const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "dev";
 export const HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
-  orrery render <spec.yaml> [-o out] [-f svg,png,drawio,drawio.svg,tsx,html|all] [--theme light|dark|both]
-                    [--scale 3] [--skin classic|stage] [--animate packets|flow|relay|none]
+  orrery render <spec.yaml> [-o out] [-f svg,png,drawio,drawio.svg,tsx,html,mmd,sequence.svg|all]
+                    [--theme light|dark|both] [--scale 3] [--skin classic|stage] [--animate packets|flow|relay|none]
                     [--static] [--font extra.ttf] [--view <name>|all]
                     [--strict] [--force] [--json]
   orrery validate <spec.yaml> [--strict] [--json]

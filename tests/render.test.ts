@@ -1,11 +1,15 @@
 import { transform } from "esbuild";
 import { beforeAll, describe, expect, it } from "vitest";
+import { contrast } from "../src/color.ts";
 import { layout } from "../src/layout/index.ts";
 import { renderDrawio } from "../src/render/drawio.ts";
 import { FORMATS, type RenderResult, renderModel } from "../src/render/index.ts";
 import { renderPng } from "../src/render/png.ts";
+import type { Ctx } from "../src/render/stage/ctx.ts";
+import { iconInk, ownColor } from "../src/render/stage/filters.ts";
 import { renderSvg } from "../src/render/svg.ts";
 import { componentName, renderTsx } from "../src/render/tsx.ts";
+import { tokensFor } from "../src/themes.ts";
 import type { Scene, ThemeName } from "../src/types.ts";
 import {
   attributeValues,
@@ -462,18 +466,39 @@ describe("stage skin", () => {
     expect(s.edges.map((e) => e.points)).toEqual(classic.edges.map((e) => e.points));
   });
 
-  it("draws the portfolio kit: grid, one wash, ink tiles, mono caps, no vendor hues", () => {
+  it("draws the portfolio kit: grid, one wash, ink tiles, mono caps, no raw vendor hues", () => {
     const svg = text(stage, "svg", "dark");
     expect(svg).toContain('<pattern id="rich-dark-grid"');
     expect(svg).toContain('<radialGradient id="rich-dark-wash"');
     expect(svg).toContain('font-family="&#39;Geist Mono&#39;');
     expect(svg).toContain(">SPOKE &amp; HUB</tspan>");
-    // Frames and tiles are the structure color at an alpha; vendor colors never reach a stroke.
+    // Frames are the structure color at an alpha; raw vendor colors never reach a stroke.
     expect(svg).toContain('stroke="#ffffff" stroke-opacity="0.16"');
     expect(svg).not.toMatch(/stroke="#(?:ed7100|0078d4|1490df)"/i);
-    // Vendor artwork goes monochrome through tone filters.
+    // Vendor artwork goes one color through tone filters.
     expect(svg).toMatch(/<filter id="rich-dark-f\d+"[^>]*><feColorMatrix/);
     expect(xmlProblems(svg)).toEqual([]);
+  });
+
+  it("paints each vendor glyph in a muted share of its own color, colorless marks stay gray", () => {
+    for (const theme of THEMES) {
+      const t = tokensFor({ theme, skin: "stage" });
+      const k = must(t.stage, "stage kit");
+      const ctx = { t, k } as Ctx;
+      const svg = text(stage, "svg", theme);
+      expect(ownColor(ctx, "aws:lambda")).toBe("#ed7100");
+      const ink = iconInk(ctx, "aws:lambda");
+      expect(ink).not.toBe(k.glyph);
+      // Readable on the tile, and never louder than the gray glyph it replaces.
+      expect(contrast(ink, k.tile)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(ink, k.tile)).toBeLessThanOrEqual(Math.max(4.5, contrast(k.glyph, k.tile)));
+      // The glyph filter floods it, and its tile frame carries it faintly.
+      expect(svg).toContain(`<feFlood flood-color="${ink}"/>`);
+      expect(svg).toContain(`stroke="${ink}" stroke-opacity="0.35"`);
+      // GitHub's mark is near black: no color of its own, so it keeps the gray.
+      expect(ownColor(ctx, "si:github")).toBeUndefined();
+      expect(iconInk(ctx, "si:github")).toBe(k.glyph);
+    }
   });
 
   it("tells one story on one clock: packets with comets, lit traces, popping badges", () => {

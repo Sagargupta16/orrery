@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+# After Google's Cloud Architecture Center reference for a RAG-capable generative AI application
+# on Vertex AI (now Agent Platform) and AlloyDB for PostgreSQL: an ingestion subsystem that turns
+# uploaded documents into embeddings, and a serving subsystem that grounds Gemini in them.
+title: Retrieval-augmented generation on Google Cloud
+subtitle: Cloud Run embeds documents into AlloyDB with Agent Platform (formerly Vertex AI) and retrieves them to ground Gemini answers
+direction: down
+# Product cards, as in Google Cloud's own architecture diagrams; one port per edge.
+look: card
+layout: { merge: false }
+
+legend:
+  solid: Requests and data
+  dashed: Ingestion events
+
+groups:
+  gcloud: { type: gcp:cloud }
+  project: { type: gcp:project, label: Project rag-prod, in: gcloud }
+  region: { type: gcp:region, label: us-central1, in: project }
+
+# Serving runs down the left, ingestion down the right, and the two meet at the models and
+# the vector store. Agent Platform services draw the Vertex AI core icon.
+nodes:
+  users: { icon: generic:users, label: Users, note: Chat app in the browser }
+  frontend: { icon: gcp:cloud-run, label: Cloud Run, note: frontend service, in: region }
+  backend: { icon: gcp:cloud-run, label: Cloud Run, note: backend service, in: region }
+  # Level with the ingestion job, between the two columns, so neither flow crosses the other.
+  embed: { icon: gcp:vertex-ai, label: Embeddings API, note: Agent Platform, in: region, align: job }
+  bucket: { icon: gcp:cloud-storage, label: Cloud Storage, note: Source documents, in: region }
+  topic: { icon: gcp:pubsub, label: Pub/Sub, note: Upload notifications, in: region }
+  job: { icon: gcp:cloud-run, label: Cloud Run job, note: Chunk and embed, in: region }
+  gemini: { icon: gcp:vertex-ai, label: Gemini, note: Agent Platform, in: region }
+  alloydb: { icon: gcp:alloydb, label: AlloyDB for PostgreSQL, note: Vector store with ScaNN index, in: region, rank: last }
+
+edges:
+  - users -> frontend: HTTPS
+  - frontend -> backend: question
+  - backend -> embed: embed question
+  - backend -> alloydb: vector search
+  - backend -> gemini: prompt and context
+  - bucket --> topic: object finalized
+  - topic --> job: trigger
+  - job -> embed: chunks
+  - job -> alloydb: write embeddings

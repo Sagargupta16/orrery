@@ -1,6 +1,8 @@
 // The flow dimension: arrowheads, shared trunks, step order, arrow semantics, boundary labels,
 // the edge budget and cross-cutting services.
 import { iconAspect, iconInfo } from "../icons/index.ts";
+import { endsOf, landingOf, level } from "../layout/faces.ts";
+import { ENDS } from "../layout/sizes.ts";
 import type { PatchOp } from "../patch/index.ts";
 import type { Box, Diagnostic, ModelEdge, ModelNode, Point, SceneEdge } from "../types.ts";
 import {
@@ -32,6 +34,7 @@ export function measureFlow(c: Ctx, diagnostics: Diagnostic[]): void {
   const m = c.metrics.flow;
 
   const { hidden, short } = arrowEnds(c);
+  const { off, gaps } = faceEnds(c);
   const trunks = sharedTrunks(c);
   const parallel = sideBySide(c, trunks);
   const { steps, inversions } = stepOrder(c);
@@ -46,6 +49,8 @@ export function measureFlow(c: Ctx, diagnostics: Diagnostic[]): void {
     // DG222 from check.ts; overlap.ts maps it to flow.head-on-bend.
     headsOnBends: diagnostics.filter((d) => d.code === "DG222").length,
     shortEnds: short,
+    endsOffFace: off,
+    endGaps: gaps,
     sharedTrunks: trunks.size,
     sideBySide: parallel,
     steps,
@@ -199,6 +204,91 @@ function shortEnds(
       );
     }
   }
+}
+
+/** Shapes whose outline is their box, so an end on the box touches what is drawn. */
+const BOXED = new Set(["box", "rounded", "subroutine", "note"]);
+
+/**
+ * Every end on the face of what it meets (layout/faces.ts): an icon node's tile, never past it
+ * or out in its label's width (major), and on the face line, its tip touching the tile, card,
+ * shape or group border at the gap layout keeps (ENDS.gap, 0px), not short of it or into it.
+ * Kinds that draw their own connectors as curves, BPMN symbols and outlined shapes (their ends
+ * sit on the outline) are not measured.
+ */
+function faceEnds(c: Ctx): { off: number; gaps: number } {
+  const { scene, add } = c;
+  const counts = { off: 0, gaps: 0 };
+  if (scene.routing === "spline" || scene.kind === "journey" || scene.kind === "mindmap")
+    return counts;
+  const horizontal = horizontalFlow(c.dir);
+  for (const e of scene.edges) {
+    if (e.from === e.to) continue;
+    for (const end of endsOf(e)) {
+      const id = end.at === "from" ? e.from : e.to;
+      const n = c.nodes.get(id);
+      const g = n ? undefined : c.groups.get(id);
+      const item = n ?? g;
+      if (!item || n?.bpmn || g?.overlay || g?.lane) continue;
+      if (n?.look === "shape" && !BOXED.has(n.shape)) continue;
+      const landing = landingOf(item, end);
+      if (!landing) continue;
+      const { face, gap, along } = landing;
+      const what = n?.look === "icon" ? "icon" : n ? "box" : "border";
+      const side = face.side;
+      const tip = end.e.points[end.i];
+      if (n?.look === "icon" && (along < face.lo - EPS || along > face.hi + EPS)) {
+        // A narrow logo is drawn inside its square (fitIcons): beside the glyph is the
+        // short-of-the-glyph case, not an end out in the label's width.
+        const square =
+          horizontal && (level(side) ? [n.box.x, n.box.x + n.box.w] : [n.box.y, n.box.y + n.box.h]);
+        const inSquare =
+          square && along >= (square[0] ?? 0) - EPS && along <= (square[1] ?? 0) + EPS;
+        if (!inSquare) {
+          counts.off++;
+          const by = along < face.lo ? face.lo - along : along - face.hi;
+          add(
+            "flow.arrow-short",
+            "major",
+            [e.id, id],
+            {
+              edge: edgeName(e),
+              node: id,
+              end: end.at,
+              side,
+              outsidePx: r1(by),
+              x: r1(tip?.x ?? 0),
+              y: r1(tip?.y ?? 0),
+            },
+            `${edgeName(e)} meets the ${side} of "${id}" ${r1(by)}px outside its icon, out where its label is`,
+            [
+              `move "${id}" in the nodes list so the edge meets it from another side`,
+              "use layout: { merge: true } so the ends on one side share the icon",
+            ],
+            4,
+          );
+          continue;
+        }
+      }
+      if (Math.abs(gap - ENDS.gap) <= 1) continue;
+      counts.gaps++;
+      add(
+        "flow.arrow-short",
+        "minor",
+        [e.id, id],
+        { edge: edgeName(e), node: id, end: end.at, side, gapPx: r1(gap), wantPx: ENDS.gap },
+        gap > 0
+          ? `${edgeName(e)} stops ${r1(gap)}px short of the ${what} of "${id}"`
+          : `${edgeName(e)} runs ${r1(-gap)}px into the ${what} of "${id}"`,
+        [
+          `move "${id}" in the nodes list so the edge meets it straight on`,
+          "use look: icon or look: card for that node",
+        ],
+        2,
+      );
+    }
+  }
+  return counts;
 }
 
 /** Unrelated edges on one line (layout lane: collinear overlap, no shared endpoint). */

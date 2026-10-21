@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+# After Google's Cloud Architecture Center hub-and-spoke and Cross-Cloud Network designs with
+# Network Connectivity Center: the VLAN attachments and HA VPN tunnels in a transit VPC are
+# hybrid spokes, each workload VPC is a VPC spoke, and the hub's route table joins them.
+title: Hub-and-spoke network on Google Cloud
+subtitle: On-premises reaches three spoke VPCs through Network Connectivity Center, over Cloud Interconnect with an HA VPN backup
+direction: down
+# Product cards, as in Google Cloud's own architecture diagrams. One port per edge: the hub's
+# three VPC spokes each keep their own line.
+look: card
+layout: { merge: false }
+
+legend:
+  solid: Traffic
+  thick: Cloud Interconnect primary
+  dashed: HA VPN backup
+  dotted: BGP sessions
+
+groups:
+  onprem: { type: gcp:on-prem, label: On-premises data center }
+  gcloud: { type: gcp:cloud }
+  hub-project: { type: gcp:project, label: Project net-hub, in: gcloud }
+  # VPC networks are global and their regions sit inside them, as Google draws them.
+  transit: { type: gcp:vpc, label: Transit VPC, in: hub-project }
+  hub-region: { type: gcp:region, label: us-central1, in: transit }
+  prod-project: { type: gcp:project, label: Project app-prod, in: gcloud }
+  prod-vpc: { type: gcp:vpc, label: Production VPC, in: prod-project }
+  shared-project: { type: gcp:project, label: Project shared-services, in: gcloud }
+  shared-vpc: { type: gcp:vpc, label: Shared services VPC, in: shared-project }
+  dev-project: { type: gcp:project, label: Project app-dev, in: gcloud }
+  dev-vpc: { type: gcp:vpc, label: Development VPC, in: dev-project }
+
+nodes:
+  servers: { icon: generic:servers, label: Corporate servers, in: onprem }
+  router: { icon: generic:router, label: Edge router, note: BGP ASN 65010, in: onprem }
+  # One row: Cloud Router between the two links it holds the BGP sessions for.
+  interconnect: { icon: gcp:cloud-interconnect, label: Cloud Interconnect, note: VLAN attachments x2, in: hub-region }
+  cr: { icon: gcp:cloud-router, label: Cloud Router, note: ASN 64512, in: hub-region, align: interconnect }
+  vpn: { icon: gcp:cloud-vpn, label: Cloud VPN, note: HA VPN gateway, in: hub-region, align: interconnect }
+  # The hub is a global resource of the hub project, outside any one VPC.
+  ncc: { icon: gcp:network-connectivity-center, label: Network Connectivity Center, note: Hub route table, in: hub-project }
+  gke: { icon: gcp:gke, label: GKE, note: Private cluster, in: prod-vpc }
+  dns: { icon: gcp:cloud-dns, label: Cloud DNS, note: Forwarding to on-premises, in: shared-vpc }
+  vms: { icon: gcp:compute-engine, label: Compute Engine, note: Test VMs, in: dev-vpc }
+
+edges:
+  - servers -> router
+  - router ==> interconnect: Dedicated Interconnect
+  - router --> vpn: IPsec tunnels
+  - cr ... interconnect, vpn
+  - interconnect ==> ncc: hybrid spoke
+  - vpn --> ncc: hybrid spoke
+  - ncc -> prod-vpc: VPC spoke
+  - ncc -> shared-vpc: VPC spoke
+  - ncc -> dev-vpc: VPC spoke

@@ -57,3 +57,13 @@ Siblings go side by side; a stack of peers reads as a hierarchy. Two zones, thre
 ### LEG-09 Fit the place it is shown [judged]
 
 Compare the PNG with where the brief says it goes: a README column, a slide, a phone. A wide strip in a README or a tall column on a slide fails the brief even when every number passes; propose the direction or split that fits.
+
+## Lines
+
+### LEG-11 Arrows meet what they point at [measured: `flow.arrow-short`, `grid.off-center`]
+
+Every line ends on the face of what it meets, with no gap and not past it: an icon's tile (a line into the bottom of an icon in a vertical flow meets it below its label and note), a card or shape outline, a group border. An end outside an icon's tile, out where its label is, is major; a gap is minor (`gapPx`). Several ends on one face of an icon sit around its center about 14px apart, closer when they do not fit and never under 8px; a lone end sits on the center line (`grid.off-center` with `side` and `pitchMaxPx`). Patches: `move` the node in the nodes list so its edges arrive from fewer sides; `set layout.merge: true` so the edges of one kind share an end.
+
+### LEG-12 Lines take the fewest bends [measured: `grid.avoidable-bend`, `grid.ragged`]
+
+A line bends only where it must: straight when the two faces overlap, one bend into a side face when that route is clear, two at most otherwise. `grid.avoidable-bend` with `clearBends` reports a route with more bends than a clear simpler one between the same faces; layout runs the same search, so treat it as a defect to fix in the spec, not a judgement call. Icons joined by an edge in one row of a vertical flow (one column of a horizontal one) sit on one center line; `grid.ragged` with `offPx` says how far off. Patches: `move` the far end right after its source in the nodes list; give the row's nodes notes of the same number of lines.

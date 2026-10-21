@@ -71,7 +71,7 @@ const steps = [
 ];
 
 const outputs = [
-  ["SVG", "Animated by default: one story plays along the edges, numbered steps in order.", starterFile("-dark.svg")],
+  ["SVG", "Animated by default: one story plays along the edges, in the order the request flows.", starterFile("-dark.svg")],
   ["PNG", "A still frame at 2x for slides and docs that strip SVG.", starterFile("-dark.png")],
   ["draw.io", "Every node, group and edge stays editable in diagrams.net.", starterFile("-dark.drawio")],
   ["React TSX", "A typed component with ids made unique through useId().", starterFile("-dark.tsx")],
@@ -126,6 +126,7 @@ blocker quality.label-size node labels render
       <div class="mt-9 flex flex-wrap gap-3">
         <a href="#install" class="btn btn-primary">Install</a>
         <a href={url("gallery/")} class="btn btn-ghost">Browse {meta.examples} examples</a>
+        <a href={url("play/")} class="btn btn-ghost">Try it in the browser</a>
       </div>
       <dl class="mt-12 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
         {

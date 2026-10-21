@@ -1,6 +1,6 @@
 // The second pass: headers slid off the edges crossing them, and what the first pass learned
-// (corner labels no position clears, overlay headers on group headers, rerouted align edges)
-// turned into options for one more run of the core.
+// (corner labels no position clears, overlay headers on group headers, rerouted align edges,
+// groups too short for their border nodes) turned into options for one more run of the core.
 
 import type { Box, SceneGroup } from "../types.ts";
 import type { LayoutOptions, Routed } from "./context.ts";
@@ -11,10 +11,17 @@ import { attachBox } from "./steer.ts";
 /** Slides every header clear, and returns the second pass's options when it needs one. */
 export function secondPass(ctx: Routed): LayoutOptions | undefined {
   const { model, opts, horizontal, groups, nodes, edges, headerRoom, groupGeom, rerouted } = ctx;
+  const grow = ctx.seatGrow;
   const blocked: string[] = [];
   for (const g of groups) {
     const room = headerRoom.get(g.id);
-    if (room && !clearHeader(g, room, groups, nodes, edges)) blocked.push(g.id);
+    if (!room) continue;
+    // A header the routes before straighten could not slide off counts too (tried on a copy, so
+    // only the final routes move it): the second pass then gets the room it would have got anyway.
+    const copy = { ...g, labelBox: { ...g.labelBox }, iconBox: g.iconBox && { ...g.iconBox } };
+    const mates = groups.map((o) => (o === g ? copy : o));
+    const before = clearHeader(copy, room, mates, nodes, ctx.drawn);
+    if (!clearHeader(g, room, groups, nodes, edges) || !before) blocked.push(g.id);
   }
   // In vertical flows a corner label that every position leaves under an edge gets a wider group.
   // Only groups ELK lays out (not overlays) and only when the wider minimum would change them.
@@ -45,13 +52,15 @@ export function secondPass(ctx: Routed): LayoutOptions | undefined {
     !opts.room &&
     !opts.loose &&
     !opts.flip &&
-    (wider || room.size || rerouted.size)
+    !opts.grow &&
+    (wider || room.size || rerouted.size || grow.size)
     ? {
         ...opts,
         widen: wider ? new Set(widen) : undefined,
         room: room.size ? room : undefined,
         loose: loose.size ? loose : undefined,
         flip: back.size ? back : undefined,
+        ...(grow.size ? { grow } : {}),
       }
     : undefined;
 }

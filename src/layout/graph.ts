@@ -10,6 +10,7 @@ import { addEdges } from "./graph-edges.ts";
 import type { NodeGeom } from "./hooks.ts";
 import { badgePill, type GroupGeom, groupGeometry, minWidthOf, nodeGeometry } from "./measure.ts";
 import { relations } from "./relations.ts";
+import { seatPadding, seatRoom, seatSlot } from "./seats.ts";
 import { SIZES } from "./sizes.ts";
 
 export function buildGraph(ctx: Setup): Graph {
@@ -43,6 +44,7 @@ export function buildGraph(ctx: Setup): Graph {
   };
   const cells = placeChildren(ctx, elkNodes, root);
   orderHints(ctx, root, elkNodes);
+  alignRows(ctx, root, elkNodes);
   // Empty groups still need a size.
   for (const grp of model.groups) {
     const el = elkNodes.get(grp.id);
@@ -50,6 +52,22 @@ export function buildGraph(ctx: Setup): Graph {
     if (el && gg && !el.children?.length) {
       el.width = gg.minWidth;
       el.height = gg.header + 60;
+      // One with only border nodes is as long as its header and those nodes side by side. ELK
+      // takes an empty compound's minimum as written, not turned with a vertical flow.
+      const seated = model.nodes.filter((n) => plan.seats.get(n.id) === grp.id);
+      if (seated.length) {
+        el.width += seated.reduce((w, n) => {
+          const g = nodeGeom.get(n.id);
+          return w + (g ? seatRoom(n, g) : 0);
+        }, 0);
+        const grow = opts.grow?.get(grp.id);
+        el.width = Math.max(el.width, grow?.w ?? 0);
+        el.height = Math.max(el.height, grow?.h ?? 0);
+        el.layoutOptions = {
+          ...el.layoutOptions,
+          "elk.nodeSize.minimum": `(${el.width}, ${el.height})`,
+        };
+      }
     }
   }
 
@@ -70,16 +88,21 @@ export function buildGraph(ctx: Setup): Graph {
 
 /** A node's ELK box, with its outside label and the room its badge pill needs. */
 function nodeElk(ctx: Setup, n: ModelNode, g: NodeGeom): ElkNode {
-  const { plan, horizontal } = ctx;
+  const { plan, horizontal, spacing } = ctx;
   const end = plan.blockOf.has(n.id) ? undefined : plan.ends.get(n.id);
-  // Centered in its layer, so a column of different sizes shares one center line.
+  // Centered in its layer, so a column of different sizes shares one center line (alignRows
+  // puts a row of icons on the icon line instead).
   const node: ElkNode = {
     id: n.id,
     width: g.w,
-    height: g.h,
+    height: plan.seats.has(n.id) ? seatSlot(n, g, horizontal, spacing) : g.h,
     layoutOptions: {
       "elk.alignment": "CENTER",
       ...(end ? { [LAYER_CONSTRAINT]: end } : {}),
+      // In a vertical flow the box is as wide as the text under the icon: the ends on its top and
+      // bottom sit around the center at the root's port pitch, inside the icon's span, not spread
+      // across the text's width.
+      ...(n.look === "icon" && !horizontal ? { "elk.portAlignment.default": "CENTER" } : {}),
     },
   };
   if (g.outside) {
@@ -145,17 +168,21 @@ function groupElks(
     const gg = groupGeom.get(grp.id);
     if (!gg || grp.around || hidden.has(grp.id)) continue;
     const top = gg.header + 18 + (opts.room?.get(grp.id) ?? 0);
+    // Border nodes reach into the group: its children keep clear of them. A group too short for
+    // them (second pass) is at least as long as they need.
+    const pad = seatPadding(model, ctx.plan, grp.id, horizontal) ?? 20;
+    const grow = opts.grow?.get(grp.id);
     elkNodes.set(grp.id, {
       id: grp.id,
       children: [],
       layoutOptions: {
         ...ctx.base,
-        "elk.padding": `[top=${top},left=20,bottom=20,right=20]`,
+        "elk.padding": `[top=${top},left=${pad},bottom=${pad},right=${pad}]`,
         "elk.nodeSize.constraints": "MINIMUM_SIZE",
         // ELK applies a compound minimum in its rotated frame when the flow is vertical.
         "elk.nodeSize.minimum": horizontal
-          ? `(${gg.minWidth}, ${top + 24})`
-          : `(${top + 24}, ${minWidthOf(ctx, grp.id, gg)})`,
+          ? `(${Math.max(gg.minWidth, grow?.w ?? 0)}, ${Math.max(top + 24, grow?.h ?? 0)})`
+          : `(${Math.max(top + 24, grow?.h ?? 0)}, ${Math.max(minWidthOf(ctx, grp.id, gg), grow?.w ?? 0)})`,
         // Centered in a column; frames side by side in a row share their top edge.
         "elk.alignment": horizontal ? "CENTER" : "TOP",
         // A group widened by its label keeps its children centered under the header.
@@ -240,6 +267,25 @@ function placeChildren(
     (block?.children ?? parent?.children ?? root.children)?.push(el);
   }
   return cells;
+}
+
+// In a vertical flow an icon node's box is the icon with its text under it, so centered in its
+// layer a node with a longer note sits higher, its icon off the row's line, and the edges between
+// the row's icons jog. Where a graph holds only nodes, its icon nodes align to the top of their
+// layer instead, which puts every icon of a row on one line. A group shares its layer with nodes
+// beside it centered, so a graph with groups keeps them centered.
+function alignRows(ctx: Setup, root: ElkNode, elkNodes: Map<string, ElkNode>): void {
+  const { model, plan, horizontal } = ctx;
+  if (horizontal) return;
+  const icons = new Set(
+    model.nodes.filter((n) => n.look === "icon" && !plan.seats.has(n.id)).map((n) => n.id),
+  );
+  for (const parent of [root, ...elkNodes.values()]) {
+    const kids = parent.children ?? [];
+    if (!kids.length || kids.some((c) => c.children)) continue;
+    for (const c of kids)
+      if (icons.has(c.id)) c.layoutOptions = { ...c.layoutOptions, "elk.alignment": "TOP" };
+  }
 }
 
 // Spec-order hints along the cross axis for semi-interactive crossing minimization; a hook's

@@ -1,7 +1,21 @@
-// The grid dimension: ragged layers, tiny jogs, off-center group content, uneven layer gaps, and
+// The grid dimension: ragged layers and icons off their row's line, tiny jogs, off-center group
+// content and edge ends, routes with bends a clear simpler route avoids, uneven layer gaps, and
 // wide gaps between a frame's rows or columns and between sibling groups.
+import { bendsOf, searchable, sharesEnd, simplerRoute } from "../layout/bends.ts";
+import { endsOf, facesOf, landingOf, MIN_PITCH, type Side, window } from "../layout/faces.ts";
+import { ENDS } from "../layout/sizes.ts";
 import type { Box, SceneEdge } from "../types.ts";
-import { EPS, horizontalFlow, r1, r2, real, segments, simplify, union } from "./geometry.ts";
+import {
+  EPS,
+  horizontalFlow,
+  orthogonalRuns,
+  r1,
+  r2,
+  real,
+  segments,
+  simplify,
+  union,
+} from "./geometry.ts";
 import { edgeName } from "./names.ts";
 import type { Ctx } from "./types.ts";
 
@@ -134,6 +148,9 @@ export function measureGrid(c: Ctx): void {
   }
 
   const { wide, between } = frameGaps(c);
+  const spread = endSpread(c);
+  const rows = iconRows(c);
+  const bendy = extraBends(c);
 
   Object.assign(m, {
     raggedLayers: ragged,
@@ -144,7 +161,198 @@ export function measureGrid(c: Ctx): void {
     gapMaxPx: gaps.length ? r1(Math.max(...gaps)) : 0,
     wideGaps: wide,
     groupGaps: between,
+    unevenEnds: spread,
+    offLineIcons: rows,
+    extraBends: bendy,
   });
+}
+
+/** Kinds whose own hooks place every node and route every connector; pools and lanes too. */
+const placedByHook = (c: Ctx) =>
+  ["tree", "mindmap", "journey"].includes(c.scene.kind ?? "") || c.scene.groups.some((g) => g.lane);
+
+/**
+ * Ends on one face of an icon node (layout/faces.ts): one sits at the face's center, several
+ * around it at one pitch of at most 20px (layout keeps ENDS.pitch, 14px, closer when they do not
+ * fit), never closer than MIN_PITCH, the set at most half a pitch off center (one end held on the
+ * center line). A straight line the node at its other end holds may pin the set further off
+ * center; the pitch must still be even.
+ */
+function endSpread(c: Ctx): number {
+  const { scene, add } = c;
+  if (scene.routing === "spline" || placedByHook(c)) return 0;
+  let count = 0;
+  for (const n of scene.nodes) {
+    if (n.look !== "icon" || !real(n.iconBox) || n.bpmn) continue;
+    const bySide = new Map<Side, { along: number; straight: boolean }[]>();
+    for (const e of scene.edges) {
+      if (e.from === e.to || (e.from !== n.id && e.to !== n.id)) continue;
+      for (const end of endsOf(e)) {
+        if ((end.at === "from" ? e.from : e.to) !== n.id) continue;
+        const landing = landingOf(n, end);
+        // Ends off the face or off its line are flow.arrow-short's.
+        if (!landing || Math.abs(landing.gap) > 1) continue;
+        if (landing.along < landing.face.lo - EPS || landing.along > landing.face.hi + EPS)
+          continue;
+        const list = bySide.get(landing.face.side) ?? [];
+        const same = list.find((x) => Math.abs(x.along - landing.along) < EPS);
+        const straight = simplify(e.points).length === 2;
+        if (same) same.straight ||= straight;
+        else list.push({ along: landing.along, straight });
+        bySide.set(landing.face.side, list);
+      }
+    }
+    const faces = facesOf(n);
+    for (const [side, list] of bySide) {
+      const face = faces[side];
+      const center = (face.lo + face.hi) / 2;
+      const at = list.map((x) => x.along).sort((a, b) => a - b);
+      const pitches = at.slice(1).map((v, i) => v - (at[i] ?? v));
+      const pinned = list.some((x) => x.straight);
+      const mid = ((at[0] ?? center) + (at.at(-1) ?? center)) / 2;
+      const off = Math.abs(mid - center);
+      const lone = at.length === 1;
+      const wide = pitches.length ? Math.max(...pitches) : 0;
+      const tight = pitches.length ? Math.min(...pitches) : 0;
+      const uneven = wide - tight > 3;
+      const bad =
+        (lone && !pinned && off > ENDS.inset) ||
+        (!lone &&
+          (uneven ||
+            wide > 20 ||
+            tight < MIN_PITCH - EPS ||
+            (!pinned && off > ENDS.pitch / 2 + EPS)));
+      if (!bad) continue;
+      count++;
+      const [lo, hi] = window(face);
+      add(
+        "grid.off-center",
+        "minor",
+        [n.id],
+        {
+          node: n.id,
+          side,
+          ends: at.length,
+          offPx: r1(off),
+          ...(pitches.length ? { pitchMinPx: r1(tight), pitchMaxPx: r1(wide) } : {}),
+          facePx: r1(hi - lo),
+        },
+        lone
+          ? `the end on the ${side} of "${n.id}" sits ${r1(off)}px off the icon's center`
+          : `the ${at.length} ends on the ${side} of "${n.id}" sit ${r1(tight)} to ${r1(wide)}px apart, ${r1(off)}px off the icon's center`,
+        [
+          `move "${n.id}" in the nodes list so its edges arrive from fewer sides`,
+          "use layout: { merge: true } so the edges of one kind share an end",
+        ],
+        2,
+      );
+    }
+  }
+  return count;
+}
+
+/**
+ * Icons joined by an edge in one row of a vertical flow (one column of a horizontal one), in one
+ * group, share the icon's center line, so the edge between them is straight. Layout aligns a
+ * row's icons where its graph holds only nodes (layout/graph.ts alignRows).
+ */
+function iconRows(c: Ctx): number {
+  const { scene, add } = c;
+  if (placedByHook(c)) return 0;
+  const horizontal = horizontalFlow(scene.direction);
+  const seen = new Set<string>();
+  let count = 0;
+  for (const e of scene.edges) {
+    const a = c.nodes.get(e.from);
+    const b = c.nodes.get(e.to);
+    if (!a || !b || a === b || a.look !== "icon" || b.look !== "icon") continue;
+    if (!real(a.iconBox) || !real(b.iconBox) || a.parent !== b.parent) continue;
+    const key = [a.id, b.id].sort().join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const [p, q] = [a.iconBox, b.iconBox];
+    const share = horizontal
+      ? p.x < q.x + q.w && q.x < p.x + p.w && (p.y >= q.y + q.h || q.y >= p.y + p.h)
+      : p.y < q.y + q.h && q.y < p.y + p.h && (p.x >= q.x + q.w || q.x >= p.x + p.w);
+    if (!share) continue;
+    const d = horizontal ? p.x + p.w / 2 - (q.x + q.w / 2) : p.y + p.h / 2 - (q.y + q.h / 2);
+    if (Math.abs(d) <= 1) continue;
+    count++;
+    const line = horizontal ? "column" : "row";
+    add(
+      "grid.ragged",
+      "minor",
+      [a.id, b.id],
+      { a: a.id, b: b.id, offPx: r1(Math.abs(d)), line },
+      `"${a.id}" and "${b.id}" share a ${line} but their icons sit ${r1(Math.abs(d))}px off one center line, so ${edgeName(e)} cannot run straight`,
+      [
+        `give "${a.id}" and "${b.id}" notes of the same number of lines`,
+        `put "${a.id}" and "${b.id}" in a group of their own`,
+      ],
+      2,
+    );
+  }
+  return count;
+}
+
+/**
+ * Routes with more bends than a clear simpler one between the same two faces (layout/bends.ts,
+ * the search layout itself runs, so a route layout left alone passes). A one-to-one L or Z is
+ * grid.avoidable-bend's and grid.zig-zag's already (review/composition.ts), so it is not counted
+ * twice.
+ */
+function extraBends(c: Ctx): number {
+  const { scene, model, add } = c;
+  if (scene.routing !== "orthogonal" || placedByHook(c)) return 0;
+  const seated = new Set(
+    model.nodes
+      .filter((n) => n.on && !scene.ignored?.some((x) => x.subject === n.id && x.setting === "on"))
+      .map((n) => n.id),
+  );
+  const outs = new Map<string, number>();
+  const ins = new Map<string, number>();
+  for (const e of scene.edges) {
+    outs.set(e.from, (outs.get(e.from) ?? 0) + 1);
+    ins.set(e.to, (ins.get(e.to) ?? 0) + 1);
+  }
+  let count = 0;
+  for (const e of scene.edges) {
+    if (!searchable(scene, e, seated) || sharesEnd(scene, e)) continue;
+    const now = bendsOf(e.points);
+    if (!now) continue;
+    const runs = orthogonalRuns(e.points) ?? [];
+    const oneToOne =
+      c.nodes.has(e.from) && c.nodes.has(e.to) && outs.get(e.from) === 1 && ins.get(e.to) === 1;
+    const [first, mid, last] = runs;
+    const zig =
+      runs.length === 3 &&
+      !!first &&
+      !!last &&
+      first.axis === last.axis &&
+      first.sign === last.sign;
+    const composed =
+      oneToOne &&
+      ((zig && (mid?.len ?? 0) >= 12 && (mid?.len ?? 0) <= 180) ||
+        (runs.length === 2 && Math.min(first?.len ?? 0, mid?.len ?? 0) <= 240));
+    if (composed) continue;
+    const tag = union([e.labelBox, e.stepBox]);
+    const better = simplerRoute(scene, e, tag ? { w: tag.w, h: tag.h } : undefined);
+    if (!better) continue;
+    count++;
+    add(
+      "grid.avoidable-bend",
+      "minor",
+      [e.id, e.from, e.to],
+      { edge: edgeName(e), bends: now, clearBends: better.bends },
+      `${edgeName(e)} bends ${now} times where a clear route with ${better.bends} would do`,
+      [
+        `move "${e.to}" right after "${e.from}" in the nodes list`,
+        "use layout: { spacing: loose }",
+      ],
+      3,
+    );
+  }
+  return count;
 }
 
 interface Band {

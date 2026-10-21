@@ -74,6 +74,19 @@
         }
       }
     },
+    "tags": {
+      "type": "object",
+      "description": "A style per tag: color, line and legend label.",
+      "additionalProperties": { "type": "object", "additionalProperties": false, "properties": { "color": { "$ref": "#/$defs/hex" }, "line": { "enum": ["solid", "dashed", "dotted", "thick"] }, "label": { "type": "string" } } }
+    },
+    "views": {
+      "type": "object",
+      "description": "Named subsets drawn as their own figures (render --view).",
+      "additionalProperties": { "type": "object", "additionalProperties": false, "properties": { "title": { "type": "string" }, "subtitle": { "type": "string" }, "include": { "type": "array", "items": { "type": "string" } }, "exclude": { "type": "array", "items": { "type": "string" } }, "depth": { "type": "integer", "minimum": 0 } } }
+    },
+    "classes": { "type": "object", "description": "Shared presets of node, group or edge keys, applied with class:.", "additionalProperties": { "type": "object" } },
+    "include": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Spec files merged into this one, relative to it." },
+    "embed": { "type": "boolean", "default": true, "description": "Carry this spec inside rendered SVG and PNG files." },
     "nodes": {
       "oneOf": [
         { "type": "object", "additionalProperties": { "$ref": "#/$defs/nodeValue" } },
@@ -107,6 +120,9 @@
   },
   "$defs": {
     "hex": { "type": "string", "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$" },
+    "tagList": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$" } }], "description": "Names for views and tag styles." },
+    "evidence": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Where it comes from: path:line, path:line#identifier or a resource address; checked by orrery verify." },
+    "classList": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Classes from the top-level classes mapping, applied before the item's own keys." },
     "id": { "type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*$" },
     "node": {
       "type": "object",
@@ -135,6 +151,10 @@
         "rank": { "oneOf": [{ "enum": ["first", "last"] }, { "type": "integer", "minimum": 1 }], "description": "Place along the flow: the first or last layer, or the nth layer." },
         "layer": { "oneOf": [{ "enum": ["first", "last"] }, { "type": "integer", "minimum": 1 }] },
         "align": { "type": "string", "description": "Share this node's layer: one row across the flow." },
+        "on": { "type": "string", "description": "A group whose border the node sits on (an internet gateway on its VPC)." },
+        "tags": { "$ref": "#/$defs/tagList" },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "class": { "$ref": "#/$defs/classList" },
         "color": { "$ref": "#/$defs/hex" },
         "badge": { "type": "string" },
         "url": { "type": "string" },
@@ -159,6 +179,9 @@
         "contains": { "type": "array", "items": { "type": "string" } },
         "around": { "type": "array", "items": { "type": "string" }, "description": "Outline these ids after layout without moving them (overlay)." },
         "cols": { "type": "integer", "minimum": 1, "maximum": 12, "description": "Lay the direct children out in this many columns, row by row in spec order." },
+        "tags": { "$ref": "#/$defs/tagList" },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "class": { "$ref": "#/$defs/classList" },
         "columns": { "type": "integer", "minimum": 1, "maximum": 12 },
         "children": { "type": "array", "items": { "type": "string" } },
         "nodes": { "type": "array", "items": { "type": "string" } },
@@ -185,7 +208,10 @@
           "enum": ["sequence", "message", "default", "conditional", "association"],
           "description": "Process flow kind: message (between pools, dashed), default (a gateway's fallback branch), conditional, association (dotted, no arrowhead). Unset: sequence."
         },
-        "constraint": { "type": "boolean", "description": "false: drawn after layout, ignored by it." }
+        "constraint": { "type": "boolean", "description": "false: drawn after layout, ignored by it." },
+        "tags": { "$ref": "#/$defs/tagList" },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "class": { "$ref": "#/$defs/classList" }
       }
     },
     "edgeObject": {
@@ -208,7 +234,10 @@
           "enum": ["sequence", "message", "default", "conditional", "association"],
           "description": "Process flow kind: message (between pools, dashed), default (a gateway's fallback branch), conditional, association (dotted, no arrowhead). Unset: sequence."
         },
-        "constraint": { "type": "boolean" }
+        "constraint": { "type": "boolean" },
+        "tags": { "$ref": "#/$defs/tagList" },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "class": { "$ref": "#/$defs/classList" }
       }
     }
   }

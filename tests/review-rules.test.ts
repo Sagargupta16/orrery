@@ -379,6 +379,104 @@ edges:
   });
 });
 
+describe("edge ends and bends", () => {
+  const WIDE = `direction: down
+layout: { merge: false }
+nodes:
+  a: { icon: aws:lambda, label: Source A }
+  b: { icon: aws:lambda, label: Source B }
+  hub: { icon: aws:s3, label: A bucket with a long label, note: Objects kept for ninety days }
+edges:
+  - a -> hub
+  - b -> hub
+`;
+  const tileOf = (scene: Scene, id: string) => must(node(scene, id).iconBox, `tile of ${id}`);
+  /** Redraws an edge into `x` on the top of `to`, through a level run halfway down. */
+  const intoTop = (scene: Scene, from: string, x: number, dy = 0) => {
+    const e = edge(scene, from);
+    const s0 = must(e.points[0], "start");
+    const t = tileOf(scene, e.to);
+    const mid = (s0.y + t.y) / 2;
+    e.points = [s0, { x: s0.x, y: mid }, { x, y: mid }, { x, y: t.y - dy }];
+  };
+  const ids = (scene: Scene, m: Model, id: string) =>
+    review(scene, m).findings.filter((f) => f.id === id);
+
+  it("flow.arrow-short flags an end out in an icon label's width as major", async () => {
+    const { m, scene } = await laid(WIDE);
+    expect(ids(scene, m, "flow.arrow-short")).toEqual([]);
+    const hub = node(scene, "hub");
+    intoTop(scene, "a", hub.box.x + 4);
+    const found = ids(scene, m, "flow.arrow-short");
+    expect(found.map((f) => [f.severity, f.evidence.node, f.evidence.side])).toEqual([
+      ["major", "hub", "top"],
+    ]);
+    expect(Number(found[0]?.evidence.outsidePx)).toBeGreaterThan(20);
+  });
+
+  it("flow.arrow-short flags an arrowhead that stops short of the tile", async () => {
+    const { m, scene } = await laid(WIDE);
+    const t = tileOf(scene, "hub");
+    intoTop(scene, "a", t.x + t.w / 2, 10);
+    const found = ids(scene, m, "flow.arrow-short");
+    expect(found.map((f) => [f.severity, f.evidence.gapPx])).toEqual([["minor", 10]]);
+  });
+
+  it("grid.off-center flags ends spread to the corners of one face", async () => {
+    const { m, scene } = await laid(WIDE);
+    expect(ids(scene, m, "grid.off-center")).toEqual([]);
+    const t = tileOf(scene, "hub");
+    intoTop(scene, "a", t.x + 3);
+    intoTop(scene, "b", t.x + t.w - 3);
+    const found = ids(scene, m, "grid.off-center");
+    expect(found.map((f) => [f.evidence.node, f.evidence.side, f.evidence.pitchMaxPx])).toEqual([
+      ["hub", "top", 42],
+    ]);
+  });
+
+  it("grid.avoidable-bend flags a detour the router's own search would straighten", async () => {
+    // Not one to one (a fans out), so composition's L and Z checks leave it alone.
+    const { m, scene } = await laid(`layout: { merge: false }
+nodes: { a: A, b: B, c: C }
+edges:
+  - a -> b
+  - a -> c
+`);
+    expect(ids(scene, m, "grid.avoidable-bend")).toEqual([]);
+    const e = edge(scene, "a");
+    const [s0, t] = [must(e.points[0], "start"), must(e.points.at(-1), "end")];
+    const below = Math.max(...scene.nodes.map((n) => n.box.y + n.box.h)) + 40;
+    e.points = [
+      s0,
+      { x: s0.x + 20, y: s0.y },
+      { x: s0.x + 20, y: below },
+      { x: t.x - 20, y: below },
+      { x: t.x - 20, y: t.y },
+      t,
+    ];
+    const found = ids(scene, m, "grid.avoidable-bend").filter((f) => f.evidence.bends === 4);
+    expect(found.map((f) => [f.subjects[0], f.evidence.clearBends])).toEqual([[e.id, 0]]);
+  });
+
+  it("grid.ragged flags icons in one row that leave their center line", async () => {
+    const { m, scene } = await laid(`direction: down
+groups:
+  g: { type: box, label: Stages }
+nodes:
+  s1: { icon: aws:codebuild, label: AWS CodeBuild, in: g }
+  s2: { icon: aws:codedeploy, label: AWS CodeDeploy, in: g }
+edges:
+  - { from: s1, to: s2, constraint: false }
+`);
+    const row = (f: { claim: string }) => f.claim.includes("share a row");
+    expect(ids(scene, m, "grid.ragged").filter(row)).toEqual([]);
+    const s2 = node(scene, "s2");
+    place(scene, "s2", { x: s2.box.x, y: s2.box.y + 10 });
+    const found = ids(scene, m, "grid.ragged").filter(row);
+    expect(found.map((f) => [f.subjects, f.evidence.offPx])).toEqual([[["s1", "s2"], 10]]);
+  });
+});
+
 describe("parallel edges", () => {
   const FOUR = `nodes: { a: A, b: B, c: C, d: D }
 edges:

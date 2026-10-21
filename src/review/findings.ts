@@ -175,7 +175,8 @@ export const FINDINGS = {
   "flow.arrow-short": {
     dimension: "flow",
     cap: 10,
-    about: "an edge stops short of the drawn icon glyph",
+    about:
+      "an edge stops short of what it points at, or ends outside an icon's tile out where its label is",
   },
   "flow.unconnected": {
     dimension: "flow",
@@ -270,7 +271,8 @@ export const FINDINGS = {
   "grid.ragged": {
     dimension: "grid",
     cap: 24,
-    about: "items in one layer share no start, center or end line",
+    about:
+      "items in one layer share no start, center or end line, or icons an edge joins in one row sit off one center line",
   },
   "grid.jog": {
     dimension: "grid",
@@ -280,7 +282,8 @@ export const FINDINGS = {
   "grid.off-center": {
     dimension: "grid",
     cap: 21,
-    about: "a group's content is off its center by more than 6px",
+    about:
+      "a group's content is off its center by more than 6px, or the ends on one face of an icon sit off its center or unevenly spread",
   },
   "grid.edge-on-border": {
     dimension: "grid",
@@ -314,7 +317,8 @@ export const FINDINGS = {
   "grid.avoidable-bend": {
     dimension: "grid",
     cap: 15,
-    about: "a one-to-one edge turns once with a leg of 240px or less, so its ends are out of line",
+    about:
+      "a one-to-one edge turns once with a leg of 240px or less, or takes more bends than a clear simpler route between the same faces",
   },
   "grid.uneven-siblings": {
     dimension: "grid",

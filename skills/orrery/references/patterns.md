@@ -32,14 +32,14 @@ Client -> edge (CloudFront) -> API Gateway -> Lambda -> data stores, with Cognit
 
 ## Event-driven (`aws-event-driven`)
 
-A bus in the middle with producers on the left and consumers on the right. Async hops are dashed (`-->`); numbered `step:` edges tell the story:
+A bus in the middle with producers on the left and consumers on the right. Async hops are dashed (`-->`); the solid path is the story the stage skin plays:
 
 ```yaml
 legend: { dashed: Asynchronous events }
 edges:
-  - checkout -> bus: { label: OrderPlaced, step: 1 }
-  - bus --> billing-queue: { step: 2 }
-  - bus --> email-topic: { step: 3 }
+  - checkout -> bus: { label: OrderPlaced }
+  - bus --> billing-queue
+  - bus --> email-topic
 ```
 
 Wrap a Step Functions state machine in `type: aws:step-functions`.

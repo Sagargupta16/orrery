@@ -1,6 +1,6 @@
 # Example gallery
 
-57 diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The pictures here are the default `stage` skin in the dark theme; add `--skin classic` to any command below for the same layout in each vendor's own style, `--theme light` for the light theme, or switch between them on the [website gallery](https://sagargupta.online/orrery/gallery/). The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
+71 diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The pictures here are the default `stage` skin in the dark theme; add `--skin classic` to any command below for the same layout in each vendor's own style, `--theme light` for the light theme, or switch between them on the [website gallery](https://sagargupta.online/orrery/gallery/). The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
 
 Run the commands from the repository root; `orrery` stands for `node skills/orrery/scripts/orrery.mjs`. `pnpm gallery` re-renders every picture here, and `node scripts/gallery.mjs --check` (run by CI) fails when a committed picture no longer matches its spec.
 
@@ -46,6 +46,24 @@ Run the commands from the repository root; `orrery` stands for `node skills/orre
 
 `orrery render skills/orrery/examples/k8s-workload.yaml -o examples/k8s-workload -f svg,png`
 
+[`k8s-service-mesh`](../skills/orrery/examples/k8s-service-mesh.yaml): an Istio mesh in sidecar mode, where users reach the ingress gateway over HTTPS, every hop from there runs over mutual TLS between the Envoy sidecars of the frontend, cart and checkout pods, checkout leaves through the egress gateway to an external payment API, and istiod in istio-system pushes config and certificates to every proxy.
+
+<a href="k8s-service-mesh.svg"><img src="k8s-service-mesh.svg" alt="Istio service mesh on Kubernetes: ingress gateway, frontend, cart and checkout pods with Envoy sidecars, egress gateway, istiod and an external payment provider"></a>
+
+`orrery render skills/orrery/examples/k8s-service-mesh.yaml -o examples/k8s-service-mesh -f svg,png`
+
+[`k8s-statefulset-storage`](../skills/orrery/examples/k8s-statefulset-storage.yaml): a PostgreSQL StatefulSet whose headless Service gives postgres-0, -1 and -2 stable DNS names, where each pod mounts its own claim bound to its own PersistentVolume, the StorageClass hands provisioning to the Longhorn CSI driver, and Velero backs the namespace up nightly to S3-compatible object storage.
+
+<a href="k8s-statefulset-storage.svg"><img src="k8s-statefulset-storage.svg" alt="PostgreSQL StatefulSet on Kubernetes with a headless Service, per-pod PersistentVolumeClaims and PersistentVolumes, a StorageClass, the Longhorn CSI driver and Velero backups to object storage"></a>
+
+`orrery render skills/orrery/examples/k8s-statefulset-storage.yaml -o examples/k8s-statefulset-storage -f svg,png`
+
+[`k8s-multi-tenant`](../skills/orrery/examples/k8s-multi-tenant.yaml): a cluster shared by two teams, each in its own namespace with a RoleBinding from its OIDC group to a Role, a ResourceQuota, a LimitRange and a default-deny NetworkPolicy, where the ingress-nginx controller reaches both teams' pods and pod traffic from team-b to team-a is denied.
+
+<a href="k8s-multi-tenant.svg"><img src="k8s-multi-tenant.svg" alt="Multi-tenant Kubernetes cluster with namespaces team-a and team-b, each with RoleBinding, Role, NetworkPolicy, ResourceQuota, LimitRange and Pods, behind an ingress-nginx controller"></a>
+
+`orrery render skills/orrery/examples/k8s-multi-tenant.yaml -o examples/k8s-multi-tenant -f svg,png`
+
 [`gcp-gke-platform`](../skills/orrery/examples/gcp-gke-platform.yaml): a GKE platform in Google Cloud's frames (cloud, project, region, cluster): Cloud Build pushes each image to Artifact Registry and releases it through Cloud Deploy to two namespaces, next to Memorystore, Secret Manager and Cloud SQL, with Cloud Logging and Cloud Monitoring.
 
 <a href="gcp-gke-platform.svg"><img src="gcp-gke-platform.svg" alt="GKE application platform on Google Cloud with Cloud Build, Artifact Registry, Cloud Deploy, Memorystore, Secret Manager and Cloud SQL"></a>
@@ -69,6 +87,30 @@ Run the commands from the repository root; `orrery` stands for `node skills/orre
 <a href="gcp-vertex-mlops.svg"><img src="gcp-vertex-mlops.svg" alt="MLOps on Google Cloud: Cloud Build ships pipeline code to Agent Platform Pipelines, which trains, registers and serves a model; drift alerts restart it through Cloud Logging, Pub/Sub and Cloud Run functions"></a>
 
 `orrery render skills/orrery/examples/gcp-vertex-mlops.yaml -o examples/gcp-vertex-mlops -f svg,png`
+
+[`gcp-event-driven`](../skills/orrery/examples/gcp-event-driven.yaml): an upload to Cloud Storage fires an Eventarc trigger that runs a Cloud Run extract service, which reads the document with Document AI, saves the fields to Firestore and publishes to Pub/Sub, where a second Eventarc trigger runs a Cloud Run functions notifier.
+
+<a href="gcp-event-driven.svg"><img src="gcp-event-driven.svg" alt="Event-driven document processing on Google Cloud: Cloud Run upload and extract services, a Cloud Storage bucket, two Eventarc triggers, Document AI, Firestore, Pub/Sub and a Cloud Run functions notifier"></a>
+
+`orrery render skills/orrery/examples/gcp-event-driven.yaml -o examples/gcp-event-driven -f svg,png`
+
+[`gcp-genai-rag`](../skills/orrery/examples/gcp-genai-rag.yaml): retrieval-augmented generation on Agent Platform (formerly Vertex AI) and AlloyDB for PostgreSQL, where Pub/Sub hands each Cloud Storage upload to a Cloud Run job that embeds it into AlloyDB, and a Cloud Run backend embeds each question, searches AlloyDB and grounds Gemini in what it finds.
+
+<a href="gcp-genai-rag.svg"><img src="gcp-genai-rag.svg" alt="Retrieval-augmented generation on Google Cloud: Cloud Run frontend and backend, Gemini and the Embeddings API on Agent Platform, AlloyDB for PostgreSQL as the vector store, and an ingestion path through Cloud Storage, Pub/Sub and a Cloud Run job"></a>
+
+`orrery render skills/orrery/examples/gcp-genai-rag.yaml -o examples/gcp-genai-rag -f svg,png`
+
+[`gcp-hub-spoke-network`](../skills/orrery/examples/gcp-hub-spoke-network.yaml): a hub-and-spoke network where on-premises reaches production, shared services and development VPCs through Network Connectivity Center, over Dedicated Interconnect VLAN attachments with an HA VPN backup and one Cloud Router holding the BGP sessions in a transit VPC.
+
+<a href="gcp-hub-spoke-network.svg"><img src="gcp-hub-spoke-network.svg" alt="Hub-and-spoke network on Google Cloud: an on-premises data center, Cloud Interconnect, Cloud Router and Cloud VPN in a transit VPC, Network Connectivity Center, and three spoke VPCs with GKE, Cloud DNS and Compute Engine"></a>
+
+`orrery render skills/orrery/examples/gcp-hub-spoke-network.yaml -o examples/gcp-hub-spoke-network -f svg,png`
+
+[`gcp-multi-region-dr`](../skills/orrery/examples/gcp-multi-region-dr.yaml): warm-standby disaster recovery across two regions, with a global external Application Load Balancer serving a regional MIG in us-east1 and failing over to a smaller one in us-west1, Cloud SQL high availability across two zones, and an asynchronous cross-region replica that is promoted on failover.
+
+<a href="gcp-multi-region-dr.svg"><img src="gcp-multi-region-dr.svg" alt="Multi-region disaster recovery on Google Cloud: Cloud Load Balancing in front of Compute Engine MIGs in us-east1 and us-west1, a Cloud SQL primary and HA standby in two zones, and a cross-region read replica"></a>
+
+`orrery render skills/orrery/examples/gcp-multi-region-dr.yaml -o examples/gcp-multi-region-dr -f svg,png`
 
 [`azure-hub-spoke`](../skills/orrery/examples/azure-hub-spoke.yaml): a hub-spoke network on Azure: on-premises reaches the hub's ExpressRoute and VPN gateways and Azure Firewall, which forwards over the peerings to the spokes, with Bastion in the hub, AKS in one spoke and VMs with a private endpoint to Azure SQL in the other, Private DNS and Log Analytics.
 
@@ -94,11 +136,53 @@ Run the commands from the repository root; `orrery` stands for `node skills/orre
 
 `orrery render skills/orrery/examples/azure-openai-rag.yaml -o examples/azure-openai-rag -f svg,png`
 
+[`azure-container-apps-microservices`](../skills/orrery/examples/azure-container-apps-microservices.yaml): a microservices workload moved from AKS to Azure Container Apps, where client apps reach the ingestion service through external ingress, it queues requests in Azure Service Bus, and the workflow service dispatches them over internal ingress to the package, drone scheduler and delivery services, each with its own store (Azure DocumentDB, Azure Cosmos DB for NoSQL, Azure Managed Redis), with Key Vault read through managed identities, images from Container Registry, and telemetry in Application Insights and Log Analytics.
+
+<a href="azure-container-apps-microservices.svg"><img src="azure-container-apps-microservices.svg" alt="Microservices on Azure Container Apps: an ingestion service, Azure Service Bus, a workflow service and three services with Azure DocumentDB, Azure Cosmos DB and Azure Managed Redis, plus Key Vault, Container Registry, Application Insights and Log Analytics"></a>
+
+`orrery render skills/orrery/examples/azure-container-apps-microservices.yaml -o examples/azure-container-apps-microservices -f svg,png`
+
+[`azure-enterprise-integration`](../skills/orrery/examples/azure-enterprise-integration.yaml): a client signs in with Microsoft Entra ID and calls API Management, whose intake Logic Apps workflow sends to Azure Service Bus, and when messages wait Service Bus raises an Azure Event Grid event that triggers the processing workflow to peek-lock receive them and call a SaaS service and Azure SQL Database, while a message-based service reads a topic subscription directly.
+
+<a href="azure-enterprise-integration.svg"><img src="azure-enterprise-integration.svg" alt="Enterprise integration on Azure with Microsoft Entra ID, API Management, two Logic Apps workflows, Azure Service Bus, Azure Event Grid and back-end systems"></a>
+
+`orrery render skills/orrery/examples/azure-enterprise-integration.yaml -o examples/azure-enterprise-integration -f svg,png`
+
+[`azure-databricks-analytics`](../skills/orrery/examples/azure-databricks-analytics.yaml): Event Hubs streams through Azure Databricks Lakeflow pipelines and Fabric Data Factory batch loads land in the bronze layer of Data Lake Storage, Databricks refines them to silver and gold, and gold feeds a Databricks SQL warehouse, Azure Machine Learning and a OneLake mirror for Power BI Direct Lake reports, governed by Unity Catalog and Microsoft Purview.
+
+<a href="azure-databricks-analytics.svg"><img src="azure-databricks-analytics.svg" alt="Modern analytics with Azure Databricks: Event Hubs, Fabric Data Factory, bronze, silver and gold layers in Data Lake Storage, a Databricks SQL warehouse, Azure Machine Learning, OneLake and Power BI in Microsoft Fabric, Unity Catalog and Microsoft Purview"></a>
+
+`orrery render skills/orrery/examples/azure-databricks-analytics.yaml -o examples/azure-databricks-analytics -f svg,png`
+
+[`azure-iot-analytics`](../skills/orrery/examples/azure-iot-analytics.yaml): devices send MQTT telemetry to IoT Hub, which feeds Azure Stream Analytics into Azure Cosmos DB for the operational app and, in parallel, Azure Data Explorer through its data connection, which exports Parquet to Data Lake Storage and answers Azure Managed Grafana dashboards and Logic Apps alerts.
+
+<a href="azure-iot-analytics.svg"><img src="azure-iot-analytics.svg" alt="IoT analytics on Azure: IoT Hub, Azure Stream Analytics and Azure Cosmos DB for an operational app, and Azure Data Explorer with Data Lake Storage, Azure Managed Grafana and Logic Apps"></a>
+
+`orrery render skills/orrery/examples/azure-iot-analytics.yaml -o examples/azure-iot-analytics -f svg,png`
+
 [`ibm-cloud-openshift`](../skills/orrery/examples/ibm-cloud-openshift.yaml): IBM Cloud Internet Services in front of a static site in Cloud Object Storage and a three-zone Red Hat OpenShift cluster, with App ID and services reached through Virtual Private Endpoints.
 
 <a href="ibm-cloud-openshift.svg"><img src="ibm-cloud-openshift.svg" alt="Web application on Red Hat OpenShift on IBM Cloud across three zones in a VPC"></a>
 
 `orrery render skills/orrery/examples/ibm-cloud-openshift.yaml -o examples/ibm-cloud-openshift -f svg,png`
+
+[`ibm-vpc-landing-zone`](../skills/orrery/examples/ibm-vpc-landing-zone.yaml): the IBM Cloud VPC landing zone deployable architecture: a management VPC and a workload VPC side by side, each with virtual servers in three zones and joined by a local Transit Gateway, a site-to-site VPN for VPC from the on-premises router into the management VPC, both VPCs reaching Cloud Object Storage over VPE, Flow Logs for VPC and Activity Tracker Event Routing writing to it, and Key Protect wrapping its keys.
+
+<a href="ibm-vpc-landing-zone.svg"><img src="ibm-vpc-landing-zone.svg" alt="VPC landing zone on IBM Cloud: on-premises router, VPN for VPC, management and workload VPCs across three zones, Transit Gateway, Flow Logs for VPC, Activity Tracker Event Routing, Cloud Object Storage and Key Protect"></a>
+
+`orrery render skills/orrery/examples/ibm-vpc-landing-zone.yaml -o examples/ibm-vpc-landing-zone -f svg,png`
+
+[`ibm-code-engine-serverless`](../skills/orrery/examples/ibm-code-engine-serverless.yaml): a serverless document pipeline on IBM Cloud Code Engine: partner systems PUT files into a Cloud Object Storage bucket, an Object Storage event subscription starts one extract job run per object, the job inserts records into Databases for PostgreSQL and reports to Event Notifications, which sends email and Slack, and a scale-to-zero Code Engine app serves the results, with both pulling images from Container Registry.
+
+<a href="ibm-code-engine-serverless.svg"><img src="ibm-code-engine-serverless.svg" alt="Serverless document pipeline on IBM Cloud Code Engine with Cloud Object Storage, an extract job, a review app, Databases for PostgreSQL, Event Notifications, Container Registry, email and Slack"></a>
+
+`orrery render skills/orrery/examples/ibm-code-engine-serverless.yaml -o examples/ibm-code-engine-serverless -f svg,png`
+
+[`ibm-watsonx-agentic-rag`](../skills/orrery/examples/ibm-watsonx-agentic-rag.yaml): agentic RAG on IBM watsonx: a watsonx Orchestrate agent calls OpenRAG on watsonx.data over MCP to search OpenSearch, which a Langflow ingestion flow fills with documents from Cloud Object Storage parsed by Docling, queries Iceberg tables in Object Storage through Presto, prompts a Granite model on watsonx.ai and sends traces to watsonx.governance.
+
+<a href="ibm-watsonx-agentic-rag.svg"><img src="ibm-watsonx-agentic-rag.svg" alt="Agentic RAG on IBM watsonx: watsonx Orchestrate, OpenRAG with Langflow, Docling and OpenSearch on watsonx.data, Presto over Iceberg tables, Granite on watsonx.ai and watsonx.governance"></a>
+
+`orrery render skills/orrery/examples/ibm-watsonx-agentic-rag.yaml -o examples/ibm-watsonx-agentic-rag -f svg,png`
 
 [`multi-cloud`](../skills/orrery/examples/multi-cloud.yaml): AWS, Google Cloud and Azure in their own vendor frames (the Azure subscription inside its Microsoft Entra tenant), federated to one Okta tenant and joined at a colocation router by Direct Connect, Partner Interconnect and ExpressRoute, each reaching its workload through a gateway or router in a VPC or VNet.
 
@@ -154,9 +238,9 @@ Run the commands from the repository root; `orrery` stands for `node skills/orre
 
 `orrery render skills/orrery/examples/aws-three-tier-dark.yaml -o examples/aws-three-tier-dark -f svg,png --theme dark`
 
-[`aws-event-driven`](../skills/orrery/examples/aws-event-driven.yaml): an EventBridge bus fans orders out to a Step Functions workflow, an SQS billing queue and an SNS topic, with numbered `step:` edges on the main path.
+[`aws-event-driven`](../skills/orrery/examples/aws-event-driven.yaml): an EventBridge bus fans orders out to a Step Functions workflow, an SQS billing queue and an SNS topic, with the main path solid and the other targets dashed.
 
-<a href="aws-event-driven.svg"><img src="aws-event-driven.svg" alt="Event-driven order processing on AWS with numbered steps"></a>
+<a href="aws-event-driven.svg"><img src="aws-event-driven.svg" alt="Event-driven order processing on AWS: an EventBridge bus fans out to Step Functions, SQS and SNS"></a>
 
 `orrery render skills/orrery/examples/aws-event-driven.yaml -o examples/aws-event-driven -f svg,png`
 

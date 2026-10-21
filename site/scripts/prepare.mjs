@@ -34,6 +34,14 @@ const CATEGORIES = [
   ["gcp", "Google Cloud", (n) => n.startsWith("gcp-")],
   ["ibm", "IBM Cloud", (n) => n.startsWith("ibm-")],
   ["kubernetes", "Kubernetes", (n, packs) => packs.includes("k8s") || /k8s|kubernetes|aks|gke|eks/.test(n)],
+  // Vendor-neutral: no cloud provider's or Kubernetes icons, only generic, logo and brand sets.
+  [
+    "general",
+    "General",
+    (n, packs) =>
+      !packs.some((p) => ["aws", "azure", "gcp", "ibm", "k8s"].includes(p)) &&
+      !/k8s|kubernetes|aks|gke|eks/.test(n),
+  ],
   ["ai", "AI and ML", (n) => /rag|ml|genai|vertex|agent|openai|llm|sagemaker|multitenant/.test(n)],
   ["data", "Data", (n) => /data|lake|streaming-analytics|iot-analytics/.test(n)],
   [

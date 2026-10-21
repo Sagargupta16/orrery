@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+# After Google's Cloud Architecture Center disaster recovery guides and multi-regional deployment
+# archetype: a global external Application Load Balancer in front of regional managed instance
+# groups, Cloud SQL high availability across two zones, and a cross-region replica kept warm.
+title: Multi-region disaster recovery on Google Cloud
+subtitle: A global load balancer serves us-east1 and fails over to a warm standby in us-west1, whose Cloud SQL replica is promoted
+direction: down
+# Product cards, as in Google Cloud's own architecture diagrams; one port per edge.
+look: card
+layout: { merge: false }
+
+legend:
+  solid: Traffic
+  dashed: Failover path
+  dotted: Database replication
+
+groups:
+  gcloud: { type: gcp:cloud }
+  project: { type: gcp:project, label: Project shop-prod, in: gcloud }
+  # One global VPC network holds both regions.
+  vpc: { type: gcp:vpc, label: VPC network, in: project }
+  east: { type: gcp:region, label: us-east1 primary, in: vpc }
+  # The standby's zone comes first, so the replication to us-west1 leaves the primary's
+  # zone on the side facing the other region instead of crossing the standby.
+  east-c: { type: gcp:zone, label: us-east1-c, in: east }
+  east-b: { type: gcp:zone, label: us-east1-b, in: east }
+  west: { type: gcp:region, label: us-west1 standby, in: vpc }
+  west-a: { type: gcp:zone, label: us-west1-a, in: west }
+
+# Each regional MIG spans its region's zones, so it sits in the region; the Cloud SQL
+# instances are zonal and sit in their zones.
+nodes:
+  users: { icon: generic:users, label: Users }
+  lb: { icon: gcp:cloud-load-balancing, label: Cloud Load Balancing, note: Global external Application LB, in: project }
+  mig-east: { icon: gcp:compute-engine, label: Compute Engine, note: Regional MIG in 2 zones, badge: x4, in: east }
+  sql-standby: { icon: gcp:cloud-sql, label: Cloud SQL, note: Synchronous HA standby, in: east-c }
+  sql-primary: { icon: gcp:cloud-sql, label: Cloud SQL, note: Primary, in: east-b }
+  mig-west: { icon: gcp:compute-engine, label: Compute Engine, note: Regional MIG scaled down, badge: x2, in: west }
+  sql-replica: { icon: gcp:cloud-sql, label: Cloud SQL, note: Asynchronous read replica, in: west-a }
+
+edges:
+  - users -> lb: HTTPS
+  - lb -> mig-east: active backend
+  - lb --> mig-west: failover
+  - mig-east -> sql-primary: private IP
+  - mig-east --> sql-standby: zone failover
+  # Replication links sit side by side in one row; constraint: false keeps them out of the
+  # layout so the zones and the regions stay next to each other.
+  - { from: sql-primary, to: sql-standby, line: dotted, constraint: false }
+  - { from: sql-primary, to: sql-replica, line: dotted, constraint: false }
+  - mig-west --> sql-replica: after promotion

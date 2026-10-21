@@ -1,10 +1,12 @@
 // The edges ELK sees: ports when merge is on, label boxes (and empty spacers so a fan-out stays in
-// one column), cell edges for a grid child's own run, and hidden copies for edges drawn after ELK.
+// one column), cell edges for a grid child's own run, and hidden copies for edges drawn after ELK
+// (through its group for a node on a border).
 
 import { textBlock } from "../text.ts";
 import type { ModelEdge } from "../types.ts";
 import type { EdgeLabel, Graph } from "./context.ts";
 import type { ElkEdge } from "./elk.ts";
+import { seatFlow } from "./seats.ts";
 import { SIZES } from "./sizes.ts";
 
 export function addEdges(
@@ -39,15 +41,17 @@ export function addEdges(
   );
   const edgeLabels = new Map<string, EdgeLabel>();
   const cellEdges = new Map<string, ElkEdge[]>();
+  const through = seatLinks(ctx);
   for (const e of model.edges) {
     if (free(e)) {
       // A loose back edge gets no copy: ELK would route the copy around the block again.
       if (!e.constraint || inBlock(e) || opts.loose?.has(e.id)) continue;
       // Grid cells are not in the main graph: the hidden copies run to the grid that holds them.
       const ends = (id: string) => [...new Set(members(id).map(rep))];
+      const [from, to] = through(e);
       let i = 0;
-      for (const s of ends(e.from))
-        for (const t of ends(e.to))
+      for (const s of ends(from))
+        for (const t of ends(to))
           if (s !== t) root.edges?.push({ id: `${e.id}__via${i++}`, sources: [s], targets: [t] });
       continue;
     }
@@ -80,4 +84,42 @@ export function addEdges(
     else root.edges?.push(elkEdge);
   }
   return { edgeLabels, cellEdges };
+}
+
+/**
+ * A node on a border sits before or after its group along the flow (seatFlow). Its hidden copies
+ * to the far side, past the group, start (or end) at the group instead, and a node with no link
+ * into the group gets one, so ELK keeps the group between the node's ends, as when it was inside.
+ * Returns each edge's ends as ELK's copy should run.
+ */
+function seatLinks(
+  ctx: Omit<Graph, "edgeLabels" | "cellEdges">,
+): (e: ModelEdge) => [string, string] {
+  const { model, plan, root, rel } = ctx;
+  if (!plan.seats.size) return (e) => [e.from, e.to];
+  const flow = new Map(
+    [...plan.seats].map(([id, gid]) => [id, seatFlow(model, rel, id, gid)] as const),
+  );
+  const inside = (id: string, gid: string) => id === gid || rel.above(id).includes(gid);
+  for (const [id, gid] of plan.seats) {
+    const before = flow.get(id) === "before";
+    const linked = model.edges.some(
+      (e) =>
+        e.constraint &&
+        (before ? e.from === id && inside(e.to, gid) : e.to === id && inside(e.from, gid)),
+    );
+    if (!linked)
+      root.edges?.push({
+        id: `${id}__seat`,
+        sources: [before ? id : gid],
+        targets: [before ? gid : id],
+      });
+  }
+  return (e) => {
+    const a = plan.seats.get(e.from);
+    const b = plan.seats.get(e.to);
+    const from = a && flow.get(e.from) === "before" && !inside(e.to, a) ? a : e.from;
+    const to = b && flow.get(e.to) === "after" && !inside(e.from, b) ? b : e.to;
+    return [from, to];
+  };
 }

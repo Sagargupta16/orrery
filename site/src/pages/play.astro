@@ -1,0 +1,725 @@
+---
+import examples from "../data/generated/examples.json";
+import meta from "../data/generated/meta.json";
+import play from "../data/generated/play.json";
+import Base from "../layouts/Base.astro";
+import { blob, url } from "../lib/url";
+import { faceCss } from "../play/svg";
+
+// The picker groups examples by their first gallery category, starter first. General only says
+// which icons an example uses, so a topic (AI, data, business flows) groups it when it has one.
+const labels = new Map(meta.categories.map((c) => [c.id, c.label]));
+const groups = new Map<string, { name: string; title: string }[]>();
+for (const e of [...examples].sort((a, b) => a.title.localeCompare(b.title))) {
+  const first = e.categories.find((c) => c !== "general") ?? e.categories[0] ?? "";
+  const label = e.name === "starter" ? "Start here" : (labels.get(first) ?? "More");
+  groups.set(label, [...(groups.get(label) ?? []), { name: e.name, title: e.title }]);
+}
+const ordered = [...groups].sort(([a], [b]) => (a === "Start here" ? -1 : b === "Start here" ? 1 : 0));
+const fonts = url("play/skill/assets/fonts/");
+const kb = (n: number) => `${Math.round(n / 1024)} KB`;
+---
+
+<Base
+  title="Playground: try orrery in the browser | orrery"
+  description="Edit an orrery spec and watch the diagram redraw, with the CLI's own parser, layout, renderers and review running in your browser. Download SVG, PNG, draw.io and Mermaid, or share a link that carries the spec."
+>
+  <Fragment set:html={`<style>${faceCss(fonts)}</style>`} />
+  <div
+    id="play"
+    class="mx-auto max-w-[96rem] px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8"
+    data-worker={url(play.worker)}
+    data-base={url("")}
+    data-fonts={fonts}
+    data-default="starter"
+  >
+    <div class="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+      <div class="min-w-0">
+        <p class="eyebrow">Playground</p>
+        <h1 class="display mt-2 text-[clamp(1.75rem,3.6vw,2.5rem)]">Try orrery before you install it.</h1>
+        <p class="mt-2 max-w-4xl text-[0.95rem] text-dim">
+          The CLI's own parser, layout, renderers and review, running in your browser. The diagram redraws as you type,
+          every problem carries its fix, and a share link keeps the spec in its #fragment, which never reaches a server.
+        </p>
+      </div>
+      <p class="hidden font-mono text-xs text-faint sm:block">
+        <span id="version">orrery {play.version}</span> &middot; renderer {kb(play.gzip)} gzipped &middot;
+        <a class="underline decoration-line-strong underline-offset-4 hover:text-ink" href={blob("skills/orrery/references/spec.md")}
+          >spec reference</a
+        >
+      </p>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="mt-5 flex flex-wrap items-center gap-2">
+      <label class="sr-only" for="example">Start from an example</label>
+      <div class="relative min-w-0 flex-1 basis-full sm:basis-72 sm:flex-none">
+        <select id="example" class="field w-full appearance-none pr-10">
+          <option value="" disabled>Your spec</option>
+          {
+            ordered.map(([label, list]) => (
+              <optgroup label={label}>
+                {list.map((e) => (
+                  <option value={e.name}>{e.title}</option>
+                ))}
+              </optgroup>
+            ))
+          }
+        </select>
+        <svg class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-faint" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"
+          ><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg
+        >
+      </div>
+      <div class="seg" role="group" aria-label="Diagram style">
+        <button type="button" data-skin="stage" aria-pressed="true">Stage</button>
+        <button type="button" data-skin="classic" aria-pressed="false">Classic</button>
+      </div>
+      <div class="seg" role="group" aria-label="Diagram theme">
+        <button type="button" data-theme="dark" aria-pressed="true">Dark</button>
+        <button type="button" data-theme="light" aria-pressed="false">Light</button>
+      </div>
+      <div class="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+        <button id="share" type="button" class="btn btn-ghost !min-h-11 flex-1 !px-4 text-sm sm:flex-none">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"
+            ><path d="M6.5 9.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2L8 3.8"></path><path d="M9.5 6.5a3 3 0 0 0-4.2 0L2.7 9.1a3 3 0 0 0 4.2 4.2L8 12.2"></path></svg
+          >
+          Share link
+        </button>
+        <details id="download-menu" class="relative flex-1 sm:flex-none">
+          <summary class="btn btn-primary !min-h-11 w-full !px-4 text-sm">
+            Download
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"
+              ><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg
+            >
+          </summary>
+          <div class="menu" role="menu">
+            {
+              [
+                ["svg", "SVG", "animated, the spec inside"],
+                ["png", "PNG", "still frame at 2x"],
+                ["drawio", "draw.io", "every shape editable"],
+                ["mmd", "Mermaid", "flowchart text"],
+                ["yaml", "YAML spec", "what you typed"],
+              ].map(([kind, label, note]) => (
+                <button type="button" role="menuitem" data-download={kind} disabled={kind !== "yaml"}>
+                  <span class="text-ink">{label}</span>
+                  <span class="text-xs text-faint">{note}</span>
+                </button>
+              ))
+            }
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <!-- Phone and tablet: one panel at a time -->
+    <div class="tabs mt-4 lg:hidden" role="tablist" aria-label="Playground panels">
+      <button type="button" role="tab" data-view-tab="spec" aria-selected="false">Spec</button>
+      <button type="button" role="tab" data-view-tab="diagram" aria-selected="true">Diagram</button>
+      <button type="button" role="tab" data-view-tab="checks" aria-selected="false">
+        Checks <span class="count" data-checks-count data-kind="ok">0</span>
+      </button>
+    </div>
+
+    <div id="workspace" class="workspace mt-4" data-view="diagram">
+      <!-- Editor -->
+      <section id="panel-spec" class="panel pane pane-spec" aria-label="Spec editor">
+        <header class="pane-head">
+          <span class="font-mono text-xs text-dim">diagram.yaml</span>
+          <span class="flex min-w-0 items-center gap-2">
+            <span id="status-dot" class="dot" data-kind="busy" aria-hidden="true"></span>
+            <span id="status-text" class="truncate font-mono text-xs text-dim" role="status" aria-live="polite">Loading</span>
+          </span>
+        </header>
+        <div class="editor">
+          <pre id="gutter" class="gutter" aria-hidden="true"></pre>
+          <textarea
+            id="spec"
+            class="code"
+            spellcheck="false"
+            autocapitalize="off"
+            autocomplete="off"
+            autocorrect="off"
+            wrap="off"
+            aria-label="Diagram spec in YAML. Tab indents; press Escape then Tab to leave the editor."></textarea>
+        </div>
+      </section>
+
+      <!-- Preview -->
+      <section id="panel-diagram" class="panel pane pane-diagram" aria-label="Diagram preview">
+        <header class="pane-head">
+          <span id="preview-meta" class="truncate font-mono text-xs text-dim">Rendering</span>
+          <button id="zoom" type="button" class="chip min-h-8 hover:text-ink" aria-pressed="false" title="Fit the panel or show at 100%">Fit</button>
+        </header>
+        <div id="progress" class="progress" aria-hidden="true"><span></span></div>
+        <div id="preview" class="preview" data-theme="dark">
+          <div id="stage" class="stage" data-fit="1">
+            <p class="m-auto self-center p-8 text-center font-mono text-xs text-faint">Loading the renderer</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Problems and review -->
+      <section id="panel-checks" class="panel pane pane-checks" aria-label="Problems and review">
+        <div id="checks" data-tab="problems" class="flex h-full min-h-0 flex-col">
+          <header class="pane-head !justify-start gap-1" role="tablist" aria-label="Checks">
+            <button type="button" role="tab" class="subtab" data-check-tab="problems" aria-selected="true">
+              Problems <span id="problem-count" class="count" data-kind="ok">0</span>
+            </button>
+            <button type="button" role="tab" class="subtab" data-check-tab="review" aria-selected="false">
+              Review <span class="count" data-kind="info" data-review-score>-</span>
+            </button>
+          </header>
+          <div class="checks-body">
+            <div class="tab-problems">
+              <p id="problems-empty" class="flex items-center gap-2 p-5 text-sm text-dim">
+                <span class="dot" data-kind="ok" aria-hidden="true"></span> No problems: the spec validates and lays out cleanly.
+              </p>
+              <ul id="problems" class="divide-y divide-line"></ul>
+            </div>
+            <div id="review" class="tab-review p-4 sm:p-5" data-stale="1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="eyebrow mr-1">Width</span>
+                <div class="seg" role="group" aria-label="Review width">
+                  <button type="button" data-width="390" aria-pressed="false">390 phone</button>
+                  <button type="button" data-width="880" aria-pressed="true">880 README</button>
+                  <button type="button" data-width="1280" aria-pressed="false">1280 slide</button>
+                </div>
+                <label class="sr-only" for="width">Review width in px</label>
+                <input id="width" class="field !min-h-9 w-24 font-mono text-xs" type="number" inputmode="numeric" min="200" max="4000" step="10" value="880" />
+              </div>
+              <div class="mt-5 flex flex-wrap items-end gap-x-4 gap-y-2">
+                <p class="flex items-baseline gap-1.5">
+                  <span id="score" class="tabular font-mono text-5xl text-ink">0.0</span>
+                  <span class="font-mono text-sm text-faint">/100</span>
+                </p>
+                <span id="verdict" class="chip" data-kind="info">Measuring</span>
+              </div>
+              <p id="review-context" class="mt-2 text-sm text-dim"></p>
+              <div id="hard" class="mt-3 flex flex-wrap gap-1.5"></div>
+              <ul id="dimensions" class="mt-5 space-y-2.5"></ul>
+              <p class="eyebrow mt-7">Findings</p>
+              <p id="findings-empty" class="mt-3 text-sm text-dim" hidden>Nothing measured to fix at this width.</p>
+              <ul id="findings" class="mt-2 divide-y divide-line"></ul>
+              <p id="findings-more" class="mt-3 font-mono text-xs text-faint"></p>
+              <p class="mt-6 text-xs text-faint">
+                The measured half of <code class="font-mono">orrery review</code>: six dimensions scored at the width people see the
+                diagram. The reviewer agents in the plugin judge what code cannot measure.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</Base>
+
+<style is:global>
+  /* In the components layer, so Tailwind utilities on the same elements still win. */
+  @layer components {
+    .field {
+      min-height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--color-line-strong);
+      background: var(--color-raised);
+      padding: 0 0.9rem;
+      font-size: 0.9rem;
+      color: var(--color-ink);
+      transition: border-color 180ms var(--ease-out-quint);
+    }
+    .field:hover,
+    .field:focus {
+      border-color: rgb(96 165 250 / 0.55);
+    }
+    .field option,
+    .field optgroup {
+      background: var(--color-raised);
+      color: var(--color-ink);
+    }
+
+    /* Segmented switches, the gallery's style. */
+    .seg {
+      display: inline-flex;
+      border: 1px solid var(--color-line);
+      border-radius: 999px;
+      padding: 3px;
+    }
+    .seg button {
+      min-height: 36px;
+      border-radius: 999px;
+      padding: 0 0.85rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-dim);
+      white-space: nowrap;
+      transition:
+        background-color 200ms var(--ease-out-quint),
+        color 200ms var(--ease-out-quint),
+        transform 160ms var(--ease-out-quint);
+    }
+    .seg button:hover {
+      color: var(--color-ink);
+    }
+    .seg button:active {
+      transform: scale(0.95);
+    }
+    .seg button[aria-pressed="true"] {
+      background: var(--color-ink);
+      color: var(--color-canvas);
+    }
+
+    /* Download menu */
+    #download-menu summary {
+      list-style: none;
+      cursor: pointer;
+    }
+    #download-menu summary::-webkit-details-marker {
+      display: none;
+    }
+    #download-menu summary svg {
+      transition: transform 220ms var(--ease-out-quint);
+    }
+    #download-menu[open] summary svg {
+      transform: rotate(180deg);
+    }
+    .menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      z-index: 30;
+      display: grid;
+      width: min(16rem, calc(100vw - 2rem));
+      padding: 6px;
+      border: 1px solid var(--color-line-strong);
+      border-radius: 14px;
+      background: var(--color-raised);
+      box-shadow: 0 18px 40px rgb(0 0 0 / 0.45);
+      transform-origin: top right;
+      animation: menu-in 200ms var(--ease-out-quint);
+    }
+    .menu button {
+      display: flex;
+      min-height: 44px;
+      flex-direction: column;
+      justify-content: center;
+      border-radius: 10px;
+      padding: 0.35rem 0.75rem;
+      text-align: left;
+      font-size: 0.9rem;
+      transition: background-color 160ms var(--ease-out-quint);
+    }
+    .menu button:hover:not(:disabled) {
+      background: rgb(255 255 255 / 0.06);
+    }
+    .menu button:disabled {
+      opacity: 0.4;
+    }
+    @keyframes menu-in {
+      from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.97);
+      }
+    }
+
+    /* Panel tabs on phones and tablets */
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      border: 1px solid var(--color-line);
+      border-radius: 14px;
+      padding: 4px;
+    }
+    .tabs button {
+      min-height: 40px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      color: var(--color-dim);
+      transition:
+        background-color 220ms var(--ease-out-quint),
+        color 220ms var(--ease-out-quint);
+    }
+    .tabs button[aria-selected="true"] {
+      background: rgb(255 255 255 / 0.08);
+      color: var(--color-ink);
+    }
+
+    .count {
+      display: inline-grid;
+      min-width: 1.4rem;
+      place-items: center;
+      border-radius: 999px;
+      padding: 0 0.4rem;
+      margin-left: 0.3rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      line-height: 1.25rem;
+      background: rgb(255 255 255 / 0.08);
+      color: var(--color-dim);
+      transition: background-color 240ms var(--ease-out-quint);
+    }
+    .count[data-kind="bad"] {
+      background: rgb(248 113 113 / 0.2);
+      color: var(--color-bad);
+    }
+    .count[data-kind="warn"] {
+      background: rgb(245 158 11 / 0.18);
+      color: var(--color-warn);
+    }
+
+    /* Workspace: three panels side by side on a desktop, one at a time below 1024 px. */
+    .workspace {
+      display: grid;
+      gap: 1rem;
+    }
+    .pane {
+      display: flex;
+      min-height: 0;
+      flex-direction: column;
+      overflow: hidden;
+      height: max(420px, calc(100dvh - 15rem));
+    }
+    @media (max-width: 1023.98px) {
+      .workspace:not([data-view="spec"]) .pane-spec,
+      .workspace:not([data-view="diagram"]) .pane-diagram,
+      .workspace:not([data-view="checks"]) .pane-checks {
+        display: none;
+      }
+      .workspace .pane {
+        animation: pane-in 320ms var(--ease-out-quint);
+      }
+    }
+    @media (min-width: 1024px) {
+      .workspace {
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        grid-template-rows: minmax(0, 1.3fr) minmax(0, 1fr);
+        height: max(600px, calc(100dvh - 19rem));
+      }
+      .pane {
+        height: auto;
+      }
+      .pane-spec {
+        grid-row: span 2;
+      }
+    }
+    @keyframes pane-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+    }
+    .pane-head {
+      display: flex;
+      min-height: 48px;
+      flex: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--color-line);
+      padding: 0 0.75rem 0 1rem;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      flex: none;
+      border-radius: 999px;
+      background: var(--color-ok);
+      transition: background-color 240ms var(--ease-out-quint);
+    }
+    .dot[data-kind="busy"] {
+      background: var(--color-accent-soft);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    .dot[data-kind="warn"] {
+      background: var(--color-warn);
+    }
+    .dot[data-kind="bad"] {
+      background: var(--color-bad);
+    }
+    @keyframes pulse {
+      50% {
+        transform: scale(1.6);
+        opacity: 0.45;
+      }
+    }
+
+    /* Editor */
+    .editor {
+      position: relative;
+      display: flex;
+      min-height: 0;
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    @media (min-width: 1024px) {
+      .editor {
+        font-size: 13px;
+      }
+    }
+    .gutter {
+      flex: none;
+      min-width: 3.2em;
+      overflow: hidden;
+      padding: 12px 10px 48px 12px;
+      border-right: 1px solid var(--color-line);
+      text-align: right;
+      color: var(--color-faint);
+      user-select: none;
+      font: inherit;
+    }
+    .gutter .ln {
+      display: block;
+      transition: color 200ms var(--ease-out-quint);
+    }
+    .gutter .ln-error {
+      color: var(--color-bad);
+      box-shadow: inset -2px 0 0 var(--color-bad);
+    }
+    .gutter .ln-warning {
+      color: var(--color-warn);
+      box-shadow: inset -2px 0 0 var(--color-warn);
+    }
+    .code {
+      min-width: 0;
+      flex: 1;
+      resize: none;
+      overflow: auto;
+      white-space: pre;
+      background: transparent;
+      padding: 12px 14px 48px;
+      color: var(--color-ink);
+      font: inherit;
+      tab-size: 2;
+      caret-color: var(--color-accent-soft);
+      outline: none;
+    }
+    .code::selection {
+      background: rgb(59 130 246 / 0.4);
+    }
+
+    /* Preview */
+    .progress {
+      position: relative;
+      height: 2px;
+      flex: none;
+      overflow: hidden;
+    }
+    .progress span {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 32%;
+      background: linear-gradient(90deg, transparent, var(--color-accent-soft), transparent);
+      opacity: 0;
+      transition: opacity 200ms;
+    }
+    .progress[data-on] span {
+      opacity: 1;
+      animation: slide 1.05s var(--ease-out-quint) infinite;
+    }
+    @keyframes slide {
+      from {
+        transform: translateX(-100%);
+      }
+      to {
+        transform: translateX(320%);
+      }
+    }
+    .preview {
+      position: relative;
+      min-height: 0;
+      flex: 1;
+      overflow: auto;
+      background: #0b1012;
+      transition: background-color 320ms var(--ease-out-quint);
+    }
+    .preview[data-theme="light"] {
+      background: #eef2f6;
+    }
+    .stage {
+      display: flex;
+      min-height: 100%;
+      padding: 12px;
+    }
+    .stage[data-fit="1"] {
+      height: 100%;
+    }
+    .stage > svg {
+      margin: auto;
+      flex: none;
+      max-width: none;
+      transition: opacity 240ms var(--ease-out-quint), filter 240ms var(--ease-out-quint);
+    }
+    .stage[data-stale="1"] > svg {
+      opacity: 0.35;
+      filter: grayscale(0.7);
+    }
+    .rise {
+      animation: rise 420ms var(--ease-out-quint) both;
+    }
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.99);
+      }
+    }
+
+    /* Checks */
+    .subtab {
+      display: inline-flex;
+      min-height: 36px;
+      align-items: center;
+      border-radius: 999px;
+      padding: 0 0.8rem;
+      font-size: 0.85rem;
+      color: var(--color-dim);
+      transition:
+        background-color 200ms var(--ease-out-quint),
+        color 200ms var(--ease-out-quint);
+    }
+    .subtab[aria-selected="true"] {
+      background: rgb(255 255 255 / 0.08);
+      color: var(--color-ink);
+    }
+    .checks-body {
+      min-height: 0;
+      flex: 1;
+      overflow: auto;
+    }
+    #checks[data-tab="problems"] .tab-review,
+    #checks[data-tab="review"] .tab-problems {
+      display: none;
+    }
+    .tab-review[data-stale="1"] #score,
+    .tab-review[data-stale="1"] #dimensions {
+      opacity: 0.4;
+    }
+    #score,
+    #dimensions {
+      transition: opacity 240ms var(--ease-out-quint);
+    }
+    .diag-button {
+      display: block;
+      width: 100%;
+      padding: 0.85rem 1rem;
+      text-align: left;
+      transition: background-color 180ms var(--ease-out-quint);
+    }
+    .diag-button:hover:not(:disabled) {
+      background: rgb(255 255 255 / 0.04);
+    }
+    .finding {
+      padding: 0.85rem 0;
+    }
+    .fixes {
+      margin-top: 0.4rem;
+      display: grid;
+      gap: 0.2rem;
+      font-size: 0.82rem;
+      color: var(--color-dim);
+    }
+    .fixes li::before {
+      content: "fix: ";
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--color-accent-soft);
+    }
+    .sev {
+      border-radius: 6px;
+      padding: 0.05rem 0.45rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .sev-error,
+    .sev-blocker {
+      background: rgb(248 113 113 / 0.16);
+      color: var(--color-bad);
+    }
+    .sev-warning,
+    .sev-major {
+      background: rgb(245 158 11 / 0.16);
+      color: var(--color-warn);
+    }
+    .sev-minor {
+      background: rgb(255 255 255 / 0.07);
+      color: var(--color-dim);
+    }
+    #verdict[data-kind="ok"],
+    .chip-ok {
+      border-color: rgb(34 197 94 / 0.4);
+      color: var(--color-ok);
+    }
+    #verdict[data-kind="bad"],
+    .chip-bad {
+      border-color: rgb(248 113 113 / 0.4);
+      color: var(--color-bad);
+    }
+    .dim-row {
+      display: grid;
+      grid-template-columns: 6.5rem 2.5rem minmax(0, 1fr) 2.2rem;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .bar {
+      height: 6px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgb(255 255 255 / 0.07);
+    }
+    .bar-fill {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: var(--color-ok);
+      transition: width 760ms var(--ease-out-quint);
+    }
+    .bar-fill[data-kind="warn"] {
+      background: var(--color-warn);
+    }
+    .bar-fill[data-kind="bad"] {
+      background: var(--color-bad);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(1rem, env(safe-area-inset-bottom));
+      z-index: 50;
+      max-width: min(34rem, calc(100vw - 2rem));
+      border: 1px solid var(--color-line-strong);
+      border-radius: 14px;
+      background: var(--color-raised);
+      padding: 0.75rem 1rem;
+      font-size: 0.88rem;
+      color: var(--color-ink);
+      box-shadow: 0 18px 40px rgb(0 0 0 / 0.5);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 140%);
+      transition:
+        transform 360ms var(--ease-out-quint),
+        opacity 360ms var(--ease-out-quint);
+    }
+    .toast[data-on] {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+    .toast[data-tone="ok"] {
+      border-color: rgb(34 197 94 / 0.45);
+    }
+    .toast[data-tone="bad"] {
+      border-color: rgb(248 113 113 / 0.5);
+    }
+  }
+</style>
+
+<script>
+  import "../play/app.ts";
+</script>

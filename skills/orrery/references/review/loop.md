@@ -196,7 +196,7 @@ The composition findings (zig-zag, avoidable bend, beside a group, uneven siblin
 | `flow.undirected` | AZ-03 | 12 | a line without an arrowhead leaves the relationship unclear |
 | `flow.unlabelled-boundary` |  | 10 | an unlabelled edge crosses a group boundary |
 | `flow.head-on-bend` |  | 15 | the last straight run is shorter than the arrowhead, so the head sits on the bend |
-| `flow.arrow-short` |  | 10 | an edge stops short of the drawn icon glyph |
+| `flow.arrow-short` |  | 10 | an edge stops short of what it points at (the icon glyph or tile, a card, shape or group border) or runs into it; major when an end lands outside an icon's tile, out where its label is |
 | `flow.unconnected` | DG208 | 12 | a node nothing connects to |
 | `flow.edge-budget` |  | 6 | an architecture diagram with more edges than nodes, which reads as a call sequence |
 | `flow.side-by-side` |  | 12 | two unrelated edges run 1.5 to 12px apart for more than 48px, so they read as one line |
@@ -214,15 +214,15 @@ The composition findings (zig-zag, avoidable bend, beside a group, uneven siblin
 | `layout.sparse` |  | 15 | the median empty gap between neighbouring nodes is over 300px (canvas px): the figure is spread thin |
 | `layout.wide-pitch` |  | 8 | the median centre-to-centre pitch of neighbouring nodes is over 400px |
 | `layout.beside-group` |  | 12 | a node outside a group shares 20 to 80% of its height with it, so the two read as one row of peers |
-| `grid.ragged` |  | 24 | items in one layer share no start, center or end line |
+| `grid.ragged` |  | 24 | items in one layer share no start, center or end line, or icons joined by an edge in one row (one column) sit off one center line |
 | `grid.jog` |  | 24 | an edge has a tiny step (under 6px) where it could run straight |
-| `grid.off-center` |  | 21 | a group's content is off its center by more than 6px |
+| `grid.off-center` |  | 21 | a group's content is off its center by more than 6px, or the ends on one face of an icon sit off its center or at an uneven, too wide or too tight pitch |
 | `grid.uneven-gaps` |  | 15 | gaps between layers vary a lot |
 | `grid.zig-zag` |  | 15 | a one-to-one edge steps 12 to 180px between two parallel runs (a Z): its ends are out of line |
 | `grid.wide-gap` |  | 12 | a gap between a group's rows or columns is over the room layout needs there plus 96px, or over 2.5x that room |
 | `grid.group-gap` |  | 12 | two sibling groups sit further apart than the edge labels between them need, plus 32px |
 | `grid.edge-on-border` | DG224 | 12 | a straight edge run lies within 4px of a parallel group border for more than 24px |
-| `grid.avoidable-bend` |  | 15 | a one-to-one edge turns once with a leg of 240px or less: its ends are out of line |
+| `grid.avoidable-bend` |  | 15 | a one-to-one edge turns once with a leg of 240px or less: its ends are out of line; or an edge bends more than a clear simpler route between its faces would |
 | `grid.uneven-siblings` |  | 12 | same-kind boundary groups under one parent differ 10 to 40% in height in a row or width in a column (any amount over 10% when their labels differ only by a letter or digit) |
 | `grid.padding` |  | 12 | one side of a group's padding is over 80px and over 3x its tightest side, so the box does not hug its content |
 | `quality.label-size` | LEG-01 | 60 | node labels are too small at the display width |

@@ -33,13 +33,13 @@ nodes:
 
 edges:
   # One tool call against the GitHub server, in order.
-  - dev -> agent: { label: prompt, step: 1 }
+  - dev -> agent: { label: prompt }
   # Written in layout order with the arrow flipped, so Claude sits beside the developer above the host.
-  - { from: claude, to: agent, arrow: start, label: messages + tools, step: 2 }
-  - agent -> client-gh: { label: tools/call, step: 3 }
+  - { from: claude, to: agent, arrow: start, label: messages + tools }
+  - agent -> client-gh: { label: tools/call }
   # Every HTTP request to the MCP endpoint carries the access token in an Authorization: Bearer header.
-  - client-gh -> gh: { label: "Streamable HTTP, Bearer token", step: 4 }
-  - gh -> ghapi: { label: REST API, step: 5 }
+  - client-gh -> gh: { label: "Streamable HTTP, Bearer token" }
+  - gh -> ghapi: { label: REST API }
   - client-gh -> oauth: OAuth 2.1 + PKCE
   - agent -> client-fs, client-db
   # stdio: the client launches the server as a subprocess; credentials come from the environment, not OAuth.

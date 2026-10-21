@@ -55,16 +55,20 @@ const within = (b: Box, g: Box) =>
 /**
  * DG223: an edge cuts through a group that holds neither of its ends: it enters and leaves the
  * frame, so it reads as belonging there; an edge between groups should run around the ones it
- * passes. A group that holds a member of an `around:` endpoint holds that end. Only the
- * outermost group crossed is reported, and a group that frames every node is skipped.
+ * passes. A group holds a node on its border (on:), and a group that holds a member of an
+ * `around:` endpoint holds that end. Only the outermost group crossed is reported, and a group
+ * that frames every node is skipped.
  */
 export function edgeThroughGroup({ scene, model, parentOf, warn }: CheckContext): void {
   const under = (id: string, gid: string) => {
     for (let p: string | undefined = id; p; p = parentOf.get(p)) if (p === gid) return true;
     return false;
   };
+  const on = new Map(model.nodes.flatMap((n) => (n.on ? [[n.id, n.on] as const] : [])));
+  const belongs = (id: string, gid: string) => under(id, gid) || on.get(id) === gid;
   const holds = (gid: string, id: string) =>
-    under(id, gid) || !!model.groups.find((g) => g.id === id)?.around?.some((m) => under(m, gid));
+    belongs(id, gid) ||
+    !!model.groups.find((g) => g.id === id)?.around?.some((m) => belongs(m, gid));
   const groups = scene.groups.filter(
     (g) => framed(g) && !scene.nodes.every((n) => within(n.box, g.box)),
   );

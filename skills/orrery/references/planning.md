@@ -33,7 +33,7 @@ The planner returns one JSON object; the orchestrator shows the confirm list to 
         { "id": "api", "label": "Orders API", "icon": "aws:lambda", "in": "vpc", "evidence": "infra/main.tf:40" }
       ],
       "edges": [
-        { "from": "api", "to": "queue", "label": "enqueue", "source": "declared", "evidence": "src/handler.ts:88 (SendMessageCommand), infra/main.tf:61 (sqs:SendMessage)" }
+        { "from": "api", "to": "queue", "label": "enqueue", "source": "declared", "evidence": "src/handler.ts:88#SendMessageCommand, infra/main.tf:61#sqs:SendMessage" }
       ],
       "leftOut": [{ "what": "CloudWatch log groups", "why": "cross-cutting; one Shared services box" }]
     }
@@ -90,7 +90,7 @@ Before writing any spec, show the user four short lists and let them correct it;
 ```text
 Services:  API Gateway, Orders API (Lambda), Orders table (DynamoDB), Jobs queue (SQS), Worker (Lambda)
 Boundaries: AWS Cloud > us-east-1 > VPC > private subnets (API, Worker)
-Flows:     client -> API Gateway -> Orders API -> Orders table; Orders API -> Jobs queue (inferred: handler.ts:88); Jobs queue -> Worker (polls)
+Flows:     client -> API Gateway -> Orders API -> Orders table; Orders API -> Jobs queue (inferred: handler.ts:88#SendMessageCommand); Jobs queue -> Worker (polls)
 Left out:  log groups and KMS (Shared services box), IAM roles (edges), the dev stack (same shape)
 ```
 

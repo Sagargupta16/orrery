@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+# After Google's Cloud Architecture Center event-driven designs with Eventarc: a Cloud Storage
+# event and a Pub/Sub message each reach a Cloud Run destination through an Eventarc trigger,
+# with Document AI for the extraction and Firestore for the records.
+title: Event-driven document processing on Google Cloud
+subtitle: Eventarc routes an upload to Cloud Run for Document AI and Firestore, then a Pub/Sub event to the notifier
+direction: down
+# Product cards, as in Google Cloud's own architecture diagrams; one port per edge.
+look: card
+layout: { merge: false, layering: simplex }
+
+legend:
+  solid: Requests and data
+  dashed: Events delivered by Eventarc
+
+# Every product here is serverless, so the project is the boundary that matters.
+groups:
+  gcloud: { type: gcp:cloud }
+  project: { type: gcp:project, label: Project docs-prod, in: gcloud }
+
+nodes:
+  users: { icon: generic:users, label: Customers, note: Web and mobile apps }
+  upload: { icon: gcp:cloud-run, label: Cloud Run, note: upload service, in: project }
+  bucket: { icon: gcp:cloud-storage, label: Cloud Storage, note: Uploads bucket, in: project }
+  on-upload: { icon: gcp:eventarc, label: Eventarc, note: Object finalized trigger, in: project }
+  # Beside the extract service rather than under it, so the call is one short line.
+  docai: { icon: gcp:document-ai, label: Document AI, note: Form parser, in: project, align: extract }
+  extract: { icon: gcp:cloud-run, label: Cloud Run, note: extract service, in: project }
+  db: { icon: gcp:firestore, label: Firestore, note: Document records, in: project }
+  topic: { icon: gcp:pubsub, label: Pub/Sub, note: documents-processed topic, in: project }
+  on-processed: { icon: gcp:eventarc, label: Eventarc, note: Pub/Sub trigger, in: project }
+  # Cloud Run functions keeps the Serverless Computing icon the icon guide gives Cloud Functions.
+  notify: { icon: gcp:cloud-functions, label: Cloud Run functions, note: Send notification, in: project }
+
+edges:
+  - users -> upload: HTTPS
+  - upload -> bucket: write object
+  - bucket --> on-upload
+  - on-upload --> extract
+  - extract -> docai: process document
+  - extract -> db: save fields
+  - extract -> topic: publish
+  # The notification leg climbs beside the main column: written in layout order with the
+  # arrowhead at the start, so the events still point from Pub/Sub to the notifier.
+  - { from: notify, to: on-processed, arrow: start, line: dashed }
+  - { from: on-processed, to: topic, arrow: start, line: dashed }

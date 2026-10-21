@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { checkScene } from "../src/check/index.ts";
+import { searchable, sharesEnd, simplerRoute } from "../src/layout/bends.ts";
+import { endsOf, type Item, landingOf } from "../src/layout/faces.ts";
 import { layout } from "../src/layout/index.ts";
 import { renderDrawio } from "../src/render/drawio.ts";
 import { renderPng } from "../src/render/png.ts";
@@ -11,7 +13,6 @@ import { type Box, DIRECTIONS, type Point, type Scene } from "../src/types.ts";
 import {
   attributeValues,
   contains,
-  distanceToBorder,
   EXAMPLES_DIR,
   model,
   must,
@@ -31,13 +32,6 @@ const geometry = (s: Scene) => ({
 });
 
 const center = (b: Box): Point => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
-
-function boxesById(s: Scene): Map<string, Box> {
-  return new Map([
-    ...s.nodes.map((n) => [n.id, n.box] as const),
-    ...s.groups.map((g) => [g.id, g.box] as const),
-  ]);
-}
 
 describe("layout", () => {
   it("is deterministic: the same spec gives byte-identical SVG, PNG and draw.io", async () => {
@@ -85,22 +79,31 @@ describe("layout", () => {
     expect(collisions).toEqual([]);
   });
 
-  it.each(DIRECTIONS)("routes every edge from border to border (%s)", async (direction) => {
+  it.each(DIRECTIONS)("ends every edge on a face of what it meets (%s)", async (direction) => {
+    // An icon node's faces are its tile's (its bottom one below the text), so an end lands on the
+    // tile, not on the box as wide as the label; a card, shape or group's are its box's.
     const s = await layout({ ...sample, direction });
     expect(s.edges.map((e) => e.id)).toEqual(sample.edges.map((e) => e.id));
-    const boxes = boxesById(s);
+    const items = new Map<string, Item>([
+      ...s.nodes.map((n): [string, Item] => [n.id, n]),
+      ...s.groups.map((g): [string, Item] => [g.id, g]),
+    ]);
     const loose: string[] = [];
     for (const e of s.edges) {
-      const first = e.points[0];
-      const last = e.points[e.points.length - 1];
-      if (e.points.length < 2 || !first || !last) {
+      if (e.points.length < 2) {
         loose.push(`${e.id} has ${e.points.length} points`);
         continue;
       }
-      if (distanceToBorder(first, must(boxes.get(e.from), e.from)) > 1)
-        loose.push(`${e.id} does not start on ${e.from}`);
-      if (distanceToBorder(last, must(boxes.get(e.to), e.to)) > 1)
-        loose.push(`${e.id} does not end on ${e.to}`);
+      for (const end of endsOf(e)) {
+        const id = end.at === "from" ? e.from : e.to;
+        const landing = landingOf(must(items.get(id), id), end);
+        const on =
+          !!landing &&
+          Math.abs(landing.gap) <= 1 &&
+          landing.along >= landing.face.lo - 0.5 &&
+          landing.along <= landing.face.hi + 0.5;
+        if (!on) loose.push(`${e.id} does not ${end.at === "from" ? "start" : "end"} on ${id}`);
+      }
     }
     expect(loose).toEqual([]);
   });
@@ -322,5 +325,136 @@ edges:
     const s = await layout(sample);
     expect(s.description).toMatch(/^Orders platform\. 7 components in 5 groups\. Connections: /);
     expect(s.description).toContain("Users to Load balancer (HTTPS)");
+  });
+
+  it("keeps a tag's color and chip on its legend row", async () => {
+    const s = await layout(
+      model(`tags: { pci: { color: "#C7243A", label: Card data } }
+legend: { dashed: Async }
+nodes:
+  web: { label: Web }
+  pay: { label: Payments, tags: [pci] }
+edges:
+  - web --> pay
+`),
+    );
+    const items = must(s.legend, "legend").items;
+    expect(items.map((i) => [i.line, i.color, i.chip])).toEqual([
+      ["dashed", undefined, undefined],
+      ["solid", "#C7243A", true],
+    ]);
+  });
+});
+
+describe("edge ends and bends", () => {
+  const tile = (s: Scene, id: string) => must(s.nodes.find((n) => n.id === id)?.iconBox, id);
+  const route = (s: Scene, from: string, to: string) =>
+    must(
+      s.edges.find((e) => e.from === from && e.to === to),
+      `${from} -> ${to}`,
+    ).points;
+
+  it("lands every end on an icon's tile, inside its corners, not out at its label's width", async () => {
+    // The hub's box is as wide as its label: ELK used to spread the two ends over that width.
+    const s = await layout(
+      model(`direction: down
+layout: { merge: false }
+nodes:
+  a: { icon: aws:lambda, label: Source A }
+  b: { icon: aws:lambda, label: Source B }
+  hub: { icon: aws:s3, label: A bucket with a long label, note: Objects kept for ninety days }
+edges:
+  - a -> hub
+  - b -> hub
+`),
+    );
+    const t = tile(s, "hub");
+    for (const from of ["a", "b"]) {
+      const end = must(route(s, from, "hub").at(-1), "end");
+      const onTop = Math.abs(end.y - t.y) < 0.5 && end.x >= t.x + 8 && end.x <= t.x + t.w - 8;
+      const onSide =
+        (Math.abs(end.x - t.x) < 0.5 || Math.abs(end.x - (t.x + t.w)) < 0.5) &&
+        end.y >= t.y + 8 &&
+        end.y <= t.y + t.h - 8;
+      expect(onTop || onSide).toBe(true);
+    }
+  });
+
+  it("puts a row of icons on one line, with straight edges between their tiles", async () => {
+    // The approval gate's note wraps to two lines, so centered in its layer its icon sat higher.
+    const s = await layout(
+      model(`direction: down
+groups:
+  g: { type: box, label: Stages }
+nodes:
+  src: { icon: aws:git-repository, label: Source }
+  s1: { icon: aws:codebuild, label: AWS CodeBuild, note: Build and test, in: g }
+  s2: { icon: aws:sns, label: Approval gate, note: Amazon Simple Notification Service, in: g }
+  s3: { icon: aws:codedeploy, label: AWS CodeDeploy, note: Deploy, in: g }
+edges:
+  - src -> s1
+  - { from: s1, to: s2, constraint: false }
+  - { from: s2, to: s3, constraint: false }
+`),
+    );
+    const line = center(tile(s, "s1")).y;
+    for (const id of ["s2", "s3"]) expect(center(tile(s, id)).y).toBe(line);
+    for (const [from, to] of [
+      ["s1", "s2"],
+      ["s2", "s3"],
+    ] as const) {
+      const pts = route(s, from, to);
+      // Straight, on the icons' center line, from one tile's face to the next one's.
+      expect(pts).toEqual([
+        { x: tile(s, from).x + tile(s, from).w, y: line },
+        { x: tile(s, to).x, y: line },
+      ]);
+    }
+  });
+
+  it("takes a clear one-bend route into an icon's side instead of a detour", async () => {
+    // ELK took restore and encrypt round the backup plan with four bends each.
+    const m = model(`direction: down
+layout: { merge: false }
+groups:
+  prod: { type: aws:region, label: us-east-1 }
+  protected: { type: aws:generic, label: Protected resources, in: prod }
+nodes:
+  ec2: { icon: aws:ec2, label: Amazon EC2, in: protected }
+  rds: { icon: aws:rds, label: Amazon RDS, in: protected }
+  plan: { icon: aws:backup-backup-plan, label: AWS Backup, in: prod }
+  vault: { icon: aws:backup-backup-vault, label: Backup vault, note: Primary recovery points, in: prod }
+  kms: { icon: aws:key-management-service, label: AWS Key Management Service, in: prod }
+edges:
+  - protected -> plan: back up
+  - plan -> vault: store
+  - { from: protected, to: vault, arrow: start, line: dashed, label: restore }
+  - { from: kms, to: vault, line: dotted, label: encrypt }
+`);
+    const s = await layout(m);
+    const t = tile(s, "vault");
+    const restore = route(s, "protected", "vault");
+    const encrypt = route(s, "kms", "vault");
+    expect(restore).toHaveLength(3);
+    expect(encrypt).toHaveLength(3);
+    // One into each side of the tile, at its center line.
+    expect(restore.at(-1)).toEqual({ x: t.x, y: center(t).y });
+    expect(encrypt.at(-1)).toEqual({ x: t.x + t.w, y: center(t).y });
+    expect(checkScene(s, m).filter((d) => /^DG20[129]$/.test(d.code))).toEqual([]);
+  });
+
+  it.each(DIRECTIONS)("leaves no route a clear simpler one would serve (%s)", async (direction) => {
+    // The review's grid.avoidable-bend runs this same search on the finished scene.
+    const s = await layout({ ...sample, direction });
+    const simpler = s.edges.filter((e) => {
+      if (!searchable(s, e) || sharesEnd(s, e)) return false;
+      // Its label and step as one box, as the review measures them.
+      const tag = [e.labelBox, e.stepBox].filter((b): b is Box => !!b);
+      const x0 = Math.min(...tag.map((b) => b.x));
+      const w = Math.max(...tag.map((b) => b.x + b.w)) - x0;
+      const h = Math.max(...tag.map((b) => b.h));
+      return !!simplerRoute(s, e, tag.length ? { w, h } : undefined);
+    });
+    expect(simpler.map((e) => e.id)).toEqual([]);
   });
 });

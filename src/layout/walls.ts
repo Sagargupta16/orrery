@@ -55,9 +55,14 @@ export function wallsOf(ctx: Placed): Walls {
     ...elkMarks.filter((m) => m.id !== e.id).map((m) => m.box),
   ];
   // Its own ends too, piece by piece and without a margin: a line arriving from outside only
-  // touches them, one that runs through its own node does not.
+  // touches them, one that runs through its own node does not. An icon node is its icon and its
+  // text: a line may cross the empty strip beside the icon to meet it at its center line.
   const own = (e: ModelEdge): Box[] =>
-    ends(e).flatMap((n) => [n.box, n.labelBox, n.noteBox].filter((b): b is Box => !!b && b.w > 0));
+    ends(e).flatMap((n) =>
+      [n.look === "icon" && n.iconBox ? n.iconBox : n.box, n.labelBox, n.noteBox].filter(
+        (b): b is Box => !!b && b.w > 0,
+      ),
+    );
   const walls = (e: ModelEdge): Box[] => [...others(e), ...own(e)];
   const roomyWalls = (e: ModelEdge): Box[] => [
     ...others(e).map((b) => ({ x: b.x - 4, y: b.y - 4, w: b.w + 8, h: b.h + 8 })),

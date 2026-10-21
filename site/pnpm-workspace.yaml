@@ -1,0 +1,3 @@
+# pnpm reads build-script approval from here; esbuild bundles the playground (scripts/build-browser.mjs).
+allowBuilds:
+  esbuild: true

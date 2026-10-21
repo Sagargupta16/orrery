@@ -4,9 +4,10 @@ import type { Scene } from "./types.ts";
 
 /**
  * Recolors a laid-out scene for the stage skin. Geometry is untouched (layout never reads the
- * skin), so classic and stage place every box and point the same. Stage has no vendor hues: every
- * frame is the structure color at one alpha and every label a stage text color. The stage renderer
- * draws from its own kit; these colors keep the review, its contrast checks and draw.io in step.
+ * skin), so classic and stage place every box and point the same. Stage keeps vendor hues to its
+ * icons, muted (render/stage/filters.ts): every group frame is the structure color at one alpha
+ * and every label a stage text color. The stage renderer draws from its own kit; these colors
+ * keep the review, its contrast checks and draw.io in step.
  */
 export function stageColors(scene: Scene): Scene {
   const t = tokensFor(scene);

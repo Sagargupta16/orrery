@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: VPC landing zone on IBM Cloud
+subtitle: Two VPCs across three zones joined by Transit Gateway, VPN to the data center, audit data in Object Storage
+direction: right
+layout: { spacing: compact }
+
+# IBM's technical diagram guide asks for a legend in every diagram, so solid lines get one too.
+legend:
+  solid: Network traffic
+  dashed: Key wrapping
+  dotted: Flow logs and audit events
+
+# Follows the VPC landing zone deployable architecture (terraform-ibm-modules landing-zone): two
+# VPCs in one region, each with a server subnet and an endpoint subnet per zone, a VPN gateway in
+# the management VPC, a Transit Gateway between them and a flow log collector on each VPC.
+groups:
+  # orrery has no IBM group styles; IBM's guide draws groups as plain outlined boxes, so these use
+  # the neutral types with Carbon icons in the headers, as in ibm-cloud-openshift. The two VPCs sit
+  # side by side with the Transit Gateway between them, as IBM's landing zone diagrams draw them.
+  dc: { type: on-prem, label: On-premises }
+  ibmcloud: { type: box, label: IBM Cloud, icon: ibm:ibm-cloud }
+  region: { type: box, label: Region us-south, icon: ibm:location, in: ibmcloud }
+  mgmt: { type: box, label: Management VPC, icon: ibm:virtual-private-cloud, in: region }
+  m-z1: { type: dashed, label: Zone 1, icon: ibm:data-center, in: mgmt }
+  m-z2: { type: dashed, label: Zone 2, icon: ibm:data-center, in: mgmt }
+  m-z3: { type: dashed, label: Zone 3, icon: ibm:data-center, in: mgmt }
+  work: { type: box, label: Workload VPC, icon: ibm:virtual-private-cloud, in: region }
+  w-z1: { type: dashed, label: Zone 1, icon: ibm:data-center, in: work }
+  w-z2: { type: dashed, label: Zone 2, icon: ibm:data-center, in: work }
+  w-z3: { type: dashed, label: Zone 3, icon: ibm:data-center, in: work }
+  services: { type: box, label: Cloud services, in: region }
+
+nodes:
+  router: { icon: ibm:network-enterprise, label: Corporate router, note: VPN peer, in: dc }
+  # The gateway sits in the one vpn subnet (zone 1) and routes to the servers in every zone.
+  vpn: { icon: ibm:ibm-vpn-for-vpc, label: VPN for VPC, note: Site-to-site, in: mgmt }
+  m1: { icon: ibm:ibm-cloud-virtual-server-vpc, label: Virtual servers, note: vsi-zone-1 subnet, in: m-z1 }
+  m2: { icon: ibm:ibm-cloud-virtual-server-vpc, label: Virtual servers, note: vsi-zone-2 subnet, in: m-z2 }
+  m3: { icon: ibm:ibm-cloud-virtual-server-vpc, label: Virtual servers, note: vsi-zone-3 subnet, in: m-z3 }
+  tgw: { icon: ibm:ibm-cloud-transit-gateway, label: Transit Gateway, note: Local routing, in: region }
+  w1: { icon: ibm:ibm-cloud-virtual-server-vpc, label: Virtual servers, note: vsi-zone-1 subnet, in: w-z1 }
+  w2: { icon: ibm:ibm-cloud-virtual-server-vpc, label: Virtual servers, note: vsi-zone-2 subnet, in: w-z2 }
+  w3: { icon: ibm:ibm-cloud-virtual-server-vpc, label: Virtual servers, note: vsi-zone-3 subnet, in: w-z3 }
+  flow: { icon: ibm:flow-logs-vpc, label: Flow Logs for VPC, note: A collector on each VPC, in: services }
+  cos: { icon: ibm:object-storage, label: Cloud Object Storage, note: Reached over VPE, in: services }
+  atr: { icon: ibm:cloud-auditing, label: Activity Tracker Event Routing, note: Platform audit events, in: services }
+  kp: { icon: ibm:ibm-cloud-key-protect, label: Key Protect, note: Root keys, in: services }
+
+edges:
+  - router -> vpn: IPsec
+  - vpn -> m1, m2, m3
+  # One Transit Gateway connection per VPC; the workload VPC has no VPN or public gateway of its own.
+  - mgmt -> tgw
+  - tgw -> w1, w2, w3
+  # Each VPC reaches Object Storage through a Virtual Private Endpoint in its vpe subnets (the note
+  # on cos says so). constraint: false keeps the two lines from pulling the services box out from
+  # under the VPCs.
+  - mgmt -> cos: { constraint: false }
+  - work -> cos: { constraint: false }
+  - flow ..> cos
+  - atr ..> cos
+  # Buckets are encrypted with keys that Key Protect wraps (envelope encryption).
+  - cos --> kp

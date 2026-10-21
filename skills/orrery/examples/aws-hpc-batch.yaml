@@ -26,12 +26,12 @@ nodes:
   logs: { icon: aws:cloudwatch, label: Amazon CloudWatch, note: Job logs, in: region }
 
 edges:
-  - users -> input: { label: upload, step: 1 }
-  - input -> events: { label: object created, step: 2 }
+  - users -> input: { label: upload }
+  - input -> events: { label: object created }
   # constraint: false keeps the workflow steps side by side in one row.
   - { from: events, to: workflow, constraint: false }
   - { from: workflow, to: batch, constraint: false }
-  - batch -> compute: { label: run jobs, step: 3 }
+  - batch -> compute: { label: run jobs }
   - input <-> fsx: import and export
   - { from: fsx, to: compute, arrow: both, constraint: false }
   - batch --> logs

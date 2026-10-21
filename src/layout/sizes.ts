@@ -22,6 +22,13 @@ export const SIZES = {
   inlineIcon: 20,
 };
 
+/**
+ * Where edge ends sit on the face of what they meet (layout/faces.ts, and the review's checks of
+ * the same): `pitch` apart around the face's center, shrunk to fit; at least `inset` from its
+ * corners, clear of a tile's rounded corner; `gap` off the face (0: every tip touches).
+ */
+export const ENDS = { pitch: 14, inset: 8, gap: 0 };
+
 /** The spec's animate mode, else the skin's: relay for stage, packets for classic. */
 export const animateOf = (model: Pick<Model, "animate" | "skin">): AnimateMode =>
   model.animate ?? (model.skin === "stage" ? "relay" : "packets");

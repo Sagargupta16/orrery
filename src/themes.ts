@@ -22,7 +22,8 @@ export interface Theme {
 
 /**
  * The stage skin's kit, after the owner's portfolio scenes: structure is one color at a ladder of
- * alphas (white on dark, ink on light), one tint lights whatever is active, nothing else has hue.
+ * alphas (white on dark, ink on light), one tint lights whatever is active, and each icon keeps a
+ * muted share of its own color; nothing else has hue.
  */
 export interface StageInk {
   /** Structure color, drawn at the alphas below. */
@@ -37,6 +38,8 @@ export interface StageInk {
   onTint: string;
   /** Glyphs, opaque (`line` at about 55 percent). */
   glyph: string;
+  /** Share of an icon's own color in its glyph; the rest is `glyph`, so vendor colors stay quiet. */
+  hue: number;
   /** Header of a top-level group. */
   header: string;
   /** Alphas of `line`: grid texture, panel fill, chip border, frames and tiles, wires, arrows. */
@@ -123,6 +126,7 @@ const STAGE_TOKENS: Record<ThemeName, Theme> = {
       tint: BLUE,
       onTint: INK,
       glyph: mixHex("#ffffff", INK, 0.55),
+      hue: 0.55,
       header: over(BLUE, INK, 0.85),
       grid: 0.045,
       panel: 0.03,
@@ -155,6 +159,7 @@ const STAGE_TOKENS: Record<ThemeName, Theme> = {
       tint: DEEP,
       onTint: "#ffffff",
       glyph: mixHex(INK, "#ffffff", 0.6),
+      hue: 0.55,
       header: over(DEEP, PAPER, 0.9),
       grid: 0.05,
       panel: 0.025,

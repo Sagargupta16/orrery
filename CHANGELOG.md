@@ -2,10 +2,53 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
-## [0.10.0] - 2026-10-20
+## [0.10.0] - 2026-10-21
 
 ### Added
 
+- **One spec, many figures.**
+  - `views:` names subsets of one spec (by id, `group:<id>`, `tag:<name>`, with `depth:` to fold nested groups); `render --view <name>` draws one, `--view all` the whole diagram and every view as `<base>.<view>.<format>`.
+  - `classes:` share presets that any node, group or edge applies with `class:`.
+  - `include:` merges other spec files in (this spec wins a clash).
+  - `tags:` with styles color and restyle what they mark, and a tag with a `label` gets a legend row.
+  - DG117 to DG122.
+- **Evidence you can check.**
+  - `evidence:` on any node, group or edge names where it comes from: `path:line`, `path:line#identifier` or a resource address (`aws_lambda_function.api`, `Deployment/orders`).
+  - `orrery verify` fails when one no longer exists.
+  - `--link` (with `--commit <sha>`) sets each node's `url` to a commit-pinned permalink.
+- **Importers for infrastructure.** `orrery import terraform | cloudformation | cdk | compose | kubernetes <file>` draws a deterministic first draft with official icons, boundaries from the VPC, subnet, namespace or network structure, flows from event mappings, subscriptions, rules and links, and `evidence:` on every item.
+- **The spec inside the picture.**
+  - Every SVG carries its spec in `<metadata>`, and every PNG in an `iTXt` chunk; `orrery import picture` gives it back byte for byte.
+  - `embed: false` opts out.
+  - `/orrery:import-image` and the `image-importer` agent read any other architecture picture into a spec.
+- **`orrery diff <before> <after>`.**
+  - Reports added, removed, renamed and changed nodes, groups and edges, with `git:<ref>:<path>` for either side.
+  - Output is text, JSON, or the new diagram with the changes colored (green added, amber changed, gray dashed removed).
+- **A GitHub Action** (`uses: Sagargupta16/orrery@v0.10.0`) validates, renders and reviews every spec, diffs the ones a pull request changed, and keeps one comment with the scores, plus an annotation per failing spec. `fail-on: error`, `warning` or `review` sets when it fails.
+- **Two new outputs.**
+  - `-f mmd` writes Mermaid text: `architecture-beta` for architectures (with logo icons where Mermaid has them), `stateDiagram-v2`, `mindmap` and `journey` for those kinds, and a `flowchart` for the rest.
+  - `-f sequence.svg` draws the main path as a sequence diagram with one lifeline per node.
+- **Nodes on a group's border.** `on: <group>` puts a node on that group's border, the way the AWS deck draws an internet gateway on its VPC: the icon centered on the line, the label outside, several on one side spread evenly, edges leaving by the icon's face. DG120, DG219.
+- **`orrery lsp`**, a language server with no dependencies, and a VS Code client in `editors/vscode/`:
+  - diagnostics on the characters they are about;
+  - their fixes as quick fixes;
+  - completion for icon ids, group types, ids and keys;
+  - hover and an outline.
+- **`orrery describe`** prints the laid-out diagram as plain text, for alt text and text-only models; also an MCP tool.
+- **MCP:**
+  - `orrery mcp install <client> [project|user]` writes the server entry for Claude Code, Claude Desktop, Cursor, VS Code, Gemini CLI, Codex or Kiro and keeps the rest of the file.
+  - Render and review results open in an inline viewer in hosts that support MCP Apps.
+  - Releases publish the server to the MCP Registry as `io.github.Sagargupta16/orrery` and attach an `.mcpb` bundle.
+- **A playground** at sagargupta.online/orrery/play/ runs the CLI's own parser, layout, renderers and review in the browser. You can edit a spec and watch it redraw, download every format, or share a link that carries the spec.
+- **Planner guardrails:** run the importers first, a list of traps (dependency graphs drawn as traffic, glue resources, invented hops), and evidence in the form `orrery verify` checks. Accuracy rules ACC-10 to ACC-12.
+- **Plugin eval suites** in `evals/`: whether the skill fires, plan recall against fixture repos, draws that validate, and a review loop that raises the score, with a selftest for the graders.
+- **14 more examples, 71 in all**, so every cloud has a full set:
+  - Azure: Container Apps microservices, enterprise integration with Service Bus and Event Grid, Databricks analytics, and IoT analytics with Azure Data Explorer.
+  - Google Cloud: event-driven processing with Eventarc, generative AI RAG on AlloyDB, a hub-and-spoke network on Network Connectivity Center, and multi-region disaster recovery.
+  - Kubernetes: an Istio service mesh, StatefulSet storage with Velero backups, and a multi-tenant cluster.
+  - IBM Cloud: a VPC landing zone, a Code Engine serverless pipeline, and agentic RAG on watsonx.
+  - Azure, Google Cloud and Kubernetes now have 8 examples each, and IBM Cloud has 4.
+  - The website gallery gains a General filter for the vendor-neutral examples.
 - **Geometry checks for the arrows themselves:** DG222 (an arrowhead on a zero-length or too-short end run), DG223 (an edge that cuts through a group holding neither of its ends), DG224 (a straight run along a group border, which reads as part of the frame) and DG225 (an edge label in a group's title band, or a line crowding the title). DG208 now also warns once when a diagram has nodes but no edges at all.
 - **Review findings** for a figure spread thin (`layout.sparse`, `layout.wide-pitch`), a gap between a group's rows, columns or sibling groups wider than its labels need (`grid.wide-gap`, `grid.group-gap`), two unrelated arrows running side by side (`flow.side-by-side`) and a subtitle that only repeats the title (`conventions.subtitle-echo`). The new check codes count in the score.
 - **Vendor-neutral composition rules** for every diagram: groups only for real boundaries (FLOW-11), actors outside every group (FLOW-12), denied paths dashed red and labelled (FLOW-13), hubs keep their targets together (FLOW-14), side branches leave their own main-path node, egress at the far end, peers side by side (LEG-10), names copied exactly from the evidence (ACC-06) and one vocabulary across figures (ACC-09).
@@ -14,11 +57,24 @@ All notable changes to this project are documented here. Follows [Semantic Versi
 
 ### Changed
 
+- **Arrows meet icons cleanly.**
+  - Every edge end lands on the face of what it meets, with no gap: on an icon's tile, never out where its label is. Several ends on one face sit around the center 14px apart, and a line into a side face meets the icon at its center line.
+  - Routes take the fewest bends a clear path allows: straight where two faces overlap, otherwise one bend into a side face, else two. A simpler route is kept only when it hits nothing, crosses no new border or edge and leaves its label a clear spot.
+  - Icons an edge joins in one row line up on one center line.
+  - The review measures all of it: `flow.arrow-short` (an end outside the tile is major), `grid.off-center` (ends on a face off center or unevenly spread), `grid.avoidable-bend` (more bends than the router's own clear route), `grid.ragged` (joined icons off one line). These are rubric rules LEG-11 and LEG-12.
+  - All 71 examples pass under the new rules, which caught 27 of them in the old layout.
+- **Stage icons in their own color, muted.**
+  - Each vendor icon is drawn in a muted share of its own official color instead of gray: the AWS category, the Azure, Google Cloud or Kubernetes blue, a logo's brand, IBM Blue 60 for IBM icons.
+  - The color is mixed into the glyph gray and held between 4.5:1 against the tile and the gray's own contrast, so a neon green sits as quietly as an AWS purple.
+  - Tiles take a faint frame in the same color, and glyph sets with no color of their own stay gray.
+  - The classic skin is unchanged.
+- **No step numbers in the examples.** The examples and the hero no longer carry `step:` badges, since the stage story already plays the order; the authoring rules now say to leave edges unnumbered unless a numbered walkthrough is asked for.
 - Overlap fixes now lead with spacing or rerouting and suggest shortening a label last.
 - Routes keep clear of group borders and titles, so three examples draw cleaner lines.
 
 ### Fixed
 
+- `orrery verify` and the Action escaped regex and Markdown table characters incompletely, and on Windows runners `verify` compared an 8.3 short path (`RUNNER~1`) with the long one; both now escape every special character and compare real paths.
 - `orrery icons check` printed a raw stack trace for an SVG over 512 KB; it now says the file is too large for an icon and writes no contact sheet.
 - A local icon that references its own gradient or clip path as `url('#g')` or `url( #g )` was rejected as pointing outside the file.
 
