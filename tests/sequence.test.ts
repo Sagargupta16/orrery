@@ -51,7 +51,8 @@ describe("sequence.svg for every example", () => {
       }),
     );
     await Promise.all(jobs);
-  });
+    // Every example laid out in every variant: well past the default hook timeout on CI runners.
+  }, 180_000);
 
   it("covers every example", () => {
     expect(EXAMPLES.length).toBeGreaterThanOrEqual(50);

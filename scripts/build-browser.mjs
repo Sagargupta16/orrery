@@ -69,6 +69,10 @@ const BUILTINS = {
   zlib: "node.ts",
 };
 
+/** A JS string literal for generated code: anything but plain word characters goes in as \u escapes. */
+const jsString = (s) =>
+  `"${s.replace(/[^\w :.-]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`)}"`;
+
 const shimPlugin = {
   name: "orrery-browser",
   setup(b) {
@@ -80,7 +84,7 @@ const shimPlugin = {
       return undefined;
     });
     b.onLoad({ filter: /.*/, namespace: "node-stub" }, (args) => ({
-      contents: `module.exports = new Proxy({}, { get: (_, key) => key === "__esModule" ? false : () => { throw new Error(${JSON.stringify(`${args.path} is not available in the playground`)}); } });`,
+      contents: `module.exports = new Proxy({}, { get: (_, key) => key === "__esModule" ? false : () => { throw new Error(${jsString(`${args.path} is not available in the playground`)}); } });`,
       loader: "js",
     }));
     b.onResolve({ filter: /^orrery-elk$/ }, () => ({
