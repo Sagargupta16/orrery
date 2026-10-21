@@ -1,0 +1,50 @@
+name: shop
+
+services:
+  proxy:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./web/dist:/usr/share/nginx/html:ro
+    networks: [front]
+    depends_on: [api]
+
+  api:
+    build: ./api
+    environment:
+      PORT: "3000"
+      DATABASE_URL: postgres://shop:shop@db:5432/shop
+      REDIS_URL: redis://cache:6379
+    networks: [front, back]
+    depends_on: [db, cache]
+
+  worker:
+    build: ./worker
+    environment:
+      DATABASE_URL: postgres://shop:shop@db:5432/shop
+      REDIS_URL: redis://cache:6379
+    networks: [back]
+    depends_on: [api, cache]
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: shop
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [back]
+
+  cache:
+    image: redis:7.4-alpine
+    networks: [back]
+
+networks:
+  front:
+  back:
+
+volumes:
+  pgdata:

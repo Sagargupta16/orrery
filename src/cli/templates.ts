@@ -1,7 +1,13 @@
 // styles, init and import: the catalog of group styles, starting specs and converted Mermaid.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
+import { importCloudFormation } from "../import/cloudformation.ts";
+import { importCompose } from "../import/compose.ts";
+import { importKubernetes } from "../import/kubernetes.ts";
 import { importMermaid } from "../import/mermaid.ts";
+import { importPicture } from "../import/picture.ts";
+import { importTerraform } from "../import/terraform.ts";
+import type { Imported } from "../import/types.ts";
 import { examplesDir } from "../paths.ts";
 import { parseSpec } from "../spec/index.ts";
 import { GROUP_STYLES } from "../styles.ts";
@@ -61,13 +67,28 @@ export function cmdInit(args: Args) {
   process.stdout.write(`next: orrery render ${basename(out)}\n`);
 }
 
-export function cmdImport(args: Args) {
+/** Each importer reads its own input (a file, a folder, - for stdin where it makes sense). */
+const IMPORTERS: Record<string, (path: string) => Imported | Promise<Imported>> = {
+  mermaid: (file) => {
+    const text = file === "-" ? readFileSync(0, "utf8") : readFileSync(resolve(file), "utf8");
+    return importMermaid(text.replace(/^```mermaid\s*|```\s*$/gm, ""));
+  },
+  terraform: importTerraform,
+  cloudformation: importCloudFormation,
+  cdk: importCloudFormation,
+  compose: importCompose,
+  kubernetes: importKubernetes,
+  k8s: importKubernetes,
+  picture: importPicture,
+};
+
+export async function cmdImport(args: Args) {
   const [kind, file] = args._;
-  if (kind !== "mermaid") usage('import supports "mermaid" (flowchart and graph diagrams)');
-  if (!file) usage("import mermaid needs a file, or - for stdin");
+  const importer = kind ? IMPORTERS[kind] : undefined;
+  if (!importer) usage(`import supports ${Object.keys(IMPORTERS).join(", ")}`);
+  if (!file) usage(`import ${kind} needs a file${kind === "mermaid" ? ", or - for stdin" : ""}`);
   if (file !== "-" && !existsSync(resolve(file))) usage(`no such file: ${file}`);
-  const text = file === "-" ? readFileSync(0, "utf8") : readFileSync(resolve(file), "utf8");
-  const result = importMermaid(text.replace(/^```mermaid\s*|```\s*$/gm, ""));
+  const result = await importer(file);
   for (const w of result.warnings) process.stderr.write(`warn  ${w}\n`);
   const out = typeof args.flags.out === "string" ? resolve(args.flags.out) : undefined;
   if (!out) return void process.stdout.write(result.yaml);
@@ -77,7 +98,7 @@ export function cmdImport(args: Args) {
     return;
   }
   writeAtomic(out, result.yaml);
-  const guessed = Object.keys(result.guessed).length;
+  const guessed = Object.keys(result.guessed ?? {}).length;
   process.stdout.write(
     `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}\nnext: add icons, then orrery validate ${basename(out)}\n`,
   );

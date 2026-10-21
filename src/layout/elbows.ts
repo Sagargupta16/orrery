@@ -1,12 +1,12 @@
 // Candidate routes for an edge drawn after ELK (constraint: false, overlay ends, grid cells, align
-// blocks): the tests a route must pass, and laneRoutes, the elbows ported from aws-archify's router.
+// blocks): the tests a route must pass, and laneRoutes, the elbows a free edge may take.
 
 import type { Box, Point } from "../types.ts";
 import { round, segmentHits, segmentsOf } from "./geometry.ts";
 
-/** Whether any segment of the path runs through any of the boxes. */
-export const runsThrough = (points: Point[], boxes: Box[]): boolean =>
-  segmentsOf(points).some(([p, q]) => boxes.some((b) => segmentHits(p, q, b)));
+/** Whether any segment of the path runs through any of the boxes, each shrunk by `inset`. */
+export const runsThrough = (points: Point[], boxes: Box[], inset = 1): boolean =>
+  segmentsOf(points).some(([p, q]) => boxes.some((b) => segmentHits(p, q, b, inset)));
 
 /** A free edge's end: what a horizontal line meets, and the whole node with its text. */
 export interface RouteEnd {
@@ -22,12 +22,61 @@ export interface Heads {
   end: boolean;
 }
 
-/** Straight run kept in front of an arrowhead so it does not sit on a bend (aws-archify: 2 cells). */
+/** Straight run kept in front of an arrowhead so it does not sit on a bend. */
 export const HEAD_ROOM = 16;
 /** Riser position along the span, a little toward the source so the long run is the one into the head. */
 const RISER = 0.45;
 /** A line this close to a group border, and parallel to it, reads as running along it. */
 const BORDER = 6;
+
+/** A run this close to a group border and parallel to it lies on the border line (DG224). */
+const ON_BORDER = 4;
+/** ...over more than this; a shorter one is a corner or a crossing. */
+const ON_BORDER_ALONG = 24;
+/** A line closer than this to a group title's text crowds it (DG225). */
+const TITLE_CLEAR = 6;
+
+/**
+ * The first straight run of the path that lies on a group border, as check DG224 measures it:
+ * within 4px of the border line and parallel to it, over more than 24px. `line` is that border
+ * line's x (for an upright run) or y, `box` the group's box.
+ */
+export function borderHug(
+  points: Point[],
+  borders: Box[],
+): { i: number; line: number; box: Box } | undefined {
+  for (const [i, [p, q]] of segmentsOf(points).entries()) {
+    const flat = Math.abs(p.y - q.y) < 0.5;
+    if (!flat && Math.abs(p.x - q.x) >= 0.5) continue;
+    const [lo, hi] = flat
+      ? [Math.min(p.x, q.x), Math.max(p.x, q.x)]
+      : [Math.min(p.y, q.y), Math.max(p.y, q.y)];
+    const at = flat ? p.y : p.x;
+    for (const box of borders) {
+      const [from, to] = flat ? [box.x, box.x + box.w] : [box.y, box.y + box.h];
+      if (Math.min(hi, to) - Math.max(lo, from) <= ON_BORDER_ALONG) continue;
+      const sides = flat ? [box.y, box.y + box.h] : [box.x, box.x + box.w];
+      const line = sides.find((v) => Math.abs(v - at) <= ON_BORDER);
+      if (line !== undefined) return { i, line, box };
+    }
+  }
+  return undefined;
+}
+
+/** Whether the path passes through a group title's text or within 6px beside it (DG225). */
+export function nearTitle(points: Point[], titles: Box[]): boolean {
+  const zones = titles.map((t) => ({
+    x: t.x - TITLE_CLEAR,
+    y: t.y,
+    w: t.w + 2 * TITLE_CLEAR,
+    h: t.h,
+  }));
+  return segmentsOf(points).some(([p, q]) => zones.some((z) => segmentHits(p, q, z, 0)));
+}
+
+/** A route off every group border line and clear beside every title (DG224, DG225). */
+export const clearOfFrames = (points: Point[], borders: Box[], titles: Box[]): boolean =>
+  !borderHug(points, borders) && !nearTitle(points, titles);
 
 /** Whether a segment of the path runs along a group border for more than `min` px. */
 export function alongBorder(points: Point[], borders: Box[], min = 12): boolean {
@@ -48,11 +97,11 @@ export function alongBorder(points: Point[], borders: Box[], min = 12): boolean 
 }
 
 /**
- * More elbows for a free edge between two boxes, ported from aws-archify's router: the riser at
- * 0.45 of the span toward the source, kept a head room clear of each arrowhead, moved off group
- * borders it would run along, and next to either stub; then the two L shapes. Every candidate is
- * orthogonal; the caller keeps the first that clears its obstacles. Boxes both side by side and
- * one above the other get both families, the one that follows the flow (`across`) first.
+ * More elbows for a free edge between two boxes: the riser at 0.45 of the span toward the
+ * source, kept a head room clear of each arrowhead, moved off group borders it would run along,
+ * and next to either stub; then the two L shapes. Every candidate is orthogonal; the caller keeps
+ * the first that clears its obstacles. Boxes both side by side and one above the other get both
+ * families, the one that follows the flow (`across`) first.
  */
 export function laneRoutes(
   a: RouteEnd,

@@ -30,7 +30,7 @@ When the display PNG is taller or wider than 1568 px, the review also writes `<b
 
 Return only a JSON array (no prose, no code fence), at most 8 findings, most important first. Each finding:
 
-- `id`: the rubric rule id (FLOW-01 to FLOW-10).
+- `id`: the rubric rule id (FLOW-01 to FLOW-14).
 - `dimension`: `flow` (or `layout` for FLOW-01 and FLOW-02).
 - `severity`: `major` when the diagram shows a hop the system does not have, misses one it has, or points an arrow the wrong way; `minor` otherwise. Never `blocker`.
 - `subjects`: spec ids from `elements` (nodes and edge ids).

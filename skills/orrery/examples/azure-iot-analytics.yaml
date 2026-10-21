@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: IoT analytics on Azure
+subtitle: IoT Hub feeds Stream Analytics and Cosmos DB for the operational app, and Azure Data Explorer for dashboards, alerts and export to the data lake
+direction: right
+# Filled triangles, as in Azure's reference diagrams; one port per edge.
+arrowhead: filled
+layout: { merge: false }
+
+legend:
+  solid: Telemetry and queries
+
+groups:
+  sub: { type: azure:subscription, label: IoT subscription }
+  rg: { type: azure:resource-group, label: rg-iot-analytics, in: sub }
+
+nodes:
+  devices: { icon: generic:iot, label: IoT devices, note: "Vehicles, machines, sensors" }
+  iothub: { icon: azure:iot-hub, label: IoT Hub, note: Telemetry and commands, in: rg }
+  # The operational path: a near real-time job keeps device state in Cosmos DB for the app.
+  asa: { icon: azure:stream-analytics-jobs, label: Azure Stream Analytics, note: Near real-time job, in: rg }
+  cosmos: { icon: azure:azure-cosmos-db, label: Azure Cosmos DB, note: JSON device state, in: rg }
+  opsapp: { icon: generic:mobile, label: Operational app, note: "Mobile, web and kiosk" }
+  # The analytical path: Data Explorer ingests the same telemetry through its IoT Hub connector.
+  adx: { icon: azure:azure-data-explorer-clusters, label: Azure Data Explorer, note: Time-series cluster, in: rg }
+  lake: { icon: azure:storage-accounts, label: Data Lake Storage, note: Partitioned Parquet, in: rg }
+  grafana: { icon: azure:azure-managed-grafana, label: Azure Managed Grafana, note: Dashboards, in: rg }
+  alerts: { icon: azure:logic-apps, label: Logic Apps, note: Alerts and notifications, in: rg }
+
+# Left out: the Cosmos DB change feed route through Functions to Event Hubs, the alternative to
+# routing telemetry to Cosmos DB and Data Explorer in parallel.
+edges:
+  - devices -> iothub: MQTT
+  - iothub -> asa
+  - asa -> cosmos
+  # The app reads Cosmos DB, so its arrow starts at the app.
+  - opsapp -> cosmos
+  - iothub -> adx: data connection
+  - adx -> lake: export
+  # Grafana and the Logic Apps connector both query Data Explorer; the arrowheads stay on it.
+  - { from: adx, to: grafana, arrow: start, label: KQL }
+  - { from: adx, to: alerts, arrow: start }

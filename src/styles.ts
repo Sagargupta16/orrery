@@ -2,6 +2,8 @@
 // Architecture Icons deck; Google Cloud and Azure publish no container spec, so their values are
 // measured from the vendors' own reference diagrams (skills/orrery/references/styles.md).
 
+import { iconInfo } from "./icons/index.ts";
+
 export interface GroupStyle {
   key: string;
   label: string;
@@ -547,4 +549,50 @@ export function resolveGroupStyle(type: string): GroupStyle | undefined {
 
 export function groupStyleKeys(): string[] {
   return [...Object.keys(GROUP_STYLES), ...Object.keys(TYPE_ALIASES)];
+}
+
+/**
+ * The color of each AWS icon category, by the category names of the icon index. AWS draws every
+ * service and resource icon of a category in one color; these are the fills of the pack's own
+ * category icons (aws:category-*, AWS Architecture Icons 2026-07-31), which every service and
+ * resource icon of that category repeats. "General" icons are dark and have no category color.
+ */
+export const AWS_CATEGORY_COLORS: Record<string, string> = {
+  Analytics: "#8c4fff",
+  "Application Integration": "#e7157b",
+  "Artificial Intelligence": "#01a88d",
+  Blockchain: "#ed7100",
+  "Business Applications": "#dd344c",
+  "Cloud Financial Management": "#7aa116",
+  Compute: "#ed7100",
+  Containers: "#ed7100",
+  "Customer Enablement": "#c925d1",
+  Databases: "#c925d1",
+  "Developer Tools": "#c925d1",
+  "End User Computing": "#01a88d",
+  "Front-End Web & Mobile": "#dd344c",
+  Games: "#8c4fff",
+  "Internet of Things": "#7aa116",
+  "Management & Governance": "#e7157b",
+  "Media Services": "#ed7100",
+  "Migration & Modernization": "#01a88d",
+  "Networking & Content Delivery": "#8c4fff",
+  "Quantum Technologies": "#ed7100",
+  Satellite: "#c925d1",
+  "Security, Identity & Compliance": "#dd344c",
+  Storage: "#7aa116",
+};
+
+/** Neutral frames: with an AWS service's icon in the corner they are that service's group. */
+const SERVICE_FRAMES = new Set(["box", "dashed", "aws:generic", "aws:generic-dashed"]);
+
+/**
+ * The border of an AWS service group (a group framed by one service takes the category color of
+ * the icon in its corner, as AWS assigns it): a neutral frame whose icon is an AWS service or
+ * resource icon gets that icon's category color. Undefined otherwise.
+ */
+export function serviceGroupStroke(type: string, icon: string | undefined): string | undefined {
+  if (!icon || !SERVICE_FRAMES.has(type)) return undefined;
+  const info = iconInfo(icon);
+  return info?.pack === "aws" ? AWS_CATEGORY_COLORS[info.category] : undefined;
 }

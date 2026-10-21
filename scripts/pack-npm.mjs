@@ -20,6 +20,8 @@ for (const f of ["README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"])
 const manifest = {
   name: "@sagargupta1610/orrery",
   version: pkg.version,
+  // The MCP Registry ties io.github.Sagargupta16/orrery to this package; the case must match.
+  mcpName: "io.github.Sagargupta16/orrery",
   description: pkg.description,
   license: pkg.license,
   author: pkg.author,

@@ -14,15 +14,20 @@ export interface Attach {
   parts?: Box[];
 }
 
-// Side: what a horizontal line meets (the icon of an icon node). Full: the node with its label
-// and note, so a vertical line leaves below the text instead of through it.
-export function attachBox(ctx: Placed, id: string): Attach | undefined {
-  const { nodes, groups, horizontal } = ctx;
+// Side: what a horizontal line meets (the icon of an icon node, at its center line: in a
+// vertical flow the text is under the icon, so the strip beside the icon is free). Full: the
+// node with its label and note, so a vertical line leaves below the text instead of through it.
+export function attachBox(ctx: Pick<Placed, "nodes" | "groups">, id: string): Attach | undefined {
+  const { nodes, groups } = ctx;
   const nd = nodes.find((x) => x.id === id);
   if (nd) {
-    const side = nd.look === "icon" && horizontal && nd.iconBox ? nd.iconBox : nd.box;
+    const icon = nd.look === "icon" && nd.iconBox ? nd.iconBox : undefined;
+    const side = icon ?? nd.box;
+    const drawn = [icon ?? nd.box, nd.labelBox, nd.noteBox].filter(
+      (b): b is Box => !!b && b.w > 0 && b.h > 0,
+    );
     const parts = [nd.box, nd.iconBox, nd.labelBox, nd.noteBox].filter((b): b is Box => !!b);
-    return { side, full: union(parts), parts };
+    return { side, full: union(parts), parts: drawn };
   }
   const g = groups.find((x) => x.id === id);
   if (!g) return undefined;

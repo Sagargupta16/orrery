@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Agentic RAG on IBM watsonx
+subtitle: An Orchestrate agent searches OpenRAG, queries Iceberg tables with Presto and answers with Granite
+direction: down
+layout: { spacing: compact }
+
+# IBM's technical diagram guide asks for a legend in every diagram, so solid lines get one too.
+legend:
+  solid: Question and answer path
+  dashed: Document ingestion
+  dotted: Agent monitoring
+
+groups:
+  # orrery has no IBM group styles; IBM's guide draws groups as plain outlined boxes, so these use
+  # the neutral types with Carbon icons in the headers, as in ibm-cloud-openshift.
+  ibmcloud: { type: box, label: IBM Cloud, icon: ibm:ibm-cloud }
+  wxd: { type: box, label: watsonx.data, icon: ibm:watsonx-data, in: ibmcloud }
+  # OpenRAG is IBM's open RAG package (Langflow, Docling and OpenSearch), offered as OpenRAG on
+  # watsonx.data. It ships an MCP server, so the agent calls search as a tool.
+  openrag: { type: dashed, label: OpenRAG, in: wxd }
+
+nodes:
+  staff: { icon: ibm:user-multiple, label: Employees, note: Chat }
+  docs: { icon: ibm:object-storage, label: Cloud Object Storage, note: Policy and product documents, in: ibmcloud }
+  agent: { icon: ibm:ibm-watsonx-orchestrate, label: watsonx Orchestrate, note: Support agent, in: ibmcloud }
+  langflow: { icon: si:langflow, label: Langflow, note: Ingest and retrieval flows, in: openrag }
+  search: { icon: logos:opensearch-icon, label: OpenSearch, note: Vector and keyword index, in: openrag }
+  docling: { icon: ibm:document-processor, label: Docling, note: Parse and chunk, in: openrag }
+  presto: { icon: logos:presto-icon, label: Presto, note: SQL engine, in: wxd }
+  llm: { icon: ibm:watsonx-ai, label: watsonx.ai, note: Granite chat model, in: ibmcloud }
+  gov: { icon: ibm:watsonx-governance, label: watsonx.governance, note: Evaluations and guardrail metrics, in: ibmcloud }
+  lake: { icon: ibm:object-storage, label: Cloud Object Storage, note: Iceberg tables, in: ibmcloud }
+
+edges:
+  - staff -> agent: ask
+  - agent -> langflow: MCP search
+  - langflow -> search: hybrid search
+  - agent -> presto: SQL tool
+  - presto -> lake: read tables
+  - agent -> llm: prompt with context
+  # Ingestion runs when documents land in the bucket, apart from the question path.
+  - docs --> langflow: new documents
+  - langflow --> search: index chunks
+  - langflow --> docling: parse
+  - agent ..> gov: traces

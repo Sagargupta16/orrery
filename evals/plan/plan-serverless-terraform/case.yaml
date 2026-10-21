@@ -1,0 +1,94 @@
+schema_version: "1.1"
+name: plan-serverless-terraform
+context:
+  scaffold_script: scaffold.sh
+# One regex grader per required service and per required flow, so the run score is a weighted node
+# and edge recall. The answer key is ../../fixtures/serverless-api/expected.json; for the exact
+# recall (evidence resolved to resource blocks, free-form ids), run evals/scripts/plan-recall.mjs on
+# the plan.json of a --keep-temp workspace. Edge graders rely on the ids the prompt asks for.
+graders:
+  - name: planner-ran
+    type: tool_used
+    tool: Agent
+    input_match: '"subagent_type"\s*:\s*"orrery:planner"'
+    arm: with-only
+  - name: plan-saved
+    type: file_exists
+    path: plan.json
+  - name: confirm-list-shown
+    type: regex
+    flags: i
+    pattern: 'services[\s\S]*boundaries[\s\S]*flows[\s\S]*left out'
+
+  - name: node-orders-api
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"icon"\s*:\s*"aws:api-gateway'
+  - name: node-create-order
+    type: regex
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"(?:id|label)"\s*:\s*"[^"]*create[ _-]?orders?\b'
+  - name: node-orders-table
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"icon"\s*:\s*"aws:dynamodb'
+  - name: node-order-events-queue
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"icon"\s*:\s*"aws:(?:sqs|simple-queue-service)'
+  - name: node-send-receipt
+    type: regex
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"(?:id|label)"\s*:\s*"[^"]*(?:send[ _-]?receipts?|receipts?[ _-]?(?:fn|function|lambda|sender|writer|worker))'
+  - name: node-receipts-bucket
+    type: regex
+    target: { source: file, path: plan.json }
+    pattern: '"icon"\s*:\s*"aws:(?:s3|simple-storage-service)'
+
+  - name: edge-api-to-create-order
+    type: regex
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"orders[_-]api"\s*,\s*"to"\s*:\s*"create[_-]order"|"to"\s*:\s*"create[_-]order"\s*,\s*"from"\s*:\s*"orders[_-]api"'
+  - name: edge-create-order-to-table
+    type: regex
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"create[_-]order"\s*,\s*"to"\s*:\s*"orders(?:[_-]table)?"|"to"\s*:\s*"orders(?:[_-]table)?"\s*,\s*"from"\s*:\s*"create[_-]order"'
+  - name: edge-create-order-to-queue
+    type: regex
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"create[_-]order"\s*,\s*"to"\s*:\s*"order[_-]events(?:[_-]queue)?"|"to"\s*:\s*"order[_-]events(?:[_-]queue)?"\s*,\s*"from"\s*:\s*"create[_-]order"'
+  - name: edge-queue-to-send-receipt
+    type: regex
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"order[_-]events(?:[_-]queue)?"\s*,\s*"to"\s*:\s*"send[_-]receipt"|"to"\s*:\s*"send[_-]receipt"\s*,\s*"from"\s*:\s*"order[_-]events(?:[_-]queue)?"'
+  - name: edge-send-receipt-to-bucket
+    type: regex
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"send[_-]receipt"\s*,\s*"to"\s*:\s*"receipts(?:[_-]bucket)?"|"to"\s*:\s*"receipts(?:[_-]bucket)?"\s*,\s*"from"\s*:\s*"send[_-]receipt"'
+
+  - name: no-invented-services
+    type: regex
+    weight: 2
+    match: not_contains
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"(?:icon|type)"\s*:\s*"aws:(?:rds|aurora|sns|simple-notification-service|eventbridge|kinesis|elasticache|ecs|elastic-container|eks|ec2|cognito|cloudfront|step-functions|elastic-load-balancing|application-load-balancer|vpc|virtual-private-cloud|private-subnet|public-subnet|nat-gateway|ses|simple-email-service)'
+  - name: no-iam-nodes
+    type: regex
+    match: not_contains
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"icon"\s*:\s*"aws:(?:identity-and-access-management|iam)'
+  - name: no-flow-from-depends-on
+    type: regex
+    match: not_contains
+    flags: i
+    target: { source: file, path: plan.json }
+    pattern: '"from"\s*:\s*"send[_-]receipt"\s*,\s*"to"\s*:\s*"orders(?:[_-]table)?"|"from"\s*:\s*"orders(?:[_-]table)?"\s*,\s*"to"\s*:\s*"send[_-]receipt"'

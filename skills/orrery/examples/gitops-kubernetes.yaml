@@ -37,14 +37,14 @@ nodes:
   prometheus: { icon: logos:prometheus, label: Prometheus, note: Metrics and alerts }
 
 edges:
-  - dev -> pr: { label: open PR, step: 1 }
-  - pr -> actions: { label: merge, step: 2 }
-  - actions -> registry: { label: push image, step: 3 }
-  - actions -> config: { label: bump image tag, step: 4 }
+  - dev -> pr: { label: open PR }
+  - pr -> actions: { label: merge }
+  - actions -> registry: { label: push image }
+  - actions -> config: { label: bump image tag }
   # Laid out config -> Argo CD so Argo CD sits right of the repository; the arrowhead stays on the repository.
-  - { from: config, to: argocd, arrow: start, label: watch, step: 5 }
-  - argocd -> staging: { label: auto sync, step: 6 }
-  - argocd -> prod: { label: manual sync, step: 7 }
+  - { from: config, to: argocd, arrow: start, label: watch }
+  - argocd -> staging: { label: auto sync }
+  - argocd -> prod: { label: manual sync }
   # Traffic is solid, the Deployment's pods are dashed (the Kubernetes deck draws "creates" links dashed), monitoring is dotted.
   - stg-ing -> stg-svc -> stg-pods
   - stg-deploy --> stg-pods

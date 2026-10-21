@@ -1,0 +1,32 @@
+schema_version: "1.1"
+name: draw-aws-orders-api
+# Programmatic graders only. The review JSON is written by the bundled CLI, not by Claude, so the
+# score it holds is a measurement. evals/scripts/check-spec.mjs re-measures the final spec from a
+# --keep-temp workspace when the last review ran before a later edit.
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"orrery(?::[\w-]+)?"'
+  - name: spec-written
+    type: file_exists
+    path: docs/architecture.yaml
+  - name: validated
+    type: tool_used
+    tool: Bash
+    input_match: 'orrery(?:\\.|[^"\\])*?\svalidate\b'
+  - name: rendered-svg
+    type: regex
+    target: files
+    flags: m
+    pattern: '(?:^|/)docs/architecture(?:-dark|-light)?\.svg$'
+  - name: rendered-png
+    type: regex
+    target: files
+    flags: m
+    pattern: '(?:^|/)docs/architecture(?:-dark|-light)?\.png$'
+  - name: review-passes-at-880
+    type: regex
+    weight: 3
+    target: { source: file, path: docs/architecture.review.json }
+    pattern: '"width"\s*:\s*880\s*,\s*"scale"[\s\S]*?"score"\s*:\s*(?:8[5-9]|9\d|100)(?:\.\d+)?\s*,\s*"pass"\s*:\s*true'

@@ -1,0 +1,89 @@
+{
+  "manifest_version": "0.3",
+  "name": "orrery",
+  "display_name": "Orrery",
+  "version": "0.10.0",
+  "description": "Architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons, laid out automatically and rendered to SVG, PNG, draw.io, React TSX and HTML.",
+  "long_description": "Describe a system and Claude writes an orrery spec (a short YAML file), checks it, and renders it with the vendors' own icons. A measured review scores the diagram at the width readers see it and proposes spec fixes. Everything runs on your machine with no API key: the renderer, the icon catalogs and the fonts ship in the bundle, and only the optional logo and symbol sets download on first use.\n\nOutputs: SVG (animated or still), PNG, editable draw.io, a React TSX component and a standalone HTML page, plus a link that opens the diagram in diagrams.net.",
+  "author": {
+    "name": "Sagar Gupta",
+    "url": "https://github.com/Sagargupta16"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sagargupta16/orrery.git"
+  },
+  "homepage": "https://sagargupta.online/orrery/",
+  "documentation": "https://sagargupta.online/orrery/",
+  "support": "https://github.com/Sagargupta16/orrery/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "scripts/orrery.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/scripts/orrery.mjs", "mcp"]
+    }
+  },
+  "tools": [
+    {
+      "name": "get_authoring_guide",
+      "description": "The skill and spec reference to read before writing a spec."
+    },
+    {
+      "name": "validate",
+      "description": "Check a spec without rendering: errors, unknown icons, bad references and layout warnings, each with fixes."
+    },
+    {
+      "name": "render",
+      "description": "Render a spec to SVG, PNG, draw.io, editable draw.io SVG, a React TSX component or an HTML page."
+    },
+    {
+      "name": "review",
+      "description": "Score the diagram at the width readers see it, with findings, evidence and spec fixes."
+    },
+    {
+      "name": "describe",
+      "description": "What the laid-out picture shows in plain text: groups, nodes in reading order, edges and steps."
+    },
+    {
+      "name": "icons_search",
+      "description": "Find icon ids across the official cloud packs, tech logos and generic symbols."
+    },
+    {
+      "name": "list_templates",
+      "description": "The bundled reference diagrams to start from."
+    },
+    {
+      "name": "get_template",
+      "description": "One bundled template's spec YAML."
+    },
+    {
+      "name": "try_patches",
+      "description": "Review candidate spec patches and keep only those that raise the score."
+    },
+    {
+      "name": "drawio_link",
+      "description": "A link that opens the diagram in diagrams.net, loaded and editable."
+    }
+  ],
+  "keywords": [
+    "architecture",
+    "diagram",
+    "system-design",
+    "aws",
+    "azure",
+    "gcp",
+    "kubernetes",
+    "drawio",
+    "svg",
+    "png"
+  ],
+  "license": "MIT",
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=22.0.0"
+    }
+  }
+}

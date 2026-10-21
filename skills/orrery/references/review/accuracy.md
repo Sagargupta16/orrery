@@ -9,9 +9,13 @@ Used by the accuracy reviewer (`orrery:accuracy-reviewer`). The other reviewers 
 | ACC-03 | Arrows run from the side that starts the exchange (caller to callee, producer to consumer). A pull (a function polling a queue or stream) runs with the data, from the queue to the function. | major |
 | ACC-04 | A service on the main request or data path in the evidence is drawn. Supporting services may be left out when the plan's `leftOut` names them. | major |
 | ACC-05 | Boundaries match the deployment: a node inside a VPC, subnet, Availability Zone, account or Region group is deployed there (`subnet_ids`, `vpc_config`, provider region and account). | major |
-| ACC-06 | Labels name the resource's real role (from its name, tags or handler), and the service by its official name somewhere in the figure. | minor |
+| ACC-06 | Labels name the resource's real role (from its name, tags or handler), and the service by its official name somewhere in the figure. Commands, API paths, ports, queue, topic and resource names in labels and notes are copied exactly as the evidence writes them. | minor |
 | ACC-07 | A number in a note or badge (task count, memory, retention, replica count) matches the evidence. | minor |
 | ACC-08 | Everything the brief asks the figure to show is drawn. | major |
+| ACC-09 | One name per thing across the figure, its caption and the document around it: the "Orders API" of one figure is not the "order service" of the next. | minor |
+| ACC-10 | One thing, one node: no service split into two boxes, no two resources that share a short name merged into one, and copies drawn as one node with a count badge unless their spread is the point. | major |
+| ACC-11 | No invented structure: services that sit side by side are not chained into a pipeline, and a call through a gateway, queue or proxy is not drawn as a direct line that skips it. | major |
+| ACC-12 | Each resource sits in its innermost boundary only, never in two groups at once. An inferred flow the user has not confirmed is dashed and says `(unverified)`. | minor |
 
 ## Evidence
 

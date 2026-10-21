@@ -32,10 +32,10 @@ nodes:
   locked: { icon: aws:backup-vault-lock, label: AWS Backup Vault Lock, note: Compliance-mode vault, in: backup-east }
 
 edges:
-  - protected -> plan: { label: back up, step: 1 }
-  - plan -> vault: { label: store, step: 2 }
-  - vault -> copy: { label: copy, step: 3 }
-  - vault -> locked: { label: copy, step: 4 }
+  - protected -> plan: { label: back up }
+  - plan -> vault: { label: store }
+  - vault -> copy: { label: copy }
+  - vault -> locked: { label: copy }
   # AWS Backup cannot restore across accounts, so restores leave the production vault. Written in
   # layout order with the arrow at the start, so the resources stay ahead of the vault.
   - { from: protected, to: vault, arrow: start, line: dashed, label: restore }

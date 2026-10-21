@@ -17,20 +17,25 @@ export interface Canvas {
 
 export function sizeCanvas(ctx: Routed): Canvas {
   const { model, hidden, result, top, titleBlock, subtitleBlock, nodes, groups, edges } = ctx;
-  const { dx, dy } = moveClear(ctx);
+  // Nodes moved onto a border leave their ELK spots empty, at times on the canvas's edge: the
+  // canvas then fits what is drawn, a page margin all round.
+  const snug = ctx.seats.size > 0;
+  const { dx, dy } = moveClear(ctx, snug);
   // Pools and lanes place every band themselves, so ELK's flat canvas is no floor for them.
-  let width = hidden.size ? 0 : round((result.width ?? 0) + dx);
-  let height = hidden.size ? 0 : round((result.height ?? 0) + top + dy);
+  let width = hidden.size || snug ? 0 : round((result.width ?? 0) + dx);
+  let height = hidden.size || snug ? 0 : round((result.height ?? 0) + top + dy);
   // Overlay groups and free-edge labels are placed after ELK sized the canvas; so is everything a
   // hook moved (lanes, trees).
   const relocated =
-    model.kind !== "architecture" || hidden.size > 0
+    model.kind !== "architecture" || hidden.size > 0 || snug
       ? nodes.flatMap((n) => [n.box, n.labelBox, n.noteBox, n.badgeBox])
       : [];
+  const routes = snug ? edges.flatMap((e) => e.points.map((p) => ({ ...p, w: 0, h: 0 }))) : [];
   for (const b of [
     ...groups.map((g) => g.box),
     ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
     ...relocated,
+    ...routes,
   ]) {
     if (!b) continue;
     width = Math.max(width, round(b.x + b.w + SIZES.pad));
@@ -68,8 +73,9 @@ export function sizeCanvas(ctx: Routed): Canvas {
 }
 
 // Overlay legends (a tile on the top border) and free-edge labels are placed after ELK and can
-// land left of or above the canvas, or on the title: move the content clear of both.
-function moveClear(ctx: Routed): { dx: number; dy: number } {
+// land left of or above the canvas, or on the title: move the content clear of both. `snug`
+// moves it to the page margin either way.
+function moveClear(ctx: Routed, snug: boolean): { dx: number; dy: number } {
   const { top, titleBlock, nodes, groups, edges } = ctx;
   const drawn = [
     ...groups.flatMap((g) => [g.box, g.labelBox, g.iconBox]),
@@ -80,11 +86,12 @@ function moveClear(ctx: Routed): { dx: number; dy: number } {
       ...e.points.map((p) => ({ ...p, w: 0, h: 0 })),
     ]),
   ].filter((b): b is Box => !!b);
-  const dx = Math.max(0, Math.ceil(4 - Math.min(...drawn.map((b) => b.x))));
-  const dy = Math.max(
-    0,
-    Math.ceil(top + (titleBlock ? 8 : 4) - Math.min(...drawn.map((b) => b.y))),
-  );
+  const x0 = Math.min(...drawn.map((b) => b.x));
+  const y0 = Math.min(...drawn.map((b) => b.y));
+  const dx = snug ? round(SIZES.pad - x0) : Math.max(0, Math.ceil(4 - x0));
+  const dy = snug
+    ? round(top + SIZES.pad - y0)
+    : Math.max(0, Math.ceil(top + (titleBlock ? 8 : 4) - y0));
   if (dx || dy) {
     const moved = new Set<Box>();
     const move = (b: Box | undefined) => {
@@ -112,9 +119,12 @@ function moveClear(ctx: Routed): { dx: number; dy: number } {
  */
 function placeLegend(entries: LegendEntry[], width: number, height: number): SceneLegend {
   const P = 10;
+  // A tag row keeps its color, and its chip when the tag sets no line style.
   const rows = entries.map((e) => ({
     line: e.line,
     label: textBlock(e.label, SIZES.edgeLabel, 240),
+    ...(e.color ? { color: e.color } : {}),
+    ...(e.chip ? { chip: true } : {}),
   }));
   const w = Math.ceil(P + 28 + 8 + Math.max(...rows.map((r) => r.label.width)) + P);
   // Rows sit 18px apart; a wrapped meaning pushes the next row down.
@@ -143,7 +153,14 @@ function placeLegend(entries: LegendEntry[], width: number, height: number): Sce
       h: round(r.label.height),
     };
     y += pitch[i] ?? 18;
-    return { line: r.line, swatch, label: r.label, labelBox };
+    return {
+      line: r.line,
+      ...(r.color ? { color: r.color } : {}),
+      ...(r.chip ? { chip: true } : {}),
+      swatch,
+      label: r.label,
+      labelBox,
+    };
   });
   return { box, items };
 }

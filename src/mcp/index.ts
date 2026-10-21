@@ -11,14 +11,17 @@
 // fixes and calls again; isError means the call itself failed (bad arguments, a crash).
 //
 // mcp/protocol.ts answers the JSON-RPC methods, mcp/stdio.ts and mcp/http.ts carry them,
-// mcp/tools/ holds one file per tool and mcp/kit.ts what the tools share.
+// mcp/tools/ holds one file per tool, mcp/kit.ts what the tools share and mcp/viewer.ts the
+// MCP Apps view (ui://orrery/viewer) that render and review results open in.
 import type { Args } from "../cli/args.ts";
 import { usage } from "../cli/io.ts";
 import { serveHttp } from "./http.ts";
+import { cmdMcpInstall } from "./install.ts";
 import { serveStdio } from "./stdio.ts";
 
 export async function cmdMcp(args: Args): Promise<void> {
-  if (args._.length) usage(`mcp takes no arguments (got ${args._.join(" ")})`);
+  if (args._[0] === "install") return cmdMcpInstall({ ...args, _: args._.slice(1) });
+  if (args._.length) usage(`mcp takes no arguments but install (got ${args._.join(" ")})`);
   const port = args.flags.port;
   if (port === undefined) return serveStdio();
   if (!/^\d{1,5}$/.test(String(port)) || Number(port) > 65535)

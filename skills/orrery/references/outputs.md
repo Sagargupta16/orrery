@@ -72,6 +72,22 @@ A single file with no network requests: header with the title, Theme (light/dark
 - The SVG download is named for the theme on screen (`<name>-light.svg`, `<name>-dark.svg`) and follows the Theme button.
 - The PNG download is drawn by the browser from a still copy of the diagram at 3x, so it never shows a packet frozen mid-edge, as the animated view would.
 
+## Mermaid
+
+`-f mmd` writes the diagram as Mermaid text, for places that draw Mermaid and nothing else (GitHub and GitLab Markdown, Notion, Obsidian, many wikis):
+
+- An architecture becomes `architecture-beta`: groups and services, each with a `logos:` icon when Mermaid's logo pack has one for the product (otherwise a built-in icon by category or shape), edges on the sides the layout drew them, labels as `-["..."]-`.
+- `kind: state` becomes `stateDiagram-v2` (with `[*]`, composite states and `<<choice>>`), `mindmap` a `mindmap`, `journey` a `journey` (scores -2 to 2 become 1 to 5), and flowcharts, processes and trees a `flowchart` with subgraphs, the shapes mapped and dashed, dotted and thick lines kept.
+- Mermaid lays it out again with its own engine, so the picture differs from orrery's; dashed styles on architecture edges and state notes do not carry over.
+
+## Sequence
+
+`-f sequence.svg` draws the main path as a sequence diagram: one lifeline per node the path visits, left to right in the order it first reaches them, each with its icon, and one message per hop, in the spec's theme and skin. The path is the edges' `step:` order when they carry steps, else the longest chain of directed edges. Arrows that point back are dashed; self-loops and two-way edges are drawn as such. The file is still, with no animation.
+
+## The spec inside the picture
+
+Every SVG and PNG carries the spec that drew it: the SVG in `<metadata>` as escaped text (readable, and a one-line spec edit is a one-line diff), the PNG in an `iTXt` chunk named `orrery-spec`. Viewers draw neither, so the pixels are unchanged. `orrery import picture <file>` gives the spec back byte for byte, so a diagram pasted in a wiki or a slide can be edited again. `embed: false` in the spec leaves it out, for pictures that travel outside the team (notes and evidence paths stay private).
+
 ## Design documents
 
 `orrery doc <design.md> [-o out] [-f html,md,docx] [--theme light|dark] [--skin classic|stage]` builds a document from Markdown. A line `<!-- orrery: diagrams/overview.yaml | The request path from the browser to the database -->` (path relative to the document) becomes Figure N with that caption, numbered in document order; the caption is also the alt text, and the spec's title stands in when there is none. Documents default to the light theme.

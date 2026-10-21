@@ -1,0 +1,78 @@
+{
+  "fixture": "serverless-api",
+  "about": "Answer key for the plan suite. Every service a plan must show, the flows between them, and what it must not draw. Not copied into the run workspace.",
+  "nodes": [
+    {
+      "id": "orders_api",
+      "resources": ["aws_apigatewayv2_api.orders_api"],
+      "icon": "^aws:api-gateway",
+      "keywords": "orders[ _-]?api|http[ _-]?api|api[ _-]?gateway|apigw"
+    },
+    {
+      "id": "create_order",
+      "resources": ["aws_lambda_function.create_order", "file:src/create_order.mjs"],
+      "icon": "^aws:lambda",
+      "keywords": "create[ _-]?orders?|orders?[ _-]?(fn|function|lambda|handler)"
+    },
+    {
+      "id": "orders",
+      "resources": ["aws_dynamodb_table.orders"],
+      "icon": "^aws:dynamodb",
+      "keywords": "orders?[ _-]?table|dynamo"
+    },
+    {
+      "id": "order_events",
+      "resources": ["aws_sqs_queue.order_events"],
+      "icon": "^aws:(sqs|simple-queue-service)",
+      "keywords": "order[ _-]?events|queue|sqs"
+    },
+    {
+      "id": "send_receipt",
+      "resources": ["aws_lambda_function.send_receipt", "file:src/send_receipt.mjs"],
+      "icon": "^aws:lambda",
+      "keywords": "send[ _-]?receipts?|receipts?[ _-]?(fn|function|lambda|sender|writer|worker)"
+    },
+    {
+      "id": "receipts",
+      "resources": ["aws_s3_bucket.receipts"],
+      "icon": "^aws:(s3|simple-storage-service)",
+      "keywords": "receipts?[ _-]?(bucket|store)|s3"
+    }
+  ],
+  "optional": [
+    {
+      "id": "logs",
+      "resources": ["aws_cloudwatch_log_group.create_order", "aws_cloudwatch_log_group.send_receipt"],
+      "icon": "^aws:cloudwatch",
+      "keywords": "\\blogs?\\b|cloudwatch"
+    }
+  ],
+  "boundaries": "^aws:(cloud|region|account)$|^(zone|box|dashed|boundary)$",
+  "actors": "users?|clients?|customers?|browsers?|internet|mobile|people|persons?|callers?|shoppers?",
+  "glue": [
+    "^aws_iam_",
+    "^data\\.",
+    "^aws_lambda_permission\\.",
+    "^aws_apigatewayv2_(integration|route|stage)\\.",
+    "^aws_lambda_event_source_mapping\\.",
+    "^random_"
+  ],
+  "glueKeywords": "\\b(iam|roles?|polic(y|ies)|permissions?|integrations?|routes?|stages?)\\b|identity-and-access|event[ _-]?source",
+  "edges": [
+    { "from": "@actor", "to": "orders_api", "optional": true },
+    { "from": "orders_api", "to": "create_order" },
+    { "from": "create_order", "to": "orders" },
+    { "from": "create_order", "to": "order_events" },
+    { "from": "order_events", "to": "send_receipt", "why": "the event source mapping pulls from the queue, so the arrow follows the data" },
+    { "from": "send_receipt", "to": "receipts" }
+  ],
+  "forbidden": [
+    {
+      "from": "send_receipt",
+      "to": "orders",
+      "either": true,
+      "why": "depends_on on send_receipt is deploy order; the function never touches the table"
+    }
+  ],
+  "pass": { "nodeRecall": 1, "edgeRecall": 0.8, "invented": 0, "glue": 0, "forbidden": 0 }
+}

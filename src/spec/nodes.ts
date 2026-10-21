@@ -14,6 +14,7 @@ import {
 } from "../types.ts";
 import { type Ctx, claim, entries } from "./context.ts";
 import { ICON_ID, NODE_KEYS, NODE_SYNONYMS, SHAPE_SYNONYMS } from "./keys.ts";
+import { metaOf, tagged } from "./meta.ts";
 import { closest, suggestIds } from "./suggest.ts";
 import { localFix, localIcon, type Settings } from "./top.ts";
 import { hexColor, isObj, type Obj, oneOf, pick, str, unknownKeys } from "./values.ts";
@@ -55,6 +56,8 @@ function parseNode(ctx: Ctx, settings: Settings, id: string, value: unknown) {
     (icon ? iconInfo(icon)?.name : undefined) ??
     id;
   const { rank, align } = nodeRank(ctx, id, n);
+  const on = str(pick(n, "on", NODE_SYNONYMS));
+  const meta = metaOf(ctx, n, `node "${id}"`, { node: id });
   ctx.nodes.push({
     id,
     label,
@@ -63,7 +66,8 @@ function parseNode(ctx: Ctx, settings: Settings, id: string, value: unknown) {
     look,
     shape,
     parent: str(pick(n, "in", NODE_SYNONYMS)),
-    color,
+    // Its own color, else the first of its tags' colors.
+    color: color ?? tagged(ctx, meta.tags).color,
     badge: str(pick(n, "badge", NODE_SYNONYMS)),
     url,
     iconSize,
@@ -72,6 +76,8 @@ function parseNode(ctx: Ctx, settings: Settings, id: string, value: unknown) {
     ...(score !== undefined ? { score } : {}),
     ...(rank !== undefined ? { rank } : {}),
     ...(align !== undefined ? { align } : {}),
+    ...(on ? { on } : {}),
+    ...meta,
   });
 }
 

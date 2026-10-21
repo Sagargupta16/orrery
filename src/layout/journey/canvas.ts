@@ -46,9 +46,12 @@ export function canvasOf(grid: Grid, gridBottom: number): Canvas {
 /** The line-style key under the grid, right-aligned, as layout() draws it. */
 function placeLegend(entries: LegendEntry[], width: number, height: number): SceneLegend {
   const P = 10;
+  // A tag row keeps its color, and its chip when the tag sets no line style.
   const rows = entries.map((e) => ({
     line: e.line,
     label: textBlock(e.label, SIZES.edgeLabel, 240),
+    ...(e.color ? { color: e.color } : {}),
+    ...(e.chip ? { chip: true } : {}),
   }));
   const w = Math.ceil(P + 28 + 8 + Math.max(...rows.map((r) => r.label.width)) + P);
   const pitch = rows.map((r) => Math.max(18, r.label.height + 3));
@@ -65,7 +68,14 @@ function placeLegend(entries: LegendEntry[], width: number, height: number): Sce
       h: round(r.label.height),
     };
     y += pitch[i] ?? 18;
-    return { line: r.line, swatch, label: r.label, labelBox };
+    return {
+      line: r.line,
+      ...(r.color ? { color: r.color } : {}),
+      ...(r.chip ? { chip: true } : {}),
+      swatch,
+      label: r.label,
+      labelBox,
+    };
   });
   return { box, items };
 }

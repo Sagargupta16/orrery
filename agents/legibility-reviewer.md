@@ -30,7 +30,7 @@ When the display PNG is taller or wider than 1568 px, the review also writes `<b
 
 Return only a JSON array (no prose, no code fence), at most 8 findings, most important first. Each finding:
 
-- `id`: the rubric rule id (LEG-01 to LEG-09).
+- `id`: the rubric rule id (LEG-01 to LEG-12).
 - `dimension`: `quality` (or `layout` for LEG-08 and LEG-09).
 - `severity`: `major` when a part the brief needs cannot be read at this width; `minor` otherwise. Never `blocker`.
 - `subjects`: spec ids from `elements`, or `[]` for the whole diagram.

@@ -1,0 +1,140 @@
+#!/usr/bin/env node
+// Bundles orrery for the browser: the website's playground (site/src/pages/play.astro) runs the
+// same parser, layout, renderers and review as the CLI, in a Web Worker. Nothing in src/ changes
+// for it: Node's builtins resolve to shims over an in-memory file system
+// (site/src/play/worker/shims/), and the worker fills that file system from the site.
+//
+//   site/public/play/orrery.<hash>.js   the worker: src/ + yaml + ELK (EPL-2.0), minified
+//   site/public/play/skill/             icon catalogs, font metrics and faces, example icons
+//   site/src/data/generated/play.json   the worker's file name and size, for the page
+//
+// npm icon libraries are not copied: the worker downloads them from jsDelivr at the version and
+// sha256 the catalog pins, like the CLI. The site's build and dev scripts run this after
+// prepare.mjs; CI installs only the site's dependencies, so esbuild resolves from site/ first.
+//
+//   node scripts/build-browser.mjs
+import { createHash } from "node:crypto";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { gzipSync } from "node:zlib";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const site = join(root, "site");
+const out = join(site, "public/play");
+const shims = join(site, "src/play/worker/shims");
+const skill = join(root, "skills/orrery");
+const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+
+function resolveFrom(name) {
+  for (const dir of [site, root]) {
+    try {
+      return createRequire(join(dir, "package.json")).resolve(name);
+    } catch {}
+  }
+  throw new Error(`cannot find ${name}; run pnpm --dir site install`);
+}
+const { build } = await import(pathToFileURL(resolveFrom("esbuild")).href);
+
+rmSync(out, { recursive: true, force: true });
+mkdirSync(out, { recursive: true });
+
+// The files the renderer reads, under the same layout as the skill folder, so src/paths.ts finds
+// them at /skill like it finds the real folder.
+const manifest = {};
+function copyTree(from, to, keep) {
+  mkdirSync(join(out, "skill", to), { recursive: true });
+  for (const file of readdirSync(from).sort()) {
+    if (!keep.test(file)) continue;
+    const data = readFileSync(join(from, file));
+    writeFileSync(join(out, "skill", to, file), data);
+    manifest[`/skill/${to}/${file}`] = data.length;
+  }
+}
+copyTree(join(skill, "assets/icons"), "assets/icons", /\.json$/);
+copyTree(join(skill, "assets/fonts"), "assets/fonts", /\.(json|ttf|txt)$/);
+copyTree(join(skill, "examples/icons"), "examples/icons", /\.svg$/);
+
+const BUILTINS = {
+  fs: "fs.ts",
+  "fs/promises": "fs.ts",
+  path: "path.ts",
+  process: "process.ts",
+  buffer: "buffer.ts",
+  url: "node.ts",
+  os: "node.ts",
+  module: "node.ts",
+  crypto: "node.ts",
+  zlib: "node.ts",
+};
+
+/** A JS string literal for generated code: anything but plain word characters goes in as \u escapes. */
+const jsString = (s) =>
+  `"${s.replace(/[^\w :.-]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`)}"`;
+
+const shimPlugin = {
+  name: "orrery-browser",
+  setup(b) {
+    b.onResolve({ filter: /^(node:)?[a-z/_]+$/ }, (args) => {
+      const name = args.path.replace(/^node:/, "");
+      if (BUILTINS[name]) return { path: join(shims, BUILTINS[name]) };
+      // Any other builtin is only reached on paths the playground never takes (the CLI, MCP).
+      if (args.path.startsWith("node:")) return { path: args.path, namespace: "node-stub" };
+      return undefined;
+    });
+    b.onLoad({ filter: /.*/, namespace: "node-stub" }, (args) => ({
+      contents: `module.exports = new Proxy({}, { get: (_, key) => key === "__esModule" ? false : () => { throw new Error(${jsString(`${args.path} is not available in the playground`)}); } });`,
+      loader: "js",
+    }));
+    b.onResolve({ filter: /^orrery-elk$/ }, () => ({
+      path: join(skill, "scripts/vendor/elk.bundled.cjs"),
+    }));
+  },
+};
+
+const result = await build({
+  entryPoints: [join(site, "src/play/worker/index.ts")],
+  bundle: true,
+  platform: "browser",
+  format: "iife",
+  target: ["es2022", "chrome111", "firefox114", "safari16.4"],
+  minify: true,
+  write: false,
+  legalComments: "eof",
+  metafile: true,
+  logLevel: "warning",
+  // ELK's own code compares with -0; it is vendored unmodified.
+  logOverride: { "empty-import-meta": "silent", "equals-negative-zero": "silent" },
+  nodePaths: [join(site, "node_modules"), join(root, "node_modules")],
+  inject: [join(shims, "globals.ts")],
+  define: {
+    "import.meta.url": JSON.stringify("file:///skill/scripts/orrery.mjs"),
+    "process.env.NODE_ENV": JSON.stringify("production"),
+    __PLAY_FILES__: JSON.stringify(manifest),
+    __ORRERY_VERSION__: JSON.stringify(pkg.version),
+    __VERSION__: JSON.stringify(pkg.version),
+  },
+  banner: {
+    js: `// orrery ${pkg.version} (MIT) for the browser, generated by scripts/build-browser.mjs. Bundles yaml (ISC) and ELK (EPL-2.0, https://github.com/kieler/elkjs).`,
+  },
+  plugins: [shimPlugin],
+});
+
+const code = result.outputFiles[0].contents;
+const hash = createHash("sha256").update(code).digest("hex").slice(0, 10);
+const worker = `orrery.${hash}.js`;
+writeFileSync(join(out, worker), code);
+const gzip = gzipSync(code, { level: 9 }).length;
+const assets = Object.values(manifest).reduce((n, b) => n + b, 0);
+
+const dataOut = join(site, "src/data/generated");
+mkdirSync(dataOut, { recursive: true });
+writeFileSync(
+  join(dataOut, "play.json"),
+  `${JSON.stringify({ worker: `play/${worker}`, bytes: code.length, gzip, version: pkg.version }, null, 2)}\n`,
+);
+const kb = (n) => `${(n / 1024).toFixed(0)} KB`;
+console.log(
+  `wrote play/${worker} (${kb(code.length)}, ${kb(gzip)} gzipped) and ${Object.keys(manifest).length} assets (${kb(assets)})`,
+);

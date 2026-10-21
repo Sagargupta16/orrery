@@ -9,13 +9,17 @@ import { SIZES } from "./sizes.ts";
 import { straightenEnd } from "./steer.ts";
 
 /** ELK's section from the edge's source to its target (a flipped edge's, backwards). */
-export const sectionPoints = (ctx: Placed, e: ModelEdge, sec: ElkSection): Point[] => {
+export const sectionPoints = (
+  ctx: Omit<Placed, "seats" | "seatGrow">,
+  e: ModelEdge,
+  sec: ElkSection,
+): Point[] => {
   const pts = [sec.startPoint, ...(sec.bendPoints ?? []), sec.endPoint].map(ctx.shift);
   return ctx.opts.flip?.has(e.id) ? pts.reverse() : pts;
 };
 
 /** The route ELK drew for an edge it laid out, without points inside straight runs. */
-export const elkRoute = (ctx: Placed, e: ModelEdge) => {
+export const elkRoute = (ctx: Omit<Placed, "seats" | "seatGrow">, e: ModelEdge) => {
   const sec = ctx.rel.free(e) ? undefined : findEdge(ctx.result, e.id)?.sections?.[0];
   return sec ? dropStraightPoints(sectionPoints(ctx, e, sec)) : undefined;
 };

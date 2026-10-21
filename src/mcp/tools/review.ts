@@ -15,6 +15,7 @@ import {
   type Tool,
   verdict,
 } from "../kit.ts";
+import { VIEWER_LINK, viewerMeta } from "../viewer.ts";
 
 export const reviewTool: Tool = {
   name: "review",
@@ -38,6 +39,7 @@ export const reviewTool: Tool = {
     additionalProperties: false,
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
+  _meta: VIEWER_LINK,
   async run(input, ctx) {
     const spec = specInput(input, ctx);
     const width = num(input, "width", 200, 4000, true) ?? DEFAULT_REVIEW_WIDTH;
@@ -62,6 +64,16 @@ export const reviewTool: Tool = {
     }
     // A run that renders the reader's look as well hands that picture over instead.
     const look = "look" in run && run.look instanceof Uint8Array ? run.look : run.png;
-    return [json(run.report), ...(look ? [png(look)] : [])];
+    const content = [json(run.report), ...(look ? [png(look)] : [])];
+    const view = ctx.ui
+      ? await viewerMeta({
+          model,
+          name: spec.name,
+          theme: theme ?? model.theme,
+          skin,
+          report: run.report,
+        })
+      : undefined;
+    return view ? { content, _meta: view } : content;
   },
 };

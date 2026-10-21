@@ -78,8 +78,16 @@ export function legend(ctx: Ctx): string {
         : item.line === "dotted"
           ? ` stroke-dasharray="${n(h)} ${n(2.5 * h)}"`
           : "";
+    // A tag row: its sample in the tag's color, or a chip of that color when it sets no line.
+    const color = item.color ?? k.line;
     parts.push(
-      `<path d="M${n(s.x)} ${n(y)} H${n(s.x + s.w)}" fill="none" ${stroke(k.line, k.arrow, item.line === "thick" ? 1.8 * h : h)} stroke-linecap="round"${dash}/>`,
+      item.chip
+        ? rect(
+            { x: s.x + 6, y: s.y + 1, w: s.w - 12, h: s.h - 2 },
+            3,
+            `${fill(color, 0.3)} ${stroke(color, 1, h)}`,
+          )
+        : `<path d="M${n(s.x)} ${n(y)} H${n(s.x + s.w)}" fill="none" ${stroke(color, k.arrow, item.line === "thick" ? 1.8 * h : h)} stroke-linecap="round"${dash}/>`,
     );
     const b = item.labelBox;
     parts.push(

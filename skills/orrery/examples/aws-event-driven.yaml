@@ -30,15 +30,15 @@ nodes:
   analytics: { icon: aws:simple-queue-service-queue, label: Analytics queue, note: Amazon SQS queue, in: region }
 
 edges:
-  # The numbered path is the main story. EventBridge invokes every target asynchronously, so
+  # The solid path is the main story. EventBridge invokes every target asynchronously, so
   # dashed marks the other rule targets and subscribers, not a different delivery mode.
-  - customers -> api: { step: 1 }
-  - api -> bus: { label: OrderPlaced, step: 2 }
-  - bus -> workflow: { label: fulfillment rule, step: 3 }
+  - customers -> api
+  - api -> bus: { label: OrderPlaced }
+  - bus -> workflow: { label: fulfillment rule }
   # constraint: false keeps the three workflow steps side by side in one row instead of three rows.
   - { from: reserve, to: charge, constraint: false }
   - { from: charge, to: ship, constraint: false }
-  - workflow -> table: { label: order status, step: 4 }
+  - workflow -> table: { label: order status }
   - bus --> billing: billing rule
   - billing --> invoice
   - bus --> notices: notification rule

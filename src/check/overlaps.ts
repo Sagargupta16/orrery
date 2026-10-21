@@ -14,7 +14,11 @@ export function edgeLabelCovers({ scene, nodeBoxes, warn }: CheckContext): void 
           `label "${e.label?.lines.join(" ")}" on ${e.from} -> ${e.to} covers node "${nb.id}"`,
           {
             subject: { edge: e.id, node: nb.id },
-            fixes: ["shorten the edge label", "use layout: { spacing: loose }"],
+            fixes: [
+              "use layout: { spacing: loose }",
+              `move "${nb.id}" earlier or later in the nodes list`,
+              "shorten the edge label",
+            ],
           },
         );
       }
@@ -30,7 +34,7 @@ export function edgeLabelCovers({ scene, nodeBoxes, warn }: CheckContext): void 
           `edge labels on ${a.e.from} -> ${a.e.to} and ${b.e.from} -> ${b.e.to} overlap`,
           {
             subject: { edges: [a.e.id, b.e.id] },
-            fixes: ["shorten one label or drop a redundant one", "use layout: { spacing: loose }"],
+            fixes: ["use layout: { spacing: loose }", "shorten one label or drop a redundant one"],
           },
         );
       }
@@ -170,9 +174,9 @@ export function labelOnBorder({ scene, warn }: CheckContext): void {
           subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
           evidence: { label: boxOf(b), group: boxOf(r), sides: on.join(",") },
           fixes: [
-            "shorten the label so it fits between the borders",
             `move "${e.from}" or "${e.to}" in the nodes list so the edge's middle sits inside or outside "${g.id}"`,
             "use layout: { spacing: loose }",
+            "shorten the label so it fits between the borders",
           ],
         },
       );

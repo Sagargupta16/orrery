@@ -5,7 +5,9 @@ import { newContext } from "./context.ts";
 import { parseEdges } from "./edges.ts";
 import { applyContains, checkAround, checkCycles, checkParents, parseGroups } from "./groups.ts";
 import { TOP_KEYS } from "./keys.ts";
+import { checkBorders, checkViews, parseTagStyles, parseViews, tagLegend } from "./meta.ts";
 import { checkAlign, parseNodes } from "./nodes.ts";
+import { applyClasses, applyIncludes } from "./reuse.ts";
 import { parseLegend, parseLocalIcons, parseSettings, parseStages, parseStory } from "./top.ts";
 import { isObj, type Obj, type Report, reporter, str, unknownKeys } from "./values.ts";
 
@@ -17,8 +19,10 @@ export interface ParseResult {
 export function parseSpec(source: string, filename = "diagram.yaml"): ParseResult {
   const diagnostics: Diagnostic[] = [];
   const report = reporter(diagnostics);
-  const raw = readSource(source, filename, report.err);
-  if (!raw) return { diagnostics };
+  const read = readSource(source, filename, report.err);
+  if (!read) return { diagnostics };
+  // Shared specs and classes merge into the raw items first, so every check below reads them.
+  const raw = applyClasses(applyIncludes(read, filename, report), report);
   const ctx = newContext(raw, filename, diagnostics, report);
 
   unknownKeys(ctx, raw, TOP_KEYS, {}, "the top level");
@@ -26,6 +30,8 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
   const legend = parseLegend(ctx);
   parseLocalIcons(ctx);
   parseStages(ctx, settings.kind);
+  // Before the items: a tag's style gives a node, group or edge its color and line.
+  const tagStyles = parseTagStyles(ctx);
 
   parseGroups(ctx);
   parseNodes(ctx, settings);
@@ -37,6 +43,10 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
 
   parseEdges(ctx);
   const story = parseStory(ctx);
+  checkBorders(ctx);
+  legend.push(...tagLegend(ctx));
+  const views = parseViews(ctx);
+  checkViews(ctx, views);
 
   const { nodes, groups, edges, stages, localIcons } = ctx;
   if (!nodes.length) {
@@ -67,6 +77,8 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     ...(stages.length ? { stages } : {}),
     ...(story.length ? { story } : {}),
     ...(localIcons.length ? { icons: localIcons } : {}),
+    ...(views.length ? { views } : {}),
+    ...(Object.keys(tagStyles).length ? { tagStyles } : {}),
   };
   return { model, diagnostics };
 }

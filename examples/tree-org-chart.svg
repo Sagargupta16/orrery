@@ -1,4 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1337" height="408" viewBox="0 0 1337 408" role="img" aria-labelledby="tree-org-chart-dark-sdw-title tree-org-chart-dark-sdw-desc" font-family="&#39;Geist Mono&#39;, ui-monospace, SFMono-Regular, Menlo, Consolas, &#39;Liberation Mono&#39;, monospace">
+<metadata><orrery:spec xmlns:orrery="https://sagargupta.online/orrery/spec" version="1"># yaml-language-server: $schema=../references/diagram.schema.json
+title: Product organization
+subtitle: Three levels, from the chief product officer to the teams, as an org chart
+kind: tree
+look: card
+
+nodes:
+  cpo: { icon: generic:user, label: Chief Product Officer, note: Strategy and roadmap }
+  design: { icon: generic:browser, label: Design, note: 9 people }
+  engineering: { icon: generic:code, label: Engineering, note: 24 people }
+  pm: { icon: generic:dashboard, label: Product management, note: 7 people }
+  research: { icon: generic:search, label: User research }
+  brand: { icon: generic:web, label: Brand and UI }
+  platform: { icon: generic:server, label: Platform }
+  web: { icon: generic:browser, label: Web app }
+  mobile: { icon: generic:mobile, label: Mobile apps }
+  growth: { icon: generic:metrics, label: Growth }
+  payments: { icon: generic:payment, label: Payments }
+
+edges:
+  - cpo -> design, engineering, pm
+  - design -> research, brand
+  - engineering -> platform, web, mobile
+  - pm -> growth, payments
+</orrery:spec></metadata>
 <title id="tree-org-chart-dark-sdw-title">Product organization</title>
 <desc id="tree-org-chart-dark-sdw-desc">Product organization. 11 components. Connections: Chief Product Officer to Design; Chief Product Officer to Engineering; Chief Product Officer to Product management; Design to User research; Design to Brand and UI; Engineering to Platform; Engineering to Web app; Engineering to Mobile apps; Product management to Growth; Product management to Payments.</desc>
 <defs><linearGradient id="tree-org-chart-dark-bg" x1="0" y1="0" x2="0.34" y2="0.94"><stop offset="0" stop-color="#0e1a24"/><stop offset="0.6" stop-color="#0b1012"/></linearGradient><pattern id="tree-org-chart-dark-grid" width="30.39" height="30.39" patternUnits="userSpaceOnUse"><path d="M0 0.76H30.39M0.76 0V30.39" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1.52"/></pattern><radialGradient id="tree-org-chart-dark-wash" gradientUnits="userSpaceOnUse" cx="672.75" cy="239" r="428.37"><stop offset="0" stop-color="#60a5fa" stop-opacity="0.12"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></radialGradient><symbol id="tree-org-chart-dark-s1" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0-8 0M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></symbol><symbol id="tree-org-chart-dark-s2" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm4-2v4"/></symbol><symbol id="tree-org-chart-dark-s3" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m7 8l-4 4l4 4m10-8l4 4l-4 4M14 4l-4 16"/></symbol><symbol id="tree-org-chart-dark-s4" viewBox="0 0 24 24" overflow="visible"><g fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M10 13a2 2 0 1 0 4 0a2 2 0 1 0-4 0m3.45-1.45L15.5 9.5"/><path d="M6.4 20a9 9 0 1 1 11.2 0z"/></g></symbol><symbol id="tree-org-chart-dark-s5" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0-14 0m18 11l-6-6"/></symbol><symbol id="tree-org-chart-dark-s6" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm0 8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm4-7v.01M7 16v.01"/></symbol><symbol id="tree-org-chart-dark-s7" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zm5-1h2m-1 13v.01"/></symbol><symbol id="tree-org-chart-dark-s8" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19h16M4 15l4-6l4 2l4-5l4 4"/></symbol><symbol id="tree-org-chart-dark-s9" viewBox="0 0 24 24" overflow="visible"><path fill="none" stroke="#919394" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm0 2h18M7 15h.01M11 15h2"/></symbol></defs>

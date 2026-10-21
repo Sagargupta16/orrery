@@ -94,10 +94,14 @@ for (const p of market.plugins ?? []) {
     fail(".claude-plugin/marketplace.json", `version ${p.version} != package.json ${pkg.version}`);
 }
 // The Agent Plugins manifest (Copilot CLI, Cursor) and the Gemini CLI extension manifest.
-for (const f of ["plugin.json", "gemini-extension.json"]) {
+for (const f of ["plugin.json", "gemini-extension.json", "mcpb/manifest.json"]) {
   const v = JSON.parse(readFileSync(join(root, f), "utf8")).version;
   if (v !== pkg.version) fail(f, `version ${v} != package.json ${pkg.version}`);
 }
+// The MCP Registry entry names the version twice: the server and its npm package.
+const registry = JSON.parse(readFileSync(join(root, "server.json"), "utf8"));
+for (const v of [registry.version, ...(registry.packages ?? []).map((p) => p.version)])
+  if (v !== pkg.version) fail("server.json", `version ${v} != package.json ${pkg.version}`);
 // Example counts quoted in the manifests and docs follow the examples folder.
 const exampleCount = files.filter((f) => /^skills\/orrery\/examples\/[^/]+\.ya?ml$/.test(f)).length;
 for (const f of [

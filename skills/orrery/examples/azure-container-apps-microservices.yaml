@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Microservices on Azure Container Apps
+subtitle: The ingestion service queues delivery requests in Service Bus; the workflow service dispatches them to three services, each with its own data store
+direction: right
+# Filled triangles, as in Azure's reference diagrams; one port per edge.
+arrowhead: filled
+layout: { merge: false }
+
+legend:
+  solid: Requests and data
+  dashed: Service Bus messages
+  dotted: Logs and metrics
+
+groups:
+  sub: { type: azure:subscription, label: Workload subscription }
+  rg: { type: azure:resource-group, label: rg-drone-delivery, in: sub }
+  # The environment runs in a Microsoft-managed network in this reference, so no VNet is drawn.
+  env: { type: box, label: Container Apps environment, icon: azure:container-apps-environments, in: rg }
+
+nodes:
+  clients: { icon: azure:users, label: Client apps }
+  ingestion: { icon: azure:container-apps-environments, label: Ingestion service, note: External ingress, in: env }
+  bus: { icon: azure:azure-service-bus, label: Azure Service Bus, note: Delivery requests queue, in: rg }
+  workflow: { icon: azure:container-apps-environments, label: Workflow service, note: Dispatches requests, in: env }
+  package: { icon: azure:container-apps-environments, label: Package service, in: env }
+  scheduler: { icon: azure:container-apps-environments, label: Drone scheduler service, in: env }
+  delivery: { icon: azure:container-apps-environments, label: Delivery service, in: env }
+  docdb: { icon: azure:azure-documentdb, label: Azure DocumentDB, note: Packages, in: rg }
+  cosmos: { icon: azure:azure-cosmos-db, label: Azure Cosmos DB for NoSQL, note: Drone schedules, in: rg }
+  kv: { icon: azure:key-vaults, label: Key Vault, note: Secrets via managed identity, in: rg }
+  redis: { icon: azure:azure-managed-redis, label: Azure Managed Redis, note: Deliveries in flight, in: rg }
+  insights: { icon: azure:application-insights, label: Application Insights, note: OpenTelemetry traces, in: rg }
+  logs: { icon: azure:log-analytics-workspaces, label: Log Analytics workspace, note: Azure Monitor, in: rg }
+  acr: { icon: azure:container-registries, label: Container Registry, note: Images reused from AKS, in: rg }
+
+edges:
+  - clients -> ingestion: HTTPS
+  # Written from Service Bus so the queue sits before the environment, as in Microsoft's diagram;
+  # the arrowhead stays on the queue, because the ingestion service sends.
+  - { from: bus, to: ingestion, arrow: start, line: dashed, label: enqueue }
+  - bus --> workflow
+  # The other services keep their HTTP APIs and are reached by internal ingress.
+  - workflow -> package, scheduler, delivery
+  - package -> docdb
+  - scheduler -> cosmos
+  - delivery -> redis
+  # Only these two services read Key Vault, with user-assigned managed identities.
+  - scheduler, delivery -> kv
+  # Laid out from the monitors and the registry (arrowheads on them) so they stack under Service Bus.
+  - { from: [insights, logs], to: env, arrow: start, line: dotted }
+  - { from: acr, to: env, arrow: start, label: pull images }

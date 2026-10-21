@@ -1,6 +1,7 @@
 // The conventions dimension: which rubrics apply, legend and title, the AWS naming, boundary and
 // service rules, step callouts, C4 notation, brand marks, Google Cloud icons, and notation checks.
-import { aliases, iconInfo, resolveIcon } from "../icons/index.ts";
+import { aliases, type IconInfo, iconInfo, resolveIcon } from "../icons/index.ts";
+import type { ModelGroup } from "../types.ts";
 import { r1, real } from "./geometry.ts";
 import { edgeName, escapeRe, hasPhrase, norm } from "./names.ts";
 import { NOTATION_CHECKS, NOTATIONS } from "./notations.ts";
@@ -57,10 +58,11 @@ export function measureConventions(c: Ctx): { vendors: string[]; rubrics: string
   const { c4, notation, vendors, rubrics } = rubricsFor(c);
 
   const missing = legendAndTitle(c, c4);
+  const subtitle = subtitleEcho(c);
   const { shorts, longAws } = awsNames(c);
-  const boundaries = awsBoundaryLabels(c);
-  const serviceGroups = awsServiceGroups(c);
-  const serviceLabels = awsServiceLabels(c);
+  const boundaries = awsBoundaryLabels(c) + vendorBoundaryLabels(c);
+  const groupsOfOne = serviceGroups(c);
+  const named = serviceLabels(c);
   const callouts = calloutSizes(c);
   const { c4Elements, c4Relations } = c4Notation(c, c4);
   const recolored = recoloredMarks(c);
@@ -69,18 +71,27 @@ export function measureConventions(c: Ctx): { vendors: string[]; rubrics: string
   Object.assign(m, {
     vendors: vendors.join(",") || "none",
     title: model.title ? "yes" : "no",
+    subtitle,
     legendMissing: missing,
     shortNames: shorts,
     longAwsLabels: longAws,
     boundaryLabels: boundaries,
-    serviceGroups,
-    serviceLabels,
+    serviceGroups: groupsOfOne,
+    serviceLabels: named,
     calloutSizes: callouts,
     c4Elements,
     c4Relations,
     recolored,
     gcpIconMismatches: gcpWrong,
-    ...(notation ? { notation, ...NOTATION_CHECKS[model.kind]?.(c) } : {}),
+    // Only the table's own entries: a kind is never looked up on the object's prototype.
+    ...(notation
+      ? {
+          notation,
+          ...(Object.hasOwn(NOTATION_CHECKS, model.kind)
+            ? NOTATION_CHECKS[model.kind]?.(c)
+            : undefined),
+        }
+      : {}),
   });
   return { vendors, rubrics };
 }
@@ -170,6 +181,67 @@ function legendAndTitle(c: Ctx, c4: boolean): number {
   return missing.length;
 }
 
+/** Words that join the items of a list and say nothing themselves. */
+const JOINERS = new Set(["a", "an", "and", "or", "plus", "the", "then", "to", "via", "with"]);
+
+/**
+ * A subtitle that adds something: no subtitle that repeats the title or lists the nodes.
+ * Measured: every subtitle word but the joiners is a title word, or the subtitle is node and group
+ * labels strung together (two with nothing else, four or more with at most one other word). A
+ * sentence about the system says what the picture alone cannot.
+ */
+function subtitleEcho(c: Ctx): string {
+  const { model, add } = c;
+  if (!model.subtitle) return "none";
+  const stem = (w: string) => w.replace(/s$/, "");
+  const words = (s: string) =>
+    norm(s)
+      .split(" ")
+      .filter((w) => w && !JOINERS.has(w))
+      .map(stem);
+  const title = new Set(words(model.title ?? ""));
+  const sub = words(model.subtitle);
+  let echo: "title" | "labels" | undefined;
+  if (title.size && sub.length && sub.every((w) => title.has(w))) echo = "title";
+  const parts = [...model.nodes, ...model.groups]
+    .flatMap((x) => [
+      x.label,
+      x.label.replace(/^(Amazon|AWS|Azure|Google Cloud|Microsoft)\s+/i, ""),
+    ])
+    .map((l) => words(l).join(" "))
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  let rest = ` ${sub.join(" ")} `;
+  const listed = new Set<string>();
+  for (const p of parts)
+    if (rest.includes(` ${p} `)) {
+      listed.add(p);
+      rest = rest.split(` ${p} `).join(" | ");
+    }
+  const left = rest.split(/[\s|]+/).filter(Boolean).length;
+  if (!echo && ((listed.size >= 2 && !left) || (listed.size >= 4 && left <= 1))) echo = "labels";
+  if (!echo) return "ok";
+  add(
+    "conventions.subtitle-echo",
+    "minor",
+    [],
+    {
+      subtitle: model.subtitle,
+      echoes: echo,
+      ...(echo === "labels" ? { labels: listed.size } : {}),
+    },
+    echo === "title"
+      ? `the subtitle "${model.subtitle}" only repeats the title`
+      : `the subtitle "${model.subtitle}" only lists ${listed.size} labels the diagram already shows`,
+    [
+      "say in the subtitle what the picture alone does not: the scope, the main path, what changes",
+      "drop the subtitle",
+    ],
+    4,
+  );
+  return echo;
+}
+
 /** AWS names (deck slide 17): short forms only after the full name appears somewhere. */
 function awsNames(c: Ctx): { shorts: number; longAws: number } {
   const { model, add } = c;
@@ -229,9 +301,9 @@ function awsNames(c: Ctx): { shorts: number; longAws: number } {
 }
 
 /**
- * AWS-17 (aws-archify composition.md): a boundary group says which boundary it is. Measured: the
- * label does not name it at all ("Web subnet" on a private subnet); whether the name leads, with
- * context after it in parentheses, is the reviewer's call.
+ * AWS-17: a boundary group says which boundary it is. Measured: the label does not name it at all
+ * ("Web subnet" on a private subnet); whether the name leads, with context after it in
+ * parentheses, is the reviewer's call.
  */
 function awsBoundaryLabels(c: Ctx): number {
   const { model, add } = c;
@@ -251,98 +323,326 @@ function awsBoundaryLabels(c: Ctx): number {
       "conventions.boundary-label",
       "minor",
       [g.id],
-      { group: g.id, type: g.type, label: g.label, expected: want.name },
+      { group: g.id, type: g.type, label: g.label, expected: want.name, rule: "AWS-17" },
       `group "${g.id}" draws the ${g.type} boundary but its label "${g.label}" does not say ${want.name}`,
       [`set label: ${label} on "${g.id}"`],
       3,
       [{ op: "set", path: `groups.${g.id}.label`, value: label }],
+      "AWS-17",
     );
   }
   return boundaries;
 }
 
+/** The rubric rule each vendor's form of a naming finding restates: FLOW-12 where none has one. */
+const VENDOR_RULES = {
+  boundary: { azure: "AZ-12", gcp: "GCP-06", k8s: "FLOW-12" },
+  serviceGroup: { aws: "AWS-18", azure: "FLOW-12", gcp: "FLOW-12" },
+  serviceLabel: { aws: "AWS-19", azure: "AZ-07", gcp: "GCP-04" },
+} as const;
+
+interface BoundaryFamily {
+  pack: keyof typeof VENDOR_RULES.boundary;
+  family: string;
+  /** A label that only names the family ("Subnet", "VNet"), normalized. */
+  generic: RegExp;
+  example: string;
+}
+
+/** Azure, Google Cloud and Kubernetes boundary groups, by family (a hub VNet is a VNet). */
+const BOUNDARY_FAMILIES: Record<string, BoundaryFamily> = {
+  "azure:subscription": {
+    pack: "azure",
+    family: "subscription",
+    generic: /^(azure )?subscriptions?$/,
+    example: "Production subscription",
+  },
+  "azure:resource-group": {
+    pack: "azure",
+    family: "resource group",
+    generic: /^(resource groups?|rg)$/,
+    example: "rg-web-prod",
+  },
+  "azure:vnet": {
+    pack: "azure",
+    family: "virtual network",
+    generic: /^(hub )?(virtual networks?|vnets?)$/,
+    example: "vnet-spoke-app",
+  },
+  "azure:vnet-hub": {
+    pack: "azure",
+    family: "virtual network",
+    generic: /^(hub )?(virtual networks?|vnets?)$/,
+    example: "vnet-hub",
+  },
+  "azure:subnet": { pack: "azure", family: "subnet", generic: /^subnets?$/, example: "snet-web" },
+  "gcp:project": {
+    pack: "gcp",
+    family: "project",
+    generic: /^projects?$/,
+    example: "Project shop-prod",
+  },
+  "gcp:region": { pack: "gcp", family: "region", generic: /^regions?$/, example: "us-central1" },
+  "gcp:zone": { pack: "gcp", family: "zone", generic: /^zones?$/, example: "us-central1-a" },
+  "gcp:vpc": {
+    pack: "gcp",
+    family: "VPC network",
+    generic: /^(vpc|vpc networks?|networks?)$/,
+    example: "VPC network shared",
+  },
+  "gcp:subnet": { pack: "gcp", family: "subnet", generic: /^subnets?$/, example: "Subnet web" },
+  "k8s:cluster": {
+    pack: "k8s",
+    family: "cluster",
+    generic: /^(kubernetes )?clusters?$/,
+    example: "Production cluster",
+  },
+  "k8s:namespace": {
+    pack: "k8s",
+    family: "namespace",
+    generic: /^namespaces?$/,
+    example: "Namespace shop",
+  },
+};
+
 /**
- * AWS-18 (aws-archify composition.md): a group with a service's icon in its corner is that one
- * service and holds only its parts. Measured on an icon: override; the presets (Step Functions
- * workflow, EC2 instance contents) hold other services by the deck's own design.
+ * AWS-17 for the other vendors: when a diagram has several boundaries of one family (two VNets,
+ * three subnets, two namespaces), each label says what that one is for. Their frames and corner
+ * icons already say the type, so the vendors' own naming (vnet-hub, snet-web, Project shop-prod)
+ * passes; measured is a label that only repeats the type ("Subnet") or one a sibling of the same
+ * family already carries. One of a kind needs no name.
  */
-function awsServiceGroups(c: Ctx): number {
+function vendorBoundaryLabels(c: Ctx): number {
   const { model, add } = c;
-  let serviceGroups = 0;
+  let boundaries = 0;
+  const families = new Map<string, ModelGroup[]>();
+  for (const g of model.groups) {
+    const f = BOUNDARY_FAMILIES[g.type];
+    if (f)
+      families.set(`${f.pack}:${f.family}`, [...(families.get(`${f.pack}:${f.family}`) ?? []), g]);
+  }
+  for (const members of families.values()) {
+    if (members.length < 2) continue;
+    for (const [i, g] of members.entries()) {
+      const f = BOUNDARY_FAMILIES[g.type];
+      if (!f) continue;
+      const label = norm(g.label);
+      const bare = !label || f.generic.test(label);
+      const twin = bare
+        ? undefined
+        : members.slice(0, i).find((o) => o.parent === g.parent && norm(o.label) === label);
+      if (!bare && !twin) continue;
+      boundaries++;
+      const rule = VENDOR_RULES.boundary[f.pack];
+      add(
+        "conventions.boundary-label",
+        "minor",
+        twin ? [twin.id, g.id] : [g.id],
+        {
+          group: g.id,
+          type: g.type,
+          label: g.label,
+          sameType: members.length,
+          ...(twin ? { twin: twin.id } : {}),
+          rule,
+        },
+        twin
+          ? `groups "${twin.id}" and "${g.id}" are both ${f.family}s labelled "${g.label}" in one parent, so readers cannot tell them apart`
+          : `group "${g.id}" is one of ${members.length} ${f.family}s but its label "${g.label}" only names the ${f.family}, not what it is for`,
+        [`set label: on "${g.id}" to say what it holds, for example ${f.example}`],
+        3,
+        undefined,
+        rule,
+      );
+    }
+  }
+  return boundaries;
+}
+
+/** Icons that stand for no product (people, files, category marks): they take any label. */
+const genericIcon = (info: IconInfo) =>
+  info.type !== "service" ||
+  info.category === "General" ||
+  (info.pack === "azure" && /^(Users|Groups)$/.test(info.name));
+
+/** One service and its parts: a name that extends the other's (SQL Database in SQL). */
+const sameService = (a: IconInfo, b: IconInfo) =>
+  a.id === b.id || a.name.startsWith(b.name) || b.name.startsWith(a.name);
+
+/**
+ * AWS-18: a group with a service's icon in its corner is that one service and holds only its
+ * parts; Azure and Google Cloud frames work the same way (FLOW-12: one service's own frame).
+ * Measured on an icon: override; the presets (Step Functions workflow, EC2 instance contents, a
+ * GKE cluster) hold other services by the vendors' own design.
+ */
+function serviceGroups(c: Ctx): number {
+  const { model, add } = c;
+  let count = 0;
   for (const g of model.groups) {
     const own = typeof g.icon === "string" ? iconInfo(g.icon) : undefined;
-    if (own?.pack !== "aws" || own.type !== "service") continue;
+    if (own?.type !== "service" || !(own.pack in VENDOR_RULES.serviceGroup)) continue;
+    const aws = own.pack === "aws";
     const others = model.nodes.filter((n) => {
       const info = n.parent === g.id && n.icon ? iconInfo(n.icon) : undefined;
-      return info?.pack === "aws" && info.category !== "General" && !info.name.startsWith(own.name);
+      if (info?.pack !== own.pack) return false;
+      return aws
+        ? info.category !== "General" && !info.name.startsWith(own.name)
+        : !genericIcon(info) && !sameService(info, own);
     });
     if (!others.length) continue;
-    serviceGroups++;
+    count++;
+    const rule = VENDOR_RULES.serviceGroup[own.pack as keyof typeof VENDOR_RULES.serviceGroup];
     const names = [...new Set(others.map((n) => iconInfo(n.icon ?? "")?.name ?? n.id))];
     add(
       "conventions.service-group",
       "minor",
       [g.id, ...others.map((n) => n.id)],
-      { group: g.id, service: own.name, others: names.join(", ") },
+      { group: g.id, service: own.name, others: names.join(", "), rule },
       `group "${g.id}" carries the ${own.name} icon but holds ${names.join(", ")}`,
       [
-        `drop icon: from "${g.id}" and use type: aws:generic for a tier of different services`,
+        aws
+          ? `drop icon: from "${g.id}" and use type: aws:generic for a tier of different services`
+          : `drop icon: from "${g.id}" so it reads as a tier of different services`,
         `keep only ${own.name} and its own parts in "${g.id}"`,
       ],
       4,
       [{ op: "unset", path: `groups.${g.id}.icon` }],
+      rule,
     );
   }
-  return serviceGroups;
+  return count;
+}
+
+/** Trailing catalog words that only say "an instance of it": the rest is the product's name. */
+const INSTANCE_WORD =
+  /^(services?|accounts?|sets?|profiles?|environments?|workspaces?|instances?)$/i;
+/** Trailing nouns too general to name a product alone. */
+const PLAIN_WORD =
+  /^(services?|accounts?|sets?|apps?|profiles?|environments?|workspaces?|instances?|resources?|groups?|servers?|databases?|machines?|storage|networks?)$/i;
+
+const singular = (w: string) => w.replace(/ies$/, "y").replace(/([^s])s$/, "$1");
+
+/**
+ * What an Azure or Google Cloud service goes by besides its catalog name ("Key Vaults"): the
+ * singular, the name without Azure, Microsoft, Google or Cloud when what is left still names it,
+ * the name without a trailing instance word ("Log Analytics" for Log Analytics Workspaces), its
+ * own trailing noun ("gateway" for an ExpressRoute gateway on Virtual Network Gateways), catalog
+ * aliases (azure:aks) and initials.
+ */
+function vendorFormsOf(info: IconInfo): string[] {
+  const words = info.name.split(/\s+/);
+  const last = words.at(-1) ?? "";
+  const one = [...words.slice(0, -1), singular(last)].join(" ");
+  const bare = (s: string) => {
+    const rest = s.replace(/^(Azure|Microsoft|Google Cloud|Google|Cloud)\s+/, "");
+    return rest !== s && (rest.includes(" ") || rest.length >= 5) ? rest : "";
+  };
+  const head = words.length > 1 && INSTANCE_WORD.test(last) ? words.slice(0, -1).join(" ") : "";
+  const tail = words.length > 1 && !PLAIN_WORD.test(last) && last.length >= 4 ? last : "";
+  const acronym = words
+    .filter((w) => /^[A-Z]/.test(w))
+    .map((w) => w[0])
+    .join("");
+  return [
+    info.name,
+    one,
+    bare(info.name),
+    bare(one),
+    head.includes(" ") || head.length >= 5 ? head : "",
+    tail,
+    tail && singular(tail),
+    acronym.length >= 2 ? acronym : "",
+    ...aliasesFor(info.id),
+  ].filter(Boolean);
 }
 
 /**
- * AWS-19 (aws-archify composition.md): a service icon's label is the official name and the role
- * goes in note, so every tile reads as a real service. Measured: the label names the service in no
- * form (full name, the name without Amazon or AWS, initials, catalog alias). A node inside a frame of
- * its own service is one of that service's parts (pods in an EKS cluster) and takes a part name.
+ * A node inside a frame of its own service is one of that service's parts (pods in an EKS cluster)
+ * and takes a part name: the frame carries the service's icon or names it.
  */
-function awsServiceLabels(c: Ctx): number {
+function partOfFrame(c: Ctx, parent: string | undefined, info: IconInfo, forms: string[]): boolean {
+  for (let p = parent; p; p = c.parentOf(p)) {
+    const g = c.model.groups.find((x) => x.id === p);
+    const gi = typeof g?.icon === "string" ? iconInfo(g.icon) : undefined;
+    if (
+      gi?.name &&
+      (gi.id === info.id || info.name.startsWith(gi.name) || gi.name.startsWith(info.name))
+    )
+      return true;
+    if (g && forms.some((f) => hasPhrase(norm(g.label), f))) return true;
+  }
+  return false;
+}
+
+/**
+ * AWS-19: a service icon's label is the official name and the role goes in note, so every tile
+ * reads as a real service. Measured: the label names the service in no form (full name, the name
+ * without Amazon or AWS, initials, catalog alias). Azure asks for the product name close to the
+ * icon, in the label or the note (AZ-07), and Google Cloud for the names its guide lists (GCP-04),
+ * so there either may carry it, in any form vendorFormsOf knows. Resource, category and general
+ * icons (people, files) take any label, as do a service's parts in its frame;
+ * outside AWS, a product the title or subtitle names frames the whole diagram, so its tiles may
+ * carry component names (Model Registry on a Vertex AI MLOps diagram).
+ */
+function serviceLabels(c: Ctx): number {
   const { model, add } = c;
-  let serviceLabels = 0;
+  let count = 0;
+  const about = norm(`${model.title ?? ""} ${model.subtitle ?? ""}`);
   for (const n of model.nodes) {
     const info = n.icon ? iconInfo(n.icon) : undefined;
-    if (info?.pack !== "aws" || info.type !== "service" || !/^(Amazon|AWS) /.test(info.name))
+    if (!info || !(info.pack in VENDOR_RULES.serviceLabel)) continue;
+    const aws = info.pack === "aws";
+    if (aws ? info.type !== "service" || !/^(Amazon|AWS) /.test(info.name) : genericIcon(info))
       continue;
-    const forms = [info.name, ...shortFormsOf(info)];
+    const forms = aws ? [info.name, ...shortFormsOf(info)] : vendorFormsOf(info);
+    const text = norm(aws ? n.label : `${n.label} ${n.note ?? ""}`);
     // A label that opens with Amazon or AWS is meant as a service name (the catalog shortens some:
     // "Amazon FSx for WFS"); AWS-08 and the reviewer judge whether it is the right one.
-    if (/^(Amazon|AWS)\s/.test(n.label) || forms.some((f) => hasPhrase(norm(n.label), f))) continue;
-    let part = false;
-    for (let p = n.parent; p && !part; p = c.parentOf(p)) {
-      const g = model.groups.find((x) => x.id === p);
-      const gi = typeof g?.icon === "string" ? iconInfo(g.icon) : undefined;
-      part =
-        !!gi?.name &&
-        (gi.id === info.id || info.name.startsWith(gi.name) || gi.name.startsWith(info.name));
-      part ||= !!g && forms.some((f) => hasPhrase(norm(g.label), f));
-    }
-    if (part) continue;
-    serviceLabels++;
+    if ((aws && /^(Amazon|AWS)\s/.test(n.label)) || forms.some((f) => hasPhrase(text, f))) continue;
+    if (partOfFrame(c, n.parent, info, forms) || (!aws && forms.some((f) => hasPhrase(about, f))))
+      continue;
+    count++;
+    const rule = VENDOR_RULES.serviceLabel[info.pack as keyof typeof VENDOR_RULES.serviceLabel];
+    // Outside AWS the catalog name is plural ("Key Vaults"); the product is one of them.
+    const product = aws
+      ? info.name
+      : info.pack === "azure"
+        ? (vendorFormsOf(info)[1] ?? info.name)
+        : info.name;
     const rest = (n.note ?? "")
       .replace(new RegExp(escapeRe(info.name), "i"), "")
       .replace(/^[\s,;:-]+|[\s,;:-]+$/g, "");
-    const note = rest ? `${n.label}, ${rest}` : n.label;
+    const note = aws
+      ? rest
+        ? `${n.label}, ${rest}`
+        : n.label
+      : rest
+        ? `${product}, ${rest}`
+        : product;
     add(
       "conventions.service-label",
       "minor",
       [n.id],
-      { label: n.label, service: info.name, note: n.note ?? "" },
-      `"${n.id}" is drawn with the ${info.name} icon but its label "${n.label}" does not name the service`,
-      [`set label: ${info.name} and note: ${note} on "${n.id}"`],
-      2,
+      { label: n.label, service: info.name, note: n.note ?? "", rule },
+      aws
+        ? `"${n.id}" is drawn with the ${info.name} icon but its label "${n.label}" does not name the service`
+        : `"${n.id}" is drawn with the ${info.name} icon but neither its label "${n.label}" nor its note names the product`,
       [
-        { op: "set", path: `nodes.${n.id}.label`, value: info.name },
-        { op: "set", path: `nodes.${n.id}.note`, value: note },
+        aws
+          ? `set label: ${info.name} and note: ${note} on "${n.id}"`
+          : `set note: ${note} on "${n.id}", or put ${product} in its label`,
       ],
+      2,
+      aws
+        ? [
+            { op: "set", path: `nodes.${n.id}.label`, value: info.name },
+            { op: "set", path: `nodes.${n.id}.note`, value: note },
+          ]
+        : [{ op: "set", path: `nodes.${n.id}.note`, value: note }],
+      rule,
     );
   }
-  return serviceLabels;
+  return count;
 }
 
 /** Callouts in one size (deck slide 18). Returns how many sizes there are. */

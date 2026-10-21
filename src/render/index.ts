@@ -4,12 +4,24 @@ import { loadLocalIcons } from "../icons/local/index.ts";
 import { fitIcons, layout } from "../layout/index.ts";
 import type { AnimateMode, Diagnostic, Model, Scene, Skin, ThemeName } from "../types.ts";
 import { renderDrawio } from "./drawio.ts";
+import { embedPngSpec, embedSvgSpec } from "./embed.ts";
 import { renderHtml } from "./html.ts";
+import { renderMermaid } from "./mermaid.ts";
 import { renderPng } from "./png.ts";
+import { renderSequence } from "./sequence.ts";
 import { esc, renderSvg } from "./svg.ts";
 import { componentName, renderTsx } from "./tsx.ts";
 
-export const FORMATS = ["svg", "png", "drawio", "drawio.svg", "tsx", "html"] as const;
+export const FORMATS = [
+  "svg",
+  "png",
+  "drawio",
+  "drawio.svg",
+  "tsx",
+  "html",
+  "mmd",
+  "sequence.svg",
+] as const;
 export type Format = (typeof FORMATS)[number];
 
 /** The format a file name ends in, longest first, so `x.drawio.svg` is drawio.svg and not svg. */
@@ -40,6 +52,8 @@ export interface RenderRequest {
   animate?: AnimateMode;
   /** Overrides the spec's skin; an unset animate mode then follows the new skin. */
   skin?: Skin;
+  /** The spec text, embedded in SVG and PNG so a picture reopens as its spec. */
+  source?: string;
 }
 
 export interface Artifact {
@@ -92,7 +106,7 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
   for (const theme of req.themes) {
     const scene = scenes[theme];
     if (!scene || !req.formats.length) continue;
-    const svg = svgOf(theme, scene);
+    const svg = embedSvgSpec(svgOf(theme, scene), req.source);
     let mxfile: string | undefined;
     // draw.io gets the still scene: it has no packets to draw.
     const drawio = () =>
@@ -104,7 +118,10 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
         const still = stillOf(theme, scene) ?? svg;
         artifacts.push({
           ...base,
-          data: await renderPng(still, { scale: req.scale, fonts: req.fonts }),
+          data: embedPngSpec(
+            await renderPng(still, { scale: req.scale, fonts: req.fonts }),
+            req.source,
+          ),
           width: Math.round(scene.width * (req.scale ?? 3)),
           height: Math.round(scene.height * (req.scale ?? 3)),
         });
@@ -113,6 +130,12 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
       if (format === "drawio.svg") artifacts.push({ ...base, data: editableSvg(svg, drawio()) });
       if (format === "tsx")
         artifacts.push({ ...base, data: renderTsx(scene, componentName(model.title, req.name)) });
+      if (format === "mmd") artifacts.push({ ...base, data: renderMermaid(model, scene) });
+      if (format === "sequence.svg")
+        artifacts.push({
+          ...base,
+          data: renderSequence(scene, model, { idPrefix: idPrefix(theme) }),
+        });
     }
   }
   if (req.formats.includes("html") && scenes.light && scenes.dark) {

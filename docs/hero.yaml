@@ -3,6 +3,8 @@ title: GitOps delivery to three clouds
 subtitle: Actions builds and signs, Argo CD syncs three clusters, Cloudflare fronts them, Grafana watches
 direction: right
 layout: { merge: false, spacing: compact }
+# The stage story walks the release: a push builds, the tag bump lands, Argo CD picks it up.
+story: [dev, actions, manifests, argocd]
 
 legend:
   solid: Delivery and traffic
@@ -29,12 +31,12 @@ nodes:
   grafana: { icon: logos:grafana, label: Grafana, note: Dashboards }
 
 edges:
-  - dev -> actions: { label: push to main, step: 1 }
-  - actions -> ghcr: { label: image, step: 2 }
-  - actions -> manifests: { label: bump tag, step: 3 }
+  - dev -> actions: { label: push to main }
+  - actions -> ghcr: { label: image }
+  - actions -> manifests: { label: bump tag }
   - argocd -> manifests: watch
   # Edges to the boundary, not to each cluster: one flow each, no repeated labels.
-  - argocd -> prod: { label: sync, step: 4 }
+  - argocd -> prod: { label: sync }
   - users -> cdn: HTTPS
   - cdn -> prod: traffic
   - grafana --> prod: query

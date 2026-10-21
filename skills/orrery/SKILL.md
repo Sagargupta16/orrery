@@ -11,7 +11,7 @@ description: >-
   flowchart into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.9.0"
+  version: "0.10.0"
   author: Sagar Gupta
 ---
 
@@ -77,7 +77,10 @@ Follow this order. Write the spec early and let the validator steer; do not plan
 - One obvious main flow. List nodes in the order data moves through them; ELK keeps that order where it can.
 - Boundaries from the outside in, with the vendor's group types: `aws:cloud` > `aws:account` > `aws:region` > `aws:vpc` > `aws:az` > `aws:public-subnet` / `aws:private-subnet`; Google Cloud `gcp:cloud` > `gcp:project` > `gcp:region` > `gcp:zone`; Azure `azure:subscription` > `azure:resource-group` > `azure:vnet` > `azure:subnet`; Kubernetes `k8s:cluster` > `k8s:namespace`. Neutral diagrams use `zone`, `box`, `dashed` and `boundary`. Run `orrery styles` for all of them.
 - Official names, short. Labels default to the icon's official name; override with the name readers know, keeping the service in it ("Amazon SQS", "SQS orders queue"), and put the role and specifics in `note` ("Orders queue", "t3.medium x3", "PostgreSQL 16").
-- Label an edge only when it says something the endpoints do not: protocol, action, sync vs async, cross-boundary mechanism. Numbered `step:` edges for walkthroughs.
+- Mix the axes: the main path runs one way and its branches and back ends the other (across and down), so the figure stays compact instead of becoming one long strip.
+- Order a group's children by where the arrows enter it: the child the incoming arrow reaches first comes first in the spec. A hub's targets sit next to it on one side; a fan-out labels each arrow at its target, a fan-in labels the shared hop once.
+- Users, clients and outside systems stay outside every group; draw a group only for a real boundary: a cloud account, subscription or project, a region, a network or subnet, a zone, a cluster or namespace, a site, one service's own frame, a pool or lane. A path blocked on purpose is dashed `#C7243A` with the label `denied`, on any vendor.
+- Label an edge only when it says something the endpoints do not: protocol, action, sync vs async, cross-boundary mechanism. Leave edges unnumbered: the stage story already plays the order, so `step:` badges are only for a walkthrough the user asks to be numbered.
 - Dashed edges for async or optional paths, thick for the hot path, `<->` for request/response only when both directions matter.
 - 6 to 25 nodes. Beyond that, draw an overview plus detail diagrams; repeated workers become one node with `badge: x3`.
 - Keep it compact for where it is shown: `layout: { aspect: 4:3 }` for a README or a document, `16:9` for a slide. When the automatic layout puts something in the wrong place, steer it instead of fighting it: `rank: first` or `last` (or a layer number) on a node, `align: <node>` to line two nodes up across the flow, `cols: 2` on a group to grid its children. A hint that cannot be honored is reported as DG219 with the reason.
@@ -88,7 +91,7 @@ Follow this order. Write the spec early and let the validator steer; do not plan
 
 | Format | Use for |
 | --- | --- |
-| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Animated by default: one story plays along the edges, numbered steps in order (`animate: none` or `--static` for a still file). The default `stage` skin draws it as an animated scene in one tint (monochrome icons, mono caps labels, one story along the edges), dark unless `theme: light`; use `skin: classic` (or `--skin classic`) for vendor architecture docs that must follow the vendor's own deck, colors and icons. |
+| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Animated by default: one story plays along the edges in order (`animate: none` or `--static` for a still file). The default `stage` skin draws it as an animated scene in one tint (icons in a muted share of their own color, mono caps labels, one story along the edges), dark unless `theme: light`; use `skin: classic` (or `--skin classic`) for vendor architecture docs that must follow the vendor's own deck, colors and icons. |
 | `png` | Slides, chat, tickets, anywhere SVG is not accepted. Always a still frame. Rendered with the bundled Inter font at 3x by default (`--scale`), so it stays sharp when zoomed or projected. |
 | `drawio` | Hand-editing in diagrams.net or the VS Code Draw.io extension; every node, group and edge is an editable cell with the official icon embedded. |
 | `drawio.svg` | One file for both: the SVG picture for a README, with the draw.io model inside, so draw.io and the VS Code extension open it as an editable diagram. |
@@ -111,6 +114,7 @@ Details, the JSON receipt and per-format notes: [references/outputs.md](referenc
 - **A repository**: plan before drawing, as [references/planning.md](references/planning.md) says. Read the deploy and infra files first (Terraform, CDK output, CloudFormation, SAM, Kubernetes manifests, Helm output, docker-compose), then the code; every node, group and edge gets its file and line, flows come from call sites, event mappings, subscriptions and network rules (never from `depends_on` or a dependency graph), and each is marked declared or inferred. Show the user the confirm list (Services, Boundaries, Flows, Left out on purpose) before writing the spec. In Claude Code, `/orrery:draw` runs the `orrery:planner` agent for this and adds `orrery:accuracy-reviewer` to the review; elsewhere run the planning pass yourself, then an accuracy pass with [references/review/accuracy.md](references/review/accuracy.md) after the spec renders.
 - **Terraform**: one node per meaningful resource (`aws_lambda_function` -> `aws:lambda`, `aws_db_instance` -> `aws:rds`), groups from VPC/subnet/region/account structure; skip glue resources (policies, attachments) unless they are the point.
 - **Kubernetes**: `k8s:` icons for kinds, `k8s:namespace` groups, Ingress -> Service -> Deployment -> Pods edges.
+- **Infrastructure, a picture, Mermaid**: [references/importing.md](references/importing.md). `orrery import terraform|cloudformation|cdk|kubernetes|compose <file>` draws a deterministic first draft with `evidence:` on every item; `orrery import picture <svg|png>` gives back the spec an orrery picture carries; `/orrery:import-image` reads any other picture.
 - **Mermaid flowchart**: `orrery import mermaid flow.mmd -o docs/architecture.yaml` converts nodes, subgraphs, edge styles and shapes, and sets an official icon where a label is exactly a product name (listed in a comment to check). Then swap the remaining shapes for icons, turn the `zone` groups into vendor groups and validate. Mermaid styling (`classDef`, `style`) is dropped on purpose.
 
 Patterns with spec fragments (three-tier, serverless, event-driven, data lake, streaming, RAG, CI/CD, hybrid network, Kubernetes, system design primitives): [references/patterns.md](references/patterns.md).
@@ -119,13 +123,18 @@ Patterns with spec fragments (three-tier, serverless, event-driven, data lake, s
 
 | Command | Does |
 | --- | --- |
-| `render <spec> [-o base] [-f svg,png,drawio,drawio.svg,tsx,html\|all] [--theme light\|dark\|both] [--scale 3] [--skin classic\|stage] [--animate packets\|flow\|relay\|none] [--static] [--font extra.ttf] [--strict] [--json]` | Validate, lay out, render, write atomically; `--json` prints a receipt with sha256 and size per file. |
+| `render <spec> [-o base] [-f svg,png,drawio,drawio.svg,tsx,html,mmd,sequence.svg\|all] [--theme light\|dark\|both] [--scale 3] [--skin classic\|stage] [--animate packets\|flow\|relay\|none] [--static] [--font extra.ttf] [--view <name>\|all] [--strict] [--json]` | Validate, lay out, render, write atomically; `--json` prints a receipt with sha256 and size per file. `--view` draws one of the spec's `views:`, `all` the whole diagram and every view. |
 | `validate <spec> [--strict] [--json]` | Spec errors plus layout warnings (edge through a node, label collisions, too wide). |
 | `review <spec> [--width 880] [--theme light\|dark] [--skin classic\|stage] [--json] [-o base]` | Scores the diagram at a display width on six dimensions, writes `<base>.review.json` and a PNG at that width, plus `<base>.review.look.png` scaled to fit 1568 px when that PNG is larger (view that one). `/orrery:review` in Claude Code runs the whole loop. |
 | `patch <spec> <candidates.json\|-> [-o best.yaml] [--width 880] [--json]` | Applies each candidate patch set (an array of arrays of loop.md ops) to its own copy, reviews them all, prints the table and writes the best kept one; exit 1 when none improves. Comments and formatting are kept. |
 | `watch <spec> [-o base] [-f svg,png] [--review]` | Renders on every save of the spec or its local icons; keeps watching through errors. |
 | `doc <design.md> [-o out] [-f html,md,docx] [--theme light]` | Builds a design document with numbered figures from `<!-- orrery: spec.yaml \| Caption -->` lines. |
 | `mcp [--port 8765]` | The commands as MCP tools over stdio (or HTTP on 127.0.0.1) for clients without skills. |
+| `mcp install <client> [project\|user] [--force]`, `mcp install --list` | Writes the server entry into Claude Code, Claude Desktop, Cursor, VS Code, Gemini CLI, Codex or Kiro config, keeping the rest. |
+| `diff <before> <after> [-o changes.svg] [--json]` | Nodes, groups and edges added, removed, renamed or changed (`git:<ref>:<path>` reads a side from git); the SVG is the new diagram with the changes colored. |
+| `verify <spec> [--link] [--commit <sha>] [--json]` | Every `evidence:` must still point at a real file, line and identifier (exit 1 otherwise); `--link` sets each node's `url` to a commit-pinned permalink. |
+| `describe <spec> [--json]` | The laid-out diagram in plain text, for alt text and text-only models. |
+| `lsp` | Language server over stdio: diagnostics on their characters, fixes as code actions, completion. |
 | `icons search <words> [--pack aws] [--type service]` | Ranked icon ids with official names. |
 | `icons show <id> [-o icon.png]` | One icon's metadata, optionally rendered. |
 | `icons list [--pack gcp] [--category Databases]`, `icons packs` | Browse the catalog and its sources. |
@@ -133,7 +142,7 @@ Patterns with spec fragments (three-tier, serverless, event-driven, data lake, s
 | `icons new <name> [--dir icons]`, `icons check <file.svg> [-o sheet]`, `icons adopt <file.svg> --name <name>` | Start a 24-grid icon, check one against rules IC01 to IC10 with a contact sheet in both skins and themes (exit 1 on a failure), or turn someone's SVG into a clean `local:` icon. |
 | `styles` | Group types and node shapes. |
 | `init [template] [-o file] [--list]` | Copy an example spec as a starting point. |
-| `import mermaid <file.mmd\|-> [-o file]` | Convert a Mermaid flowchart into a spec. |
+| `import <mermaid\|terraform\|cloudformation\|cdk\|compose\|kubernetes\|picture> <file> [-o file]` | A first draft from a Mermaid flowchart or infrastructure, with `evidence:` on every item, or the spec an orrery SVG or PNG carries. |
 | `doctor` | Checks Node, the catalogs, the icon libraries, the layout engine and the PNG renderer. |
 | `demo [dir]` | Renders every bundled example. |
 
@@ -146,6 +155,7 @@ Labels in scripts Inter lacks (CJK, Devanagari, Arabic) need a font for the PNG:
 - [references/styles.md](references/styles.md): group styles per vendor, with the colors and where they come from.
 - [references/patterns.md](references/patterns.md): reference architectures as spec fragments.
 - [references/outputs.md](references/outputs.md): formats, embedding, the receipt, `orrery doc`.
+- [references/importing.md](references/importing.md): starting from what exists: a picture orrery drew (it carries its spec), Terraform, CloudFormation, CDK, Kubernetes and Compose importers, Mermaid, and any other picture.
 - [references/planning.md](references/planning.md): planning a diagram from code and infrastructure: the plan, the evidence table, what counts as a flow, what to leave out, how many figures, the confirm list.
 - [references/review/loop.md](references/review/loop.md): the review loop, the finding and patch format, scores and every measured finding id. Its rubrics, one per reviewer pass: conventions for [AWS](references/review/conventions-aws.md), [Azure](references/review/conventions-azure.md), [Google Cloud](references/review/conventions-gcp.md) and [C4](references/review/conventions-c4.md) (vendor rules with ids, quotes and sources), notation for [BPMN](references/review/conventions-bpmn.md), [flowcharts](references/review/conventions-flowchart.md), [state machines](references/review/conventions-state.md) and [journeys](references/review/conventions-journey.md), [flow](references/review/flow.md), [legibility](references/review/legibility.md), and [accuracy](references/review/accuracy.md) against the code and infrastructure.
 - [references/diagram.schema.json](references/diagram.schema.json): JSON Schema for editors (`# yaml-language-server: $schema=...`).

@@ -103,6 +103,8 @@ export interface Ctx {
     fixes: string[],
     cost: number,
     patches?: PatchOp[],
+    /** The rubric rule this finding restates, when it depends on the vendor (else the kind's). */
+    rule?: string,
   ) => void;
   metrics: Record<ReviewDimension, Record<string, number | string>>;
   hard: HardCounts;

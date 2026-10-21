@@ -1,0 +1,68 @@
+{
+  "name": "orrery-vscode",
+  "displayName": "orrery",
+  "description": "Errors with their fixes, quick fixes, icon id completion and hover for orrery diagram specs, from orrery lsp.",
+  "version": "0.1.0",
+  "publisher": "sagargupta16",
+  "private": true,
+  "license": "MIT",
+  "author": "Sagar Gupta (https://github.com/Sagargupta16)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sagargupta16/orrery.git",
+    "directory": "editors/vscode"
+  },
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages",
+    "Visualization"
+  ],
+  "keywords": [
+    "orrery",
+    "diagram",
+    "architecture",
+    "yaml",
+    "lsp"
+  ],
+  "activationEvents": [
+    "onLanguage:yaml"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "orrery",
+      "properties": {
+        "orrery.server.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The orrery CLI to run as the language server: a `.mjs` or `.js` file run with `node` (such as `skills/orrery/scripts/orrery.mjs` in a checkout, relative to the first workspace folder) or an `orrery` executable. Empty runs `npx -y @sagargupta1610/orrery lsp`. Reload the window after changing it."
+        },
+        "orrery.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Log the messages between VS Code and orrery lsp in the orrery output channel."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[yaml]": {
+        "editor.quickSuggestions": {
+          "other": "on",
+          "comments": "off",
+          "strings": "on"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "10.1.2"
+  }
+}

@@ -561,8 +561,13 @@ function legend(ctx: Ctx, l: SceneLegend) {
     `<mxCell id="legend" value="" style="${style({ rounded: 1, absoluteArcSize: 1, arcSize: 12, html: 1, fillColor: ctx.t.surface, strokeColor: ctx.t.border, container: 1, collapsible: 0, recursiveResize: 0 })}" vertex="1" parent="1">${geometry(box)}</mxCell>`,
   );
   for (const [i, item] of l.items.entries()) {
+    const color = item.color ?? ctx.t.edge;
+    const s = item.swatch;
+    // A tag row: its sample line in the tag's color, or a chip of that color for a tag without one.
     ctx.cells.push(
-      `<mxCell id="legend:${i}:line" value="" style="${style({ line: null, html: 1, fillColor: "none", strokeColor: ctx.t.edge, ...lineStyle(item.line) })}" vertex="1" parent="legend">${geometry(local(item.swatch))}</mxCell>`,
+      item.chip
+        ? `<mxCell id="legend:${i}:chip" value="" style="${style({ rounded: 1, absoluteArcSize: 1, arcSize: 6, html: 1, fillColor: color, strokeColor: "none" })}" vertex="1" parent="legend">${geometry(local({ x: s.x + 6, y: s.y + 1, w: s.w - 12, h: s.h - 2 }))}</mxCell>`
+        : `<mxCell id="legend:${i}:line" value="" style="${style({ line: null, html: 1, fillColor: "none", strokeColor: color, ...lineStyle(item.line) })}" vertex="1" parent="legend">${geometry(local(s))}</mxCell>`,
       `<mxCell id="legend:${i}:text" value="${esc(esc(item.label.lines.join(" ")))}" style="${style({ text: null, html: 1, align: "left", verticalAlign: "middle", whiteSpace: "nowrap", fontSize: item.label.size, fontColor: ctx.t.text, fontFamily: FONT, spacing: 0 })}" vertex="1" parent="legend">${geometry(local(item.labelBox))}</mxCell>`,
     );
   }

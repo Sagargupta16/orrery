@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Modern analytics with Azure Databricks
+subtitle: Event Hubs streams and Fabric Data Factory batch loads land in Data Lake Storage, where Databricks refines bronze to gold for SQL, machine learning and Power BI
+direction: down
+# Filled triangles, as in Azure's reference diagrams; one port per edge.
+arrowhead: filled
+layout: { merge: false }
+
+legend:
+  solid: Data flow
+  dotted: Governance and mirroring
+
+groups:
+  sources: { type: zone, label: Data sources }
+  sub: { type: azure:subscription, label: Analytics subscription }
+  rg: { type: azure:resource-group, label: rg-lakehouse-prod, in: sub }
+  # The medallion layers are Delta Lake tables in one Data Lake Storage account.
+  lake: { type: box, label: Data Lake Storage, icon: azure:storage-accounts, in: rg }
+  governance: { type: zone, label: Governance, in: rg }
+  # Fabric is a SaaS platform, outside the Azure subscription.
+  fabric: { type: box, label: Microsoft Fabric }
+
+nodes:
+  devices: { icon: generic:iot, label: Apps and devices, note: Event streams, in: sources }
+  dbs: { icon: generic:database, label: Business systems, note: Databases and files, in: sources }
+  eh: { icon: azure:event-hubs, label: Event Hubs, note: Streaming ingestion, in: rg }
+  adf: { icon: azure:data-factories, label: Fabric Data Factory, note: Batch loads }
+  # Databricks runs the pipelines that move data from layer to layer.
+  dbx: { icon: azure:azure-databricks, label: Azure Databricks, note: Lakeflow pipelines, align: eh, in: rg }
+  # align puts the three layers side by side, so the refinement reads across one row.
+  bronze: { icon: azure:storage-container, label: Bronze, note: Raw data, in: lake }
+  silver: { icon: azure:storage-container, label: Silver, note: Cleaned and filtered, align: bronze, in: lake }
+  gold: { icon: azure:storage-container, label: Gold, note: Business aggregates, align: bronze, in: lake }
+  sqlwh: { icon: azure:azure-databricks, label: Databricks SQL warehouse, note: Photon engine, in: rg }
+  ml: { icon: azure:azure-machine-learning, label: Azure Machine Learning, note: Model endpoints, align: sqlwh, in: rg }
+  # The Azure pack has no Fabric or Purview icons, so generic glyphs stand in for OneLake and Purview.
+  onelake: { icon: generic:storage, label: OneLake, note: Mirrored gold tables, in: fabric }
+  powerbi: { icon: logos:microsoft-power-bi, label: Power BI, note: Direct Lake reports, align: onelake, in: fabric }
+  unity: { icon: azure:azure-databricks, label: Unity Catalog, note: "Access, audit and lineage", in: governance }
+  purview: { icon: generic:compliance, label: Microsoft Purview, note: Data map and classification, in: governance }
+
+edges:
+  - devices -> eh
+  # Kept out of the layout so Data Factory sits beside the sources instead of a row below them.
+  - { from: dbs, to: adf, constraint: false }
+  - eh -> dbx: Spark streaming
+  - dbx -> bronze
+  - adf -> bronze: raw batch
+  - bronze -> silver: clean
+  - silver -> gold: aggregate
+  - gold -> sqlwh, ml
+  - { from: gold, to: onelake, line: dotted, label: mirroring }
+  - sqlwh -> powerbi
+  - onelake -> powerbi: Direct Lake
+  # Written from the lake so governance sits below it; the arrowheads stay on the lake.
+  - { from: lake, to: unity, arrow: start, line: dotted }
+  - { from: lake, to: purview, arrow: start, line: dotted, label: scan }

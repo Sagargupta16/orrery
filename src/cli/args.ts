@@ -8,7 +8,19 @@ export interface Args {
   flags: Record<string, string | boolean>;
 }
 
-const BOOL = new Set(["json", "strict", "force", "static", "list", "help", "version", "review"]);
+const BOOL = new Set([
+  "json",
+  "strict",
+  "force",
+  "static",
+  "list",
+  "help",
+  "version",
+  "review",
+  "link",
+  // Language clients start servers with --stdio; orrery lsp only speaks stdio, so it is a no-op.
+  "stdio",
+]);
 const KNOWN_FLAGS = new Set([
   ...BOOL,
   "out",
@@ -26,6 +38,8 @@ const KNOWN_FLAGS = new Set([
   "dir",
   "name",
   "port",
+  "view",
+  "commit",
 ]);
 const SHORT_FLAGS: Record<string, string> = {
   o: "out",

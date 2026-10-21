@@ -1,0 +1,63 @@
+{
+  "fixture": "compose-app",
+  "about": "Answer key for the plan suite. Every service a plan must show, the flows between them, and what it must not draw. Not copied into the run workspace.",
+  "nodes": [
+    {
+      "id": "proxy",
+      "resources": ["services.proxy", "file:nginx/nginx.conf"],
+      "icon": "nginx",
+      "keywords": "proxy|nginx|web|frontend|gateway"
+    },
+    {
+      "id": "api",
+      "resources": ["services.api", "file:api/server.mjs"],
+      "icon": "node",
+      "keywords": "\\bapi\\b|backend|orders?[ _-]?service"
+    },
+    {
+      "id": "worker",
+      "resources": ["services.worker", "file:worker/index.mjs"],
+      "keywords": "worker|jobs?|emails?|mailer"
+    },
+    {
+      "id": "db",
+      "resources": ["services.db"],
+      "icon": "postgres",
+      "keywords": "\\bdb\\b|postgres|database|sql"
+    },
+    {
+      "id": "cache",
+      "resources": ["services.cache"],
+      "icon": "redis",
+      "keywords": "cache|redis|queue"
+    }
+  ],
+  "optional": [],
+  "boundaries": "^(?!aws:|azure:|gcp:|k8s:)",
+  "actors": "users?|clients?|customers?|browsers?|internet|mobile|people|persons?|shoppers?",
+  "glue": ["^networks\\.", "^volumes\\."],
+  "glueKeywords": "\\b(networks?|volumes?|pgdata)\\b",
+  "edges": [
+    { "from": "@actor", "to": "proxy", "optional": true },
+    { "from": "proxy", "to": "api", "why": "nginx.conf proxy_pass http://api:3000" },
+    { "from": "api", "to": "db" },
+    { "from": "api", "to": "cache", "why": "LPUSH emails" },
+    {
+      "from": "cache",
+      "to": "worker",
+      "either": true,
+      "why": "BRPOP: a pull, so cache to worker follows the data, but worker to cache reads as the consumer and is accepted"
+    },
+    { "from": "worker", "to": "db" }
+  ],
+  "forbidden": [
+    {
+      "from": "worker",
+      "to": "api",
+      "either": true,
+      "why": "depends_on on worker is start order; the worker never calls the API"
+    },
+    { "from": "proxy", "to": "db", "either": true, "why": "no route from nginx to Postgres" }
+  ],
+  "pass": { "nodeRecall": 1, "edgeRecall": 0.8, "invented": 0, "glue": 0, "forbidden": 0 }
+}

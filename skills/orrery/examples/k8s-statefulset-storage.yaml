@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: PostgreSQL StatefulSet with CSI storage and backups
+subtitle: A headless Service gives each replica a stable name, each pod claims its own volume from the Longhorn CSI driver, and Velero backs it all up
+direction: right
+# Spacing below compact keeps the ordinal rows legible in an 880px README column (orrery review).
+layout: { spacing: 0.6 }
+
+legend:
+  solid: Traffic and references
+  dashed: Creates
+  dotted: Backups
+
+groups:
+  cluster: { type: k8s:cluster, label: Kubernetes cluster }
+  ns: { type: k8s:namespace, label: Namespace orders, in: cluster }
+  # The StatefulSet owns its pods; the claims it stamps out from volumeClaimTemplates outlive them, so they sit outside.
+  sts: { type: box, label: StatefulSet postgres, icon: k8s:sts, in: ns }
+  velero-ns: { type: k8s:namespace, label: Namespace velero, in: cluster }
+  # PersistentVolumes, the StorageClass and the CSI driver are cluster wide, so they sit outside the namespace.
+  pvs: { type: box, label: PersistentVolumes, icon: k8s:pv, in: cluster }
+
+nodes:
+  api: { icon: k8s:pod, label: orders-api, note: Client pods, in: ns }
+  svc: { icon: k8s:svc, label: Headless Service, note: "postgres, clusterIP None", in: ns }
+  pod0: { icon: k8s:pod, label: postgres-0, note: Primary, in: sts }
+  pod1: { icon: k8s:pod, label: postgres-1, note: Replica, in: sts }
+  pod2: { icon: k8s:pod, label: postgres-2, note: Replica, in: sts }
+  pvc0: { icon: k8s:pvc, label: data-postgres-0, in: ns }
+  pvc1: { icon: k8s:pvc, label: data-postgres-1, in: ns }
+  pvc2: { icon: k8s:pvc, label: data-postgres-2, in: ns }
+  pv0: { icon: k8s:pv, label: PersistentVolume, note: 50Gi RWO, in: pvs }
+  pv1: { icon: k8s:pv, label: PersistentVolume, note: 50Gi RWO, in: pvs }
+  pv2: { icon: k8s:pv, label: PersistentVolume, note: 50Gi RWO, in: pvs }
+  sc: { icon: k8s:sc, label: StorageClass, note: longhorn, in: cluster }
+  csi: { icon: si:longhorn, label: Longhorn CSI driver, note: driver.longhorn.io, in: cluster }
+  # No Velero mark in the packs: a generic backup glyph.
+  velero: { icon: tabler:history, label: Velero, note: CSI snapshots, in: velero-ns }
+  bucket: { icon: generic:bucket, label: Object storage, note: S3-compatible bucket }
+
+edges:
+  - api -> svc: postgres-0.postgres
+  - svc -> pod0, pod1, pod2
+  # One row per ordinal: each pod mounts its own claim, bound to its own volume.
+  - pod0 -> pvc0
+  - pod1 -> pvc1
+  - pod2 -> pvc2
+  - pvc0 -> pv0: bound
+  - pvc1 -> pv1
+  - pvc2 -> pv2
+  # The claim template names the class and the class names the driver, which creates the volumes.
+  # Only class -> driver is laid out, so the two run along the bottom instead of taking columns.
+  - sts -> sc: { constraint: false }
+  - sc -> csi: provisioner
+  - csi --> pvs: { constraint: false }
+  # Laid out namespace -> Velero so Velero sits right of it; the arrowhead stays on the namespace.
+  - { from: ns, to: velero, arrow: start, line: dotted, label: nightly backup }
+  - velero ..> bucket

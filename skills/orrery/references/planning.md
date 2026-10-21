@@ -10,6 +10,9 @@ How the planner (the `orrery:planner` agent, or the main session where agents ca
 - [What to leave out](#what-to-leave-out)
 - [How many figures](#how-many-figures)
 - [The confirm list](#the-confirm-list)
+- [Run the tools first](#run-the-tools-first)
+- [Traps to avoid](#traps-to-avoid)
+- [Evidence the CLI can check](#evidence-the-cli-can-check)
 
 ## The plan
 
@@ -30,7 +33,7 @@ The planner returns one JSON object; the orchestrator shows the confirm list to 
         { "id": "api", "label": "Orders API", "icon": "aws:lambda", "in": "vpc", "evidence": "infra/main.tf:40" }
       ],
       "edges": [
-        { "from": "api", "to": "queue", "label": "enqueue", "source": "declared", "evidence": "src/handler.ts:88 (SendMessageCommand), infra/main.tf:61 (sqs:SendMessage)" }
+        { "from": "api", "to": "queue", "label": "enqueue", "source": "declared", "evidence": "src/handler.ts:88#SendMessageCommand, infra/main.tf:61#sqs:SendMessage" }
       ],
       "leftOut": [{ "what": "CloudWatch log groups", "why": "cross-cutting; one Shared services box" }]
     }
@@ -87,6 +90,39 @@ Before writing any spec, show the user four short lists and let them correct it;
 ```text
 Services:  API Gateway, Orders API (Lambda), Orders table (DynamoDB), Jobs queue (SQS), Worker (Lambda)
 Boundaries: AWS Cloud > us-east-1 > VPC > private subnets (API, Worker)
-Flows:     client -> API Gateway -> Orders API -> Orders table; Orders API -> Jobs queue (inferred: handler.ts:88); Jobs queue -> Worker (polls)
+Flows:     client -> API Gateway -> Orders API -> Orders table; Orders API -> Jobs queue (inferred: handler.ts:88#SendMessageCommand); Jobs queue -> Worker (polls)
 Left out:  log groups and KMS (Shared services box), IAM roles (edges), the dev stack (same shape)
 ```
+
+## Run the tools first
+
+Raw source hides what gets deployed: a `count`, a `for_each`, a module, a Helm value or a CDK construct decides how many of something exist and where. When the tool is installed, read what it produces instead of guessing from the source:
+
+| Evidence | Run | Then |
+| --- | --- | --- |
+| Terraform | `terraform show -json plan.out` (or of the state), once per workspace or tfvars file that matters | `orrery import terraform plan.json` for a first draft |
+| AWS CDK | `cdk synth` | `orrery import cdk cdk.out/<Stack>.template.json` |
+| CloudFormation, SAM | the template as written | `orrery import cloudformation template.yaml` |
+| Helm, Kustomize | `helm template` or `kustomize build` | `orrery import kubernetes rendered.yaml` |
+| Docker Compose | `docker compose config` | `orrery import compose docker-compose.yml` |
+
+An importer is deterministic: it draws resources, boundaries and the flows the configuration declares, leaves glue out, and puts `evidence:` on every item. The planner starts from its draft and adds what only the code shows (client calls, hosts in configuration), marking those flows inferred.
+
+## Traps to avoid
+
+Each of these has misled a tool that draws diagrams from code; the accuracy reviewer checks for all of them.
+
+- **A dependency is not traffic.** `depends_on`, a dependency graph, a role attached to a function or a reduced graph of references draws build order, not requests. Reducing a graph to its shortest form also deletes real direct flows.
+- **Copies are noise, a dropped count is wrong.** Three tasks, replicas or `for_each` instances are one node with `badge: x3`; draw copies only where the spread is the point (one per Availability Zone).
+- **One thing, one node.** Key each node on its full identity (namespace, kind and name; module path and `for_each` key), so two volumes both called `data` stay two, and one service is never split into two boxes for its two files.
+- **The innermost boundary only.** A resource sits in its subnet, not in both its subnet and its VPC.
+- **IAM grants have a direction and a verb.** `s3:GetObject` reads, `s3:PutObject` writes, `sqs:SendMessage` enqueues, `sns:Publish` publishes, `dynamodb:Query` reads, `lambda:InvokeFunction` invokes; the arrow runs from the role's owner to the resource. `Resource: "*"`, a `Deny` and a `NotAction` statement draw nothing by themselves.
+- **External actors come from evidence too.** An internet-facing load balancer, an internet gateway, a CDN distribution or a `0.0.0.0/0` ingress rule is the evidence for the Users or Internet node at the start of the main path.
+- **Names in configuration can match by accident.** An environment variable that holds an account id, a region or a common word is not a reference; match full ARNs, hosts and resource names.
+- **Declared is not observed.** Configuration can allow a path that never carries traffic, and traffic data misses idle paths. Say which each edge is (`source: declared` or `inferred` in the plan) and draw an inferred flow the user has not confirmed as `line: dashed` with the label ending in `(unverified)`.
+- **Do not invent structure.** Services that sit side by side are not a pipeline; a call that goes through a gateway or a queue is not drawn as a direct line that skips it.
+- **Nothing goes missing silently.** Egress, a count, a grant or a resource left out is listed in `leftOut` with its reason.
+
+## Evidence the CLI can check
+
+Write each item's source as `evidence:` (a string or a list) rather than only a YAML comment: `infra/main.tf:40`, `src/handler.ts:88#SendMessageCommand`, or a resource address such as `aws_lambda_function.api`. `orrery verify <spec>` checks every one (the file exists, the line is inside it, the identifier is on that line) and fails CI when the code has moved on; `orrery verify --link` turns each node's evidence into a commit-pinned link on its `url`, so a reader opens the code from the picture.

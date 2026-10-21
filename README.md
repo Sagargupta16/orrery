@@ -13,13 +13,13 @@ One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML view
 **[sagargupta.online/orrery](https://sagargupta.online/orrery/)**: every example in light and dark, with its spec and downloads.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.9.0-2563eb)
+![Version](https://img.shields.io/badge/version-0.10.0-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-18%2C209-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
 </div>
 
-The diagram above is [docs/hero.yaml](docs/hero.yaml): 40 lines of YAML, laid out and rendered by orrery in its default `stage` skin: the groups light, then the tiles, then a packet with a comet tail runs the numbered steps in order, lighting each line behind it, and every step badge pops as its packet leaves, on a loop. Every picture in this README is the stage skin; `skin: classic` (or `--skin classic`) draws the same layout in each vendor's own diagram style, with a packet along every edge. GitHub keeps the animation; the PNG of the same spec is a still frame.
+The diagram above is [docs/hero.yaml](docs/hero.yaml): 40 lines of YAML, laid out and rendered by orrery in its default `stage` skin: the groups light, then the tiles, then a packet with a comet tail runs the main path in order, lighting each line behind it, on a loop. Every picture in this README is the stage skin; `skin: classic` (or `--skin classic`) draws the same layout in each vendor's own diagram style, with a packet along every edge. GitHub keeps the animation; the PNG of the same spec is a still frame.
 
 ## What you get
 
@@ -27,9 +27,11 @@ The diagram above is [docs/hero.yaml](docs/hero.yaml): 40 lines of YAML, laid ou
 - **Official conventions.** AWS groups follow the AWS Architecture Icons deck (borders, dashes, corner tiles, label placement, open arrowheads, numbered callouts); Google Cloud and Azure groups are measured from their own reference diagrams. Every value cites its source in [styles.md](skills/orrery/references/styles.md).
 - **Business flows too.** `kind:` turns the same spec into an ISO 5807 flowchart, a BPMN 2.0 process with pools, lanes and message flows, a UML state machine, an org chart, a two-sided mind map or a customer journey map with an emotion curve. In the stage skin a process plays as a BPMN token: it splits at parallel gateways, waits at the join and follows the yes branch.
 - **Automatic layout you can steer.** The Eclipse Layout Kernel places nested boundaries, routes edges at right angles, joins fan-in and fan-out into trunks and keeps the order you wrote unless that would cross edges. No coordinates to write; when you want a say, `rank: first`, `align: <node>`, `cols: 2` on a group and `layout: { aspect: 4:3 }` pin a node's place in the flow, line nodes up, grid a group's children and keep a figure compact enough to read in a README.
-- **Diagrams that move.** Animated SVG by default: packets travel every edge at one speed, numbered steps play as a story, line styles stay as drawn. `animate: flow` for marching dashes, `--static` for a still file.
-- **Two skins, one layout.** The default `stage` skin draws every diagram as an animated scene, dark by default: a hairline grid with one tint, ink tiles with monochrome icons, mono caps labels, dim wires and one story that plays along them. `skin: classic` (or `--skin classic`) follows each vendor's own diagram style instead, for docs that must match the AWS, Azure or Google Cloud deck. Every position stays the same; dark and light.
-- **Six outputs from one spec.** SVG for READMEs and docs, PNG for slides and chat (3x by default, sharp when zoomed), `.drawio` you can keep editing, `.drawio.svg` (one file that shows as an image anywhere and opens as an editable diagram in draw.io), a TSX component for React sites, and a standalone HTML viewer with dark mode, pan and pinch zoom. `orrery doc` puts the figures into a design document as HTML, Markdown or Word.
+- **One spec, many figures.** `views:` draws an overview and its details from one source (`render --view all`), so they cannot drift apart; `classes:` share presets, `include:` pulls in a frame every figure shares, and `tags:` color and restyle what they mark, with a legend row each.
+- **Diagrams that stay true to the code.** `orrery import` starts a spec from Terraform, CloudFormation or CDK output, Docker Compose, Kubernetes manifests or Mermaid, with every node's `evidence:` (the file, line and identifier it came from). `orrery verify` fails when a piece of evidence no longer exists, and `--link` makes each node a commit-pinned link to its code. `orrery diff` shows what changed between two versions as a colored picture, and the GitHub Action posts it, with the review, on every pull request.
+- **Diagrams that move.** Animated SVG by default: packets travel every edge at one speed, the main path plays as a story, line styles stay as drawn. `animate: flow` for marching dashes, `--static` for a still file.
+- **Two skins, one layout.** The default `stage` skin draws every diagram as an animated scene, dark by default: a hairline grid with one tint, ink tiles with each icon in a muted share of its own vendor color, mono caps labels, dim wires and one story that plays along them. `skin: classic` (or `--skin classic`) follows each vendor's own diagram style instead, for docs that must match the AWS, Azure or Google Cloud deck. Every position stays the same; dark and light.
+- **Eight outputs from one spec.** SVG for READMEs and docs, PNG for slides and chat (3x by default, sharp when zoomed), `.drawio` you can keep editing, `.drawio.svg` (one file that shows as an image anywhere and opens as an editable diagram in draw.io), a TSX component for React sites, a standalone HTML viewer with dark mode, pan and pinch zoom, Mermaid text for wikis that draw only Mermaid, and a sequence diagram of the main path. Every SVG and PNG carries its own spec, so `orrery import picture` turns a picture back into an editable diagram. `orrery doc` puts the figures into a design document as HTML, Markdown or Word.
 - **Made for agents.** A skill with a fast path and authoring rules, a JSON Schema, 482 short aliases (`aws:s3`, `azure:aks`, `k8s:deploy`, and business names such as `generic:invoice` and `generic:approval`), ranked icon search, a validator whose every finding names the subject and the fix, an MCP server for clients without skills, and agents that plan a diagram from your code and check it against it.
 - **No install.** The CLI, layout engine, PNG renderer, fonts and the official cloud packs ship in the skill folder (9 MB). Logo and glyph sets are not copied in: they load from their own npm libraries the first time a diagram uses them, verified by checksum and cached. Node.js 22 or newer is all it needs.
 
@@ -72,7 +74,7 @@ As an MCP server, for any client that speaks the Model Context Protocol (tools: 
 { "mcpServers": { "orrery": { "command": "npx", "args": ["-y", "@sagargupta1610/orrery", "mcp"] } } }
 ```
 
-That block goes in `.mcp.json` for Claude Code, `~/.gemini/settings.json` for Gemini CLI, `.cursor/mcp.json` for Cursor and `.kiro/settings/mcp.json` for Kiro; Codex takes `[mcp_servers.orrery]` with `command = "npx"` and `args = ["-y", "@sagargupta1610/orrery", "mcp"]` in `~/.codex/config.toml`. On Windows, some clients need `"command": "cmd", "args": ["/c", "npx", ...]`. `orrery mcp --port 8765` serves the same tools over HTTP on 127.0.0.1, where specs are passed as text and nothing is read from or written to disk.
+That block goes in `.mcp.json` for Claude Code, `~/.gemini/settings.json` for Gemini CLI, `.cursor/mcp.json` for Cursor and `.kiro/settings/mcp.json` for Kiro; Codex takes `[mcp_servers.orrery]` with `command = "npx"` and `args = ["-y", "@sagargupta1610/orrery", "mcp"]` in `~/.codex/config.toml`. `orrery mcp install <client>` writes that entry for you (`claude-code`, `claude-desktop`, `cursor`, `vscode`, `gemini`, `codex` or `kiro`, in the project or with `user` for every project), keeping every other server in the file. Each release publishes the server to the MCP Registry as `io.github.Sagargupta16/orrery` and attaches an `.mcpb` bundle for one-click install in Claude Desktop. In hosts that support MCP Apps, a rendered diagram opens in an inline viewer. `orrery mcp --port 8765` serves the same tools over HTTP on 127.0.0.1, where specs are passed as text and nothing is read from or written to disk.
 
 ## Quick start
 
@@ -106,7 +108,7 @@ Labels default to the official service names, so `{ icon: aws:lambda }` reads "A
 
 <a href="examples/aws-three-tier.svg"><img src="examples/aws-three-tier.svg" alt="Three-tier web application on AWS across two Availability Zones"></a>
 
-That is one of 57 reference diagrams across AWS (from agents on Bedrock AgentCore to disaster recovery, threat detection, network inspection, migration and contact centers), Azure, Google Cloud, IBM Cloud, Kubernetes, AI and ML, data platforms, CI/CD, C4, system design and business flows (flowcharts, a BPMN process, swimlanes, a state machine, an org chart, a mind map and a customer journey), each rendered from a spec in [skills/orrery/examples](skills/orrery/examples) and checked against the renderer by CI. Browse them all in light and dark, with each spec and every output to download, at **[sagargupta.online/orrery/gallery](https://sagargupta.online/orrery/gallery/)**, or in [examples/README.md](examples/README.md) with the command that renders each one. `orrery init <name>` copies any of them as a starting point.
+That is one of 71 reference diagrams across AWS (from agents on Bedrock AgentCore to disaster recovery, threat detection, network inspection, migration and contact centers), Azure, Google Cloud, IBM Cloud, Kubernetes, AI and ML, data platforms, CI/CD, C4, system design and business flows (flowcharts, a BPMN process, swimlanes, a state machine, an org chart, a mind map and a customer journey), each rendered from a spec in [skills/orrery/examples](skills/orrery/examples) and checked against the renderer by CI. Browse them all in light and dark, with each spec and every output to download, at **[sagargupta.online/orrery/gallery](https://sagargupta.online/orrery/gallery/)**, or in [examples/README.md](examples/README.md) with the command that renders each one. `orrery init <name>` copies any of them as a starting point.
 
 ## Validation that tells you the fix
 
@@ -155,24 +157,53 @@ In Claude Code, `/orrery:draw <what to draw>` starts from the system itself. The
 
 Fixes are measured, not argued: `patch-proposer` agents write candidate patch sets under different strategies (fewer arrows, a different structure, better words, the vendor's rules), and `orrery patch` reviews each candidate on its own copy and keeps only the one that scores best without making anything worse. A plugin hook validates every spec the moment an agent writes it, so errors come back with their fixes before anything renders. The planning and accuracy rules live in [planning.md](skills/orrery/references/planning.md) and [accuracy.md](skills/orrery/references/review/accuracy.md), so clients without subagents run the same passes in order.
 
+## In pull requests
+
+The repository is also a GitHub Action. It validates, renders and reviews every spec, draws what changed in the specs a pull request touches, and keeps one comment on the pull request with the scores and a link to the pictures:
+
+```yaml
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: Sagargupta16/orrery@v0.10.0
+        with:
+          specs: docs/**/*.yaml   # git pathspec globs, one per line
+          fail-on: error          # or warning, or review (fail when the review does not pass)
+```
+
+## Editors and the browser
+
+`orrery lsp` is a language server for spec files: findings on the characters they are about, their fixes as quick fixes, and completion for icon ids, group types and ids. [editors/vscode](editors/vscode/README.md) is a thin VS Code client for it, and any editor that speaks the Language Server Protocol can use the same server. The [playground](https://sagargupta.online/orrery/play/) runs the CLI's own parser, layout, renderers and review in the browser: edit a spec, watch it redraw, download every format, or share a link that carries the spec.
+
 ## Commands
 
 | Command | Does |
 | --- | --- |
-| `render <spec> [-o base] [-f svg,png,drawio,drawio.svg,tsx,html\|all] [--theme light\|dark\|both] [--skin classic\|stage] [--animate packets\|flow\|relay\|none] [--static]` | Validate, lay out, render. |
+| `render <spec> [-o base] [-f svg,png,drawio,drawio.svg,tsx,html,mmd,sequence.svg\|all] [--theme light\|dark\|both] [--skin classic\|stage] [--animate packets\|flow\|relay\|none] [--static] [--view <name>\|all]` | Validate, lay out, render; `--view` draws one of the spec's views, or every view as its own file. |
 | `watch <spec> [-o base] [-f svg,png] [--review]` | Render again on every save of the spec or its local icons, and print the review score each time with `--review`. |
 | `validate <spec> [--strict] [--json]` | Spec errors and composition warnings, each with fixes. |
 | `review <spec> [--width 880] [--theme light\|dark] [--strict] [--json]` | Score the diagram at the width readers see it; writes `<base>.review.json` and a PNG at that width (plus `<base>.review.look.png`, scaled to fit 1568 px, when that PNG is larger). |
 | `patch <spec> <candidates.json> [-o best.yaml] [--width 880]` | Try several candidate patch sets at once, each reviewed on its own copy; keeps the best one that improves the score, with comments and formatting untouched. |
 | `doc <design.md> [-f html,md,docx]` | Build a design document: each `<!-- orrery: spec.yaml \| Caption -->` line becomes a numbered figure (inline SVG in HTML, image files next to Markdown, a picture in Word). |
 | `mcp [--port 8765]` | Serve the commands as Model Context Protocol tools over stdio, or HTTP on 127.0.0.1. |
+| `mcp install <client> [project\|user] [--force]`, `mcp install --list` | Write the orrery server entry into a client's MCP config, keeping the rest of the file. |
+| `diff <before> <after> [-o changes.svg] [--json]` | What changed between two specs (`git:<ref>:<path>` reads one from git): added, removed, renamed and changed nodes, groups and edges, as text, JSON or the new diagram with the changes colored. |
+| `verify <spec> [--link] [--commit <sha>] [--json]` | Check that every `evidence:` still points at a real file, line and identifier; `--link` sets each node's `url` to a commit-pinned permalink. |
+| `describe <spec> [--json]` | A plain-text account of the laid-out diagram: groups, nodes, where they sit and what connects to what. |
+| `lsp` | The language server for editors, over stdio. |
 | `icons search <words> [--pack aws]` | Ranked icon ids with official names. |
 | `icons show <id>`, `icons list`, `icons packs` | Browse the catalog and its sources. |
 | `icons fetch` | Download and cache the logo and glyph libraries for offline renders. |
 | `icons new <name>`, `icons check <file.svg>`, `icons adopt <file.svg> --name <name>` | Draw your own icon on the 24 grid, check it against the drawing rules with a contact sheet in both skins and themes, or bring in someone's SVG as a clean `local:` icon. |
 | `styles` | Every group type and node shape. |
 | `init [template]` | Start from one of the examples. |
-| `import mermaid <flowchart.mmd>` | Turn an existing Mermaid flowchart into a spec, with official icons where the labels name real products. |
+| `import <mermaid\|terraform\|cloudformation\|compose\|kubernetes\|picture> <file> [-o diagram.yaml]` | Start a spec from a Mermaid flowchart, Terraform, a CloudFormation or CDK template, a Compose file or Kubernetes manifests (each node with its `evidence:`), or read the spec back out of an SVG or PNG orrery drew. |
 | `doctor`, `demo` | Check the install; render every example. |
 
 ## Icon packs

@@ -95,7 +95,9 @@ describe("orrery render -f drawio.svg", () => {
       "x.drawio",
       "x.drawio.svg",
       "x.html",
+      "x.mmd",
       "x.png",
+      "x.sequence.svg",
       "x.svg",
       "x.tsx",
     ]);

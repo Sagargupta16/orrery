@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Istio service mesh with sidecars
+subtitle: Inside the mesh every hop runs over mutual TLS between Envoy proxies, from the ingress to the egress gateway; istiod configures them all
+direction: right
+# Spacing below compact keeps the six columns legible in an 880px README column (orrery review).
+layout: { merge: false, spacing: 0.6 }
+
+legend:
+  solid: Requests, mutual TLS between proxies
+  dotted: Config and certificates (xDS)
+
+groups:
+  cluster: { type: k8s:cluster, label: Kubernetes cluster }
+  # Gateways run in their own namespaces, apart from the control plane, as the Istio install guide recommends.
+  ingress-ns: { type: k8s:namespace, label: Namespace istio-ingress, in: cluster }
+  system-ns: { type: k8s:namespace, label: Namespace istio-system, in: cluster }
+  shop: { type: k8s:namespace, label: Namespace shop, in: cluster }
+  fe-pod: { type: box, label: Pod frontend, icon: k8s:pod, in: shop }
+  cart-pod: { type: box, label: Pod cart, icon: k8s:pod, in: shop }
+  co-pod: { type: box, label: Pod checkout, icon: k8s:pod, in: shop }
+  egress-ns: { type: k8s:namespace, label: Namespace istio-egress, in: cluster }
+
+nodes:
+  users: { icon: generic:users, label: Users }
+  ingress: { icon: logos:envoy-icon, label: Ingress gateway, note: Terminates TLS, in: ingress-ns }
+  # Each app container sits under its sidecar (align), so a pod reads as one unit across the flow.
+  fe-proxy: { icon: logos:envoy-icon, label: Envoy sidecar, note: istio-proxy, in: fe-pod }
+  fe: { icon: generic:container, label: frontend, note: App container, in: fe-pod, align: fe-proxy }
+  cart-proxy: { icon: logos:envoy-icon, label: Envoy sidecar, note: istio-proxy, in: cart-pod }
+  cart: { icon: generic:container, label: cart, note: App container, in: cart-pod, align: cart-proxy }
+  co-proxy: { icon: logos:envoy-icon, label: Envoy sidecar, note: istio-proxy, in: co-pod }
+  co: { icon: generic:container, label: checkout, note: App container, in: co-pod, align: co-proxy }
+  istiod: { icon: si:istio, label: istiod, note: "Discovery, config, CA", in: system-ns }
+  egress: { icon: logos:envoy-icon, label: Egress gateway, note: Single exit point, in: egress-ns }
+  psp: { icon: generic:payment, label: Payment provider, note: External API }
+
+edges:
+  - users -> ingress: HTTPS
+  - ingress -> fe-proxy
+  # The app talks to its own sidecar over localhost; the iptables redirect sends every call through it.
+  - fe-proxy -- fe: localhost
+  - fe-proxy -> cart-proxy, co-proxy
+  - cart-proxy -- cart
+  - co-proxy -- co
+  - co-proxy -> egress
+  - egress -> psp: HTTPS
+  # Laid out ingress -> istiod -> egress so the control plane shares the shop column, above it;
+  # the arrowheads stay on the proxies.
+  - { from: ingress, to: istiod, arrow: start, line: dotted }
+  - istiod ..> egress
+  - { from: istiod, to: shop, line: dotted, constraint: false }

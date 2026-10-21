@@ -44,12 +44,12 @@ nodes:
   queue: { icon: aws:sqs-queue, label: Shipping jobs, note: Amazon SQS queue, in: messaging }
 
 edges:
-  - shoppers -> dns: { label: DNS query, step: 1 }
-  - shoppers -> cdn: { label: HTTPS, step: 2 }
+  - shoppers -> dns: { label: DNS query }
+  - shoppers -> cdn: { label: HTTPS }
   # AWS WAF is attached to the distribution; constraint: false keeps it beside CloudFront.
   - { from: waf, to: cdn, line: dotted, constraint: false }
-  - cdn -> alb: { label: origin requests, step: 3 }
-  - alb -> storefront: { step: 4 }
+  - cdn -> alb: { label: origin requests }
+  - alb -> storefront
   - storefront -> cart, catalog, orders, payments
   - cart -> cache
   - orders -> aurora

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: shop
+data:
+  DATABASE_URL: postgres://orders@postgres.data.svc.cluster.local:5432/orders
+  LOG_LEVEL: info
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-db
+  namespace: shop
+type: Opaque
+stringData:
+  password: change-me

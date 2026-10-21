@@ -1,0 +1,41 @@
+{
+  "brief": "Orders API on AWS for the README at 880 px: request path and async receipts",
+  "evidence": ["infra/main.tf", "infra/iam.tf", "src/create_order.mjs", "src/send_receipt.mjs"],
+  "figures": [
+    {
+      "name": "orders-overview",
+      "aspect": "overview",
+      "title": "Orders API on AWS",
+      "kind": "architecture",
+      "groups": [
+        { "id": "cloud", "type": "aws:cloud", "evidence": "infra/main.tf:6" },
+        { "id": "region", "type": "aws:region", "label": "us-east-1", "in": "cloud", "evidence": "infra/main.tf:1" }
+      ],
+      "nodes": [
+        { "id": "users", "label": "Customers", "icon": "aws:users", "evidence": "brief" },
+        { "id": "orders_api", "label": "Orders HTTP API", "icon": "aws:api-gateway", "in": "region", "evidence": "infra/main.tf:14" },
+        { "id": "create_order", "label": "Create order", "icon": "aws:lambda-lambda-function", "in": "region", "evidence": "infra/main.tf:46, src/create_order.mjs" },
+        { "id": "orders", "label": "Orders table", "icon": "aws:dynamodb-table", "in": "region", "evidence": "infra/main.tf:61" },
+        { "id": "order_events", "label": "Order events", "icon": "aws:simple-queue-service", "in": "region", "evidence": "infra/main.tf:72" },
+        { "id": "send_receipt", "label": "Send receipt", "icon": "aws:lambda-lambda-function", "in": "region", "evidence": "infra/main.tf:77, src/send_receipt.mjs" },
+        { "id": "receipts", "label": "Receipts bucket", "icon": "aws:simple-storage-service-bucket", "in": "region", "evidence": "infra/main.tf:99" }
+      ],
+      "edges": [
+        { "from": "users", "to": "orders_api", "label": "POST /orders", "source": "declared", "evidence": "infra/main.tf:26 (aws_apigatewayv2_route.post_orders)" },
+        { "from": "orders_api", "to": "create_order", "source": "declared", "evidence": "infra/main.tf:19 (aws_apigatewayv2_integration.create_order)" },
+        { "from": "create_order", "to": "orders", "label": "PutItem", "source": "inferred", "evidence": "src/create_order.mjs:12 (PutItemCommand), infra/iam.tf:22 (dynamodb:PutItem)" },
+        { "from": "create_order", "to": "order_events", "label": "SendMessage", "source": "inferred", "evidence": "src/create_order.mjs:22 (SendMessageCommand), infra/iam.tf:23 (sqs:SendMessage)" },
+        { "from": "order_events", "to": "send_receipt", "label": "polls", "source": "declared", "evidence": "infra/main.tf:93 (aws_lambda_event_source_mapping.order_events)" },
+        { "from": "send_receipt", "to": "receipts", "label": "PutObject", "source": "inferred", "evidence": "src/send_receipt.mjs:9 (PutObjectCommand), infra/iam.tf:40 (s3:PutObject)" }
+      ],
+      "leftOut": [
+        { "what": "IAM roles and policies", "why": "they become the edges they allow" },
+        { "what": "CloudWatch log groups", "why": "cross-cutting; two functions write to them" },
+        { "what": "API route, stage, integration and Lambda permission", "why": "part of the API edge" },
+        { "what": "random_id suffix", "why": "provider plumbing" }
+      ]
+    }
+  ],
+  "standIns": [],
+  "questions": []
+}

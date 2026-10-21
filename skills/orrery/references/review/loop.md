@@ -38,7 +38,7 @@ A process drawn with AWS icons gets both `conventions-aws.md` and `conventions-b
 - **Separate numeric, lexical and visual feedback** ([PlotGen](https://arxiv.org/html/2502.00988v1)): conventions (names and vendor rules), flow (structure and story), legibility (the picture at display width).
 - **Few edits per round, revert when nothing improves, three rounds** ([See it. Say it. Sorted](https://arxiv.org/html/2508.15222); [MatPlotAgent](https://arxiv.org/html/2402.11453) and [PaperBanana](https://arxiv.org/html/2601.23265) both stop at 3 rounds; PaperBanana's critics miss connectivity, so the flow reviewer checks it from the spec, not the image).
 - **Progress ledger with a stall threshold of 2** ([Magentic-One](https://arxiv.org/html/2411.04468)).
-- **Reduce before nudging, then try candidates in one batch** ([aws-archify review and fix](https://github.com/aws-samples/sample-agentcore-harness-agent-terraform/blob/main/skills/aws-archify/references/review-and-fix.md)): an overlap is often a symptom of too many arrows, and one batch of candidates replaces several fix, render and look cycles.
+- **Reduce before nudging, then try candidates in one batch**: an overlap is often a symptom of too many arrows, and one batch of candidates replaces several fix, render and look cycles.
 
 ## Steps
 
@@ -166,7 +166,7 @@ Each dimension starts at 100; every finding kind takes off its cost, at most its
 
 **Hard counts** must never go up: `overlaps` (labels over nodes, colliding nodes or labels, badges, hidden arrowheads, groups out of place), `edgesThroughNodes`, `edgesThroughHeaders`, `edgesThroughLabels`, `offCanvas`, `contrastFailures` (both themes). Near misses (`overlap.label-on-border`, `overlap.edge-skims-node`) cost points but raise no hard count.
 
-The composition findings ported from aws-archify's `check-layout.ts` (zig-zag, avoidable bend, beside a group, uneven siblings, sparse group, padding, and DG221's 10px) measure canvas px, not display px: they say how far layout put two ends out of line or how loosely a frame fits, in the units layout works in, and a narrower column shrinks the defect and its fix alike. A sparse group's nodes cover 32px around them (times `layout.spacing`), half of orrery's gap between layers, so the layout's own spacing never counts as empty.
+The composition findings (zig-zag, avoidable bend, beside a group, uneven siblings, sparse group, padding, and DG221's 10px) measure canvas px, not display px: they say how far layout put two ends out of line or how loosely a frame fits, in the units layout works in, and a narrower column shrinks the defect and its fix alike. A sparse group's nodes cover 32px around them (times `layout.spacing`), half of orrery's gap between layers, so the layout's own spacing never counts as empty.
 
 ## Measured finding ids
 
@@ -185,6 +185,8 @@ The composition findings ported from aws-archify's `check-layout.ts` (zig-zag, a
 | `overlap.outside-group` |  | 30 | a node or group sticks out of its parent group or into its header |
 | `overlap.groups-collide` |  | 30 | two groups that do not nest overlap |
 | `overlap.label-on-border` | DG220 | 16 | an edge label sits on a group's border line, so the frame looks broken there |
+| `overlap.edge-through-group` | DG223 | 24 | an edge cuts through a group that holds neither of its ends (major only when it runs more than 24px inside) |
+| `overlap.title-band` | DG225 | 16 | an edge label sits in a group's title band, or a vertical run passes just right of the title |
 | `overlap.edge-skims-node` | DG221 | 16 | an edge passes within 10px of a node it does not connect, so it reads as touching it |
 | `flow.head-hidden` |  | 40 | an arrowhead sits under a label, badge, header or node, so the direction is lost |
 | `flow.shared-trunk` |  | 32 | two unrelated edges run on the same line, so readers cannot tell them apart |
@@ -194,9 +196,10 @@ The composition findings ported from aws-archify's `check-layout.ts` (zig-zag, a
 | `flow.undirected` | AZ-03 | 12 | a line without an arrowhead leaves the relationship unclear |
 | `flow.unlabelled-boundary` |  | 10 | an unlabelled edge crosses a group boundary |
 | `flow.head-on-bend` |  | 15 | the last straight run is shorter than the arrowhead, so the head sits on the bend |
-| `flow.arrow-short` |  | 10 | an edge stops short of the drawn icon glyph |
+| `flow.arrow-short` |  | 10 | an edge stops short of what it points at (the icon glyph or tile, a card, shape or group border) or runs into it; major when an end lands outside an icon's tile, out where its label is |
 | `flow.unconnected` | DG208 | 12 | a node nothing connects to |
 | `flow.edge-budget` |  | 6 | an architecture diagram with more edges than nodes, which reads as a call sequence |
+| `flow.side-by-side` |  | 12 | two unrelated edges run 1.5 to 12px apart for more than 48px, so they read as one line |
 | `flow.cross-cutting` |  | 12 | four or more edges into a monitoring, logging, audit, identity or key service from outside its family; a shared services group says it without arrows |
 | `layout.against-flow` |  | 30 | an arrowhead points against the diagram direction |
 | `layout.crossings` |  | 30 | edges cross each other |
@@ -208,13 +211,18 @@ The composition findings ported from aws-archify's `check-layout.ts` (zig-zag, a
 | `layout.empty-group` | DG207 | 10 | a group with nothing in it |
 | `layout.ignored` | DG219 | 9 | a setting layout could not honor (for example `rank:`, `align:`, `cols:` or `layout.aspect`); the patch unsets it |
 | `layout.sparse-group` |  | 12 | a group more than 65% empty (8px raster below its header) |
+| `layout.sparse` |  | 15 | the median empty gap between neighbouring nodes is over 300px (canvas px): the figure is spread thin |
+| `layout.wide-pitch` |  | 8 | the median centre-to-centre pitch of neighbouring nodes is over 400px |
 | `layout.beside-group` |  | 12 | a node outside a group shares 20 to 80% of its height with it, so the two read as one row of peers |
-| `grid.ragged` |  | 24 | items in one layer share no start, center or end line |
+| `grid.ragged` |  | 24 | items in one layer share no start, center or end line, or icons joined by an edge in one row (one column) sit off one center line |
 | `grid.jog` |  | 24 | an edge has a tiny step (under 6px) where it could run straight |
-| `grid.off-center` |  | 21 | a group's content is off its center by more than 6px |
+| `grid.off-center` |  | 21 | a group's content is off its center by more than 6px, or the ends on one face of an icon sit off its center or at an uneven, too wide or too tight pitch |
 | `grid.uneven-gaps` |  | 15 | gaps between layers vary a lot |
 | `grid.zig-zag` |  | 15 | a one-to-one edge steps 12 to 180px between two parallel runs (a Z): its ends are out of line |
-| `grid.avoidable-bend` |  | 15 | a one-to-one edge turns once with a leg of 240px or less: its ends are out of line |
+| `grid.wide-gap` |  | 12 | a gap between a group's rows or columns is over the room layout needs there plus 96px, or over 2.5x that room |
+| `grid.group-gap` |  | 12 | two sibling groups sit further apart than the edge labels between them need, plus 32px |
+| `grid.edge-on-border` | DG224 | 12 | a straight edge run lies within 4px of a parallel group border for more than 24px |
+| `grid.avoidable-bend` |  | 15 | a one-to-one edge turns once with a leg of 240px or less: its ends are out of line; or an edge bends more than a clear simpler route between its faces would |
 | `grid.uneven-siblings` |  | 12 | same-kind boundary groups under one parent differ 10 to 40% in height in a row or width in a column (any amount over 10% when their labels differ only by a letter or digit) |
 | `grid.padding` |  | 12 | one side of a group's padding is over 80px and over 3x its tightest side, so the box does not hug its content |
 | `quality.label-size` | LEG-01 | 60 | node labels are too small at the display width |
@@ -227,6 +235,7 @@ The composition findings ported from aws-archify's `check-layout.ts` (zig-zag, a
 | `conventions.legend-missing` | DG217 | 30 | a line style is used without a legend that explains it |
 | `conventions.legend-unused` |  | 6 | the legend explains a line style the diagram does not draw |
 | `conventions.title-missing` | C4-01 | 8 | the diagram has no title |
+| `conventions.subtitle-echo` |  | 4 | the subtitle repeats the title or only lists node labels |
 | `conventions.short-name` | AWS-08 | 20 | an AWS short form with no full service name anywhere in the diagram |
 | `conventions.label-lines` | AWS-07 | 15 | an AWS service label runs over two lines |
 | `conventions.callout-sizes` | AWS-13 | 5 | step callouts come in more than one size |

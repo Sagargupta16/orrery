@@ -4,7 +4,16 @@
 import { textBlock } from "../text.ts";
 import type { Box, Point } from "../types.ts";
 import type { Routed } from "./context.ts";
-import { meet, midpoint, overlaps, round, type Seg, segmentsOf, union } from "./geometry.ts";
+import {
+  meet,
+  midpoint,
+  overlaps,
+  round,
+  type Seg,
+  segmentHits,
+  segmentsOf,
+  union,
+} from "./geometry.ts";
 import { SIZES } from "./sizes.ts";
 
 // Free-edge labels and steps go beside a vertical run, clear of nodes and other labels.
@@ -19,10 +28,14 @@ export function placeFreeLabels(ctx: Routed): void {
     const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
     const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
     const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
-    // Edges routed after ELK since rank, align and cols also keep their label off group borders,
+    // Edges routed after ELK since rank, align, cols and on also keep their label off group borders,
     // headers and every line, and try each run of their path before settling.
     const fresh =
-      rel.inBlock(e) || rel.gridBetween(e) || rerouted.has(e.id) || !!opts.loose?.has(e.id);
+      rel.inBlock(e) ||
+      rel.gridBetween(e) ||
+      rel.seated(e) ||
+      rerouted.has(e.id) ||
+      !!opts.loose?.has(e.id);
     const avoid = [
       ...footprints,
       ...edges.flatMap((x) => [x.labelBox, x.stepBox]),
@@ -37,20 +50,51 @@ export function placeFreeLabels(ctx: Routed): void {
           ])
         : []),
     ];
-    const spot = fresh
-      ? labelSpot(
-          edge.points,
-          w,
-          h,
-          [
-            ...avoid.filter((b): b is Box => !!b),
-            ...headers.map((x) => x.box),
-            ...groups.flatMap((g) => (g.iconBox ? [g.iconBox] : [])),
-          ],
-          edges.filter((x) => x !== edge).map((x) => x.points),
+    const frames = groups.flatMap((g) => [
+      { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
+      { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
+      { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
+      { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 },
+    ]);
+    const lines = edges.filter((x) => x !== edge).map((x) => x.points);
+    const search = () =>
+      labelSpot(
+        edge.points,
+        w,
+        h,
+        [
+          ...avoid.filter((b): b is Box => !!b),
+          ...(fresh ? [] : frames),
+          ...headers.map((x) => x.box),
+          ...groups.flatMap((g) => (g.iconBox ? [g.iconBox] : [])),
+        ],
+        lines,
+      );
+    // Beside the longest upright run, unless another line runs through the label there or it
+    // lands on a group's border line: then the first clear spot along the route, as for a fresh
+    // route.
+    const usual = fresh ? undefined : freeLabelBox(edge.points, w, h, avoid);
+    // DG212 and DG220 as check measures them, on the label (not the step): a line through it, a
+    // border line more than 1px inside it.
+    const inside = (v: number, lo: number, len: number) => v > lo + 1 && v < lo + len - 1;
+    const spans = (lo: number, len: number, a: number, alen: number) =>
+      lo < a + alen && a < lo + len;
+    const crossed = (at: Box) => {
+      if (!e.label) return false;
+      const b = { ...at, x: at.x + stepW + (stepW ? 2 : 0), w: w - stepW - (stepW ? 2 : 0) };
+      return (
+        lines.some((pts) => segmentsOf(pts).some(([p, q]) => segmentHits(p, q, b, 0.5))) ||
+        groups.some(
+          ({ box: r }) =>
+            ((inside(r.y, b.y, b.h) || inside(r.y + r.h, b.y, b.h)) && spans(r.x, r.w, b.x, b.w)) ||
+            ((inside(r.x, b.x, b.w) || inside(r.x + r.w, b.x, b.w)) && spans(r.y, r.h, b.y, b.h)),
         )
-      : undefined;
-    const box = spot ?? freeLabelBox(edge.points, w, h, avoid);
+      );
+    };
+    const box =
+      (usual && !crossed(usual) ? usual : search()) ??
+      usual ??
+      freeLabelBox(edge.points, w, h, avoid);
     if (e.step !== undefined)
       edge.stepBox = {
         x: box.x,

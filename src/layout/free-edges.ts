@@ -1,12 +1,14 @@
-// Edges drawn after ELK (constraint: false, overlay and lane ends, align blocks, grid cells), and
-// the align-block edges ELK took the long way round, which give way to a shorter clear route.
+// Edges drawn after ELK (constraint: false, overlay and lane ends, align blocks, grid cells, nodes
+// on a border), and the align-block edges ELK took the long way round, which give way to a shorter
+// clear route.
 
 import type { ModelEdge, Point } from "../types.ts";
 import type { Placed } from "./context.ts";
 import { detour } from "./detour.ts";
 import { elkRoute } from "./edges.ts";
-import { alongBorder, laneRoutes, runsThrough } from "./elbows.ts";
+import { alongBorder, clearOfFrames, laneRoutes, runsThrough } from "./elbows.ts";
 import { collinear, headRoom } from "./geometry.ts";
+import { seatEnd } from "./seats.ts";
 import { attachBox, freeRoute, steer } from "./steer.ts";
 import type { Walls } from "./walls.ts";
 
@@ -20,7 +22,24 @@ interface Claim {
 // their line first; each elbow then steps aside from the lines of unrelated free edges.
 export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
   const { model, opts, plan, horizontal, rel } = ctx;
-  const { borders } = w;
+  const { borders, titles } = w;
+  /** Off every group border line and clear beside every title, which clearing the walls is not. */
+  const framed = (p: Point[]) => clearOfFrames(p, borders, titles);
+  /**
+   * Groups that hold neither end, which a lane taken to get off a border must not cut through. A
+   * node on a border belongs to its group too.
+   */
+  const strangers = (e: ModelEdge) =>
+    ctx.groups
+      .filter(
+        (g) =>
+          !g.overlay &&
+          ![e.from, e.to].some(
+            (id) =>
+              id === g.id || rel.above(id).includes(g.id) || ctx.seats.get(id)?.group === g.id,
+          ),
+      )
+      .map((g) => g.box);
   const freeRoutes = new Map<string, Point[]>();
   const claimed: Claim[] = [];
   const related = (a: ModelEdge, b: ModelEdge) =>
@@ -61,7 +80,7 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
     });
   /** The lines ELK drew, which a new free route must not run on top of. */
   const elkLines =
-    plan.blocks.size || plan.grids.size || opts.loose || opts.flip
+    plan.blocks.size || plan.grids.size || plan.seats.size || opts.loose || opts.flip
       ? model.edges.flatMap((o) => {
           const pts = elkRoute(ctx, o);
           return pts ? pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q })) : [];
@@ -69,9 +88,16 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
       : [];
   for (const straight of [true, false]) {
     for (const e of model.edges) {
-      const a = attachBox(ctx, e.from);
-      const b = attachBox(ctx, e.to);
+      // A node on a border is reached through a stub out of its icon's face: the route runs to
+      // the stub's tip and must not turn back over the stub.
+      const sa = seatEnd(ctx, e, "from");
+      const sb = seatEnd(ctx, e, "to");
+      const a = sa?.attach ?? attachBox(ctx, e.from);
+      const b = sb?.attach ?? attachBox(ctx, e.to);
       if (!rel.free(e) || !a || !b) continue;
+      const stubbed = (p: Point[]) => [...(sa ? [sa.face] : []), ...p, ...(sb ? [sb.face] : [])];
+      const onward = (p: Point[]) =>
+        (!sa || ahead(sa, p[1])) && (!sb || ahead(sb, p[p.length - 2]));
       const steered = (p: Point[]) =>
         steer(steer(p, "to", b.avoid, b.full), "from", a.avoid, a.full);
       const route = (d: number) => steered(freeRoute(a, b, d));
@@ -80,25 +106,44 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
       const shifts = [0, 12, -12, 24, -24, 36, -36].map(route);
       if (!straight) points = shifts.find((p) => fits(p, e)) ?? points;
       // An edge that was free before rank, align and cols keeps today's route when it clears
-      // everything. Otherwise the first lane clear of the walls with a margin, off group borders
-      // and off ELK's lines wins, then a detour around them, then any lane that clears the walls.
+      // everything, group border lines and titles included. Otherwise the first lane clear of the
+      // walls with a margin, off group borders and off ELK's lines wins, then a detour around
+      // them, then a lane clear of the walls and the frames, then any lane clear of the walls.
       const walls = w.walls(e);
-      const known = !rel.inBlock(e) && !rel.gridBetween(e) && !opts.loose?.has(e.id);
-      if (!known || runsThrough(points, walls)) {
+      const known =
+        !rel.inBlock(e) && !rel.gridBetween(e) && !rel.seated(e) && !opts.loose?.has(e.id);
+      if (!known || runsThrough(points, walls) || !framed(points)) {
+        // Today's route that only lies on a border or beside a title gives way to a lane that cuts
+        // through no more groups holding neither end (DG223), or stays.
+        const kept = known && !runsThrough(points, walls) ? points : undefined;
+        const cuts = (p: Point[]) => runsThrough(p, strangers(e), 4);
+        const fair = (p: Point[]) => !kept || !cuts(p) || cuts(kept);
         const roomy = w.roomyWalls(e);
+        // A seated end's head sits at the end of its stub, which is straight already.
         const heads = {
-          start: e.arrow === "start" || e.arrow === "both",
-          end: e.arrow !== "none" && e.arrow !== "start",
+          start: !sa && (e.arrow === "start" || e.arrow === "both"),
+          end: !sb && e.arrow !== "none" && e.arrow !== "start",
         };
-        const lanes = [
+        const open = [
           ...(straight ? [points] : shifts.filter((p) => fits(p, e))),
           ...laneRoutes(a, b, heads, borders, horizontal).map(steered),
         ].filter(
           (p) =>
             unclaimed(p, e, !known) &&
             !elkLines.some((c) => collinear(p, c.p, c.q)) &&
-            (known || headRoom(p, heads)),
+            (known || headRoom(p, heads)) &&
+            onward(p) &&
+            fair(p),
         );
+        // A node on a border has new routes to choose from: the ones crossing fewest drawn lines,
+        // or running close beside them, go first, in their own order otherwise.
+        const others = rel.seated(e) ? [...claimed.filter((c) => c.e !== e), ...elkLines] : [];
+        const lanes = others.length
+          ? open
+              .map((p, i) => ({ p, i, n: crossCount(p, others) }))
+              .sort((x, y) => x.n - y.n || x.i - y.i)
+              .map((x) => x.p)
+          : open;
         // The detour treats the lines already drawn like borders: it may cross them, not run on them.
         const drawn = [...claimed.filter((c) => c.e !== e), ...elkLines].map((c) => ({
           x: Math.min(c.p.x, c.q.x),
@@ -109,14 +154,20 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
         const taken = [...claimed.filter((c) => c.e !== e), ...elkLines].flatMap((c) => [c.p, c.q]);
         const around = () => {
           const path = detour(a, b, roomy, [...borders, ...drawn], taken);
-          return path && !runsThrough(steered(path), walls) ? steered(path) : undefined;
+          const out = path && steered(path);
+          return out && !runsThrough(out, walls) && framed(out) && fair(out) && onward(out)
+            ? out
+            : undefined;
         };
         points =
           lanes.find((p) => !runsThrough(p, roomy) && !alongBorder(p, borders)) ??
           around() ??
+          lanes.find((p) => !runsThrough(p, walls) && framed(p) && !cuts(p)) ??
+          kept ??
           lanes.find((p) => !runsThrough(p, walls)) ??
           points;
       }
+      points = stubbed(points);
       freeRoutes.set(e.id, points);
       claimed.push(...points.slice(1).map((q, i) => ({ e, p: points[i] ?? q, q })));
     }
@@ -179,4 +230,51 @@ export function rerouteBlocks(
     rerouted.add(e.id);
   }
   return rerouted;
+}
+
+/** Whether a route's first step from a stub's tip goes on, or at least turns, rather than back. */
+function ahead(s: { face: Point; tip: Point }, next: Point | undefined): boolean {
+  if (!next) return true;
+  const dx = s.tip.x - s.face.x;
+  const dy = s.tip.y - s.face.y;
+  return (next.x - s.tip.x) * dx + (next.y - s.tip.y) * dy >= 0;
+}
+
+/**
+ * How many of the lines a route crosses, each crossing strictly inside both segments, and how
+ * many it runs beside, parallel and closer than 14px over more than 24px (two lines that read as
+ * one double line, and leave no lane to move either off a border).
+ */
+function crossCount(points: Point[], lines: { p: Point; q: Point }[]): number {
+  let n = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    if (!a || !b) continue;
+    const flat = Math.abs(a.y - b.y) < 0.5;
+    if (!flat && Math.abs(a.x - b.x) >= 0.5) continue;
+    for (const { p, q } of lines) {
+      const level = Math.abs(p.y - q.y) < 0.5;
+      if (!level && Math.abs(p.x - q.x) >= 0.5) continue;
+      if (level === flat) {
+        const [s0, s1, t0, t1] = flat ? [a.x, b.x, p.x, q.x] : [a.y, b.y, p.y, q.y];
+        const along =
+          Math.min(Math.max(s0, s1), Math.max(t0, t1)) -
+          Math.max(Math.min(s0, s1), Math.min(t0, t1));
+        if (along > 24 && Math.abs(flat ? a.y - p.y : a.x - p.x) < 14) n++;
+        continue;
+      }
+      const [h0, h1, v0, v1] = flat ? [a, b, p, q] : [p, q, a, b];
+      const x = v0.x;
+      const y = h0.y;
+      if (
+        x > Math.min(h0.x, h1.x) + 0.5 &&
+        x < Math.max(h0.x, h1.x) - 0.5 &&
+        y > Math.min(v0.y, v1.y) + 0.5 &&
+        y < Math.max(v0.y, v1.y) - 0.5
+      )
+        n++;
+    }
+  }
+  return n;
 }

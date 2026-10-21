@@ -23,6 +23,8 @@ import type { GroupGeom } from "./measure.ts";
 import { notationHooks } from "./notation.ts";
 import { type Plan, planPlacement } from "./plan.ts";
 import type { Relations } from "./relations.ts";
+import type { Seat, SeatGrowth } from "./seats.ts";
+import { ENDS } from "./sizes.ts";
 
 export interface LayoutOptions {
   theme?: ThemeName;
@@ -37,6 +39,8 @@ export interface LayoutOptions {
    * so it routes them between the layers with room for their labels, and draws that route backwards.
    */
   flip?: Set<string>;
+  /** The least size of a group whose border nodes did not fit along it (set by the second pass). */
+  grow?: SeatGrowth;
   /** ELK layer wrapping (layout.aspect candidates): the strategy and the target width:height. */
   wrap?: "SINGLE_EDGE" | "MULTI_EDGE";
   ratio?: number;
@@ -113,6 +117,10 @@ export interface Placed extends Laid {
   headerRoom: Map<string, HeaderRoom>;
   groups: SceneGroup[];
   nodes: SceneNode[];
+  /** Nodes moved onto a group's border (on:), with the side each sits on. */
+  seats: Map<string, Seat>;
+  /** Groups too short for their border nodes, with the size the second pass gives them. */
+  seatGrow: SeatGrowth;
 }
 
 /** After routing: every scene edge, and the ones routed after ELK. */
@@ -123,6 +131,11 @@ export interface Routed extends Placed {
   rerouted: Set<string>;
   /** Group headers with a margin, which free edges and their labels keep off. */
   headers: { id: string; box: Box }[];
+  /**
+   * The routes as ELK and the free router drew them, before straighten: the second pass widens
+   * the groups whose headers these cross too, so it lays out as it would without the tidying.
+   */
+  drawn: SceneEdge[];
 }
 
 /** Theme, flow, ELK's base options, the hidden groups, the hooks' order and the placement plan. */
@@ -149,6 +162,9 @@ export function prepare(model: Model, opts: LayoutOptions, theme: ThemeName): Se
     "elk.layered.spacing.edgeNodeBetweenLayers": String(Math.round(20 * s)),
     "elk.layered.spacing.edgeEdgeBetweenLayers": String(Math.round(10 * s)),
     "elk.spacing.edgeLabel": "4",
+    // The pitch of the ends on one side of an icon node (portAlignment CENTER, graph.ts). ELK
+    // reads it from the graph, not the node.
+    "elk.spacing.portPort": String(ENDS.pitch),
     "elk.spacing.labelNode": "6",
     "elk.edgeLabels.placement": "CENTER",
     // One side for every label (and its step badge); ELK's default picks per edge.

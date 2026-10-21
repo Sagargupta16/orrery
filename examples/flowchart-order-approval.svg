@@ -1,4 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="731" height="1312" viewBox="0 0 731 1312" role="img" aria-labelledby="flowchart-order-approval-dark-sdw-title flowchart-order-approval-dark-sdw-desc" font-family="&#39;Geist Mono&#39;, ui-monospace, SFMono-Regular, Menlo, Consolas, &#39;Liberation Mono&#39;, monospace">
+<metadata><orrery:spec xmlns:orrery="https://sagargupta.online/orrery/spec" version="1"># yaml-language-server: $schema=../references/diagram.schema.json
+title: Order approval flowchart
+subtitle: An order that fails the credit check must be paid up front; one over the credit limit needs a manager's sign-off
+kind: flowchart
+layout: { spacing: compact }
+
+nodes:
+  received: { shape: terminator, label: Order received }
+  details: { shape: input, label: Enter order details }
+  credit: { shape: predefined, label: Run credit check, note: Credit bureau API }
+  credit-ok: { shape: decision, label: Credit OK? }
+  limit: { shape: decision, label: Over the limit? }
+  sign-off: { shape: manual, label: Manager signs off }
+  call: { shape: manual, label: Ask for prepayment, note: Phone call }
+  wait: { shape: delay, label: Wait for payment, note: Up to 48 hours }
+  paid: { shape: decision, label: Paid in time? }
+  rejected: { shape: terminator, label: Order rejected }
+  reserve: { shape: process, label: Reserve stock }
+  invoice: { shape: document, label: Print invoice }
+  approved: { shape: terminator, label: Order approved }
+
+edges:
+  - received -> details -> credit -> credit-ok
+  - credit-ok -> limit: yes
+  - credit-ok -> call: no
+  - limit -> sign-off: yes
+  - limit -> reserve: no
+  - sign-off -> reserve
+  - call -> wait -> paid
+  - paid -> reserve: yes
+  - paid -> rejected: no
+  - reserve -> invoice -> approved
+</orrery:spec></metadata>
 <title id="flowchart-order-approval-dark-sdw-title">Order approval flowchart</title>
 <desc id="flowchart-order-approval-dark-sdw-desc">Order approval flowchart. 13 components. Connections: Order received to Enter order details; Enter order details to Run credit check; Run credit check to Credit OK?; Credit OK? to Over the limit? (yes); Credit OK? to Ask for prepayment (no); Over the limit? to Manager signs off (yes); Over the limit? to Reserve stock (no); Manager signs off to Reserve stock; Ask for prepayment to Wait for payment; Wait for payment to Paid in time?; Paid in time? to Reserve stock (yes); Paid in time? to Order rejected (no); Reserve stock to Print invoice; Print invoice to Order approved.</desc>
 <defs><linearGradient id="flowchart-order-approval-dark-bg" x1="0" y1="0" x2="0.34" y2="0.94"><stop offset="0" stop-color="#0e1a24"/><stop offset="0.6" stop-color="#0b1012"/></linearGradient><pattern id="flowchart-order-approval-dark-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 0.5H20M0.5 0V20" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1"/></pattern><radialGradient id="flowchart-order-approval-dark-wash" gradientUnits="userSpaceOnUse" cx="265.5" cy="690" r="499.4"><stop offset="0" stop-color="#60a5fa" stop-opacity="0.12"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></radialGradient></defs>

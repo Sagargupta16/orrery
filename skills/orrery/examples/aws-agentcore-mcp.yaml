@@ -26,13 +26,13 @@ nodes:
   knowledge: { icon: aws:document, label: AWS Knowledge MCP server, note: AWS documentation, in: cloud }
 
 edges:
-  - clients -> gateway: { label: tool calls, step: 1 }
+  - clients -> gateway: { label: tool calls }
   - gateway ..> policy: authorize
-  - gateway -> tools: { label: MCP, step: 2 }
-  - tools -> harness: { label: ask_architect, step: 3 }
+  - gateway -> tools: { label: MCP }
+  - tools -> harness: { label: ask_architect }
   - tools -> outputs: save
-  - harness -> bedrock: { label: reason, step: 4 }
-  - harness -> knowledge: { label: read docs, step: 5 }
+  - harness -> bedrock: { label: reason }
+  - harness -> knowledge: { label: read docs }
   # The harness calls the tools back through the gateway, as often as the turn needs; written gateway
   # first with the arrow at the start, so the loop does not reorder the layers.
   - { from: gateway, to: harness, arrow: start, label: tool calls }

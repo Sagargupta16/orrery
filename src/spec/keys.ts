@@ -19,6 +19,11 @@ export const TOP_KEYS = [
   "icons",
   "stages",
   "story",
+  "tags",
+  "views",
+  "classes",
+  "include",
+  "embed",
   "nodes",
   "groups",
   "edges",
@@ -40,6 +45,10 @@ export const NODE_KEYS = [
   "score",
   "rank",
   "align",
+  "on",
+  "tags",
+  "evidence",
+  "class",
 ];
 export const NODE_SYNONYMS: Record<string, string> = {
   sublabel: "note",
@@ -63,6 +72,9 @@ export const GROUP_KEYS = [
   "contains",
   "around",
   "cols",
+  "tags",
+  "evidence",
+  "class",
 ];
 export const GROUP_SYNONYMS: Record<string, string> = {
   style: "type",
@@ -82,6 +94,9 @@ export const EDGE_KEYS = [
   "step",
   "constraint",
   "flow",
+  "tags",
+  "evidence",
+  "class",
 ];
 export const EDGE_SYNONYMS: Record<string, string> = {
   style: "line",

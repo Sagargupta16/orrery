@@ -28,14 +28,14 @@ nodes:
 edges:
   # constraint: false keeps the developer beside the repository and the four stages in one row.
   - { from: dev, to: github, constraint: false }
-  - github -> build: { label: source, step: 1 }
+  - github -> build: { label: source }
   - { from: build, to: deploy-stg, constraint: false }
   - { from: deploy-stg, to: approval, constraint: false }
   - { from: approval, to: deploy-prd, constraint: false }
   # Each stage hangs its target directly below it.
-  - build -> ecr: { label: push image, step: 2 }
-  - deploy-stg -> ecs-stg: { label: deploy, step: 3 }
-  - deploy-prd -> ecs-prd: { label: deploy, step: 4 }
+  - build -> ecr: { label: push image }
+  - deploy-stg -> ecs-stg: { label: deploy }
+  - deploy-prd -> ecs-prd: { label: deploy }
   # CodeDeploy watches CloudWatch alarms (dashed, unlabelled) and rolls back a failing release. Both edges are free, so
   # CloudWatch sits beside the pipeline, level with the production stage.
   - { from: cw, to: deploy-prd, line: dashed, constraint: false }

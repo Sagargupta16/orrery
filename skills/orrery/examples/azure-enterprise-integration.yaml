@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Enterprise integration on Azure
+subtitle: API Management fronts Logic Apps workflows that decouple back-end systems through Service Bus, with Event Grid waking the consumer when messages wait
+direction: down
+# Filled triangles, as in Azure's reference diagrams; one port per edge.
+arrowhead: filled
+layout: { merge: false }
+
+legend:
+  solid: HTTPS calls
+  dashed: Messages and events
+  dotted: Sign-in
+
+groups:
+  sub: { type: azure:subscription, label: Integration subscription }
+  rg: { type: azure:resource-group, label: rg-integration-prod, in: sub }
+  backends: { type: zone, label: Back-end systems }
+
+nodes:
+  app: { icon: generic:client, label: Client application, note: Web or mobile app }
+  entra: { icon: azure:entra-managed-identities, label: Microsoft Entra ID, note: OAuth 2.0 tokens and managed identities }
+  # align folds the chain into rows: the API layer, then the messaging layer, then the back ends.
+  apim: { icon: azure:api-management-services, label: API Management, note: API gateway and developer portal, in: rg }
+  intake: { icon: azure:logic-apps, label: Logic Apps, note: Intake workflow, align: apim, in: rg }
+  bus: { icon: azure:azure-service-bus, label: Azure Service Bus, note: Queues and topics, in: rg }
+  events: { icon: azure:event-grid-topics, label: Azure Event Grid, note: Service Bus system topic, align: bus, in: rg }
+  process: { icon: azure:logic-apps, label: Logic Apps, note: Processing workflow, align: bus, in: rg }
+  legacy: { icon: generic:server, label: Message-based service, note: Existing order system, in: backends }
+  saas: { icon: generic:cloud, label: SaaS service, in: backends }
+  sql: { icon: azure:sql-database, label: Azure SQL Database, note: Line-of-business data, in: backends }
+
+edges:
+  # The client signs in first, then calls the gateway with the token.
+  - { from: app, to: entra, line: dotted, constraint: false }
+  - app -> apim: HTTPS
+  - apim -> intake
+  - intake --> bus: send
+  # Proxied push: Service Bus raises an event when messages wait, so nothing polls the queue.
+  - bus --> events: messages waiting
+  - events --> process: trigger
+  # The consumers pull from Service Bus with PeekLock, so the arrowheads stay on the queue.
+  - { from: bus, to: process, arrow: start, line: dashed, label: peek-lock receive }
+  - process -> saas, sql
+  - { from: bus, to: legacy, arrow: start, line: dashed, label: topic subscription }

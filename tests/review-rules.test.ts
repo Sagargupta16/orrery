@@ -1,9 +1,9 @@
-// The rules ported from the aws-archify sample: one spec that triggers each, one that does not.
+// Layout, composition, spacing and naming rules: one spec that triggers each, one that does not.
 import { describe, expect, it } from "vitest";
 import { checkScene } from "../src/check/index.ts";
 import { layout } from "../src/layout/index.ts";
 import { formatReview, LOOK_MAX, reviewModel, reviewScene } from "../src/review/index.ts";
-import type { Box, Model, Scene } from "../src/types.ts";
+import type { Box, Diagnostic, Model, Scene } from "../src/types.ts";
 import { model, must, pngSize } from "./helpers.ts";
 
 async function laid(source: string): Promise<{ m: Model; scene: Scene }> {
@@ -292,6 +292,413 @@ ${extra}`;
     expect(
       await findings(
         "nodes:\n  fn: { icon: aws:lambda, label: AWS Lambda, note: Order handler }\n",
+        "conventions.service-label",
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("spacing rules", () => {
+  const chain = (spacing: string) =>
+    `direction: down
+layout: { spacing: ${spacing} }
+nodes: { a: A, b: B, c: C, d: D }
+edges:
+  - a -> b: reads
+  - b -> c: writes
+  - c -> d: emits
+`;
+
+  it("layout.sparse flags a figure whose median gap is over 300px", async () => {
+    const [hit] = await findings(chain("3"), "layout.sparse");
+    expect(hit?.evidence.medianGapPx).toBeGreaterThan(300);
+    expect(hit?.patches).toEqual([{ op: "set", path: "layout.spacing", value: "compact" }]);
+    expect(await findings(chain("normal"), "layout.sparse")).toEqual([]);
+  });
+
+  /** Three nodes in a row, centres `pitch` apart, each label `wide` px wide. */
+  async function row(pitch: number, wide: number) {
+    const { m, scene } = await laid(`nodes: { a: A, b: B, c: C }
+edges:
+  - a -> b
+  - b -> c
+`);
+    for (const [i, id] of ["a", "b", "c"].entries()) {
+      place(scene, id, { x: 100 + i * pitch, y: 100 });
+      const n = node(scene, id);
+      const cx = n.box.x + n.box.w / 2;
+      n.labelBox = { ...n.labelBox, x: cx - wide / 2, w: wide };
+    }
+    scene.width = 3000;
+    return review(scene, m).findings.filter((f) => f.id === "layout.wide-pitch");
+  }
+
+  it("layout.wide-pitch flags a pitch over 400px while the gaps are fine", async () => {
+    const [hit] = await row(450, 350);
+    expect(hit?.evidence).toMatchObject({ medianPitchPx: 450, medianGapPx: 100 });
+    expect(await row(300, 200)).toEqual([]);
+  });
+
+  const PAIR_DOWN = `direction: down
+nodes: { a: A, b: B }
+edges:
+  - a -> b
+`;
+
+  it("grid.wide-gap flags a row gap far wider than layout needs", async () => {
+    const { m, scene } = await laid(PAIR_DOWN);
+    expect(review(scene, m).findings.map((f) => f.id)).not.toContain("grid.wide-gap");
+    const a = node(scene, "a");
+    place(scene, "b", { x: a.box.x, y: a.box.y + 400 });
+    scene.height += 400;
+    const [hit] = review(scene, m).findings.filter((f) => f.id === "grid.wide-gap");
+    expect(hit?.evidence).toMatchObject({ scope: "(root)", axis: "row", roomPx: 64 });
+    expect(Number(hit?.evidence.gapPx)).toBeGreaterThan(160);
+  });
+
+  const TWO_ZONES = `direction: down
+groups:
+  g1: { type: box, label: Web }
+  g2: { type: box, label: Data }
+nodes:
+  a: { label: A, in: g1 }
+  b: { label: B, in: g2 }
+edges:
+  - a -> b
+`;
+
+  it("grid.group-gap flags sibling groups further apart than layout needs", async () => {
+    const { m, scene } = await laid(TWO_ZONES);
+    expect(review(scene, m).findings.map((f) => f.id)).not.toContain("grid.group-gap");
+    group(scene, "g2").box.y += 150;
+    const [hit] = review(scene, m).findings.filter((f) => f.id === "grid.group-gap");
+    expect(hit?.subjects).toEqual(["g1", "g2"]);
+    expect(hit?.evidence).toMatchObject({ axis: "row", labels: 0 });
+    // One gap is one finding: grid.wide-gap leaves a gap grid.group-gap reported alone.
+    expect(review(scene, m).findings.map((f) => f.id)).not.toContain("grid.wide-gap");
+  });
+});
+
+describe("edge ends and bends", () => {
+  const WIDE = `direction: down
+layout: { merge: false }
+nodes:
+  a: { icon: aws:lambda, label: Source A }
+  b: { icon: aws:lambda, label: Source B }
+  hub: { icon: aws:s3, label: A bucket with a long label, note: Objects kept for ninety days }
+edges:
+  - a -> hub
+  - b -> hub
+`;
+  const tileOf = (scene: Scene, id: string) => must(node(scene, id).iconBox, `tile of ${id}`);
+  /** Redraws an edge into `x` on the top of `to`, through a level run halfway down. */
+  const intoTop = (scene: Scene, from: string, x: number, dy = 0) => {
+    const e = edge(scene, from);
+    const s0 = must(e.points[0], "start");
+    const t = tileOf(scene, e.to);
+    const mid = (s0.y + t.y) / 2;
+    e.points = [s0, { x: s0.x, y: mid }, { x, y: mid }, { x, y: t.y - dy }];
+  };
+  const ids = (scene: Scene, m: Model, id: string) =>
+    review(scene, m).findings.filter((f) => f.id === id);
+
+  it("flow.arrow-short flags an end out in an icon label's width as major", async () => {
+    const { m, scene } = await laid(WIDE);
+    expect(ids(scene, m, "flow.arrow-short")).toEqual([]);
+    const hub = node(scene, "hub");
+    intoTop(scene, "a", hub.box.x + 4);
+    const found = ids(scene, m, "flow.arrow-short");
+    expect(found.map((f) => [f.severity, f.evidence.node, f.evidence.side])).toEqual([
+      ["major", "hub", "top"],
+    ]);
+    expect(Number(found[0]?.evidence.outsidePx)).toBeGreaterThan(20);
+  });
+
+  it("flow.arrow-short flags an arrowhead that stops short of the tile", async () => {
+    const { m, scene } = await laid(WIDE);
+    const t = tileOf(scene, "hub");
+    intoTop(scene, "a", t.x + t.w / 2, 10);
+    const found = ids(scene, m, "flow.arrow-short");
+    expect(found.map((f) => [f.severity, f.evidence.gapPx])).toEqual([["minor", 10]]);
+  });
+
+  it("grid.off-center flags ends spread to the corners of one face", async () => {
+    const { m, scene } = await laid(WIDE);
+    expect(ids(scene, m, "grid.off-center")).toEqual([]);
+    const t = tileOf(scene, "hub");
+    intoTop(scene, "a", t.x + 3);
+    intoTop(scene, "b", t.x + t.w - 3);
+    const found = ids(scene, m, "grid.off-center");
+    expect(found.map((f) => [f.evidence.node, f.evidence.side, f.evidence.pitchMaxPx])).toEqual([
+      ["hub", "top", 42],
+    ]);
+  });
+
+  it("grid.avoidable-bend flags a detour the router's own search would straighten", async () => {
+    // Not one to one (a fans out), so composition's L and Z checks leave it alone.
+    const { m, scene } = await laid(`layout: { merge: false }
+nodes: { a: A, b: B, c: C }
+edges:
+  - a -> b
+  - a -> c
+`);
+    expect(ids(scene, m, "grid.avoidable-bend")).toEqual([]);
+    const e = edge(scene, "a");
+    const [s0, t] = [must(e.points[0], "start"), must(e.points.at(-1), "end")];
+    const below = Math.max(...scene.nodes.map((n) => n.box.y + n.box.h)) + 40;
+    e.points = [
+      s0,
+      { x: s0.x + 20, y: s0.y },
+      { x: s0.x + 20, y: below },
+      { x: t.x - 20, y: below },
+      { x: t.x - 20, y: t.y },
+      t,
+    ];
+    const found = ids(scene, m, "grid.avoidable-bend").filter((f) => f.evidence.bends === 4);
+    expect(found.map((f) => [f.subjects[0], f.evidence.clearBends])).toEqual([[e.id, 0]]);
+  });
+
+  it("grid.ragged flags icons in one row that leave their center line", async () => {
+    const { m, scene } = await laid(`direction: down
+groups:
+  g: { type: box, label: Stages }
+nodes:
+  s1: { icon: aws:codebuild, label: AWS CodeBuild, in: g }
+  s2: { icon: aws:codedeploy, label: AWS CodeDeploy, in: g }
+edges:
+  - { from: s1, to: s2, constraint: false }
+`);
+    const row = (f: { claim: string }) => f.claim.includes("share a row");
+    expect(ids(scene, m, "grid.ragged").filter(row)).toEqual([]);
+    const s2 = node(scene, "s2");
+    place(scene, "s2", { x: s2.box.x, y: s2.box.y + 10 });
+    const found = ids(scene, m, "grid.ragged").filter(row);
+    expect(found.map((f) => [f.subjects, f.evidence.offPx])).toEqual([[["s1", "s2"], 10]]);
+  });
+});
+
+describe("parallel edges", () => {
+  const FOUR = `nodes: { a: A, b: B, c: C, d: D }
+edges:
+  - a -> b
+  - c -> d
+`;
+
+  async function parallel(apart: number) {
+    const { m, scene } = await laid(FOUR);
+    edge(scene, "a").points = [
+      { x: 100, y: 100 },
+      { x: 300, y: 100 },
+    ];
+    edge(scene, "c").points = [
+      { x: 120, y: 100 + apart },
+      { x: 320, y: 100 + apart },
+    ];
+    return review(scene, m).findings.filter((f) => f.id === "flow.side-by-side");
+  }
+
+  it("flow.side-by-side flags unrelated runs within 12px over a shared span", async () => {
+    const [hit] = await parallel(8);
+    expect(hit?.evidence).toMatchObject({ apartPx: 8, sharedPx: 180 });
+    expect(await parallel(20)).toEqual([]);
+  });
+});
+
+describe("subtitle", () => {
+  const spec = (title: string, subtitle: string) => `title: ${title}
+subtitle: ${subtitle}
+nodes:
+  api: { icon: aws:api-gateway, label: Amazon API Gateway }
+  fn: { icon: aws:lambda, label: AWS Lambda }
+  db: { icon: aws:dynamodb, label: Amazon DynamoDB }
+edges:
+  - api -> fn -> db
+`;
+
+  it("conventions.subtitle-echo flags a subtitle that repeats the title or lists the nodes", async () => {
+    const [same] = await findings(
+      spec("Orders API", "The orders APIs"),
+      "conventions.subtitle-echo",
+    );
+    expect(same?.evidence.echoes).toBe("title");
+    const [list] = await findings(
+      spec("Orders API", "API Gateway, Lambda and DynamoDB"),
+      "conventions.subtitle-echo",
+    );
+    expect(list?.evidence).toMatchObject({ echoes: "labels", labels: 3 });
+    expect(
+      await findings(
+        spec("Orders API", "API Gateway hands each order to Lambda, which stores it in DynamoDB"),
+        "conventions.subtitle-echo",
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("check codes in the review", () => {
+  const LANE = `groups:
+  g: { type: box, label: Zone }
+nodes:
+  a: { label: A, in: g }
+  x: X
+  y: Y
+edges:
+  - x -> y
+  - a -> y
+`;
+
+  const diag = (code: string, subject: Record<string, unknown>): Diagnostic => ({
+    code,
+    severity: "warning",
+    message: `${code} test`,
+    subject,
+    evidence: { runPx: 3 },
+    fixes: ["use layout: { spacing: loose }"],
+  });
+
+  it("maps DG222, DG224 and DG225 to their findings, and nothing without them", async () => {
+    const { m, scene } = await laid(LANE);
+    const id = edge(scene, "x").id;
+    const mapped = (d: Diagnostic[]) =>
+      reviewScene(scene, m, d, { width: 880 })
+        .findings.filter((f) => f.rule && ["DG222", "DG224", "DG225"].includes(f.rule))
+        .map((f) => [f.id, f.dimension, f.severity]);
+    expect(mapped([])).toEqual([]);
+    const report = reviewScene(
+      scene,
+      m,
+      [
+        diag("DG222", { edge: id, from: "x", to: "y", end: "y" }),
+        diag("DG224", { edge: id, from: "x", to: "y", group: "g" }),
+        diag("DG225", { edge: id, from: "x", to: "y", group: "g" }),
+      ],
+      { width: 880 },
+    );
+    expect(
+      report.findings
+        .filter((f) => f.rule && ["DG222", "DG224", "DG225"].includes(f.rule))
+        .map((f) => [f.id, f.dimension, f.severity]),
+    ).toEqual([
+      ["grid.edge-on-border", "grid", "minor"],
+      ["flow.head-on-bend", "flow", "minor"],
+      ["overlap.title-band", "overlap", "minor"],
+    ]);
+    expect(report.dimensions.flow.metrics.headsOnBends).toBe(1);
+  });
+
+  it("maps DG223 as major only when the edge truly crosses the group", async () => {
+    const { m, scene } = await laid(LANE);
+    const g = group(scene, "g").box;
+    const e = edge(scene, "x");
+    const severity = () =>
+      reviewScene(scene, m, [diag("DG223", { edge: e.id, from: "x", to: "y", group: "g" })], {
+        width: 880,
+      }).findings.find((f) => f.id === "overlap.edge-through-group")?.severity;
+    const mid = g.y + g.h / 2;
+    e.points = [
+      { x: g.x - 50, y: mid },
+      { x: g.x + g.w + 50, y: mid },
+    ];
+    expect(severity()).toBe("major");
+    e.points = [
+      { x: g.x - 50, y: g.y + 6 },
+      { x: g.x + 10, y: g.y + 6 },
+      { x: g.x + 10, y: g.y - 50 },
+    ];
+    expect(severity()).toBe("minor");
+  });
+});
+
+describe("vendor naming rules", () => {
+  const subnets = (a: string, b: string) => `groups:
+  vnet: { type: azure:vnet, label: vnet-shop }
+  s1: { type: azure:subnet, label: "${a}", in: vnet }
+  s2: { type: azure:subnet, label: "${b}", in: vnet }
+nodes:
+  web: { icon: azure:app-services, label: App Service, in: s1 }
+  pe: { icon: azure:private-endpoints, label: Private endpoint, in: s2 }
+edges:
+  - web -> pe
+`;
+
+  it("boundary-label asks several Azure subnets to say what each is for (AZ-12)", async () => {
+    const hits = await findings(subnets("Subnet", "Subnet"), "conventions.boundary-label");
+    expect(hits.map((f) => [f.subjects, f.rule, f.evidence.rule])).toEqual([
+      [["s1"], "AZ-12", "AZ-12"],
+      [["s2"], "AZ-12", "AZ-12"],
+    ]);
+    expect(await findings(subnets("snet-web", "snet-pe"), "conventions.boundary-label")).toEqual(
+      [],
+    );
+  });
+
+  const namespaces = (b: string) => `groups:
+  project: { type: gcp:project, label: Project shop-prod }
+  cluster: { type: k8s:cluster, label: GKE cluster, in: project }
+  ns1: { type: k8s:namespace, label: Namespace web, in: cluster }
+  ns2: { type: k8s:namespace, label: "${b}", in: cluster }
+nodes:
+  a: { icon: k8s:pod, label: Pods, in: ns1 }
+  b: { icon: k8s:pod, label: Pods, in: ns2 }
+`;
+
+  it("boundary-label flags two sibling namespaces with one label (FLOW-12)", async () => {
+    const [hit] = await findings(namespaces("Namespace web"), "conventions.boundary-label");
+    expect(hit?.subjects).toEqual(["ns1", "ns2"]);
+    expect(hit?.rule).toBe("FLOW-12");
+    expect(await findings(namespaces("Namespace api"), "conventions.boundary-label")).toEqual([]);
+  });
+
+  const appFrame = (extra: string) => `groups:
+  app: { type: azure:service-group, label: Orders app, icon: azure:app-services }
+nodes:
+  site: { icon: azure:app-services, label: App Service, in: app }
+${extra}`;
+
+  it("service-group flags an Azure service frame that holds another service", async () => {
+    const [hit] = await findings(
+      appFrame("  kv: { icon: azure:key-vaults, label: Key Vault, in: app }\n"),
+      "conventions.service-group",
+    );
+    expect(hit?.subjects).toEqual(["app", "kv"]);
+    expect(hit?.rule).toBe("FLOW-12");
+    expect(hit?.patches).toEqual([{ op: "unset", path: "groups.app.icon" }]);
+    expect(await findings(appFrame(""), "conventions.service-group")).toEqual([]);
+  });
+
+  it("service-label wants the Azure product in the label or the note (AZ-07)", async () => {
+    const [hit] = await findings(
+      "nodes:\n  api: { icon: azure:app-services, label: Orders API, note: Node.js 22 }\n",
+      "conventions.service-label",
+    );
+    expect(hit?.rule).toBe("AZ-07");
+    expect(hit?.patches).toEqual([
+      { op: "set", path: "nodes.api.note", value: "App Service, Node.js 22" },
+    ]);
+    expect(
+      await findings(
+        "nodes:\n  api: { icon: azure:app-services, label: Orders API, note: App Service }\n",
+        "conventions.service-label",
+      ),
+    ).toEqual([]);
+    expect(
+      await findings(
+        "nodes:\n  gw: { icon: azure:virtual-network-gateways, label: ExpressRoute gateway }\n",
+        "conventions.service-label",
+      ),
+    ).toEqual([]);
+  });
+
+  it("service-label wants the Google Cloud product named, unless the title names it (GCP-04)", async () => {
+    const run = (title: string) =>
+      `title: ${title}\nnodes:\n  web: { icon: gcp:vertex-ai, label: Model Registry }\n`;
+    const [hit] = await findings(run("Orders platform"), "conventions.service-label");
+    expect(hit?.rule).toBe("GCP-04");
+    expect(hit?.evidence.rule).toBe("GCP-04");
+    expect(await findings(run("MLOps on Vertex AI"), "conventions.service-label")).toEqual([]);
+    expect(
+      await findings(
+        "nodes:\n  web: { icon: gcp:cloud-run, label: Cloud Run, note: Orders API }\n",
         "conventions.service-label",
       ),
     ).toEqual([]);

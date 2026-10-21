@@ -9,6 +9,7 @@ import {
 } from "../types.ts";
 import type { Ctx } from "./context.ts";
 import { EDGE_KEYS, EDGE_SYNONYMS } from "./keys.ts";
+import { metaOf, tagged } from "./meta.ts";
 import { suggestIds } from "./suggest.ts";
 import { hexColor, isObj, type Obj, oneOf, pick, str, unknownKeys } from "./values.ts";
 
@@ -277,6 +278,9 @@ function push(
       fixes: ["use step: 1, 2, 3..."],
     });
   }
+  const meta = metaOf(ctx, extra, where, { edge: where });
+  // A tag's line replaces only the default solid one; any other arrow, a flow or line: is chosen.
+  const tag = tagged(ctx, meta.tags);
   edges.push({
     id: `e${edges.length + 1}`,
     from: reverse ? to : from,
@@ -285,7 +289,7 @@ function push(
     line:
       lineRaw !== undefined
         ? oneOf<EdgeLine>(ctx, lineRaw, EDGE_LINES, op.line, `${where} line`)
-        : (flowLine ?? op.line),
+        : (flowLine ?? (op.line === "solid" ? (tag.line ?? op.line) : op.line)),
     arrow:
       arrowRaw !== undefined
         ? oneOf<ArrowMode>(ctx, arrowRaw, ARROWS, "end", `${where} arrow`)
@@ -294,9 +298,10 @@ function push(
           : reverse
             ? "end"
             : op.arrow,
-    color,
+    color: color ?? tag.color,
     step: step !== undefined && Number.isInteger(step) ? step : undefined,
     constraint: pick(extra, "constraint", EDGE_SYNONYMS) !== false,
     ...(flow && flow !== "sequence" ? { flow } : {}),
+    ...meta,
   });
 }

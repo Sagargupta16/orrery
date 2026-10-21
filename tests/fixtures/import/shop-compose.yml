@@ -1,0 +1,73 @@
+name: shop
+
+x-app: &app
+  build: ./app
+  restart: unless-stopped
+  environment: &app-env
+    DATABASE_URL: postgres://shop:${DB_PASSWORD:-shop}@db:5432/shop
+    REDIS_URL: redis://cache:6379/0
+    BROKER_URL: amqp://guest:guest@queue:5672//
+
+services:
+  proxy:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    links:
+      - web
+    networks:
+      - edge
+    depends_on:
+      - web
+
+  web:
+    <<: *app
+    command: gunicorn shop.wsgi --bind 0.0.0.0:8000
+    deploy:
+      replicas: 2
+    networks:
+      - edge
+      - backend
+    depends_on:
+      - db
+      - cache
+
+  worker:
+    <<: *app
+    command: celery -A shop worker
+    networks:
+      - backend
+    depends_on:
+      - queue
+      - db
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: shop
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  cache:
+    image: redis:7.4-alpine
+    networks:
+      - backend
+
+  queue:
+    image: rabbitmq:4-management
+    ports:
+      - "15672:15672"
+    networks:
+      - backend
+
+networks:
+  edge:
+  backend:
+    internal: true
+
+volumes:
+  pgdata:

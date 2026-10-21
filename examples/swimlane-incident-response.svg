@@ -1,4 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="755" height="1494" viewBox="0 0 755 1494" role="img" aria-labelledby="swimlane-incident-response-dark-sdw-title swimlane-incident-response-dark-sdw-desc" font-family="&#39;Geist Mono&#39;, ui-monospace, SFMono-Regular, Menlo, Consolas, &#39;Liberation Mono&#39;, monospace">
+<metadata><orrery:spec xmlns:orrery="https://sagargupta.online/orrery/spec" version="1"># yaml-language-server: $schema=../references/diagram.schema.json
+title: Incident response
+subtitle: Who does what from the first alert to the postmortem, as a cross-functional flowchart
+kind: flowchart
+
+groups:
+  oncall: { type: lane, label: On-call engineer }
+  lead: { type: lane, label: Incident lead }
+  comms: { type: lane, label: Communications }
+
+nodes:
+  alert: { shape: terminator, label: Alert fires, in: oncall }
+  ack: { shape: process, label: Acknowledge the page, in: oncall }
+  triage: { shape: process, label: Triage the impact, in: oncall }
+  impact: { shape: decision, label: Customers affected?, in: oncall }
+  fix: { shape: process, label: Fix and monitor, in: oncall }
+
+  declare: { shape: process, label: Declare an incident, in: lead }
+  mitigate: { shape: process, label: Coordinate mitigation, in: lead }
+  resolved: { shape: decision, label: Resolved?, in: lead }
+  review: { shape: process, label: Schedule the postmortem, in: lead }
+  closed: { shape: terminator, label: Incident closed, in: lead }
+
+  status: { shape: process, label: Post a status page update, in: comms }
+  update: { shape: process, label: Update every 30 minutes, in: comms }
+  allclear: { shape: process, label: Send the all clear, in: comms }
+
+edges:
+  - alert -> ack -> triage -> impact
+  - impact -> fix: "No"
+  - impact -> declare: "Yes"
+  - fix -> closed
+  - declare -> mitigate -> resolved
+  - declare -> status -> update
+  - resolved -> mitigate: "No"
+  - resolved -> allclear: "Yes"
+  - update -> allclear
+  - allclear -> review -> closed
+</orrery:spec></metadata>
 <title id="swimlane-incident-response-dark-sdw-title">Incident response</title>
 <desc id="swimlane-incident-response-dark-sdw-desc">Incident response. 13 components in 3 groups. Connections: Alert fires to Acknowledge the page; Acknowledge the page to Triage the impact; Triage the impact to Customers affected?; Customers affected? to Fix and monitor (No); Customers affected? to Declare an incident (Yes); Fix and monitor to Incident closed; Declare an incident to Coordinate mitigation; Coordinate mitigation to Resolved?; Declare an incident to Post a status page update; Post a status page update to Update every 30 minutes; Resolved? to Coordinate mitigation (No); Resolved? to Send the all clear (Yes); Update every 30 minutes to Send the all clear; Send the all clear to Schedule the postmortem; Schedule the postmortem to Incident closed.</desc>
 <defs><linearGradient id="swimlane-incident-response-dark-bg" x1="0" y1="0" x2="0.34" y2="0.94"><stop offset="0" stop-color="#0e1a24"/><stop offset="0.6" stop-color="#0b1012"/></linearGradient><pattern id="swimlane-incident-response-dark-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 0.5H20M0.5 0V20" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1"/></pattern><radialGradient id="swimlane-incident-response-dark-wash" gradientUnits="userSpaceOnUse" cx="400.25" cy="796" r="534.58"><stop offset="0" stop-color="#60a5fa" stop-opacity="0.12"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></radialGradient></defs>

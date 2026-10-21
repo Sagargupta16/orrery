@@ -24,6 +24,7 @@ export function measureLayout(c: Ctx, diagnostics: Diagnostic[]): void {
   const crossings = edgeCrossings(c);
   const { lens, median, long } = edgeLengths(c);
   const holePct = emptySpace(c);
+  const spacing = nodeSpacing(c);
   const aspect = proportions(c);
   const ignored = layoutDiagnostics(c, diagnostics);
   const { pairs, inOrder } = specOrder(c);
@@ -33,6 +34,8 @@ export function measureLayout(c: Ctx, diagnostics: Diagnostic[]): void {
     againstFlow: against.length,
     crossings,
     holePct: r1(holePct),
+    nodeGapPx: Math.round(spacing.gap),
+    nodePitchPx: Math.round(spacing.pitch),
     aspect: r2(aspect),
     longEdges: long.length,
     edgeMedianPx: Math.round(median),
@@ -271,6 +274,94 @@ function emptySpace(c: Ctx): number {
     );
   }
   return holePct;
+}
+
+/** The upper median: the middle value, or the higher of the two middle ones. */
+const upperMedian = (v: number[]) => [...v].sort((a, b) => a - b)[v.length >> 1] ?? 0;
+
+/**
+ * Sparse figure and wide pitch limits (canvas px), each set just above the widest in orrery's
+ * gallery (median gaps 20 to 262px, pitches 72 to 370px). The gallery runs wide by construction:
+ * ELK gives centered edge labels a layer of their own (a labelled gap is two layer gaps and the
+ * label, about 150px at normal spacing), routes edges in channels between columns and nests group
+ * headers between nodes, so tighter limits (a 150px median gap, a 240px pitch) would read ten of
+ * its diagrams as sparse, dense ones such as system-design-video-streaming among them.
+ */
+const SPARSE_GAP = 300;
+const WIDE_PITCH = 400;
+
+/**
+ * Node spacing: the median empty gap between neighbouring node footprints (icon plus label and
+ * note) in a row or column, and the median centre-to-centre pitch of their icon tiles; a row is
+ * the nodes whose tile centres sit within 24px. Gaps, not pitch, judge sparseness: a long label
+ * makes a compact row's pitch large but its gaps small. Canvas px at 1x, like every length in this
+ * file (an orrery icon is 48px): a narrower column shrinks the gaps and the nodes alike, so the
+ * display width does not change the verdict. A journey's grid places every step, so its spacing
+ * is not the author's to fix.
+ */
+function nodeSpacing(c: Ctx): { gap: number; pitch: number } {
+  const { scene, model, add } = c;
+  if (model.kind === "journey") return { gap: 0, pitch: 0 };
+  const items = scene.nodes.map((n) => ({
+    tile: n.iconBox ?? n.box,
+    foot: c.foot.get(n.id) ?? n.box,
+  }));
+  const gaps: number[] = [];
+  const pitches: number[] = [];
+  for (const [at, size, key, keySize] of [
+    ["x", "w", "y", "h"],
+    ["y", "h", "x", "w"],
+  ] as const) {
+    const lines: { k: number; items: typeof items }[] = [];
+    for (const it of items) {
+      const k = it.tile[key] + it.tile[keySize] / 2;
+      const line = lines.find((l) => Math.abs(l.k - k) < 24);
+      if (line) line.items.push(it);
+      else lines.push({ k, items: [it] });
+    }
+    for (const l of lines) {
+      const centres = l.items.map((it) => it.tile[at] + it.tile[size] / 2).sort((a, b) => a - b);
+      for (let i = 1; i < centres.length; i++) {
+        const d = (centres[i] ?? 0) - (centres[i - 1] ?? 0);
+        if (d > 0) pitches.push(d);
+      }
+      const row = [...l.items].sort((a, b) => a.foot[at] - b.foot[at]);
+      for (let i = 1; i < row.length; i++) {
+        const p = row[i - 1];
+        const q = row[i];
+        const d = p && q ? q.foot[at] - (p.foot[at] + p.foot[size]) : 0;
+        if (d > 0) gaps.push(d);
+      }
+    }
+  }
+  const gap = upperMedian(gaps);
+  const pitch = upperMedian(pitches);
+  if (gap > SPARSE_GAP)
+    add(
+      "layout.sparse",
+      "minor",
+      [],
+      { medianGapPx: Math.round(gap), limitPx: SPARSE_GAP, gaps: gaps.length },
+      `the median gap between neighbouring nodes is ${Math.round(gap)}px (over ${SPARSE_GAP}px), so the picture is spread thin`,
+      [
+        ...(model.spacing > 0.75 ? ["use layout: { spacing: compact }"] : []),
+        "shorten the edge labels between layers: a labelled edge widens its gap",
+        "move connected nodes next to each other in the nodes list",
+      ],
+      Math.min(15, 6 + (gap - SPARSE_GAP) / 10),
+      model.spacing > 0.75 ? [{ op: "set", path: "layout.spacing", value: "compact" }] : undefined,
+    );
+  else if (pitch > WIDE_PITCH)
+    add(
+      "layout.wide-pitch",
+      "minor",
+      [],
+      { medianPitchPx: Math.round(pitch), limitPx: WIDE_PITCH, medianGapPx: Math.round(gap) },
+      `the median node pitch is ${Math.round(pitch)}px (over ${WIDE_PITCH}px) while the gaps are fine, so the labels are wider than they need to be`,
+      ["shorten the longest node labels and notes: the widest text sets a node's width"],
+      Math.min(8, 4 + (pitch - WIDE_PITCH) / 20),
+    );
+  return { gap, pitch };
 }
 
 /** Proportions, canvas width and the ELK fallback. */

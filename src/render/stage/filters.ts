@@ -1,5 +1,6 @@
 // Icons in one color: one shared <symbol> per glyph, painted by one filter per tone and color.
 
+import { contrast, ensureContrast, mixHex, parseHex } from "../../color.ts";
 import { type IconTone, iconTone, renderIcon } from "../../icons/index.ts";
 import type { Box } from "../../types.ts";
 import { n, SYMBOL_ID } from "../svg.ts";
@@ -18,6 +19,67 @@ const TONE_FIT: Record<IconTone, number> = {
 // most) do not, and so do the anti-aliased edges of thin strokes; DARK keeps near-black the same way.
 const LIGHT = "0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.8929 3.0038 0.3032 0 -2.604";
 const DARK = "0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -0.8504 -2.8608 -0.2888 0 2.4";
+
+const PAINT = /(?:fill|stroke|stop-color)(?:="|:\s*)(#[0-9a-f]{6}|#[0-9a-f]{3})\b/gi;
+/** Channel spread (0 to 1) below which a color is white, black or a gray. */
+const GRAY = 0.2;
+/** Degrees within which two colors count as one hue (a gradient's stops, a tile and its shade). */
+const SAME_HUE = 25;
+/** IBM Carbon glyphs carry no color; IBM's diagrams draw them in Blue 60. */
+const IBM_BLUE = "#0f62fe";
+
+function hueOf(hex: string): number | undefined {
+  const [r = 0, g = 0, b = 0] = (parseHex(hex) ?? []).map((v) => v / 255);
+  const max = Math.max(r, g, b);
+  const d = max - Math.min(r, g, b);
+  if (d < GRAY) return undefined;
+  const h = max === r ? (g - b) / d : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+
+/**
+ * An icon's own color: the AWS tile, the Kubernetes hexagon, the brand in a logo. Of the colors
+ * its artwork paints, white, black and grays left out, the one most others share a hue with;
+ * undefined when it paints none (glyph sets, black marks, currentColor art). IBM icons take IBM's
+ * blue.
+ */
+export function ownColor(ctx: Ctx, id: string): string | undefined {
+  const { body } = renderIcon(id, SYMBOL_ID, {
+    theme: ctx.t.name,
+    background: ctx.k.tile,
+    ink: ctx.k.glyph,
+  });
+  const hues: [string, number][] = [];
+  for (const [, hex = ""] of body.matchAll(PAINT)) {
+    const h = hueOf(hex);
+    if (h !== undefined) hues.push([hex.toLowerCase(), h]);
+  }
+  let best: string | undefined;
+  let most = 0;
+  for (const [hex, h] of hues) {
+    const near = hues.filter(
+      ([, o]) => Math.min(Math.abs(h - o), 360 - Math.abs(h - o)) <= SAME_HUE,
+    );
+    if (near.length > most) [best, most] = [hex, near.length];
+  }
+  return best ?? (id.startsWith("ibm:") ? IBM_BLUE : undefined);
+}
+
+/**
+ * The color an icon's glyph is painted in: its own color mixed into the glyph gray, or the gray.
+ * It reads at 4.5:1 on the tile but never louder than the gray would, so a neon green or a
+ * Google yellow sits as quietly as an AWS purple.
+ */
+export function iconInk(ctx: Ctx, id: string): string {
+  const { glyph, tile, hue } = ctx.k;
+  const own = ownColor(ctx, id);
+  if (!own) return glyph;
+  const ink = ensureContrast(mixHex(own, glyph, hue), tile);
+  const most = Math.max(4.5, contrast(glyph, tile));
+  let quiet = ink;
+  for (let t = 0.05; contrast(quiet, tile) > most && t < 1; t += 0.05) quiet = mixHex(tile, ink, t);
+  return quiet;
+}
 
 /** The filter that paints one tone in one color; one per pair, shared by every icon. */
 function toneFilter(ctx: Ctx, tone: IconTone, color: string): string {

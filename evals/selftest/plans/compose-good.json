@@ -1,0 +1,38 @@
+{
+  "brief": "Shop app on Docker Compose for the README at 880 px",
+  "evidence": ["docker-compose.yaml", "nginx/nginx.conf", "api/server.mjs", "worker/index.mjs"],
+  "figures": [
+    {
+      "name": "shop-overview",
+      "aspect": "overview",
+      "title": "Shop on Docker Compose",
+      "kind": "architecture",
+      "groups": [
+        { "id": "front", "type": "zone", "label": "front network", "evidence": "docker-compose.yaml:46" },
+        { "id": "back", "type": "zone", "label": "back network", "evidence": "docker-compose.yaml:47" }
+      ],
+      "nodes": [
+        { "id": "users", "label": "Shoppers", "icon": "tabler:users", "evidence": "brief" },
+        { "id": "proxy", "label": "nginx", "icon": "logos:nginx", "in": "front", "evidence": "docker-compose.yaml:4, nginx/nginx.conf:9" },
+        { "id": "api", "label": "Orders API", "icon": "logos:nodejs-icon", "in": "back", "evidence": "docker-compose.yaml:14, api/server.mjs" },
+        { "id": "worker", "label": "Email worker", "icon": "logos:nodejs-icon", "in": "back", "evidence": "docker-compose.yaml:23, worker/index.mjs" },
+        { "id": "db", "label": "PostgreSQL", "icon": "logos:postgresql", "in": "back", "evidence": "docker-compose.yaml:31" },
+        { "id": "cache", "label": "Redis", "icon": "logos:redis", "in": "back", "evidence": "docker-compose.yaml:41" }
+      ],
+      "edges": [
+        { "from": "users", "to": "proxy", "label": "HTTP :8080", "source": "declared", "evidence": "docker-compose.yaml:7" },
+        { "from": "proxy", "to": "api", "label": "/api/", "source": "declared", "evidence": "nginx/nginx.conf:10 (proxy_pass http://api:3000)" },
+        { "from": "api", "to": "db", "label": "SQL", "source": "inferred", "evidence": "docker-compose.yaml:18, api/server.mjs:17" },
+        { "from": "api", "to": "cache", "label": "LPUSH emails", "source": "inferred", "evidence": "api/server.mjs:21" },
+        { "from": "cache", "to": "worker", "label": "polls", "source": "inferred", "evidence": "worker/index.mjs:9 (BRPOP)" },
+        { "from": "worker", "to": "db", "label": "SQL", "source": "inferred", "evidence": "worker/index.mjs:12" }
+      ],
+      "leftOut": [
+        { "what": "pgdata volume", "why": "storage detail of PostgreSQL" },
+        { "what": "depends_on order", "why": "start order, not traffic" }
+      ]
+    }
+  ],
+  "standIns": [{ "service": "Orders API and worker", "icon": "logos:nodejs-icon", "why": "own code, no product icon" }],
+  "questions": []
+}

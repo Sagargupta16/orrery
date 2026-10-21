@@ -1,0 +1,38 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Sagargupta16/orrery",
+  "title": "Orrery",
+  "description": "Architecture diagrams with official AWS, Azure, GCP and Kubernetes icons, to SVG, PNG and draw.io",
+  "websiteUrl": "https://sagargupta.online/orrery/",
+  "repository": {
+    "url": "https://github.com/Sagargupta16/orrery",
+    "source": "github",
+    "id": "1414188642"
+  },
+  "version": "0.10.0",
+  "icons": [
+    {
+      "src": "https://sagargupta.online/orrery/favicon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": ["any"]
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@sagargupta1610/orrery",
+      "version": "0.10.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ]
+    }
+  ]
+}

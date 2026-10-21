@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Serverless document pipeline on IBM Cloud Code Engine
+subtitle: Each upload to Object Storage starts a Code Engine job run that writes to PostgreSQL, and an app serves the results
+direction: right
+layout: { spacing: compact }
+
+# IBM's technical diagram guide asks for a legend in every diagram, so solid lines get one too.
+legend:
+  solid: Requests and data access
+  dashed: Events and notifications
+  dotted: Container images
+
+groups:
+  # orrery has no IBM group styles; IBM's guide draws groups as plain outlined boxes, so these use
+  # the neutral types with Carbon icons in the headers, as in ibm-cloud-openshift.
+  ibmcloud: { type: box, label: IBM Cloud, icon: ibm:ibm-cloud }
+  # A Code Engine project is the boundary: its apps, jobs and event subscriptions share one
+  # namespace, scale to zero and are billed only while they run.
+  project: { type: box, label: Code Engine project, icon: ibm:ibm-cloud-code-engine, in: ibmcloud }
+
+nodes:
+  partners: { icon: ibm:document-import, label: Partner systems, note: Upload over the S3 API }
+  staff: { icon: ibm:user-multiple, label: Operations team, note: Browser }
+  registry: { icon: ibm:container-registry, label: Container Registry, note: Private images, in: ibmcloud }
+  cos: { icon: ibm:object-storage, label: Cloud Object Storage, note: Inbound bucket, in: ibmcloud }
+  job: { icon: ibm:job-run, label: Extract job, note: "Code Engine job, one run per object", in: project }
+  app: { icon: ibm:application-web, label: Review app, note: "Code Engine app, scales to zero", in: project }
+  db: { icon: ibm:ibm-cloud-databases, label: Databases for PostgreSQL, note: Extracted records, in: ibmcloud }
+  en: { icon: ibm:ibm-cloud-event-notification, label: Event Notifications, note: Pipeline topic, in: ibmcloud }
+  email: { icon: ibm:email, label: Email, note: Destination }
+  slack: { icon: logos:slack-icon, label: Slack, note: Destination }
+
+edges:
+  - partners -> cos: PUT object
+  # A COS event subscription in the project turns each object write into a job run.
+  - cos --> job: object written
+  - job -> db: insert
+  - staff -> app: HTTPS
+  - app -> db: query
+  - job --> en: run finished
+  - en --> email, slack
+  - registry ..> project: pull

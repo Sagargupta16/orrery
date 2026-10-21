@@ -1,5 +1,5 @@
 // Reading ELK's result back: every placed ELK node by id, group frames trimmed and stretched, then
-// scene groups, scene nodes and the overlays drawn around them.
+// scene groups, scene nodes, the overlays drawn around them and the nodes moved onto borders.
 
 import type { Box, Point, SceneGroup } from "../types.ts";
 import type { Laid, Placed } from "./context.ts";
@@ -8,6 +8,7 @@ import { round } from "./geometry.ts";
 import { type HeaderRoom, paintGroup } from "./groups.ts";
 import { sceneNodes } from "./nodes.ts";
 import { drawOverlays } from "./overlays.ts";
+import { seatNodes } from "./seats.ts";
 import { SIZES } from "./sizes.ts";
 import { stretchColumns, trimGroups } from "./trim.ts";
 
@@ -49,5 +50,7 @@ export function readBack(ctx: Laid): Placed {
 
   const nodes = sceneNodes(ctx, placed, groups, top);
   drawOverlays(paint, groups, nodes);
-  return { ...ctx, top, shift, placed, headerRoom, groups, nodes };
+  const read = { ...ctx, top, shift, placed, headerRoom, groups, nodes };
+  const { seats, grow } = seatNodes(read);
+  return { ...read, seats, seatGrow: grow };
 }
