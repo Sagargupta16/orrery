@@ -60,6 +60,8 @@ const within = (b: Box, g: Box) =>
  * that frames every node is skipped.
  */
 export function edgeThroughGroup({ scene, model, parentOf, warn }: CheckContext): void {
+  // A sequence's messages cross participant boxes by design: every lifeline runs the full height.
+  if (model.kind === "sequence") return;
   const under = (id: string, gid: string) => {
     for (let p: string | undefined = id; p; p = parentOf.get(p)) if (p === gid) return true;
     return false;

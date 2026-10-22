@@ -12,7 +12,7 @@ How a rendered diagram gets reviewed and improved: **measure, critique, patch, r
 | Flow reviewer | `orrery:flow-reviewer`, or an inline pass | one JSON findings array | [flow.md](flow.md) |
 | Legibility reviewer | `orrery:legibility-reviewer`, or an inline pass | one JSON findings array | [legibility.md](legibility.md) |
 
-Reviewers are read-only (Read, Glob, Grep): they cannot edit, write or spawn agents. Rubrics: [conventions-aws.md](conventions-aws.md), [conventions-azure.md](conventions-azure.md), [conventions-gcp.md](conventions-gcp.md), [conventions-c4.md](conventions-c4.md), [conventions-bpmn.md](conventions-bpmn.md), [conventions-flowchart.md](conventions-flowchart.md), [conventions-state.md](conventions-state.md), [conventions-journey.md](conventions-journey.md), [flow.md](flow.md), [legibility.md](legibility.md).
+Reviewers are read-only (Read, Glob, Grep): they cannot edit, write or spawn agents. Rubrics: [conventions-aws.md](conventions-aws.md), [conventions-azure.md](conventions-azure.md), [conventions-gcp.md](conventions-gcp.md), [conventions-c4.md](conventions-c4.md), [conventions-bpmn.md](conventions-bpmn.md), [conventions-flowchart.md](conventions-flowchart.md), [conventions-state.md](conventions-state.md), [conventions-journey.md](conventions-journey.md), [conventions-er.md](conventions-er.md), [conventions-sequence.md](conventions-sequence.md), [conventions-timeline.md](conventions-timeline.md), [flow.md](flow.md), [legibility.md](legibility.md).
 
 ### Which conventions rubrics apply
 
@@ -24,6 +24,9 @@ Reviewers are read-only (Read, Glob, Grep): they cannot edit, write or spawn age
 | `flowchart` | [conventions-flowchart.md](conventions-flowchart.md) (ISO 5807) |
 | `state` | [conventions-state.md](conventions-state.md) (UML state machines) |
 | `journey` | [conventions-journey.md](conventions-journey.md) (customer journey maps) |
+| `er` | [conventions-er.md](conventions-er.md) (data models, crow's foot notation) |
+| `sequence` | [conventions-sequence.md](conventions-sequence.md) (UML sequence diagrams) |
+| `timeline` | [conventions-timeline.md](conventions-timeline.md) (roadmaps and timelines) |
 | `architecture`, `tree`, `mindmap` | none |
 
 A process drawn with AWS icons gets both `conventions-aws.md` and `conventions-bpmn.md`. The measurement knows the kinds too: step order (AWS-14) is measured only on an architecture, arrowheads against the direction are not reported for `state` or `mindmap`, lines without heads are not reported for `tree` or `mindmap`, for a BPMN association or for a line style the legend explains, edges into or out of a pool or lane need no label and journey rows are no boundary, pools and lanes are not checked for centered content, and a message flow's dashed line needs no legend entry.
@@ -255,3 +258,18 @@ The composition findings (zig-zag, avoidable bend, beside a group, uneven siblin
 | `conventions.state-initial` | SM-01 | 20 | a state machine with no initial pseudostate, more than one in a region, or one with several transitions out |
 | `conventions.state-final` | SM-03 | 15 | a transition leaves a final state |
 | `conventions.journey-incomplete` | JM-04 | 10 | a journey stage with no step, or a journey with no emotion score anywhere |
+| `conventions.er-primary-key` | ER-03 | 20 | a table with no primary key field |
+| `conventions.er-dangling-fk` | ER-04 | 15 | a foreign key field that no relationship uses |
+| `conventions.er-cardinality` | ER-05 | 20 | a relationship with no `card:` |
+| `conventions.er-orphan` | ER-07 | 15 | a table that takes part in no relationship |
+| `conventions.er-many-to-many` | ER-08 | 15 | a many to many relationship drawn directly instead of through a join table |
+| `conventions.sequence-unused` | SEQ-02 | 15 | a participant that sends and receives nothing |
+| `conventions.sequence-unlabelled` | SEQ-04 | 20 | a message with no label (a reply may stay unlabelled) |
+| `conventions.sequence-reply` | SEQ-05 | 15 | a reply to the caller drawn solid instead of dashed |
+| `conventions.sequence-fragment` | SEQ-07 | 20 | a fragment the layout could not draw: an empty range or one that crosses another |
+| `conventions.sequence-length` | SEQ-08 | 10 | more messages than one figure reads well (minor over 16, major over 24) |
+| `conventions.timeline-undated` | TL-01 | 20 | an item with no date, left out of the picture |
+| `conventions.timeline-range` | TL-03 | 15 | an item outside the axis bounds |
+| `conventions.timeline-legend` | TL-07 | 10 | statuses used with no key |
+| `conventions.timeline-order` | TL-08 | 20 | a dependency whose target starts before its source ends |
+| `conventions.timeline-crowded` | TL-11 | 10 | point labels stacked more than three deep |

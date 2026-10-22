@@ -71,6 +71,10 @@ npx -y @sagargupta1610/skillcheck lint skills
 - `src/lsp/` -- `orrery lsp` (stdio, no dependencies); `editors/vscode/` is its thin client
 - `src/mcp/install.ts` (`mcp install <client>`), `src/mcp/viewer.ts` (the MCP Apps view `ui://orrery/viewer`); `server.json` and `mcpb/manifest.json` carry the version too
 - `src/layout/seats.ts` -- nodes on a group's border (`on:`)
+- `src/spec/kinds.ts` -- the keys of the er, sequence and timeline kinds (fields, card, from_field/to_field, fragments, timeline, date/start/end, milestone, status), DG123 to DG126, date normalization
+- `kind: er` -- `src/layout/er/` (table geometry, `erHook` seats each relationship on its field rows and routes it row to row), `src/render/er.ts` (tables and crow's foot ends), `mermaid-er.ts`, `drawio-er.ts`, `src/review/notations-er.ts`, `src/import/sql.ts` (`orrery import sql`)
+- `kind: sequence` -- `src/layout/sequence/` (its own layout: lifelines, message rows, fragments, activations), `src/render/sequence.ts` (also `-f sequence.svg` for any kind), `mermaid-sequence.ts`, `drawio-sequence.ts`, `src/review/notations-sequence.ts`
+- `kind: timeline` -- `src/layout/timeline/` (its own layout: UTC day numbers, axis, lanes, packed rows, dependency routes), `src/render/timeline.ts`, `mermaid-timeline.ts`, `drawio-timeline.ts`, `src/review/notations-timeline.ts`
 - `src/layout/straighten.ts` -- the last routing step: slides headers clear, then `bends.ts` searches straight, L and Z routes out of any face and `spreadEnds` seats every icon end on its tile (`faces.ts`: the four faces, the bottom one below the label), 14px apart around the center; `grid.avoidable-bend` reuses the same search
 - `evals/` -- plugin eval suites (trigger, plan, draw, review-loop) with a selftest
 - `agents/*.md`, `commands/*.md`, `hooks/` -- planner, diagram-author, patch-proposer and four reviewers (conventions, flow, legibility, accuracy); `/orrery:review`, `/orrery:draw`, `/orrery:doc`; a PostToolUse hook that validates a spec after Write or Edit (`hooks/validate-spec.mjs`, uses the bundled CLI). The reviewers' rubrics and the loop protocol are in `skills/orrery/references/review/`
@@ -105,6 +109,8 @@ npx -y @sagargupta1610/skillcheck lint skills
 - Command placeholders count from 0 (`$0` is the first argument) and an unmatched `$N` stays in the text verbatim; the commands use named `arguments:` (`$spec`, `$width`) or the whole `$ARGUMENTS`. Never write `$1` for the first argument.
 - Commands that run as their own subsystem (`src/patch/`, `src/mcp/`, `src/doc/`, `src/watch.ts`) take their helpers from `src/cli/io.ts` and `src/cli/args.ts`, never from `src/cli/index.ts`, which imports them: keep it that way so there is no import cycle. Journey modules take `SIZES` from `src/layout/sizes.ts` for the same reason.
 - `orrery review` writes `<base>.review.look.png` (scaled to fit 1568 x 1568) only when the display PNG is larger; the agents and loop.md read that name.
+- `OWN_LAYOUT` (`src/types.ts`) is journey, sequence and timeline: kinds that place every node themselves. Review and check rules that assume ELK layers skip them through it; journey-only logic stays journey-only.
+- A sequence's edges are its messages in spec order: views and every pass keep them unmerged and in order (a view renumbers `fragments:`), self messages are real, and the draw.io export draws messages itself on their rows. An er edge with `card:` gets no arrowhead (the crow's foot marks are its ends).
 - `tsconfig.json` sets `erasableSyntaxOnly`: Node strips types from `src/` and runs it as is, so no parameter properties, enums or namespaces.
 - Evidence reads `path:line#identifier` (or `path#identifier`, or a resource address); importers write that form and `orrery verify` reads it.
 - CI fails when `skills/orrery/scripts/orrery.mjs` does not match `src/` ("Bundled CLI matches src/"): run `pnpm build` and commit the bundle with every src change.

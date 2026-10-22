@@ -2,7 +2,7 @@
 // first learned. This is layout's single recursion: a second pass never starts a third.
 
 import { stageColors } from "../skins.ts";
-import type { Model, Scene } from "../types.ts";
+import { type Model, OWN_LAYOUT, type Scene } from "../types.ts";
 import { clearBorders } from "./borders.ts";
 import { sizeCanvas } from "./canvas.ts";
 import {
@@ -25,15 +25,24 @@ import { planPlacement } from "./plan.ts";
 import { readBack } from "./read.ts";
 import { runLayout } from "./run.ts";
 import { assemble } from "./scene.ts";
+import { sequenceLayout } from "./sequence/index.ts";
 import { straighten } from "./straighten.ts";
+import { timelineLayout } from "./timeline/index.ts";
 import { wallsOf } from "./walls.ts";
 
 export async function layoutCore(model: Model, opts: LayoutOptions = {}): Promise<Scene> {
   const theme = opts.theme ?? model.theme;
-  // A journey is a grid of stages and lanes with its own layout.
-  if (model.kind === "journey") {
-    const laid = await journeyLayout(model, theme);
-    // Its stages and lanes place every step, so each rank, align and cols is reported unused.
+  // A journey (stages and lanes), a sequence (lifelines and messages) and a timeline (an axis and
+  // lanes) each have their own layout; undefined lays the spec out as a flow.
+  if (OWN_LAYOUT.has(model.kind)) {
+    const own =
+      model.kind === "journey"
+        ? journeyLayout
+        : model.kind === "sequence"
+          ? sequenceLayout
+          : timelineLayout;
+    const laid = await own(model, theme);
+    // They place every node, so each rank, align and cols is reported unused.
     const grid = laid && withIgnored(laid, planPlacement(model, hiddenOf(model)).ignored);
     if (grid) return model.skin === "stage" ? stageColors(grid) : grid;
   }

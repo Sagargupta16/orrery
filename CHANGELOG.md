@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.11.0] - 2026-10-22
+
+### Added
+
+- **Three new diagram kinds**, each with its own layout, both skins, draw.io and Mermaid export, a review rubric and examples:
+  - `kind: er` draws data models: tables from `fields:` (`"id uuid pk"`, `"user_id uuid fk"`), relationships with crow's foot cardinality from `card: "1:0..n"`, lines that meet the field rows they join. `orrery import sql <schema.sql>` starts one from `CREATE TABLE` statements, with evidence on every table and relationship.
+  - `kind: sequence` draws sequence diagrams written message by message: participants left to right, messages top to bottom, replies dashed, self messages, `fragments:` for loop, alt, opt, par, break and critical blocks, and the messages played in order as the animation. Views keep every message in order and renumber the fragments.
+  - `kind: timeline` draws roadmaps: a time axis at the `timeline: { scale }` you pick, lanes from groups, bars from `start:`/`end:` and points or milestones from `date:`, a status style per item, dependencies as arrows and an optional today marker.
+  - DG123 to DG126 check the new keys; the review measures each kind's conventions (keys and cardinality, labelled messages and dashed replies, dated items and dependency order).
+
+### Fixed
+
+- The release workflow retries the MCP Registry publish while npm catches up with a version it published a moment ago; the first 0.10.0 run failed there and needed a re-run.
+
 ## [0.10.0] - 2026-10-21
 
 ### Added

@@ -32,7 +32,7 @@ edges:
 | --- | --- | --- | --- |
 | `title` | text | none | Drawn top left; also the SVG `<title>` and the TSX component name. |
 | `subtitle` | text | none | One muted line under the title. |
-| `kind` | `architecture`, `flowchart`, `process`, `state`, `tree`, `mindmap`, `journey` | `architecture` | What the diagram is; see [Kinds](#kinds). It sets the default `direction` and `arrowhead` (flowchart: `down` and `filled`; process: `right` and `filled`; tree: `down`), which the spec can still set. |
+| `kind` | `architecture`, `flowchart`, `process`, `state`, `tree`, `mindmap`, `journey`, `er`, `sequence`, `timeline` | `architecture` | What the diagram is; see [Kinds](#kinds). It sets the default `direction` and `arrowhead` (flowchart: `down` and `filled`; process: `right` and `filled`; tree: `down`; sequence: `down` and `filled`), which the spec can still set. |
 | `direction` | `right`, `down`, `left`, `up` | `right` | Main flow direction. `down` suits long chains and tiered architectures. |
 | `theme` | `light`, `dark` | `dark` | `render --theme` overrides it; `--theme both` writes both. |
 | `look` | `icon`, `card` | `icon` | Default look for nodes that have an icon. |
@@ -47,6 +47,8 @@ edges:
 | `background` | quoted hex color or `transparent` | theme | `transparent` drops the background rectangle. |
 | `icons` | mapping of a name to an `.svg` file | none | Your own icons, used as `icon: local:<name>`. Paths are read relative to the spec's folder; names use lowercase letters, digits and `-`. A missing file or a bad name fails with DG111. `orrery icons new`, `icons check` and `icons adopt` make and verify them (see [icons.md](icons.md)). |
 | `stages` | list of names | none | The columns of a journey (`kind: journey`), in order; their headers number them 1, 2, ... Every node of a journey names its `stage:` (DG112). |
+| `fragments` | list of `{ type, label, from, to, else }` | none | Combined fragments of a sequence diagram (`kind: sequence`): `loop`, `alt`, `opt`, `par`, `break` or `critical` boxes around messages `from` to `to`. See [Sequence diagrams](#sequence-diagrams); DG125 for a bad one, DG125 too in any other kind. |
+| `timeline` | `{ scale, start, end, today }` | `{ scale: month }` | The date axis of a timeline (`kind: timeline`): `scale` is `day`, `week`, `month`, `quarter` or `year`, `start` and `end` bound the axis, `today` draws a marker. See [Timelines](#timelines); DG126 for a bad value, DG126 too in any other kind. |
 | `story` | list of node ids | none | The path the stage skin's story walks, in order: each hop runs along the edge between two consecutive ids, backwards when that edge points the other way (DG113 warns when none connects them, and that pair is skipped). Without it a `process` plays a BPMN token, a `tree` or `mindmap` grows out of its root a level at a time, else the story follows the numbered steps, else the longest path. The classic skin's motion does not follow it. |
 | `legend` | mapping of `solid`, `dashed`, `dotted` or `thick` to a short meaning | none | A key drawn bottom right that says what each line style means, for example `legend: { dashed: Asynchronous events, dotted: Replication }`. Keys are case-insensitive and rows keep the order you write them. An unknown style (`dashd`) or an empty meaning fails with DG107, and the fix names the closest style. Add an entry for every non-solid style the diagram uses (DG217 warns otherwise). Quote a meaning that contains a comma. |
 | `tags` | mapping of a tag name to `{ color, line, label }` | none | How a tag draws. An item tagged with it (`tags: [pci]` on a node, group or edge) takes the color and line unless it sets its own, and a tag with a `label` gets a legend row (a color chip, or a line sample in its style) after the line-style rows, when something carries it. Names use letters, digits, `-` and `_` (DG117). |
@@ -70,6 +72,91 @@ Ids (node and group keys) use letters, digits, `_`, `-` and `.`, and must be uni
 - **`tree`**: org charts, decision trees, taxonomies. Each node sits under the node whose edge points at it (the first such edge in spec order); nodes nothing points at are roots, side by side. Levels follow `direction` (default `down`), siblings are evenly spaced, each parent is centered over its first and last child, and edges are org-chart connectors without arrowheads (a decision tree's `yes`/`no` label sits on the child's drop). `layout: { routing: spline }` curves them; an edge outside the hierarchy (a second parent, a cycle) is an elbow with its arrowhead.
 - **`mindmap`**: the root (the node nothing points at, else the first node) is drawn larger in the middle; its branches split between the two halves (left and right, or above and below for `down` and `up`) in spec order, each to the half with less in it so far, and each half grows away from the root as a tidy tree. Edges are curves without arrowheads, thick out of the root, and may be written either way round; each first-level branch takes one color from a fixed palette that keeps 3:1 in every theme and skin, unless `color:` says otherwise.
 - **`journey`**: a customer journey map. `stages:` are the columns, numbered left to right; each group a step is `in:` is a row (its `label` heads it, its `color` marks the header) and steps in no group share a first row named Steps. Every step is a card (icon, label, note) whatever its `look`; cards in a column share its width and cards in a row its tallest height, so the steps of a row line up. Edges are optional and show the order, routed in the gutters between cards; a line without an arrowhead (`a ... b`) links a step to its touchpoint. Steps with `score:` give an emotion row under the grid: each stage's average as a curve with a face per stage. `direction` does not apply.
+- **`er`**: a data model. Each entity is a node with `fields:`, drawn as a table: a header (icon, label, note) over one row per field. Each relationship is an edge with `card:` (its cardinality at both ends, drawn as crow's foot marks), attached to the field rows it joins. On the layered layout, `direction: right` by default. See [Data models](#data-models).
+- **`sequence`**: a sequence diagram you write yourself. Nodes are the participants, left to right in spec order (any look; icons welcome); edges are the messages, top to bottom in the order they are listed, so the order is time. `fragments:` box ranges of messages. Its own layout: `direction`, `rank`, `align`, `cols` and `layout.aspect` do not apply. See [Sequence diagrams](#sequence-diagrams).
+- **`timeline`**: a roadmap. Nodes are items with a `date:` (a point) or `start:` and `end:` (a span) on a date axis (`timeline:`); groups are lanes, one row each, and items in no group share a first row; edges are dependencies (finish to start). Its own layout: `rank`, `align`, `cols` and `layout.aspect` do not apply. See [Timelines](#timelines).
+
+The kinds with their own layout (`journey`, `sequence`, `timeline`) place every node themselves, so DG219 reports `rank`, `align`, `cols` and `layout.aspect` as unused there.
+
+### Data models
+
+`kind: er` draws entities as tables and relationships between them, as dbdiagram.io, DrawSQL and Mermaid's erDiagram do.
+
+```yaml
+kind: er
+title: Teams and members
+nodes:
+  teams:
+    label: Team
+    fields: ["id uuid pk", "name text unique"]
+  users:
+    label: User
+    fields:
+      - id uuid pk
+      - email text unique
+      - team_id uuid fk
+      - bio text null
+      - { name: created_at, type: "timestamp with time zone", note: set on insert }
+edges:
+  - teams -> users: { label: has, card: "1:0..n", from_field: id, to_field: team_id }
+```
+
+- `fields:` is a list. A string item reads `name type` and then any of `pk`, `fk`, `unique` and `null` in any order (`"id uuid pk"`, `"team_id uuid fk"`, `"bio text null"`); a flag right after the name means the field has no type (`"id pk"`). A type with spaces needs the mapping form `{ name, type, pk, fk, unique, nullable, note }`, where the flags are `true` or `false`. DG123 for an unknown token, a missing name or a name listed twice (more than one `pk` is fine: a composite key).
+- `card:` on an edge is `A:B`, the `from` end first, each end `1` (exactly one), `0..1` (zero or one), `1..n` or `n` (one or more), `0..n` or `*` (zero or more); `1..*` and `0..*` work too. Quote it, and a value that starts with `*` must be quoted. `a <- b` swaps the ends with the edge, so `card` always reads left to right as written. DG124 for anything else.
+- `from_field` and `to_field` name the rows the line attaches to, on the `from` and the `to` entity. Unset, layout picks them: the `fk` field on one end that names the other entity (`team_id`, `teamId`) and the `pk` on the other. DG124 when one names no field of its end.
+- An entity is a box to the layout: a node in an er diagram is drawn as a card unless it sets its own `look:` or `shape:` and has no fields.
+- `orrery import sql schema.sql` turns `CREATE TABLE` statements into an er spec with `evidence:` on every entity.
+
+### Sequence diagrams
+
+`kind: sequence` draws participants as lifelines and messages between them in time order, as UML 2.5 does.
+
+```yaml
+kind: sequence
+title: Checkout
+nodes:
+  web: { icon: logos:react, label: Web app }
+  api: { label: Orders API }
+  db: { icon: aws:aurora, label: Orders DB }
+edges:
+  - web -> api: POST /orders
+  - api -> api: validate cart
+  - api -> db: INSERT order
+  - db --> api: order id
+  - api --> web: 201 Created
+fragments:
+  - { type: alt, label: cart valid, from: 2, to: 5, else: [{ at: 5, label: invalid }] }
+```
+
+- Participants are the nodes, left to right in spec order. A group is a box around participants that sit next to each other.
+- Messages are the edges, numbered from 1 in the order they are listed (a fan-out such as `a -> b, c` makes one message per target, in that order). `->` is a call or synchronous message, `-->` a reply or asynchronous message, `..>` a signal; the label is the message text. An edge from a node to itself (`api -> api`) is a self message. Dashed and dotted lines are the notation here, so they need no `legend:` (DG217 does not ask for one).
+- `fragments:` is a list of `{ type, label, from, to, else }`. `type` is `loop`, `alt`, `opt`, `par`, `break` or `critical`; `from` and `to` are the first and last message inside it (1-based, inclusive); `label` is the guard or condition. `else` (only for `alt` and `par`) lists where each further branch starts: `{ at, label }`, `at` after `from` and no later than `to`, each after the one before. Two fragments either nest or stay apart. DG125 for anything else.
+
+### Timelines
+
+`kind: timeline` draws a roadmap: dated items on an axis, in lanes.
+
+```yaml
+kind: timeline
+title: Platform roadmap
+timeline: { scale: quarter, start: 2026-Q1, end: 2026-Q4, today: 2026-05-12 }
+groups:
+  core: { label: Core platform }
+  apps: { label: Apps }
+nodes:
+  auth: { label: New auth, start: 2026-Q1, end: 2026-03, in: core, status: done }
+  billing: { label: Billing v2, start: 2026-04, end: 2026-08-15, in: core, status: active }
+  beta: { label: Public beta, date: 2026-09, milestone: true, in: apps }
+  mobile: { label: Mobile app, start: 2026-Q3, end: 2026-Q4, in: apps, status: planned }
+edges:
+  - billing -> beta
+```
+
+- Dates are `YYYY-MM-DD`, `YYYY-MM`, `YYYY-Qn` or `YYYY`; quotes are not needed (YAML reads a bare `2026` as a number, which counts as the year). A `start` (and an axis `start`) is the first day of what it names and an `end` its last day: `start: 2026-Q3` is 1 July, `end: 2026-11` is 30 November, `end: 2026` is 31 December.
+- A node has either `date:` (a point in time) or `start:` and `end:` (a span), not both. `milestone: true` draws it as a diamond; `status:` is `done`, `active`, `planned` or `at-risk`.
+- `timeline:` sets the axis: `scale` (`day`, `week`, `month`, `quarter` or `year`, default `month`) is the tick, `start` and `end` bound the axis (unset, the earliest and latest item), `today` draws a today marker.
+- Groups are lanes, one row each in spec order; items in no group share a first row. Edges are dependencies: the target starts after the source ends.
+- DG126 for a date it cannot read, an `end` before its `start`, both `date` and `start`, a `start` without an `end` (or the other way round) and a bad `scale` (errors), and for an item with no date at all (a warning: it has no place on the axis).
 
 ## Nodes
 
@@ -96,6 +183,11 @@ nodes:
 | `rank` (`layer`) | Where the node sits along the flow: `first`, `last`, or a layer number from 1 (the first column in `direction: right`, the first row in `down`), counted among the layers of the node's own group. A rank that cannot hold (two linked nodes both first, a layer the group does not have) is reported as DG219 and the node stays where the edges put it. DG114 for anything else. |
 | `align` | Another node's id: this node shares that node's layer, so the two line up across the flow (side by side in `direction: down`, stacked in `right`), in spec order. Edges between aligned nodes are routed after layout. Use it to fold a branch beside the main path. Not together with `rank` (DG114). |
 | `on` | A group's id: the node sits on that group's border, the way the AWS deck draws an internet gateway, a NAT gateway or an endpoint on its VPC or subnet: centered on the side facing its edges, its label outside the group. Its `in:` is the group's parent (or unset). DG120 when the group does not exist; DG219 when it cannot be placed. |
+| `fields` | An entity's columns, for `kind: er`: a list of `"name type [pk] [fk] [unique] [null]"` strings or `{ name, type, pk, fk, unique, nullable, note }` mappings, drawn as a table with one row per field (see [Data models](#data-models)). DG123 for a bad item, or in any other kind. |
+| `date` | A timeline item's point in time, for `kind: timeline`: `YYYY-MM-DD`, `YYYY-MM`, `YYYY-Qn` or `YYYY` (see [Timelines](#timelines)). Not together with `start` and `end`. DG126 for a bad date, or in any other kind. |
+| `start`, `end` | A timeline item's span, for `kind: timeline`: the first day of `start` to the last day of `end`, both needed. DG126 when `end` is before `start`, or in any other kind. |
+| `milestone` | `true` draws a timeline item as a diamond at its date (`kind: timeline`). |
+| `status` | A timeline item's status: `done`, `active`, `planned` or `at-risk` (`kind: timeline`; DG107 for anything else). |
 | `tags` | Names for views and tag styles: `tags: [payments, pci]`. |
 | `evidence` | Where the node comes from: `path:line`, `path:line-line`, `path:line#identifier`, `path#identifier`, or a resource address (`aws_lambda_function.api`, `Deployment/orders`), or a list of them. `orrery verify` checks each; `orrery verify --link` sets `url` to a commit-pinned permalink. DG119 for anything but text. |
 | `class` | A class name from `classes:` (or a list), applied before the node's own keys. |
@@ -194,6 +286,8 @@ edges:
 | `color` | Quoted hex color for the line and arrow. |
 | `constraint` | `false` keeps the edge out of the layout: it is drawn afterwards between the placed nodes. Use it for links that should not reorder anything, such as replication between two side-by-side Availability Zones. |
 | `flow` | In a process: `sequence` (the default), `message` (between pools: dashed, a hollow circle at the start, an open arrowhead), `default` (the branch a gateway takes when no condition holds: a slash at the start), `conditional` (a small diamond at the start), `association` (links data or an annotation: dotted, no arrowhead). |
+| `card` | In an er diagram, the relationship's cardinality as `"A:B"` (from end, to end), each `1`, `0..1`, `1..n` (or `n`) or `0..n` (or `*`), drawn as crow's foot marks at both ends (see [Data models](#data-models)). DG124 for anything else, or in any other kind. |
+| `from_field`, `to_field` | In an er diagram, the field rows of the `from` and `to` entity the line attaches to; unset, layout picks the foreign key and the primary key it points at. DG124 when one names no field of its end. |
 | `tags`, `evidence`, `class` | As on nodes: a tag can color and restyle the edge, and evidence names the call, mapping or rule it comes from. |
 
 ## Diagnostics
@@ -225,6 +319,10 @@ edges:
 | DG120 | error | A node sits `on` a group that does not exist. |
 | DG121 | error | `class` names a class that `classes:` does not define. |
 | DG122 | error or warning | An included file is missing, unreadable or part of a cycle (error), or defines an id this spec also defines (warning: this spec wins). |
+| DG123 | error | A node's `fields` is not a list, an item has no name, an unknown token after the type or a flag that is not `true` or `false`, or two fields share a name; or `fields` is used outside `kind: er`. |
+| DG124 | error | An edge's `card` is not `A:B` with each end `1`, `0..1`, `1..n` (`n`) or `0..n` (`*`), or its `from_field` or `to_field` names no field of that end; or one of them is used outside `kind: er`. |
+| DG125 | error | A sequence fragment is not a mapping, has an unknown `type`, a `from` or `to` outside the messages or `from` after `to`, an `else` outside its range or on a type other than `alt` and `par`, or overlaps another fragment without nesting; or `fragments` is used outside `kind: sequence`. Also a message sent to a group: only participants have a lifeline. |
+| DG126 | error or warning | A timeline date cannot be read, an `end` comes before its `start`, a node has both `date` and `start`/`end` or only one of `start` and `end`, `timeline` is not a mapping or its `scale` is unknown, or a timeline key is used outside `kind: timeline` (error); a timeline item has no date (warning). |
 | DG201 | warning | An edge passes through a node it does not connect. |
 | DG202 | warning | An edge label covers a node or another label. |
 | DG203 | warning | Two nodes' labels collide. |
@@ -232,14 +330,14 @@ edges:
 | DG205 | warning | The diagram is over 2400 px wide, or a long thin strip: wider than 4.5 times its height, or taller than 4.5 times its width, with more than six nodes. |
 | DG206 | warning | More than 40 nodes in one diagram. |
 | DG207 | warning | An empty group. |
-| DG208 | warning | A node nothing connects to, or (once) a diagram of two or more nodes with no edges at all, which shows no flow. Journeys are exempt: their grid places the steps. |
+| DG208 | warning | A node nothing connects to, or (once) a diagram of two or more nodes with no edges at all, which shows no flow. Journeys, sequence diagrams and timelines are exempt: their own layout places every node. |
 | DG209 | warning | An edge runs through a group's header label, or a pool's or lane's name strip, which hides the line and makes it look broken. |
 | DG210 | warning | Something is drawn outside the canvas (a step badge, label, node, group, the title or the legend) and gets cut off. The evidence says how far and past which side. |
 | DG211 | warning | A step badge or a node badge sits on a node, a node or edge label, or another badge. |
 | DG212 | warning | An edge runs through another edge's label. |
 | DG213 | warning | An `around:` group encloses a node or group that it does not list. |
 | DG214 | warning | An `around:` group's header (its tile and label) still covers another group's header or a node after layout made room for it, for example when its members have no group of their own. |
-| DG217 | warning | The diagram draws a dashed, dotted or thick line that `legend:` does not explain. |
+| DG217 | warning | The diagram draws a dashed, dotted or thick line that `legend:` does not explain. BPMN message flows and associations, and a sequence diagram's dashed and dotted messages, are the notation itself and exempt. |
 | DG218 | warning | Layout needed a fallback strategy, so the node order in the picture may not follow the spec. |
 | DG219 | warning | A placement setting had no effect (`rank`, `align`, `cols`, `layout.aspect`), with the reason: it conflicts with an edge or another hint, the kind places nodes itself, or no layout got close enough. |
 | DG220 | warning | An edge label sits on a group's border line, so the frame looks cut where it passes. |

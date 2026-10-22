@@ -9,6 +9,7 @@ import {
 } from "../types.ts";
 import type { Ctx } from "./context.ts";
 import { EDGE_KEYS, EDGE_SYNONYMS } from "./keys.ts";
+import { edgeErKeys, flipErKeys } from "./kinds.ts";
 import { metaOf, tagged } from "./meta.ts";
 import { suggestIds } from "./suggest.ts";
 import { hexColor, isObj, type Obj, oneOf, pick, str, unknownKeys } from "./values.ts";
@@ -236,6 +237,14 @@ function expand(ctx: Ctx, expr: string, label: string | undefined, extra: Obj, w
 }
 
 const endpoint = (ctx: Ctx, id: string, where: string): boolean => {
+  // A sequence draws messages between lifelines, and only participants have one.
+  if (ctx.kind === "sequence" && ctx.ids.get(id) === "group") {
+    ctx.err("DG125", `${where} sends a message to group "${id}", which has no lifeline`, {
+      subject: { edge: where, id },
+      fixes: ["send it to one of the participants in the group"],
+    });
+    return false;
+  }
   if (ctx.ids.has(id)) return true;
   ctx.err("DG106", `${where} connects unknown id "${id}"`, {
     subject: { edge: where, id },
@@ -279,6 +288,13 @@ function push(
     });
   }
   const meta = metaOf(ctx, extra, where, { edge: where });
+  // Cardinality and field ends read left to right as written, so a reversed edge swaps them.
+  const written = edgeErKeys(ctx, where, from, to, {
+    card: pick(extra, "card", EDGE_SYNONYMS),
+    fromField: pick(extra, "from_field", EDGE_SYNONYMS),
+    toField: pick(extra, "to_field", EDGE_SYNONYMS),
+  });
+  const er = reverse ? flipErKeys(written) : written;
   // A tag's line replaces only the default solid one; any other arrow, a flow or line: is chosen.
   const tag = tagged(ctx, meta.tags);
   edges.push({
@@ -293,8 +309,9 @@ function push(
     arrow:
       arrowRaw !== undefined
         ? oneOf<ArrowMode>(ctx, arrowRaw, ARROWS, "end", `${where} arrow`)
-        : flow === "association"
-          ? "none"
+        : flow === "association" || er.card
+          ? // A relationship's ends carry crow's foot marks, which an arrowhead would cover.
+            "none"
           : reverse
             ? "end"
             : op.arrow,
@@ -302,6 +319,7 @@ function push(
     step: step !== undefined && Number.isInteger(step) ? step : undefined,
     constraint: pick(extra, "constraint", EDGE_SYNONYMS) !== false,
     ...(flow && flow !== "sequence" ? { flow } : {}),
+    ...er,
     ...meta,
   });
 }

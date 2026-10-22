@@ -5,6 +5,7 @@ import { newContext } from "./context.ts";
 import { parseEdges } from "./edges.ts";
 import { applyContains, checkAround, checkCycles, checkParents, parseGroups } from "./groups.ts";
 import { TOP_KEYS } from "./keys.ts";
+import { parseFragments, parseTimeline } from "./kinds.ts";
 import { checkBorders, checkViews, parseTagStyles, parseViews, tagLegend } from "./meta.ts";
 import { checkAlign, parseNodes } from "./nodes.ts";
 import { applyClasses, applyIncludes } from "./reuse.ts";
@@ -27,6 +28,7 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
 
   unknownKeys(ctx, raw, TOP_KEYS, {}, "the top level");
   const settings = parseSettings(ctx);
+  ctx.kind = settings.kind;
   const legend = parseLegend(ctx);
   parseLocalIcons(ctx);
   parseStages(ctx, settings.kind);
@@ -42,6 +44,9 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
   checkCycles(ctx);
 
   parseEdges(ctx);
+  // Fragments count messages, so they come after every edge.
+  const fragments = parseFragments(ctx);
+  const timeline = parseTimeline(ctx);
   const story = parseStory(ctx);
   checkBorders(ctx);
   legend.push(...tagLegend(ctx));
@@ -75,6 +80,8 @@ export function parseSpec(source: string, filename = "diagram.yaml"): ParseResul
     edges,
     kind: settings.kind,
     ...(stages.length ? { stages } : {}),
+    ...(fragments.length ? { fragments } : {}),
+    ...(timeline ? { timeline } : {}),
     ...(story.length ? { story } : {}),
     ...(localIcons.length ? { icons: localIcons } : {}),
     ...(views.length ? { views } : {}),

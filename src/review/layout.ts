@@ -1,6 +1,6 @@
 // The layout dimension: direction agreement, crossings, edge lengths, empty space, proportions,
 // layout diagnostics and how well spec order is kept.
-import type { Box, Diagnostic, SceneEdge } from "../types.ts";
+import { type Box, type Diagnostic, OWN_LAYOUT, type SceneEdge } from "../types.ts";
 import {
   along,
   horizontalFlow,
@@ -152,7 +152,9 @@ function edgeLengths(c: Ctx): { lens: EdgeLength[]; median: number; long: EdgeLe
       ? (sorted[mid] ?? 0)
       : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2
     : 0;
-  const long = lens.filter((l) => l.len > 2.5 * median && l.len > 300);
+  // A timeline's dependency is as long as the dates between its ends, not a layout choice.
+  const long =
+    scene.kind === "timeline" ? [] : lens.filter((l) => l.len > 2.5 * median && l.len > 300);
   for (const l of long)
     add(
       "layout.long-edge",
@@ -254,8 +256,9 @@ function emptySpace(c: Ctx): number {
   const H = scene.height;
   const hole = largestHole(c);
   const holePct = (100 * hole.w * hole.h) / Math.max(1, W * H);
-  // A thin band between rows is spacing, not a hole a reader notices.
-  if (holePct > 22 && Math.min(hole.w, hole.h) >= 80) {
+  // A thin band between rows is spacing, not a hole a reader notices; on a timeline an empty
+  // stretch is time with nothing scheduled.
+  if (scene.kind !== "timeline" && holePct > 22 && Math.min(hole.w, hole.h) >= 80) {
     const inside = scene.groups
       .filter((g) => !g.overlay && interArea(g.box, hole) > 0.9 * hole.w * hole.h)
       .sort((a, b) => b.depth - a.depth)[0];
@@ -296,12 +299,12 @@ const WIDE_PITCH = 400;
  * the nodes whose tile centres sit within 24px. Gaps, not pitch, judge sparseness: a long label
  * makes a compact row's pitch large but its gaps small. Canvas px at 1x, like every length in this
  * file (an orrery icon is 48px): a narrower column shrinks the gaps and the nodes alike, so the
- * display width does not change the verdict. A journey's grid places every step, so its spacing
- * is not the author's to fix.
+ * display width does not change the verdict. A kind with its own layout (a journey's grid, a
+ * sequence, a timeline) places every node, so its spacing is not the author's to fix.
  */
 function nodeSpacing(c: Ctx): { gap: number; pitch: number } {
   const { scene, model, add } = c;
-  if (model.kind === "journey") return { gap: 0, pitch: 0 };
+  if (OWN_LAYOUT.has(model.kind)) return { gap: 0, pitch: 0 };
   const items = scene.nodes.map((n) => ({
     tile: n.iconBox ?? n.box,
     foot: c.foot.get(n.id) ?? n.box,

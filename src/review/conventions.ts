@@ -129,15 +129,18 @@ function rubricsFor(c: Ctx): {
 
 /**
  * Legend for line styles (Azure Well-Architected, C4 notation). A BPMN message flow is dashed
- * and an association dotted by the notation itself, which explains them. Returns how many drawn
- * styles the legend misses.
+ * and an association dotted by the notation itself, which explains them; so are a sequence
+ * diagram's dashed replies and dotted signals (UML). Returns how many drawn styles the legend
+ * misses.
  */
 function legendAndTitle(c: Ctx, c4: boolean): number {
   const { model, add } = c;
+  const sequence = model.kind === "sequence";
   const styled = model.edges.filter(
     (e) =>
       !(e.flow === "message" && e.line === "dashed") &&
-      !(e.flow === "association" && e.line === "dotted"),
+      !(e.flow === "association" && e.line === "dotted") &&
+      !(sequence && (e.line === "dashed" || e.line === "dotted")),
   );
   const used = [...new Set(styled.map((e) => e.line))].filter((l) => l !== "solid");
   const keyed = new Set((model.legend ?? []).map((l) => l.line));

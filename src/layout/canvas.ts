@@ -101,7 +101,10 @@ function moveClear(ctx: Routed, snug: boolean): { dx: number; dy: number } {
       b.y = round(b.y + dy);
     };
     for (const g of groups) [g.box, g.labelBox, g.iconBox, g.inner?.box].forEach(move);
-    for (const n of nodes) [n.box, n.iconBox, n.labelBox, n.noteBox, n.badgeBox].forEach(move);
+    for (const n of nodes) {
+      [n.box, n.iconBox, n.labelBox, n.noteBox, n.badgeBox].forEach(move);
+      for (const f of n.fields ?? []) move(f.box);
+    }
     for (const e of edges) {
       [e.labelBox, e.stepBox].forEach(move);
       e.points = e.points.map((p) => ({

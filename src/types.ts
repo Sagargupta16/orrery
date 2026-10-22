@@ -1,7 +1,10 @@
 // The diagram model at three stages: what the author writes (Spec*), what the parser hands to
 // layout (Model*), and what layout hands to every renderer (Scene*).
 
+import type { SceneField } from "./layout/er/index.ts";
 import type { SceneJourney } from "./layout/journey/index.ts";
+import type { SceneSequence } from "./layout/sequence/index.ts";
+import type { SceneTimeline } from "./layout/timeline/index.ts";
 
 export type Direction = "right" | "down" | "left" | "up";
 export type ThemeName = "light" | "dark";
@@ -63,7 +66,9 @@ export const SHAPES: readonly ShapeKind[] = [
 /**
  * What a diagram is. architecture: the vendors' boxes and lines (the default); flowchart,
  * process (BPMN 2.0), state (UML state machine): flows on the same layered layout; tree and
- * mindmap: hierarchies; journey: a customer journey grid of stages and lanes.
+ * mindmap: hierarchies; journey: a customer journey grid of stages and lanes; er: a data model
+ * of entities and relationships; sequence: messages between participants over time; timeline:
+ * a roadmap of dated items in lanes.
  */
 export type DiagramKind =
   | "architecture"
@@ -72,7 +77,10 @@ export type DiagramKind =
   | "state"
   | "tree"
   | "mindmap"
-  | "journey";
+  | "journey"
+  | "er"
+  | "sequence"
+  | "timeline";
 export const DIAGRAM_KINDS: readonly DiagramKind[] = [
   "architecture",
   "flowchart",
@@ -81,7 +89,60 @@ export const DIAGRAM_KINDS: readonly DiagramKind[] = [
   "tree",
   "mindmap",
   "journey",
+  "er",
+  "sequence",
+  "timeline",
 ];
+/** Kinds that place every node themselves instead of handing the graph to ELK. */
+export const OWN_LAYOUT: ReadonlySet<DiagramKind> = new Set<DiagramKind>([
+  "journey",
+  "sequence",
+  "timeline",
+]);
+
+/** One column of an entity (er diagrams): `fields:` on a node. */
+export interface ErField {
+  name: string;
+  type?: string;
+  pk?: boolean;
+  fk?: boolean;
+  unique?: boolean;
+  nullable?: boolean;
+  note?: string;
+}
+/** One end of a relationship (`card:` on an er edge): 1, 0..1, 1..n, 0..n. */
+export type ErEnd = "one" | "zero-one" | "many" | "zero-many";
+export const ER_ENDS: readonly ErEnd[] = ["one", "zero-one", "many", "zero-many"];
+
+/** A combined fragment of a sequence diagram (`fragments:`), over messages from..to (1-based). */
+export interface SeqFragment {
+  type: "loop" | "alt" | "opt" | "par" | "break" | "critical";
+  label?: string;
+  from: number;
+  to: number;
+  /** alt and par: where each further branch starts (`at` is its first message). */
+  else?: { at: number; label?: string }[];
+}
+export const FRAGMENT_TYPES: readonly SeqFragment["type"][] = [
+  "loop",
+  "alt",
+  "opt",
+  "par",
+  "break",
+  "critical",
+];
+
+export type TimeScale = "day" | "week" | "month" | "quarter" | "year";
+export const TIME_SCALES: readonly TimeScale[] = ["day", "week", "month", "quarter", "year"];
+/** The axis of a timeline (`timeline:`); dates are ISO YYYY-MM-DD. */
+export interface ModelTimeline {
+  scale: TimeScale;
+  start?: string;
+  end?: string;
+  today?: string;
+}
+export type ItemStatus = "done" | "active" | "planned" | "at-risk";
+export const ITEM_STATUSES: readonly ItemStatus[] = ["done", "active", "planned", "at-risk"];
 
 /** BPMN 2.0 elements a process node can be (`bpmn:` on a node). */
 export type BpmnKind =
@@ -233,6 +294,14 @@ export interface ModelNode {
   align?: string;
   /** Sit on this group's border, as the deck draws gateways and endpoints. */
   on?: string;
+  /** Entity columns (er diagrams): drawn as a table, one row per field. */
+  fields?: ErField[];
+  /** Timeline date: a point (no end) or a span, ISO YYYY-MM-DD, with the precision it was written in. */
+  when?: { start: string; end?: string; precision: TimeScale };
+  /** Timeline milestone: drawn as a diamond at its date. */
+  milestone?: boolean;
+  /** Timeline item status. */
+  status?: ItemStatus;
   /** Free-form names for views and tag styles (`tags:`). */
   tags?: string[];
   /** Where it comes from: `path:line`, `path:line#name` or a resource address (`orrery verify`). */
@@ -271,6 +340,11 @@ export interface ModelEdge {
   constraint: boolean;
   /** Process flow kind; unset is a sequence flow. */
   flow?: EdgeFlow;
+  /** Relationship cardinality at each end (er diagrams). */
+  card?: { from: ErEnd; to: ErEnd };
+  /** The field rows the line attaches to (er diagrams); unset, the ER layout infers them. */
+  fromField?: string;
+  toField?: string;
   /** Free-form names for views and tag styles (`tags:`). */
   tags?: string[];
   /** Where it comes from: `path:line`, `path:line#name` or a resource address (`orrery verify`). */
@@ -334,6 +408,10 @@ export interface Model {
   kind: DiagramKind;
   /** Journey columns in order. */
   stages?: string[];
+  /** Sequence combined fragments (loop, alt, ...) over ranges of messages. */
+  fragments?: SeqFragment[];
+  /** Timeline axis: scale and optional bounds and today marker. */
+  timeline?: ModelTimeline;
   /** The path the stage story takes, as node ids in order (otherwise steps, else the longest path). */
   story?: string[];
   /** SVG files registered as `local:<name>` icons. */
@@ -391,6 +469,8 @@ export interface SceneNode {
   bpmn?: BpmnKind;
   stage?: string;
   score?: number;
+  /** Entity rows (er diagrams), each with its box in scene coordinates. */
+  fields?: SceneField[];
 }
 
 export interface SceneGroup {
@@ -433,6 +513,8 @@ export interface SceneEdge {
   step?: number;
   stepBox?: Box;
   flow?: EdgeFlow;
+  /** Relationship cardinality, drawn as crow's foot marks at both ends (er diagrams). */
+  card?: { from: ErEnd; to: ErEnd };
 }
 
 export interface SceneLegendItem {
@@ -488,6 +570,10 @@ export interface Scene {
   story?: string[];
   /** Journey grid: stage columns, lane rows and the emotion curve. */
   journey?: SceneJourney;
+  /** Sequence diagram: lifelines, message rows, fragments and activations. */
+  sequence?: SceneSequence;
+  /** Timeline: the axis, lanes, bars and points. */
+  timeline?: SceneTimeline;
   /** Settings that had no effect, with why. */
   ignored?: IgnoredSetting[];
 }

@@ -514,6 +514,96 @@ export const FINDINGS = {
     cap: 10,
     about: "a journey stage with no step, or a journey with no emotion score anywhere",
   },
+  "conventions.er-primary-key": {
+    dimension: "conventions",
+    rule: "ER-03",
+    cap: 20,
+    about: "an entity with fields but no primary key field",
+  },
+  "conventions.er-cardinality": {
+    dimension: "conventions",
+    rule: "ER-05",
+    cap: 20,
+    about: "a relationship with no cardinality (card:), so neither end says how many",
+  },
+  "conventions.er-dangling-fk": {
+    dimension: "conventions",
+    rule: "ER-04",
+    cap: 15,
+    about: "a foreign key field that no relationship uses",
+  },
+  "conventions.er-orphan": {
+    dimension: "conventions",
+    rule: "ER-07",
+    cap: 15,
+    about: "an entity with no relationship to any other",
+  },
+  "conventions.er-many-to-many": {
+    dimension: "conventions",
+    rule: "ER-08",
+    cap: 15,
+    about: "a many-to-many relationship drawn directly instead of through a join entity",
+  },
+  "conventions.sequence-unlabelled": {
+    dimension: "conventions",
+    rule: "SEQ-04",
+    cap: 20,
+    about: "a message with no label, so the reader cannot tell what is sent",
+  },
+  "conventions.sequence-unused": {
+    dimension: "conventions",
+    rule: "SEQ-02",
+    cap: 15,
+    about: "a participant that sends and receives no message",
+  },
+  "conventions.sequence-reply": {
+    dimension: "conventions",
+    rule: "SEQ-05",
+    cap: 15,
+    about: "a reply to the caller right after its call is drawn solid instead of dashed",
+  },
+  "conventions.sequence-fragment": {
+    dimension: "conventions",
+    rule: "SEQ-07",
+    cap: 20,
+    about: "a fragment whose range is empty or crosses another fragment",
+  },
+  "conventions.sequence-length": {
+    dimension: "conventions",
+    rule: "SEQ-08",
+    cap: 10,
+    about: "more messages (over 16) than one figure reads well",
+  },
+  "conventions.timeline-undated": {
+    dimension: "conventions",
+    rule: "TL-01",
+    cap: 20,
+    about: "a timeline item with no date, so it has no place on the axis",
+  },
+  "conventions.timeline-order": {
+    dimension: "conventions",
+    rule: "TL-08",
+    cap: 20,
+    about: "a dependency whose target starts before its source ends",
+  },
+  "conventions.timeline-range": {
+    dimension: "conventions",
+    rule: "TL-03",
+    cap: 15,
+    about: "an item that falls outside the axis bounds",
+  },
+  "conventions.timeline-legend": {
+    dimension: "conventions",
+    rule: "TL-07",
+    cap: 10,
+    about: "item statuses are drawn but no legend says what they mean",
+  },
+  "conventions.timeline-crowded": {
+    dimension: "conventions",
+    rule: "TL-11",
+    cap: 10,
+    about: "point labels that had to stack more than three deep",
+  },
 } as const satisfies Record<string, FindingKind>;
 
 export type FindingId = keyof typeof FINDINGS;

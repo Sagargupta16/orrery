@@ -13,7 +13,7 @@ One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML view
 **[sagargupta.online/orrery](https://sagargupta.online/orrery/)**: every example in light and dark, with its spec and downloads.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.10.0-2563eb)
+![Version](https://img.shields.io/badge/version-0.11.0-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-18%2C209-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
@@ -26,6 +26,7 @@ The diagram above is [docs/hero.yaml](docs/hero.yaml): 40 lines of YAML, laid ou
 - **Official, current icons only.** 18,209 icons: AWS (810), Azure (636), Google Cloud (233), Kubernetes (40), GitHub Octicons (399) and IBM Carbon (2,776), plus 5,502 tech logos, 6,286 neutral symbols and Phosphor (1,527) in six weights for system design and business flows; your own SVGs work too, as `local:` icons drawn and checked with `orrery icons new` and `icons check`. The cloud packs are rebuilt from each vendor's own download, pinned by checksum. Google Cloud products get the icon Google's 2026 guide assigns them; deprecated sets and unofficial redraws of cloud icons are left out.
 - **Official conventions.** AWS groups follow the AWS Architecture Icons deck (borders, dashes, corner tiles, label placement, open arrowheads, numbered callouts); Google Cloud and Azure groups are measured from their own reference diagrams. Every value cites its source in [styles.md](skills/orrery/references/styles.md).
 - **Business flows too.** `kind:` turns the same spec into an ISO 5807 flowchart, a BPMN 2.0 process with pools, lanes and message flows, a UML state machine, an org chart, a two-sided mind map or a customer journey map with an emotion curve. In the stage skin a process plays as a BPMN token: it splits at parallel gateways, waits at the join and follows the yes branch.
+- **Data models, sequences and roadmaps.** `kind: er` draws tables with typed, keyed rows and crow's foot relationships that meet the rows they join, and `orrery import sql` starts one from your `CREATE TABLE` statements. `kind: sequence` draws a call flow message by message, with replies dashed, activation bars and loop or alt fragments, played in order. `kind: timeline` draws a roadmap by month, quarter or year: lanes, status-styled bars, milestones, dependency arrows and a today marker.
 - **Automatic layout you can steer.** The Eclipse Layout Kernel places nested boundaries, routes edges at right angles, joins fan-in and fan-out into trunks and keeps the order you wrote unless that would cross edges. No coordinates to write; when you want a say, `rank: first`, `align: <node>`, `cols: 2` on a group and `layout: { aspect: 4:3 }` pin a node's place in the flow, line nodes up, grid a group's children and keep a figure compact enough to read in a README.
 - **One spec, many figures.** `views:` draws an overview and its details from one source (`render --view all`), so they cannot drift apart; `classes:` share presets, `include:` pulls in a frame every figure shares, and `tags:` color and restyle what they mark, with a legend row each.
 - **Diagrams that stay true to the code.** `orrery import` starts a spec from Terraform, CloudFormation or CDK output, Docker Compose, Kubernetes manifests or Mermaid, with every node's `evidence:` (the file, line and identifier it came from). `orrery verify` fails when a piece of evidence no longer exists, and `--link` makes each node a commit-pinned link to its code. `orrery diff` shows what changed between two versions as a colored picture, and the GitHub Action posts it, with the review, on every pull request.
@@ -108,7 +109,7 @@ Labels default to the official service names, so `{ icon: aws:lambda }` reads "A
 
 <a href="examples/aws-three-tier.svg"><img src="examples/aws-three-tier.svg" alt="Three-tier web application on AWS across two Availability Zones"></a>
 
-That is one of 71 reference diagrams across AWS (from agents on Bedrock AgentCore to disaster recovery, threat detection, network inspection, migration and contact centers), Azure, Google Cloud, IBM Cloud, Kubernetes, AI and ML, data platforms, CI/CD, C4, system design and business flows (flowcharts, a BPMN process, swimlanes, a state machine, an org chart, a mind map and a customer journey), each rendered from a spec in [skills/orrery/examples](skills/orrery/examples) and checked against the renderer by CI. Browse them all in light and dark, with each spec and every output to download, at **[sagargupta.online/orrery/gallery](https://sagargupta.online/orrery/gallery/)**, or in [examples/README.md](examples/README.md) with the command that renders each one. `orrery init <name>` copies any of them as a starting point.
+That is one of 77 reference diagrams across AWS (from agents on Bedrock AgentCore to disaster recovery, threat detection, network inspection, migration and contact centers), Azure, Google Cloud, IBM Cloud, Kubernetes, AI and ML, data platforms, CI/CD, C4, system design and business flows (flowcharts, a BPMN process, swimlanes, a state machine, an org chart, a mind map and a customer journey), each rendered from a spec in [skills/orrery/examples](skills/orrery/examples) and checked against the renderer by CI. Browse them all in light and dark, with each spec and every output to download, at **[sagargupta.online/orrery/gallery](https://sagargupta.online/orrery/gallery/)**, or in [examples/README.md](examples/README.md) with the command that renders each one. `orrery init <name>` copies any of them as a starting point.
 
 ## Validation that tells you the fix
 
@@ -203,7 +204,7 @@ jobs:
 | `icons new <name>`, `icons check <file.svg>`, `icons adopt <file.svg> --name <name>` | Draw your own icon on the 24 grid, check it against the drawing rules with a contact sheet in both skins and themes, or bring in someone's SVG as a clean `local:` icon. |
 | `styles` | Every group type and node shape. |
 | `init [template]` | Start from one of the examples. |
-| `import <mermaid\|terraform\|cloudformation\|compose\|kubernetes\|picture> <file> [-o diagram.yaml]` | Start a spec from a Mermaid flowchart, Terraform, a CloudFormation or CDK template, a Compose file or Kubernetes manifests (each node with its `evidence:`), or read the spec back out of an SVG or PNG orrery drew. |
+| `import <mermaid\|terraform\|cloudformation\|compose\|kubernetes\|sql\|picture> <file> [-o diagram.yaml]` | Start a spec from a Mermaid flowchart, Terraform, a CloudFormation or CDK template, a Compose file, Kubernetes manifests or a SQL schema (each node with its `evidence:`), or read the spec back out of an SVG or PNG orrery drew. |
 | `doctor`, `demo` | Check the install; render every example. |
 
 ## Icon packs

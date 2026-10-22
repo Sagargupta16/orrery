@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: OAuth 2.0 authorization code flow with PKCE
+subtitle: "RFC 7636: the app proves at the token endpoint that it started the login, so a stolen code is useless"
+kind: sequence
+
+# Left to right in the order they first take part: the user's browser starts it.
+nodes:
+  browser: { icon: generic:browser, label: Browser }
+  app: { icon: generic:server, label: Web app, note: OAuth client }
+  auth: { icon: generic:auth, label: Authorization server }
+  api: { icon: generic:api, label: Resource API }
+
+# Top to bottom is time: calls solid, answers dashed back to the caller.
+edges:
+  - browser -> app: GET /login
+  - app -> app: "new code_verifier, S256 code_challenge"
+  - app --> browser: "302 to /authorize (code_challenge, state)"
+  - browser -> auth: "GET /authorize (client_id, code_challenge)"
+  - auth --> browser: sign-in and consent page
+  - browser -> auth: "POST credentials, approve scopes"
+  - auth --> browser: "302 to /callback (code, state)"
+  - browser -> app: "GET /callback (code, state)"
+  - app -> auth: "POST /token (code, code_verifier)"
+  - auth -> auth: "SHA-256(code_verifier) = code_challenge?"
+  - auth --> app: access and refresh tokens
+  - auth --> app: "400 invalid_grant"
+  - app -> api: "GET /me (Bearer access token)"
+  - api --> app: 200 profile
+  - app --> browser: session cookie, home page
+
+# The token endpoint answers one of two ways; only a matching verifier gets tokens.
+fragments:
+  - type: alt
+    label: verifier matches
+    from: 11
+    to: 12
+    else: [{ at: 12, label: no match }]

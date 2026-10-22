@@ -2,6 +2,7 @@
 
 import { mixHex } from "../../color.ts";
 import type { Point, SceneEdge } from "../../types.ts";
+import { erEndsStage } from "../er.ts";
 import { flowMarks } from "../notation.ts";
 import { edgePath, length, n, trim } from "../svg.ts";
 import { type Ctx, stroke } from "./ctx.ts";
@@ -77,7 +78,8 @@ export function edgeBase(ctx: Ctx, e: SceneEdge, w: Wire): string {
   const marks = e.flow
     ? flowMarks(e, mixHex(k.line, ctx.t.background, k.arrow), w.width, k.tile)
     : "";
-  return `<path d="${w.d}" fill="none" ${stroke(k.line, k.wire, w.width)} stroke-linecap="round" stroke-linejoin="round"${w.dash}${flow}/>${heads}${marks}`;
+  const ends = e.card ? erEndsStage(ctx, e) : "";
+  return `<path d="${w.d}" fill="none" ${stroke(k.line, k.wire, w.width)} stroke-linecap="round" stroke-linejoin="round"${w.dash}${flow}/>${heads}${marks}${ends}`;
 }
 
 /** The story's lit trace over one edge: it grows behind the packet and holds until the fade. */

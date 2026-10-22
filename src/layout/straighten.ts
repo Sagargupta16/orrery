@@ -4,7 +4,14 @@
 // taking its label along. Pools and lanes, trees and mind maps route their own edges after this.
 
 import { textBlock } from "../text.ts";
-import type { Box, ModelEdge, Point, SceneEdge, SceneNode } from "../types.ts";
+import {
+  type Box,
+  type ModelEdge,
+  OWN_LAYOUT,
+  type Point,
+  type SceneEdge,
+  type SceneNode,
+} from "../types.ts";
 import {
   crossedHeaders,
   type Defects,
@@ -43,7 +50,7 @@ function tidies(ctx: Pick<Placed, "model" | "hidden">): boolean {
     !ctx.hidden.size &&
     model.kind !== "tree" &&
     model.kind !== "mindmap" &&
-    model.kind !== "journey"
+    !OWN_LAYOUT.has(model.kind)
   );
 }
 

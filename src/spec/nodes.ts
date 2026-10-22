@@ -1,4 +1,5 @@
-// Nodes: icon, look and shape, BPMN, journey stage and score, link, size, label, rank and align.
+// Nodes: icon, look and shape, BPMN, journey stage and score, link, size, label, rank and align,
+// and the er and timeline keys (kinds.ts).
 import { iconInfo, resolveIcon, suggestIcons } from "../icons/index.ts";
 import {
   BPMN_KINDS,
@@ -14,6 +15,7 @@ import {
 } from "../types.ts";
 import { type Ctx, claim, entries } from "./context.ts";
 import { ICON_ID, NODE_KEYS, NODE_SYNONYMS, SHAPE_SYNONYMS } from "./keys.ts";
+import { nodeFields, nodeTimeKeys } from "./kinds.ts";
 import { metaOf, tagged } from "./meta.ts";
 import { closest, suggestIds } from "./suggest.ts";
 import { localFix, localIcon, type Settings } from "./top.ts";
@@ -37,7 +39,15 @@ function parseNode(ctx: Ctx, settings: Settings, id: string, value: unknown) {
   const n = nodeObject(value);
   unknownKeys(ctx, n, NODE_KEYS, NODE_SYNONYMS, `node "${id}"`);
   const { icon, iconRaw } = nodeIcon(ctx, id, n);
-  const { look, shape, bpmn } = nodeForm(ctx, id, n, icon, iconRaw, settings.defaultLook);
+  const form = nodeForm(ctx, id, n, icon, iconRaw, settings.defaultLook);
+  const { shape, bpmn } = form;
+  const fields = nodeFields(ctx, id, pick(n, "fields", NODE_SYNONYMS));
+  // An entity is a box to the shared code: a table with fields, a card without them unless the
+  // node asks for another look.
+  const plain =
+    pick(n, "look", NODE_SYNONYMS) === undefined && pick(n, "shape", NODE_SYNONYMS) === undefined;
+  const look: NodeLook = settings.kind === "er" && (fields || plain) ? "card" : form.look;
+  const time = nodeTimeKeys(ctx, id, n);
   const stage = nodeStage(ctx, id, n, settings.kind);
   const score = nodeScore(ctx, id, n);
   const url = nodeUrl(ctx, id, n);
@@ -77,6 +87,8 @@ function parseNode(ctx: Ctx, settings: Settings, id: string, value: unknown) {
     ...(rank !== undefined ? { rank } : {}),
     ...(align !== undefined ? { align } : {}),
     ...(on ? { on } : {}),
+    ...(fields ? { fields } : {}),
+    ...time,
     ...meta,
   });
 }

@@ -77,6 +77,7 @@ A single file with no network requests: header with the title, Theme (light/dark
 `-f mmd` writes the diagram as Mermaid text, for places that draw Mermaid and nothing else (GitHub and GitLab Markdown, Notion, Obsidian, many wikis):
 
 - An architecture becomes `architecture-beta`: groups and services, each with a `logos:` icon when Mermaid's logo pack has one for the product (otherwise a built-in icon by category or shape), edges on the sides the layout drew them, labels as `-["..."]-`.
+- `kind: er` becomes `erDiagram` (attributes with PK, FK and UK, crow's foot cardinality), `kind: sequence` a `sequenceDiagram` (participants, `->>` and `-->>`, loop, alt, opt, par, break and critical blocks) and `kind: timeline` a `gantt` (a section per lane, done, active and crit tags, milestones, `after` dependencies).
 - `kind: state` becomes `stateDiagram-v2` (with `[*]`, composite states and `<<choice>>`), `mindmap` a `mindmap`, `journey` a `journey` (scores -2 to 2 become 1 to 5), and flowcharts, processes and trees a `flowchart` with subgraphs, the shapes mapped and dashed, dotted and thick lines kept.
 - Mermaid lays it out again with its own engine, so the picture differs from orrery's; dashed styles on architecture edges and state notes do not carry over.
 

@@ -4,7 +4,9 @@ import { tokensFor } from "../../themes.ts";
 import type { Scene } from "../../types.ts";
 import { journeyStage } from "../journey.ts";
 import { laneStage } from "../lanes.ts";
+import { sequenceStage } from "../sequence.ts";
 import { esc, FLOW_CSS, type SvgOptions } from "../svg.ts";
+import { timelineStage } from "../timeline.ts";
 import type { Ctx } from "./ctx.ts";
 import { canvas, titles } from "./draw-backdrop.ts";
 import { edgeBase, edgeLit, motion, wireOf } from "./draw-edges.ts";
@@ -76,6 +78,7 @@ export function renderStage(scene: Scene, opts: SvgOptions = {}): string {
   const defsAt = out.length;
   out.push(canvas(ctx), ...titles(ctx));
   if (scene.journey) out.push(journeyStage(scene, k, t, h));
+  if (scene.timeline) out.push(timelineStage(scene, k, t, h, ctx));
   // Pools and lanes are bands with a label strip; everything else is a frame and a header.
   const lanes = new Map(
     scene.groups.map((g) => [
@@ -85,6 +88,8 @@ export function renderStage(scene: Scene, opts: SvgOptions = {}): string {
   );
   for (const g of scene.groups)
     out.push(`<g id="${prefix}g-${g.id}">${lanes.get(g.id)?.frame ?? groupFrame(ctx, g)}</g>`);
+  // Lifelines, fragments and activations: over the participants' opaque panels, under messages.
+  if (scene.sequence) out.push(sequenceStage(scene, k, t, h, ctx));
   const wires = new Map(scene.edges.map((e) => [e.id, wireOf(ctx, e)]));
   for (const e of scene.edges) {
     const w = wires.get(e.id);

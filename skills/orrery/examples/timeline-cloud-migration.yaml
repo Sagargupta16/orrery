@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Data center migration plan
+subtitle: Ten months from discovery to the last rack, month by month and wave by wave
+kind: timeline
+timeline: { scale: month, start: 2026-01, end: 2026-10, today: 2026-04-14 }
+
+# The dates everyone steers by sit in the first row; each workstream is a lane under it.
+groups:
+  plan: { label: Plan }
+  move: { label: Migrate }
+  run: { label: Operate }
+
+nodes:
+  gate: { label: Go or no-go, date: 2026-04-30, milestone: true, status: planned }
+  cutover: { label: Cutover, date: 2026-09-12, milestone: true, status: planned }
+
+  discovery: { in: plan, icon: generic:search, label: Discovery, start: 2026-01-05, end: 2026-02-27, status: done }
+  landing: { in: plan, label: Landing zone, start: 2026-02-09, end: 2026-03-31, status: done }
+
+  pilot: { in: move, label: Pilot, note: 12 apps, start: 2026-04-01, end: 2026-04-30, status: active }
+  wave1: { in: move, label: Wave 1, note: 140 apps, start: 2026-05-04, end: 2026-06-12, status: planned }
+  wave2: { in: move, label: Wave 2, note: Databases, start: 2026-06-15, end: 2026-07-31, status: at-risk }
+  wave3: { in: move, label: Wave 3, note: 60 apps, start: 2026-08-03, end: 2026-09-11, status: planned }
+
+  runbooks: { in: run, icon: generic:file, label: Runbooks and on-call, start: 2026-04, end: 2026-06, status: active }
+  exit: { in: run, label: Shutdown, note: 38 racks, start: 2026-09-14, end: 2026-10-30, status: planned }
+
+# Finish to start: the pilot waits for the inventory and the landing zone, each wave for the one
+# before it, the cutover for the last wave.
+edges:
+  - discovery -> pilot
+  - landing -> pilot -> gate
+  - gate -> wave1 -> wave2 -> wave3 -> cutover -> exit

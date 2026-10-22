@@ -34,6 +34,8 @@ const SELF_PLACED: Partial<Record<Model["kind"], string>> = {
   tree: "a tree places every node itself",
   mindmap: "a mind map places every node itself",
   journey: "a journey places every step in its stage and lane",
+  sequence: "a sequence places its participants in spec order and its messages in time order",
+  timeline: "a timeline places every item at its date in its lane",
 };
 
 /** Why rank, align and cols do nothing in this kind of diagram, if they do not. */

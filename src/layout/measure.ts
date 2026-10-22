@@ -5,12 +5,16 @@ import { resolveGroupStyle } from "../styles.ts";
 import { measure, textBlock } from "../text.ts";
 import type { Box, ModelGroup, ModelNode, TextBlock } from "../types.ts";
 import type { Setup } from "./context.ts";
+import { erGeometry } from "./er/index.ts";
 import { round } from "./geometry.ts";
 import type { NodeGeom } from "./hooks.ts";
 import { notationGeometry } from "./notation.ts";
 import { SIZES } from "./sizes.ts";
 
 export function nodeGeometry(n: ModelNode, horizontal: boolean): NodeGeom {
+  // Only an er diagram parses fields, so a node with them is an entity table.
+  const table = n.fields ? erGeometry(n, horizontal) : undefined;
+  if (table) return table;
   const notation = notationGeometry(n, horizontal);
   if (notation) return notation;
   const S = n.iconSize;

@@ -1,6 +1,7 @@
 // Extension points layout() calls, so each diagram kind lives in its own module: lanes.ts (pools
-// and swimlanes), kinds.ts (trees, mind maps, state machines), notation.ts (BPMN and flowchart
-// symbols), journey.ts (journey grids). Layout stays one pipeline; a hook only adds to it.
+// and swimlanes), kinds.ts (trees, mind maps, state machines), er/ (entity tables and their
+// relationship ends), notation.ts (BPMN and flowchart symbols), journey/, sequence/ and timeline/
+// (kinds with their own layout). Layout stays one pipeline; a hook only adds to it.
 
 import type {
   Model,
@@ -48,6 +49,8 @@ export interface LayoutHooks {
   /** May move anything in the scene, add groups and reroute edges. */
   after?(ctx: AfterLayout): void;
 }
+/** One module's hooks (the contract's name for LayoutHooks). */
+export type LayoutHook = LayoutHooks;
 
 /** Where a node's text goes once ELK placed it (see notation.ts). */
 export interface PlaceContext {

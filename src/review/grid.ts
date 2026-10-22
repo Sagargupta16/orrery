@@ -4,7 +4,7 @@
 import { bendsOf, searchable, sharesEnd, simplerRoute } from "../layout/bends.ts";
 import { endsOf, facesOf, landingOf, MIN_PITCH, type Side, window } from "../layout/faces.ts";
 import { ENDS } from "../layout/sizes.ts";
-import type { Box, SceneEdge } from "../types.ts";
+import { type Box, OWN_LAYOUT, type SceneEdge } from "../types.ts";
 import {
   EPS,
   horizontalFlow,
@@ -27,10 +27,15 @@ export function measureGrid(c: Ctx): void {
   const FW = horizontal ? "w" : "h";
   const frames = scene.groups.filter((g) => !g.overlay);
 
-  // Layers per parent: items whose flow-axis extents overlap (grid lane).
+  // Layers per parent: items whose flow-axis extents overlap (grid lane). A kind that places
+  // its own nodes has no layers (a timeline sets items at their dates, a sequence's participant
+  // groups run the whole height).
   let ragged = 0;
   const gaps: number[] = [];
-  for (const P of new Set<string | undefined>([undefined, ...frames.map((g) => g.id)])) {
+  const layered = !OWN_LAYOUT.has(scene.kind);
+  for (const P of layered
+    ? new Set<string | undefined>([undefined, ...frames.map((g) => g.id)])
+    : []) {
     const items = [
       ...scene.nodes
         .filter((n) => n.parent === P)
@@ -169,7 +174,9 @@ export function measureGrid(c: Ctx): void {
 
 /** Kinds whose own hooks place every node and route every connector; pools and lanes too. */
 const placedByHook = (c: Ctx) =>
-  ["tree", "mindmap", "journey"].includes(c.scene.kind ?? "") || c.scene.groups.some((g) => g.lane);
+  ["tree", "mindmap"].includes(c.scene.kind ?? "") ||
+  OWN_LAYOUT.has(c.scene.kind) ||
+  c.scene.groups.some((g) => g.lane);
 
 /**
  * Ends on one face of an icon node (layout/faces.ts): one sits at the face's center, several
@@ -317,7 +324,8 @@ function extraBends(c: Ctx): number {
   }
   let count = 0;
   for (const e of scene.edges) {
-    if (!searchable(scene, e, seated) || sharesEnd(scene, e)) continue;
+    // A relationship's ends are held on the field rows it joins; a route between faces would leave them.
+    if (e.card || !searchable(scene, e, seated) || sharesEnd(scene, e)) continue;
     const now = bendsOf(e.points);
     if (!now) continue;
     const runs = orthogonalRuns(e.points) ?? [];
@@ -386,13 +394,14 @@ interface Gap {
  * grid.uneven-gaps judges the spread of every layer gap at once, so one evenly wide gap passes it.
  * Canvas px at 1x, like every length in this file: they say how far apart layout put two rows,
  * and a narrower column shrinks the gap and its room alike. A pool or lane places steps where they
- * happen in time and a journey's grid places every step, so neither is measured.
+ * happen in time and a kind with its own layout (a journey's grid, a sequence, a timeline) places
+ * every node, so neither is measured.
  */
 function frameGaps(c: Ctx): { wide: number; between: number } {
   const { scene, model, add } = c;
   let wide = 0;
   let between = 0;
-  if (model.kind === "journey") return { wide, between };
+  if (OWN_LAYOUT.has(model.kind)) return { wide, between };
   const layer = 64 * model.spacing;
   const frames = scene.groups.filter((g) => !g.overlay);
   const runs = scene.edges.flatMap((e) => segments(simplify(e.points)));

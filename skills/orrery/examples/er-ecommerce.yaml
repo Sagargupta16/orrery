@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Shop data model
+subtitle: "An order holds many products through its items; a payment settles one order"
+kind: er
+# Parents on the left, the tables that point at them to the right: each line runs from the key a
+# row is looked up by to the foreign key that holds it, and the marks say how many on each end.
+
+nodes:
+  customers:
+    fields:
+      - id uuid pk
+      - email text unique
+      - name text
+      - created_at timestamptz
+  products:
+    fields:
+      - id uuid pk
+      - sku text unique
+      - name text
+      - price numeric
+  orders:
+    fields:
+      - id uuid pk
+      - customer_id uuid fk
+      - address_id uuid fk
+      - status text
+      - placed_at timestamptz
+  addresses:
+    fields:
+      - id uuid pk
+      - customer_id uuid fk
+      - line1 text
+      - city text
+      - postcode text null
+  payments:
+    fields:
+      - id uuid pk
+      - order_id uuid fk unique
+      - provider text
+      - paid_at timestamptz null
+  # The join table: orders and products are many to many, one row per product on an order.
+  order_items:
+    fields:
+      - order_id uuid pk fk
+      - product_id uuid pk fk
+      - quantity int
+      - unit_price numeric
+
+edges:
+  - customers -- addresses: { card: "1:0..n", label: has }
+  - customers -- orders: { card: "1:0..n", label: places }
+  # Addresses and orders share a column: this line does not set the layers.
+  - addresses -- orders: { card: "1:0..n", label: ships to, constraint: false }
+  # A unique foreign key: at most one payment per order.
+  - orders -- payments: { card: "1:0..1", label: settled by }
+  - orders -- order_items: { card: "1:1..n", label: contains }
+  - products -- order_items: { card: "1:0..n", label: sold as }

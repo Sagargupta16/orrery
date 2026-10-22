@@ -2,6 +2,7 @@
 // symbols, with their labels.
 
 import type { Box, SceneNode } from "../../types.ts";
+import { erTableStage } from "../er.ts";
 import { notationMarks, notationShape } from "../notation.ts";
 import { esc, shapePath } from "../svg.ts";
 import { type Ctx, fill, rect, stroke } from "./ctx.ts";
@@ -79,7 +80,10 @@ export function node(ctx: Ctx, nd: SceneNode): string {
   const { k, h } = ctx;
   const parts: string[] = [];
   const room = labelRoom(nd);
-  if (nd.look === "icon") {
+  // An entity with fields is a table (render/er.ts), unless that draws nothing for it.
+  const table = nd.fields ? erTableStage(ctx, nd) : undefined;
+  if (table !== undefined) parts.push(table);
+  else if (nd.look === "icon") {
     if (nd.iconBox) parts.push(tile(ctx, nd, nd.iconBox));
     parts.push(labels(ctx, nd, "middle", room));
     if (nd.badge && nd.iconBox) parts.push(badge(ctx, nd.badge, nd.iconBox, nd.badgeBox));

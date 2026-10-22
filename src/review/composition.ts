@@ -1,7 +1,7 @@
 // Composition checks: zig-zags and avoidable bends, nodes beside groups, uneven same-kind
 // siblings, and sparse or loosely padded frames (grid and layout findings).
 import type { PatchOp } from "../patch/index.ts";
-import type { Box, SceneGroup } from "../types.ts";
+import { type Box, OWN_LAYOUT, type SceneGroup } from "../types.ts";
 import {
   contentStart,
   horizontalFlow,
@@ -43,8 +43,8 @@ const TIER_GROUPS = new Set([
  */
 export function measureComposition(c: Ctx): void {
   const { scene, model } = c;
-  // A journey's grid places every step, so nothing here is the author's to fix.
-  if (model.kind === "journey") {
+  // A kind with its own layout places every node, so nothing here is the author's to fix.
+  if (OWN_LAYOUT.has(model.kind)) {
     Object.assign(c.metrics.grid, { zigZags: 0, avoidableBends: 0, unevenSiblings: 0, padding: 0 });
     Object.assign(c.metrics.layout, { sparseGroups: 0, besideGroup: 0 });
     return;
@@ -86,7 +86,8 @@ function zigZags(c: Ctx): { zigs: number; bends: number } {
   let zigs = 0;
   let bends = 0;
   for (const e of scene.edges) {
-    if (!c.nodes.has(e.from) || !c.nodes.has(e.to)) continue;
+    // Relationship ends sit on the field rows they join, so their steps are not the layout's.
+    if (e.card || !c.nodes.has(e.from) || !c.nodes.has(e.to)) continue;
     if (outs.get(e.from) !== 1 || ins.get(e.to) !== 1 || band(e.from) !== band(e.to)) continue;
     const runs = orthogonalRuns(e.points);
     if (!runs) continue;
