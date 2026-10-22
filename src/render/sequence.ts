@@ -1,48 +1,172 @@
-// A sequence diagram of the numbered steps: one lifeline per node the steps visit, left to right
-// in the order the steps first reach them, one message per step edge in step order (the longest
-// path when there are no steps), drawn in the scene's theme and skin.
-import { renderIcon } from "../icons/index.ts";
+// Sequence diagrams in both skins. sequenceClassic and sequenceStage draw what scene.sequence
+// holds (fragments, lifelines, the participants' names at the foot, activation bars) over the
+// group panels and under the messages; the heads are scene nodes and the messages scene edges, so
+// renderSvg and renderStage draw those, and animate them in order.
+//
+// renderSequence is `-f sequence.svg` for a spec of any kind: the numbered steps (else the longest
+// path) as a sequence diagram, one lifeline per node they visit in the order they first reach it,
+// laid out by layout/sequence like a `kind: sequence` spec.
+
+import { mixHex } from "../color.ts";
+import { sequenceScene } from "../layout/sequence/index.ts";
+import { SIZES } from "../layout/sizes.ts";
+import { stageColors } from "../skins.ts";
 import { textBlock } from "../text.ts";
-import { FONT_STACK, type Theme, tokensFor } from "../themes.ts";
-import type { Box, Model, Scene, SceneEdge } from "../types.ts";
+import type { StageInk, Theme } from "../themes.ts";
+import type { Box, Model, ModelEdge, ModelNode, Scene, SceneEdge } from "../types.ts";
 import { type Ctx, fill, rect, stroke } from "./stage/ctx.ts";
-import { canvas } from "./stage/draw-backdrop.ts";
-import { glyph, iconInk } from "./stage/filters.ts";
-import {
-  DIGIT,
-  EDGE,
-  type Face,
-  LABEL,
-  MONO,
-  mono,
-  monoWidth,
-  SUBTITLE,
-  TITLE,
-} from "./stage/text.ts";
+import { block, KEY, LABEL, NOTE, sizeFor } from "./stage/text.ts";
+import { lit } from "./stage/timing.ts";
 import { ends, longestPath } from "./stage/walks.ts";
-import { esc, n, SYMBOL_ID } from "./svg.ts";
+import { n, renderSvg, text } from "./svg.ts";
 
-const PAD = 28;
-const ICON = 40;
-/** Room between two heads, and the least room between two lifelines. */
-const HEAD_GAP = 32;
-const MIN_SPAN = 140;
-const BADGE = 11;
-const LABEL_MAX = 132;
-const MESSAGE_MAX = 220;
-/** How far a message to its own lifeline loops out, and how tall the loop is. */
-const LOOP_W = 36;
-const LOOP_H = 22;
+// ---------------------------------------------------------------- classic
 
-// ---------------------------------------------------------------- what the steps say
+/** The operator tag: a box whose bottom-right corner is cut, its top-left rounded like the frame. */
+function tagPath(b: Box, r: number): string {
+  const cut = 6;
+  return `M${n(b.x)} ${n(b.y + r)} Q${n(b.x)} ${n(b.y)} ${n(b.x + r)} ${n(b.y)} H${n(b.x + b.w)} V${n(b.y + b.h - cut)} L${n(b.x + b.w - cut)} ${n(b.y + b.h)} H${n(b.x)} Z`;
+}
+
+const canvasOf = (scene: Scene, t: Theme) =>
+  scene.background && scene.background !== "transparent" ? scene.background : t.background;
+
+export function sequenceClassic(scene: Scene, t: Theme): string {
+  const sq = scene.sequence;
+  if (!sq) return "";
+  const bg = canvasOf(scene, t);
+  const frame = mixHex(t.edge, bg, 0.55);
+  const life = mixHex(t.edge, bg, 0.5);
+  const chip = (b: Box) =>
+    `<rect x="${n(b.x - 4)}" y="${n(b.y - 1)}" width="${n(b.w + 8)}" height="${n(b.h + 2)}" rx="4" fill="${bg}" fill-opacity="0.92"/>`;
+  const out: string[] = [];
+  // Frames first, outer under inner: each adds a faint wash, so nesting reads as depth.
+  for (const f of [...sq.fragments].sort((p, q) => p.depth - q.depth)) {
+    const b = f.box;
+    out.push(
+      `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="6" fill="${t.flow}" fill-opacity="0.035" stroke="${frame}" stroke-width="1"/>`,
+    );
+  }
+  for (const l of sq.lifelines) {
+    out.push(
+      `<path d="M${n(l.x)} ${n(l.top)} V${n(l.bottom)}" fill="none" stroke="${life}" stroke-width="1.25" stroke-dasharray="5 4"/>`,
+    );
+    const foot = l.foot;
+    if (foot) {
+      const b = foot.box;
+      out.push(
+        `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="6" fill="${t.surface}" stroke="${t.border}" stroke-width="1"/>`,
+        text(foot.label, foot.labelBox, t.text),
+      );
+    }
+  }
+  // Bars cover their lifeline; tags, guards and dividers go on top of both.
+  for (const a of sq.activations) {
+    const b = a.box;
+    out.push(
+      `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="2" fill="${mixHex(t.flow, t.surface, 0.14)}" stroke="${mixHex(t.edge, bg, 0.85)}" stroke-width="1"/>`,
+    );
+  }
+  for (const f of sq.fragments) {
+    out.push(
+      `<path d="${tagPath(f.tag.box, 6)}" fill="${mixHex(t.flow, bg, 0.14)}" stroke="${frame}" stroke-width="1"/>`,
+      text(f.tag.label, f.tag.labelBox, t.text, "start"),
+    );
+    if (f.label && f.labelBox)
+      out.push(chip(f.labelBox), text(f.label, f.labelBox, t.edgeLabel, "start"));
+    for (const d of f.dividers) {
+      out.push(
+        `<path d="M${n(f.box.x)} ${n(d.y)} H${n(f.box.x + f.box.w)}" fill="none" stroke="${frame}" stroke-width="1" stroke-dasharray="6 4"/>`,
+      );
+      if (d.label && d.labelBox)
+        out.push(chip(d.labelBox), text(d.label, d.labelBox, t.edgeLabel, "start"));
+    }
+  }
+  return `<g>${out.filter(Boolean).join("")}</g>`;
+}
+
+// ---------------------------------------------------------------- stage
+
+/**
+ * The same parts from the stage kit: hairline frames on a faint panel, dim dashed lifelines, ink
+ * tiles for the bars and the feet, the operator tag in the tint. With the story clock (`ctx`), a
+ * bar lights when its call arrives.
+ */
+export function sequenceStage(scene: Scene, k: StageInk, t: Theme, h: number, ctx?: Ctx): string {
+  const sq = scene.sequence;
+  if (!sq) return "";
+  const out: string[] = [];
+  const dash = ` stroke-dasharray="${n(3 * h)} ${n(3 * h)}"`;
+  const chip = (b: Box) =>
+    rect(
+      { x: b.x - 4, y: b.y - 1, w: b.w + 8, h: b.h + 2 },
+      3,
+      `${fill(k.tile)} ${stroke(k.line, k.hair, h)}`,
+    );
+  for (const f of [...sq.fragments].sort((p, q) => p.depth - q.depth))
+    out.push(rect(f.box, 4, `${fill(k.line, k.panel)} ${stroke(k.line, k.frame, h)}`));
+  // The feet share one size, the one the longest name fits at.
+  const feet = Math.min(
+    LABEL.size,
+    ...sq.lifelines.flatMap((l) =>
+      l.foot ? [sizeFor(l.foot.label.lines, LABEL, l.foot.box.w - 10, 8)] : [],
+    ),
+  );
+  for (const l of sq.lifelines) {
+    out.push(
+      `<path d="M${n(l.x)} ${n(l.top)} V${n(l.bottom)}" fill="none" ${stroke(k.line, k.wire * 0.8, h)}${dash}/>`,
+    );
+    const foot = l.foot;
+    if (foot) {
+      const size = feet;
+      out.push(
+        rect(foot.box, 4, `${fill(k.tile)} ${stroke(k.line, k.frame, h)}`),
+        block(foot.label, foot.labelBox, LABEL, size, t.text),
+      );
+    }
+  }
+  // Bars: an ink tile over the lifeline, tinted once its call has arrived (always, in a still).
+  for (const a of sq.activations) {
+    const tinted = rect(a.box, 2, `${fill(k.tint, 0.16)} ${stroke(k.tint, 0.55, h)}`);
+    const on = ctx?.story.runs.get(a.call)?.[0]?.t1;
+    out.push(
+      rect(a.box, 2, `${fill(k.tile)} ${stroke(k.line, k.frame, h)}`),
+      ctx && on !== undefined ? lit(ctx, tinted, on) : ctx?.story.animated ? "" : tinted,
+    );
+  }
+  for (const f of sq.fragments) {
+    const size = sizeFor(f.tag.label.lines, KEY, f.tag.box.w - 14, 7);
+    // Opaque under the tint, so a bar or lifeline behind the tag stops at its edge.
+    out.push(
+      `<path d="${tagPath(f.tag.box, 4)}" ${fill(k.tile)}/>`,
+      `<path d="${tagPath(f.tag.box, 4)}" ${fill(k.tint, 0.14)} ${stroke(k.tint, 0.5, h)}/>`,
+      block(f.tag.label, f.tag.labelBox, KEY, size, k.header, "start"),
+    );
+    if (f.label && f.labelBox) {
+      const s = sizeFor(f.label.lines, NOTE, f.labelBox.w + 6, 8);
+      out.push(chip(f.labelBox), block(f.label, f.labelBox, NOTE, s, t.edgeLabel, "start"));
+    }
+    for (const d of f.dividers) {
+      out.push(
+        `<path d="M${n(f.box.x)} ${n(d.y)} H${n(f.box.x + f.box.w)}" fill="none" ${stroke(k.line, k.frame, h)}${dash}/>`,
+      );
+      if (d.label && d.labelBox) {
+        const s = sizeFor(d.label.lines, NOTE, d.labelBox.w + 6, 8);
+        out.push(chip(d.labelBox), block(d.label, d.labelBox, NOTE, s, t.edgeLabel, "start"));
+      }
+    }
+  }
+  return `<g>${out.filter(Boolean).join("")}</g>`;
+}
+
+// ---------------------------------------------------------------- sequence.svg of any spec
 
 interface Message {
-  id: string;
+  edge: SceneEdge;
   from: string;
   to: string;
   label: string;
   step: number;
-  edge: SceneEdge;
 }
 
 /** The step edges in step order (spec order breaks ties), else the longest path numbered 1, 2, ... */
@@ -57,436 +181,113 @@ function messages(scene: Scene, model: Model): Message[] {
   return path.map((e, i) => {
     const [from, to] = ends(e);
     const label = labels.get(e.id) ?? e.label?.lines.join(" ") ?? "";
-    return { id: e.id, from, to, label, step: e.step ?? i + 1, edge: e };
+    return { edge: e, from, to, label, step: e.step ?? i + 1 };
   });
 }
 
-interface Who {
-  id: string;
-  label: string;
-  icon?: string;
-  color?: string;
-}
-
-/** Each node or group the messages visit, in the order they first appear. */
-function participants(scene: Scene, model: Model, list: Message[]): Who[] {
-  const out: Who[] = [];
+/** Each node or group the messages visit, in the order they first appear, as a participant. */
+function participants(scene: Scene, model: Model, list: Message[]): ModelNode[] {
+  const out: ModelNode[] = [];
   for (const id of list.flatMap((m) => [m.from, m.to])) {
-    if (out.some((w) => w.id === id)) continue;
-    const nd = scene.nodes.find((x) => x.id === id);
-    const g = scene.groups.find((x) => x.id === id);
-    const label =
-      model.nodes.find((x) => x.id === id)?.label ??
-      model.groups.find((x) => x.id === id)?.label ??
-      id;
-    out.push({ id, label: label || id, icon: nd?.icon ?? g?.icon, color: nd?.color });
+    if (out.some((p) => p.id === id)) continue;
+    const node = model.nodes.find((x) => x.id === id);
+    const group = model.groups.find((x) => x.id === id);
+    const icon =
+      node?.icon ?? scene.groups.find((g) => g.id === id)?.icon ?? group?.icon ?? undefined;
+    out.push({
+      id,
+      label: node?.label || group?.label || id,
+      ...(node?.note ? { note: node.note } : {}),
+      ...(icon ? { icon } : {}),
+      ...(node?.color ? { color: node.color } : {}),
+      look: icon ? "icon" : "shape",
+      shape: "rounded",
+      iconSize: icon && node?.look === "icon" ? node.iconSize : 48,
+    });
   }
   return out;
 }
 
-// ---------------------------------------------------------------- text in either skin
-
-interface Block {
-  lines: string[];
-  size: number;
-  weight: 400 | 600;
-  lead: number;
-  width: number;
-  height: number;
-}
-
-type Role = "title" | "subtitle" | "label" | "message";
-
-// Classic sets Inter at the sizes layout uses; stage sets its mono faces.
-const INTER: Record<Role, [number, 400 | 600, number]> = {
-  title: [20, 600, 1.25],
-  subtitle: [13, 400, 1.3],
-  label: [13, 600, 1.3],
-  message: [11.5, 400, 1.3],
-};
-const FACES: Record<Role, Face> = { title: TITLE, subtitle: SUBTITLE, label: LABEL, message: EDGE };
-
-/** Greedy word wrap in a mono face; a word longer than the line keeps a line of its own. */
-function monoBlock(text: string, f: Face, max: number): Block {
-  const lines: string[] = [];
-  for (const paragraph of text.split(/\r?\n/)) {
-    let line = "";
-    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
-      const next = line ? `${line} ${word}` : word;
-      if (line && monoWidth(next, f) > max) {
-        lines.push(line);
-        line = word;
-      } else line = next;
-    }
-    if (line) lines.push(line);
-  }
-  const lead = Math.round(f.size * 1.5 * 10) / 10;
-  const width = Math.max(0, ...lines.map((l) => monoWidth(l, f)));
-  return { lines, size: f.size, weight: 400, lead, width, height: lines.length * lead };
-}
-
-function measure(stage: boolean, text: string, role: Role, max: number): Block {
-  if (stage) return monoBlock(text, FACES[role], max);
-  const [size, weight, line] = INTER[role];
-  const b = textBlock(text, size, max, weight, line);
-  return { lines: b.lines, size, weight, lead: b.lead, width: b.width, height: b.height };
-}
-
-// Inter's vertical metrics, as the SVG renderer sets them.
-const ASCENT = 0.96875;
-const DESCENT = 0.2412;
-
-function interText(b: Block, x: number, y: number, color: string, anchor: "start" | "middle") {
-  if (!b.lines.length) return "";
-  const first = y + (b.lead - b.size * (ASCENT + DESCENT)) / 2 + b.size * ASCENT;
-  const spans = b.lines
-    .map((l, i) => `<tspan x="${n(x)}" y="${n(first + i * b.lead)}">${esc(l)}</tspan>`)
-    .join("");
-  const weight = b.weight === 600 ? ` font-weight="600"` : "";
-  const middle = anchor === "middle" ? ` text-anchor="middle"` : "";
-  return `<text font-size="${n(b.size)}"${weight} fill="${color}"${middle}>${spans}</text>`;
-}
-
-// ---------------------------------------------------------------- the paint of either skin
-
-interface Paint {
-  t: Theme;
-  stage: boolean;
-  defs: string[];
-  font: string;
-  text(
-    b: Block,
-    role: Role,
-    x: number,
-    y: number,
-    color: string,
-    anchor?: "start" | "middle",
-  ): string;
-  /** An icon in its box: drawn as is (classic) or as a glyph on an ink tile (stage). */
-  icon(id: string, box: Box, color?: string): string;
-  /** A head with no icon: a card around the label. */
-  card(box: Box, color?: string): string;
-  backdrop(): string;
-  /** Stroke attributes for message lines, arrowheads and lifelines. */
-  wire(width: number, color?: string): string;
-  tip(width: number, color?: string): string;
-  /** Fill attributes for a filled arrowhead. */
-  solid(color?: string): string;
-  life: string;
-  chip: string;
-}
-
-function paintFor(scene: Scene, W: number, H: number, prefix: string): Paint {
-  const t = tokensFor(scene);
-  const k = t.stage;
-  const defs: string[] = [];
-  const symbols = new Map<string, string>();
-  const canvasColor =
-    scene.background && scene.background !== "transparent" ? scene.background : t.background;
-  if (scene.skin === "stage" && k) {
-    const h = 1 / Math.min(1, 880 / Math.max(1, W));
-    const ctx: Ctx = {
-      t,
-      k,
-      prefix,
-      scene: { ...scene, width: W, height: H },
-      h,
-      story: {
-        animated: false,
-        cycle: 0,
-        hold: 0,
-        gone: 0,
-        runs: new Map(),
-        side: new Map(),
-        badges: new Map(),
-        focus: { x: W / 2, y: H / 3 },
-      },
-      sizes: { label: LABEL.size, note: SUBTITLE.size, edge: EDGE.size },
-      symbols,
-      filters: new Map(),
-      defs,
-    };
-    const tile = `${fill(k.tile)} ${stroke(k.line, k.frame, h)}`;
-    return {
-      t,
-      stage: true,
-      defs,
-      font: MONO,
-      text: (b, role, x, y, color, anchor = "middle") =>
-        mono(b.lines, FACES[role], b.size, { x, y, lead: b.lead }, color, anchor),
-      icon: (id, box) =>
-        rect(box, 0.17 * Math.min(box.w, box.h), tile) + glyph(ctx, id, box, iconInk(ctx, id)),
-      card: (box) => rect(box, 6, tile),
-      backdrop: () => canvas(ctx),
-      wire: (width) => stroke(k.line, k.wire, width * h),
-      tip: (width) => stroke(k.line, k.arrow, width * h),
-      solid: () => fill(k.line, k.arrow),
-      life: stroke(k.line, k.frame, h),
-      chip: `${fill(k.tile)} ${stroke(k.line, k.hair, h)}`,
-    };
-  }
+/** A still picture that says there was nothing to draw. */
+function empty(scene: Scene, model: Model): Scene {
+  const P = SIZES.pad;
+  const say = "No edges to put in sequence";
+  const title = model.title ? textBlock(model.title, SIZES.title, 1400, 600, 1.25) : undefined;
+  const note = textBlock(say, SIZES.subtitle, 1400, 400);
+  const top = title ? P + title.height : P;
   return {
-    t,
-    stage: false,
-    defs,
-    font: FONT_STACK,
-    text: (b, _role, x, y, color, anchor = "middle") => interText(b, x, y, color, anchor),
-    icon: (id, box, color) => {
-      const r = renderIcon(id, SYMBOL_ID, {
-        theme: t.name,
-        background: canvasColor,
-        ink: t.text,
-        color,
-      });
-      const viewBox = r.viewBox.join(" ");
-      const key = `${viewBox}|${r.body}`;
-      let ref = symbols.get(key);
-      if (!ref) {
-        ref = `${prefix}s${symbols.size + 1}`;
-        symbols.set(key, ref);
-        defs.push(
-          `<symbol id="${ref}" viewBox="${viewBox}" overflow="visible">${r.body.replaceAll(`${SYMBOL_ID}-`, `${ref}-`)}</symbol>`,
-        );
-      }
-      return `<use href="#${ref}" x="${n(box.x)}" y="${n(box.y)}" width="${n(box.w)}" height="${n(box.h)}"/>`;
-    },
-    card: (box, color) =>
-      rect(box, 8, `fill="${t.surface}" stroke="${color ?? t.border}" stroke-width="1"`),
-    backdrop: () =>
-      scene.background === "transparent"
-        ? ""
-        : `<rect width="${n(W)}" height="${n(H)}" fill="${canvasColor}"/>`,
-    wire: (width, color) => `stroke="${color ?? t.edge}" stroke-width="${n(width)}"`,
-    tip: (width, color) => `stroke="${color ?? t.edge}" stroke-width="${n(width)}"`,
-    solid: (color) => `fill="${color ?? t.edge}"`,
-    life: `stroke="${t.border}" stroke-width="1"`,
-    chip: `fill="${canvasColor}" fill-opacity="0.92"`,
+    ...scene,
+    width: Math.ceil(Math.max(note.width, title?.width ?? 0) + 2 * P),
+    height: Math.ceil(top + note.height + P),
+    ...(title ? { title, titleBox: { x: P, y: P - 4, w: title.width, h: title.height } } : {}),
+    subtitle: note,
+    subtitleBox: { x: P, y: top, w: note.width, h: note.height },
+    nodes: [],
+    groups: [],
+    edges: [],
+    legend: undefined,
+    journey: undefined,
+    sequence: undefined,
+    animate: "none",
+    description: say,
   };
 }
 
-// ---------------------------------------------------------------- layout
-
-interface Head {
-  who: Who;
-  label: Block;
-  w: number;
-  h: number;
-}
-
-interface Row {
-  m: Message;
-  label: Block;
-  /** Where the message line runs. */
-  y: number;
-}
-
-/** Widens the lifelines between `i` and `j` (and moves the ones after) to `span` apart. */
-function widen(centers: number[], i: number, j: number, span: number) {
-  const short = span - ((centers[j] ?? 0) - (centers[i] ?? 0));
-  if (short <= 0) return;
-  for (let k = i + 1; k < centers.length; k++)
-    centers[k] = (centers[k] ?? 0) + (short * Math.min(k - i, j - i)) / (j - i);
-}
-
-/** Line and arrowhead of one message, a step badge at its start, and its label. */
-function message(
-  p: Paint,
-  prefix: string,
-  row: Row,
-  x0: number,
-  x1: number,
-  back: boolean,
-  open: boolean,
-) {
-  const { t } = p;
-  const e = row.m.edge;
-  // Line weights of each skin's own edges: the stage draws hairlines.
-  const thick = e.line === "thick";
-  const width = p.stage ? (thick ? 1.8 : 1) : thick ? 2.5 : 1.5;
-  const color = p.stage ? undefined : e.color;
-  const dash = back ? ` stroke-dasharray="${p.stage ? "4 3" : "6 4"}"` : "";
-  const y = row.y;
-  const parts: string[] = [];
-  const self = row.m.from === row.m.to;
-  const len = open ? 9 : 10;
-  const half = open ? 4.5 : 5;
-  // The arrow points from `x1` back along the line, so its tip touches the lifeline.
-  const dir = self ? -1 : x1 >= x0 ? 1 : -1;
-  const tipY = self ? y + LOOP_H : y;
-  const base = x1 - dir * len;
-  const stop = open ? x1 - dir * (width / 2) : base + dir * 1.5;
-  const both = e.arrow === "both" && !self;
-  const begin = both ? x0 + dir * (open ? width / 2 : len - 1.5) : x0;
-  const d = self
-    ? `M${n(x0)} ${n(y)} H${n(x0 + LOOP_W)} V${n(tipY)} H${n(stop)}`
-    : `M${n(begin)} ${n(y)} H${n(stop)}`;
-  parts.push(`<path d="${d}" fill="none" ${p.wire(width, color)} stroke-linejoin="round"${dash}/>`);
-  const arrow = (tip: number, toward: number) => {
-    const b = tip - toward * len;
-    return open
-      ? `<path d="M${n(b)} ${n(tipY - half)} L${n(tip)} ${n(tipY)} L${n(b)} ${n(tipY + half)}" fill="none" ${p.tip(width, color)} stroke-linecap="round" stroke-linejoin="round"/>`
-      : `<path d="M${n(tip)} ${n(tipY)} L${n(b)} ${n(tipY - half)} L${n(b + toward * 1.5)} ${n(tipY)} L${n(b)} ${n(tipY + half)} Z" ${p.solid(color)}/>`;
-  };
-  parts.push(arrow(x1, dir));
-  if (both) parts.push(arrow(x0, -dir));
-  // The badge sits on the line where the message leaves, as numbered callouts do.
-  // A two-way message has an arrowhead there too, so the badge steps past it.
-  const bx = self ? x0 + LOOP_W / 2 : x0 + dir * (BADGE + 4 + (both ? len : 0));
-  parts.push(`<circle cx="${n(bx)}" cy="${n(y)}" r="${BADGE}" fill="${t.stepFill}"/>`);
-  const digit = String(row.m.step);
-  parts.push(
-    p.stage
-      ? mono(
-          [digit],
-          DIGIT,
-          Math.min(DIGIT.size, BADGE),
-          { x: bx, y: y - BADGE, lead: 2 * BADGE },
-          t.stepText,
-          "middle",
-        )
-      : `<text x="${n(bx)}" y="${n(y + 4.5)}" font-size="13" font-weight="700" fill="${t.stepText}" text-anchor="middle">${esc(digit)}</text>`,
-  );
-  if (row.label.lines.length) {
-    const b = row.label;
-    const cx = self ? x0 + LOOP_W + 10 + b.width / 2 : (x0 + x1) / 2;
-    const top = self ? y + LOOP_H / 2 - b.height / 2 : y - BADGE - 4 - b.height;
-    parts.push(
-      rect({ x: cx - b.width / 2 - 4, y: top - 1, w: b.width + 8, h: b.height + 2 }, 4, p.chip),
-    );
-    parts.push(p.text(b, "message", cx, top, t.edgeLabel));
-  }
-  return `<g id="${prefix}sq-${row.m.id}">${parts.join("")}</g>`;
-}
-
+/**
+ * `-f sequence.svg`: a sequence spec as it is, any other the numbered steps (else the longest path)
+ * as messages between the nodes they visit. A message back to an earlier lifeline is drawn as a
+ * reply, dashed.
+ */
 export function renderSequence(
   scene: Scene,
   model: Model,
   opts: { idPrefix?: string } = {},
 ): string {
-  const prefix = opts.idPrefix ? `${opts.idPrefix.replace(/[^A-Za-z0-9_-]/g, "")}-` : "";
-  const stage = scene.skin === "stage";
+  if (scene.sequence) return renderSvg(scene, opts);
   const list = messages(scene, model);
-  const heads: Head[] = participants(scene, model, list).map((who) => {
-    const label = measure(stage, who.label, "label", LABEL_MAX);
-    return who.icon
-      ? { who, label, w: Math.max(ICON, label.width), h: ICON + 6 + label.height }
-      : { who, label, w: label.width + 24, h: label.height + 16 };
+  const who = participants(scene, model, list);
+  const order = new Map(who.map((p, i) => [p.id, i]));
+  const edges: ModelEdge[] = list.map((m) => {
+    const back = (order.get(m.to) ?? 0) < (order.get(m.from) ?? 0);
+    return {
+      id: m.edge.id,
+      from: m.from,
+      to: m.to,
+      ...(m.label ? { label: m.label } : {}),
+      line: back && m.edge.line === "solid" ? "dashed" : m.edge.line,
+      arrow: m.edge.arrow === "both" ? "both" : m.edge.arrow === "none" ? "none" : "end",
+      ...(m.edge.color ? { color: m.edge.color } : {}),
+      step: m.step,
+      constraint: true,
+    };
   });
-  const column = new Map(heads.map((hd, i) => [hd.who.id, i]));
-  // Lifelines: far enough apart for their heads, then for every message label between them.
-  const centers: number[] = [];
-  heads.forEach((hd, i) => {
-    const prev = heads[i - 1];
-    const at = prev
-      ? (centers[i - 1] ?? 0) + Math.max(MIN_SPAN, (prev.w + hd.w) / 2 + HEAD_GAP)
-      : PAD + hd.w / 2;
-    centers.push(at);
-  });
-  const rows: Row[] = [];
-  let right = 0;
-  for (const m of list) {
-    const label = measure(stage, m.label, "message", MESSAGE_MAX);
-    const a = column.get(m.from) ?? 0;
-    const b = column.get(m.to) ?? 0;
-    const room = label.width + 2 * (2 * BADGE + 8);
-    if (a === b) {
-      const need = LOOP_W + 10 + label.width + HEAD_GAP;
-      if (a + 1 < centers.length) widen(centers, a, a + 1, need);
-      else right = Math.max(right, need - HEAD_GAP + PAD);
-    } else widen(centers, Math.min(a, b), Math.max(a, b), room);
-    rows.push({ m, label, y: 0 });
-  }
-  const last = heads.length - 1;
-  const lastCenter = centers[last] ?? PAD;
-  const columnsRight = Math.max(lastCenter + (heads[last]?.w ?? 0) / 2 + PAD, lastCenter + right);
-  // Titles wrap to the columns, and widen the canvas only as far as a readable line needs.
-  const titleMax = Math.max(columnsRight - 2 * PAD, 420);
-  const title = model.title ? measure(stage, model.title, "title", titleMax) : undefined;
-  const subtitle = model.subtitle
-    ? measure(stage, model.subtitle, "subtitle", titleMax)
-    : undefined;
-  const W = Math.ceil(
-    Math.max(columnsRight, (title?.width ?? 0) + 2 * PAD, (subtitle?.width ?? 0) + 2 * PAD),
-  );
-  const shift = (W - columnsRight) / 2;
-  const xs = centers.map((c) => c + shift);
-  let y = PAD;
-  const titleY = y;
-  if (title) y += title.height + 4;
-  const subtitleY = y;
-  if (subtitle) y += subtitle.height;
-  if (title || subtitle) y += 22;
-  const headTop = y;
-  const headH = Math.max(0, ...heads.map((hd) => hd.h));
-  y = headTop + headH + 24;
-  for (const row of rows) {
-    if (row.m.from === row.m.to) {
-      row.y = y + BADGE;
-      y = row.y + Math.max(LOOP_H, row.label.height) + 22;
-    } else {
-      row.y = y + (row.label.lines.length ? row.label.height + 4 : 0) + BADGE;
-      y = row.y + BADGE + 14;
-    }
-  }
-  const bottom = y + 6;
-  const H = Math.ceil(bottom + PAD);
-  const p = paintFor(scene, W, H, prefix);
-  const { t } = p;
-  const open = scene.arrowhead === "open";
-  const out: string[] = [];
-  const titleId = `${prefix}sdw-title`;
-  const descId = `${prefix}sdw-desc`;
-  const named = (id: string) => heads[column.get(id) ?? -1]?.who.label ?? id;
+  const seq: Model = {
+    ...(model.title ? { title: model.title } : {}),
+    ...(model.subtitle ? { subtitle: model.subtitle } : {}),
+    direction: "down",
+    theme: scene.theme,
+    routing: "orthogonal",
+    spacing: 1,
+    layering: "source",
+    merge: false,
+    arrowhead: scene.arrowhead,
+    animate: scene.animate,
+    skin: scene.skin,
+    ...(scene.background ? { background: scene.background } : {}),
+    nodes: who,
+    groups: [],
+    edges,
+    kind: "sequence",
+  };
+  const laid = list.length ? sequenceScene(seq, scene.theme) : undefined;
+  if (!laid) return renderSvg(empty(scene, model), opts);
+  const named = (id: string) => who.find((p) => p.id === id)?.label ?? id;
   const steps = list.map(
     (m) => `${m.step}. ${named(m.from)} to ${named(m.to)}${m.label ? ` (${m.label})` : ""}`,
   );
-  const desc = list.length
-    ? `Sequence of ${list.some((m) => m.edge.step !== undefined) ? "the numbered steps" : "the longest path"}: ${steps.join("; ")}`
-    : "No edges to put in sequence";
-  out.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="${titleId} ${descId}" font-family="${esc(p.font)}">`,
-  );
-  out.push(
-    `<title id="${titleId}">${esc(`${model.title ?? "Architecture diagram"}: sequence`)}</title>`,
-  );
-  out.push(`<desc id="${descId}">${esc(desc)}</desc>`);
-  const defsAt = out.length;
-  out.push(p.backdrop());
-  const ink = stage && t.stage ? t.stage.header : t.text;
-  if (title) out.push(p.text(title, "title", PAD, titleY, ink, "start"));
-  if (subtitle) out.push(p.text(subtitle, "subtitle", PAD, subtitleY, t.muted, "start"));
-  heads.forEach((hd, i) => {
-    const x = xs[i] ?? 0;
-    const parts: string[] = [];
-    parts.push(
-      `<path d="M${n(x)} ${n(headTop + hd.h + 6)} V${n(bottom)}" fill="none" ${p.life} stroke-dasharray="4 4"/>`,
-    );
-    if (hd.who.icon) {
-      const box = { x: x - ICON / 2, y: headTop, w: ICON, h: ICON };
-      parts.push(p.icon(hd.who.icon, box, hd.who.color));
-      parts.push(p.text(hd.label, "label", x, headTop + ICON + 6, t.text));
-    } else {
-      parts.push(p.card({ x: x - hd.w / 2, y: headTop, w: hd.w, h: hd.h }, hd.who.color));
-      parts.push(p.text(hd.label, "label", x, headTop + 8, t.text));
-    }
-    out.push(`<g id="${prefix}sq-l-${hd.who.id}">${parts.join("")}</g>`);
-  });
-  for (const row of rows) {
-    const a = column.get(row.m.from) ?? 0;
-    const b = column.get(row.m.to) ?? 0;
-    out.push(message(p, prefix, row, xs[a] ?? 0, xs[b] ?? 0, b < a, open));
-  }
-  if (!list.length)
-    out.push(
-      p.text(
-        measure(stage, "No edges to put in sequence", "message", W),
-        "message",
-        W / 2,
-        headTop,
-        t.muted,
-      ),
-    );
-  if (p.defs.length) out.splice(defsAt, 0, `<defs>${p.defs.join("")}</defs>`);
-  out.push("</svg>");
-  return `${out.filter(Boolean).join("\n")}\n`;
+  const what = list.some((m) => m.edge.step !== undefined)
+    ? "the numbered steps"
+    : "the longest path";
+  const described = { ...laid, description: `Sequence of ${what}: ${steps.join("; ")}` };
+  return renderSvg(scene.skin === "stage" ? stageColors(described) : described, opts);
 }

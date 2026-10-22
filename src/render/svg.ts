@@ -12,10 +12,13 @@ import type {
   SceneNode,
   TextBlock,
 } from "../types.ts";
+import { erEndsClassic, erTableClassic } from "./er.ts";
 import { journeyClassic } from "./journey.ts";
 import { laneClassic } from "./lanes.ts";
 import { flowMarks, notationMarks, notationShape, shapeOutline } from "./notation.ts";
+import { sequenceClassic } from "./sequence.ts";
 import { renderStage } from "./stage/index.ts";
+import { timelineClassic } from "./timeline.ts";
 
 // Inter's vertical metrics (ascender 1984, descender -494 at 2048 units per em).
 const ASCENT = 0.96875;
@@ -40,7 +43,8 @@ export interface SvgOptions {
   idPrefix?: string;
 }
 
-interface Ctx {
+/** What the classic drawing steps share; render/er.ts draws tables and ends with it too. */
+export interface Ctx {
   t: Theme;
   prefix: string;
   scene: Scene;
@@ -53,7 +57,7 @@ interface Ctx {
   defs: string[];
 }
 
-function text(
+export function text(
   block: TextBlock,
   box: Box,
   color: string,
@@ -75,7 +79,7 @@ export const SYMBOL_ID = "SDWSYM";
 
 // Each distinct icon artwork is written once as a <symbol> and placed with <use>, so a diagram with
 // six Lambdas carries one copy. The symbol's viewBox fits it into the box centered, as before.
-function icon(ctx: Ctx, id: string, box: Box, color?: string, background?: string): string {
+export function icon(ctx: Ctx, id: string, box: Box, color?: string, background?: string): string {
   const r = renderIcon(id, SYMBOL_ID, {
     theme: ctx.t.name,
     background: background ?? ctx.t.background,
@@ -284,6 +288,7 @@ function edge(ctx: Ctx, e: SceneEdge, routing: Scene["routing"]): string {
   if (start && firstPt && second)
     parts.push(arrowHead(firstPt, second, len, half, color, open, width));
   if (e.flow) parts.push(flowMarks(e, color, width, ctx.t.background));
+  if (e.card) parts.push(erEndsClassic(ctx, e));
   if (beat) {
     const lit = ctx.relay.color;
     const heads = [
@@ -677,7 +682,10 @@ function node(ctx: Ctx, nd: SceneNode): string {
     ctx.scene.background && ctx.scene.background !== "transparent"
       ? ctx.scene.background
       : ctx.t.background;
-  if (nd.look === "icon") {
+  // An entity with fields is a table (render/er.ts), unless that draws nothing for it.
+  const table = nd.fields ? erTableClassic(ctx, nd) : undefined;
+  if (table !== undefined) parts.push(table);
+  else if (nd.look === "icon") {
     if (nd.icon && nd.iconBox) parts.push(icon(ctx, nd.icon, nd.iconBox, nd.color));
     parts.push(text(nd.label, nd.labelBox, nd.ink ?? ctx.t.text));
     if (nd.note && nd.noteBox) parts.push(text(nd.note, nd.noteBox, nd.inkMuted ?? ctx.t.muted));
@@ -781,10 +789,13 @@ export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
   if (scene.subtitle && scene.subtitleBox)
     out.push(text(scene.subtitle, scene.subtitleBox, t.muted, "start"));
   if (scene.journey) out.push(journeyClassic(scene, t));
+  if (scene.timeline) out.push(timelineClassic(scene, t));
   // Pools and lanes are bands with a label strip; everything else is a frame and a header.
   const lanes = new Map(scene.groups.map((g) => [g.id, g.lane ? laneClassic(g, t) : undefined]));
   for (const g of scene.groups)
     out.push(`<g id="${ctx.prefix}g-${g.id}">${lanes.get(g.id)?.frame ?? groupFrame(g)}</g>`);
+  // Lifelines, fragments and activations: over the participants' group panels, under messages.
+  if (scene.sequence) out.push(sequenceClassic(scene, t));
   for (const nd of scene.nodes) {
     const under = borderPlate(ctx, nd);
     if (under) out.push(under);

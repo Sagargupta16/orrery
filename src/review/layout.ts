@@ -1,6 +1,6 @@
 // The layout dimension: direction agreement, crossings, edge lengths, empty space, proportions,
 // layout diagnostics and how well spec order is kept.
-import type { Box, Diagnostic, SceneEdge } from "../types.ts";
+import { type Box, type Diagnostic, OWN_LAYOUT, type SceneEdge } from "../types.ts";
 import {
   along,
   horizontalFlow,
@@ -296,12 +296,12 @@ const WIDE_PITCH = 400;
  * the nodes whose tile centres sit within 24px. Gaps, not pitch, judge sparseness: a long label
  * makes a compact row's pitch large but its gaps small. Canvas px at 1x, like every length in this
  * file (an orrery icon is 48px): a narrower column shrinks the gaps and the nodes alike, so the
- * display width does not change the verdict. A journey's grid places every step, so its spacing
- * is not the author's to fix.
+ * display width does not change the verdict. A kind with its own layout (a journey's grid, a
+ * sequence, a timeline) places every node, so its spacing is not the author's to fix.
  */
 function nodeSpacing(c: Ctx): { gap: number; pitch: number } {
   const { scene, model, add } = c;
-  if (model.kind === "journey") return { gap: 0, pitch: 0 };
+  if (OWN_LAYOUT.has(model.kind)) return { gap: 0, pitch: 0 };
   const items = scene.nodes.map((n) => ({
     tile: n.iconBox ?? n.box,
     foot: c.foot.get(n.id) ?? n.box,

@@ -2,7 +2,7 @@
 // figures come from one source and cannot drift apart.
 import { usage } from "./cli/io.ts";
 import { resolveGroupStyle } from "./styles.ts";
-import type { Model, ModelEdge, ModelGroup, ModelNode, ModelView } from "./types.ts";
+import type { Model, ModelEdge, ModelGroup, ModelNode, ModelView, SeqFragment } from "./types.ts";
 
 export interface ViewModel {
   /** The view's name; undefined for the whole diagram. */
@@ -52,7 +52,9 @@ export function viewModel(model: Model, view: ModelView): Model {
   const nodes = model.nodes.flatMap((n) => (kept.has(n.id) && !fold.has(n.id) ? [nodeOf(n)] : []));
   nodes.push(...model.groups.filter((g) => fold.get(g.id) === g.id).map(groupNode));
   const drawn = new Set([...nodes.map((n) => n.id), ...groupIds]);
-  const edges = edgesOf(t, kept, view, at, drawn);
+  const sequence = model.kind === "sequence";
+  const edges = sequence ? messagesOf(t, kept, view, at, drawn) : edgesOf(t, kept, view, at, drawn);
+  const fragments = sequence ? fragmentsOf(model, edges) : undefined;
   const story = (model.story ?? [])
     .filter((id) => kept.has(id))
     .map(at)
@@ -60,7 +62,7 @@ export function viewModel(model: Model, view: ModelView): Model {
   const tags = new Set([...nodes, ...groups, ...edges].flatMap((x) => x.tags ?? []));
   const lines = new Set(edges.map((e) => e.line));
   const legend = (model.legend ?? []).filter((l) => (l.tag ? tags.has(l.tag) : lines.has(l.line)));
-  const { views: _, story: __, legend: ___, ...rest } = model;
+  const { views: _, story: __, legend: ___, fragments: ____, ...rest } = model;
   return {
     ...rest,
     title: view.title ?? (model.title ? `${model.title}: ${view.name}` : view.name),
@@ -69,8 +71,54 @@ export function viewModel(model: Model, view: ModelView): Model {
     nodes,
     groups,
     edges,
+    ...(fragments?.length ? { fragments } : {}),
     ...(story.length >= 2 ? { story } : {}),
   };
+}
+
+/**
+ * A sequence's messages in the view: every one whose ends stay, in order and never merged (the
+ * same two participants talk more than once), self messages kept. A message between two
+ * participants folded into one group is inside that group now, so it goes.
+ */
+function messagesOf(
+  t: Tree,
+  kept: Set<string>,
+  view: ModelView,
+  at: (id: string) => string,
+  drawn: Set<string>,
+): ModelEdge[] {
+  const dropped = new Set(t.tagged(view.exclude ?? []));
+  return t.model.edges.flatMap((e) => {
+    if (!kept.has(e.from) || !kept.has(e.to) || dropped.has(e.id)) return [];
+    const from = at(e.from);
+    const to = at(e.to);
+    if ((from === to && e.from !== e.to) || !drawn.has(from) || !drawn.has(to)) return [];
+    return [{ ...e, from, to }];
+  });
+}
+
+/**
+ * Fragments renumbered to the messages the view keeps: each spans the kept messages inside its
+ * old range, an else branch moves to its first kept message, and a fragment left with none goes.
+ */
+function fragmentsOf(model: Model, edges: ModelEdge[]): SeqFragment[] {
+  const index = new Map(model.edges.map((e, i) => [e.id, i + 1]));
+  // Old message number -> new one, for the messages the view keeps.
+  const renumber = new Map(edges.map((e, i) => [index.get(e.id) ?? 0, i + 1]));
+  const within = (from: number, to: number) =>
+    [...renumber].filter(([old]) => old >= from && old <= to).map(([, now]) => now);
+  return (model.fragments ?? []).flatMap((f): SeqFragment[] => {
+    const kept = within(f.from, f.to);
+    const first = kept[0];
+    const last = kept.at(-1);
+    if (first === undefined || last === undefined) return [];
+    const branches = (f.else ?? []).flatMap((b) => {
+      const at = within(b.at, f.to)[0];
+      return at !== undefined && at > first ? [{ ...b, at }] : [];
+    });
+    return [{ ...f, from: first, to: last, ...(branches.length ? { else: branches } : {}) }];
+  });
 }
 
 /** The edges whose ends both stay, re-pointed at folded groups, one per pair of ends. */

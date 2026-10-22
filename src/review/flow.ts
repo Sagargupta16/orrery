@@ -4,7 +4,15 @@ import { iconAspect, iconInfo } from "../icons/index.ts";
 import { endsOf, landingOf, level } from "../layout/faces.ts";
 import { ENDS } from "../layout/sizes.ts";
 import type { PatchOp } from "../patch/index.ts";
-import type { Box, Diagnostic, ModelEdge, ModelNode, Point, SceneEdge } from "../types.ts";
+import {
+  type Box,
+  type Diagnostic,
+  type ModelEdge,
+  type ModelNode,
+  OWN_LAYOUT,
+  type Point,
+  type SceneEdge,
+} from "../types.ts";
 import {
   along,
   badgeRect,
@@ -219,7 +227,7 @@ const BOXED = new Set(["box", "rounded", "subroutine", "note"]);
 function faceEnds(c: Ctx): { off: number; gaps: number } {
   const { scene, add } = c;
   const counts = { off: 0, gaps: 0 };
-  if (scene.routing === "spline" || scene.kind === "journey" || scene.kind === "mindmap")
+  if (scene.routing === "spline" || OWN_LAYOUT.has(scene.kind) || scene.kind === "mindmap")
     return counts;
   const horizontal = horizontalFlow(c.dir);
   for (const e of scene.edges) {
@@ -526,7 +534,8 @@ function arrowSemantics(c: Ctx): { both: SceneEdge[]; none: SceneEdge[] } {
 
 /**
  * Unlabelled edges that cross a group boundary. A pool or lane says who does the work, and a
- * journey row what kind of step it is: neither is a boundary crossed by some mechanism.
+ * journey row what kind of step it is: neither is a boundary crossed by some mechanism. Nor is a
+ * group in another kind with its own layout (a sequence's box of participants, a timeline lane).
  */
 function unlabelledCrossings(c: Ctx): ModelEdge[] {
   const { model, add } = c;
@@ -539,7 +548,7 @@ function unlabelledCrossings(c: Ctx): ModelEdge[] {
     return out;
   };
   const crossing = model.edges.filter((e) => {
-    if (e.label || model.kind === "journey") return false;
+    if (e.label || OWN_LAYOUT.has(model.kind)) return false;
     const a = chain(e.from);
     const b = chain(e.to);
     if (a.has(e.to) || b.has(e.from)) return false;

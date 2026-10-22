@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Blog data model
+subtitle: "The core of Ghost's schema: staff write posts, members comment, tags file posts"
+kind: er
+# The shape of the open-source Ghost CMS schema (posts, users, tags, posts_tags, members,
+# comments), trimmed to the columns that carry the relationships. Staff users and paying members
+# are separate tables there, so the two kinds of people never mix.
+
+nodes:
+  users:
+    note: Staff
+    fields:
+      - id uuid pk
+      - email text unique
+      - name text
+      - slug text unique
+  members:
+    note: Readers
+    # In the posts' column, beside the comments they write.
+    rank: 2
+    fields:
+      - id uuid pk
+      - email text unique
+      - name text null
+      - status text
+  posts:
+    fields:
+      - id uuid pk
+      - author_id uuid fk
+      - title text
+      - slug text unique
+      - status text
+      - published_at timestamptz null
+  tags:
+    rank: 2
+    fields:
+      - id uuid pk
+      - name text
+      - slug text unique
+  comments:
+    fields:
+      - id uuid pk
+      # Member first: its line comes in from above, the post's from below.
+      - member_id uuid fk
+      - post_id uuid fk
+      - html text
+      - created_at timestamptz
+  # Many to many: a post carries many tags and a tag files many posts, one row per pair.
+  posts_tags:
+    fields:
+      - post_id uuid pk fk
+      - tag_id uuid pk fk
+      - sort_order int
+
+edges:
+  # author_id names no table, so the rows it joins are named.
+  - users -- posts: { card: "1:0..n", label: writes, from_field: id, to_field: author_id }
+  - posts -- comments: { card: "1:0..n", label: has }
+  - members -- comments: { card: "1:0..n", label: writes }
+  - posts -- posts_tags: { card: "1:0..n", label: filed as }
+  - tags -- posts_tags: { card: "1:0..n", label: files }

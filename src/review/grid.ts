@@ -4,7 +4,7 @@
 import { bendsOf, searchable, sharesEnd, simplerRoute } from "../layout/bends.ts";
 import { endsOf, facesOf, landingOf, MIN_PITCH, type Side, window } from "../layout/faces.ts";
 import { ENDS } from "../layout/sizes.ts";
-import type { Box, SceneEdge } from "../types.ts";
+import { type Box, OWN_LAYOUT, type SceneEdge } from "../types.ts";
 import {
   EPS,
   horizontalFlow,
@@ -169,7 +169,9 @@ export function measureGrid(c: Ctx): void {
 
 /** Kinds whose own hooks place every node and route every connector; pools and lanes too. */
 const placedByHook = (c: Ctx) =>
-  ["tree", "mindmap", "journey"].includes(c.scene.kind ?? "") || c.scene.groups.some((g) => g.lane);
+  ["tree", "mindmap"].includes(c.scene.kind ?? "") ||
+  OWN_LAYOUT.has(c.scene.kind) ||
+  c.scene.groups.some((g) => g.lane);
 
 /**
  * Ends on one face of an icon node (layout/faces.ts): one sits at the face's center, several
@@ -386,13 +388,14 @@ interface Gap {
  * grid.uneven-gaps judges the spread of every layer gap at once, so one evenly wide gap passes it.
  * Canvas px at 1x, like every length in this file: they say how far apart layout put two rows,
  * and a narrower column shrinks the gap and its room alike. A pool or lane places steps where they
- * happen in time and a journey's grid places every step, so neither is measured.
+ * happen in time and a kind with its own layout (a journey's grid, a sequence, a timeline) places
+ * every node, so neither is measured.
  */
 function frameGaps(c: Ctx): { wide: number; between: number } {
   const { scene, model, add } = c;
   let wide = 0;
   let between = 0;
-  if (model.kind === "journey") return { wide, between };
+  if (OWN_LAYOUT.has(model.kind)) return { wide, between };
   const layer = 64 * model.spacing;
   const frames = scene.groups.filter((g) => !g.overlay);
   const runs = scene.edges.flatMap((e) => segments(simplify(e.points)));

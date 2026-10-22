@@ -15,6 +15,7 @@ import type {
   ThemeName,
 } from "../types.ts";
 import { ELK_DIRECTION, ELK_ROUTING, type ElkEdge, type ElkNode } from "./elk.ts";
+import { erHook } from "./er/index.ts";
 import type { HeaderRoom } from "./groups.ts";
 import type { LayoutHooks, NodeGeom } from "./hooks.ts";
 import { kindHooks } from "./kinds/index.ts";
@@ -46,9 +47,10 @@ export interface LayoutOptions {
   ratio?: number;
 }
 
-/** The extension modules, in the order their hooks run: lanes and kinds place and route, then
- * notation moves edge ends from a box onto the outline drawn in it. */
-export const HOOKS: LayoutHooks[] = [laneHooks, kindHooks, notationHooks];
+/** The extension modules, in the order their hooks run: lanes and kinds place and route, er seats
+ * relationship ends on field rows, then notation moves edge ends from a box onto the outline drawn
+ * in it. */
+export const HOOKS: LayoutHooks[] = [laneHooks, kindHooks, erHook, notationHooks];
 
 /** The groups ELK never sees (pools and lanes). */
 export const hiddenOf = (model: Model) =>

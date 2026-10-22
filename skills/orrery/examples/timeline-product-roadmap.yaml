@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Product roadmap 2026
+subtitle: Three workstreams by quarter, what has shipped, what is in flight and what waits on what
+kind: timeline
+timeline: { scale: quarter, start: 2026-Q1, end: 2026-Q4, today: 2026-05-18 }
+
+# Each group is a lane. start and end draw a bar, date a point, milestone: true a diamond; the
+# status sets the style and the key under the lanes says what each style means.
+groups:
+  platform: { label: Platform }
+  product: { label: Product }
+  growth: { label: Growth }
+
+nodes:
+  # Items in no group share the first row: the dates the whole company works to.
+  beta: { label: Public beta, date: 2026-03-16, milestone: true, status: done }
+  ga: { label: General availability, date: 2026-09-30, milestone: true, status: planned }
+
+  api: { in: platform, label: API v2, start: 2026-01, end: 2026-03, status: done }
+  billing: { in: platform, label: Usage billing, start: 2026-04, end: 2026-07, status: active }
+  sso: { in: platform, label: SSO and SCIM, start: 2026-06, end: 2026-09, status: planned }
+  eu: { in: platform, label: EU region, start: 2026-10, end: 2026-12, status: at-risk }
+
+  editor: { in: product, label: New editor, start: 2026-01, end: 2026-04, status: done }
+  mobile: { in: product, label: Mobile app, start: 2026-05, end: 2026-09, status: active }
+  offline: { in: product, label: Offline mode, start: 2026-10, end: 2026-12, status: planned }
+
+  pricing: { in: growth, label: Pricing page, start: 2026-02, end: 2026-03, status: done }
+  trials: { in: growth, label: Self-serve trials, start: 2026-04, end: 2026-06, status: active }
+  partners: { in: growth, label: Partner program, start: 2026-08, end: 2026-11, status: planned }
+
+# Dependencies are finish to start: the arrow leaves the end of one item for the start of the next.
+edges:
+  - api -> billing
+  - editor -> mobile
+  - pricing -> trials -> partners
+  - sso -> ga

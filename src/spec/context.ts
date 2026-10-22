@@ -1,6 +1,7 @@
 // The state one parse shares across its steps, and the id helpers that read and fill it.
 import type {
   Diagnostic,
+  DiagramKind,
   LocalIcon,
   ModelEdge,
   ModelGroup,
@@ -14,6 +15,8 @@ import { isObj, type Obj, type Reporter } from "./values.ts";
 export interface Ctx extends Reporter {
   raw: Obj;
   filename: string;
+  /** The diagram kind, set once the top-level settings are read; the kind keys check it. */
+  kind: DiagramKind;
   diagnostics: Diagnostic[];
   ids: Map<string, "node" | "group">;
   localIcons: LocalIcon[];
@@ -39,6 +42,7 @@ export function newContext(
     ...report,
     raw,
     filename,
+    kind: "architecture",
     diagnostics,
     ids: new Map(),
     localIcons: [],

@@ -9,6 +9,7 @@ import {
   type Box,
   type BpmnKind,
   type EdgeLine,
+  type ErEnd,
   isBpmnEvent,
   isBpmnGateway,
   type Point,
@@ -18,12 +19,16 @@ import {
   type SceneLegend,
   type SceneNode,
 } from "../types.ts";
+import { erDrawio } from "./drawio-er.ts";
+import { sequenceDrawio } from "./drawio-sequence.ts";
+import { timelineDrawio } from "./drawio-timeline.ts";
 import { moodColor } from "./journey.ts";
 import { esc } from "./svg.ts";
 
-const n = (v: number) => String(Math.round(v * 100) / 100);
+export const n = (v: number) => String(Math.round(v * 100) / 100);
 
-interface Ctx {
+/** What every cell writer shares; the er, sequence and timeline modules write with it too. */
+export interface Ctx {
   t: Theme;
   scene: Scene;
   icons: number;
@@ -31,7 +36,7 @@ interface Ctx {
   groupBox: Map<string, Box>;
 }
 
-function iconData(ctx: Ctx, id: string, color?: string, background?: string): string {
+export function iconData(ctx: Ctx, id: string, color?: string, background?: string): string {
   ctx.icons += 1;
   const r = renderIcon(id, `d${ctx.icons}`, {
     theme: ctx.t.name,
@@ -45,7 +50,7 @@ function iconData(ctx: Ctx, id: string, color?: string, background?: string): st
 }
 
 /** draw.io style string; a `null` value emits a bare style name such as `text` or `ellipse`. */
-function style(entries: Record<string, string | number | null | undefined>): string {
+export function style(entries: Record<string, string | number | null | undefined>): string {
   return Object.entries(entries)
     .filter(([, v]) => v !== undefined && v !== "")
     .map(([k, v]) => (v === null ? k : `${k}=${v}`))
@@ -53,18 +58,18 @@ function style(entries: Record<string, string | number | null | undefined>): str
     .concat(";");
 }
 
-const FONT = "Inter,Helvetica,Arial,sans-serif";
+export const FONT = "Inter,Helvetica,Arial,sans-serif";
 
-function geometry(box: Box, parent?: string, ctx?: Ctx): string {
+export function geometry(box: Box, parent?: string, ctx?: Ctx): string {
   const origin = parent && ctx ? ctx.groupBox.get(parent) : undefined;
   const x = box.x - (origin?.x ?? 0);
   const y = box.y - (origin?.y ?? 0);
   return `<mxGeometry x="${n(x)}" y="${n(y)}" width="${n(box.w)}" height="${n(box.h)}" as="geometry"/>`;
 }
 
-const cellParent = (parent?: string) => (parent ? `g-${parent}` : "1");
+export const cellParent = (parent?: string) => (parent ? `g-${parent}` : "1");
 
-function htmlLabel(label: string[], note?: string[], noteColor?: string): string {
+export function htmlLabel(label: string[], note?: string[], noteColor?: string): string {
   const main = label.map(esc).join("<br>");
   if (!note?.length) return main;
   return `${main}<br><font style="font-size: 11px;" color="${noteColor}">${note.map(esc).join("<br>")}</font>`;
@@ -260,6 +265,12 @@ function notationStyle(nd: SceneNode): Record<string, string | number | null> | 
 }
 
 function node(ctx: Ctx, nd: SceneNode) {
+  // An entity with fields is a table of cells (drawio-er.ts), unless that draws nothing for it.
+  const table = nd.fields ? erDrawio(ctx, nd) : undefined;
+  if (table) {
+    ctx.cells.push(...table);
+    return;
+  }
   const id = `n-${nd.id}`;
   const parent = cellParent(nd.parent);
   const value = htmlLabel(nd.label.lines, nd.note?.lines, nd.inkMuted ?? ctx.t.muted);
@@ -375,11 +386,19 @@ function anchor(p: Point, b: Box): [number, number] {
 }
 
 /** Stroke entries of a line style, shared by edges and the legend's sample lines. */
-const lineStyle = (line: EdgeLine) => ({
+export const lineStyle = (line: EdgeLine) => ({
   strokeWidth: line === "thick" ? 2.5 : 1.5,
   dashed: line === "dashed" || line === "dotted" ? 1 : 0,
   dashPattern: line === "dotted" ? "1 3" : line === "dashed" ? "6 4" : undefined,
 });
+
+/** draw.io's arrow names for each relationship end. */
+const ER_ARROW: Record<ErEnd, string> = {
+  one: "ERmandOne",
+  "zero-one": "ERzeroToOne",
+  many: "ERoneToMany",
+  "zero-many": "ERzeroToMany",
+};
 
 function edge(ctx: Ctx, e: SceneEdge, boxes: Map<string, Box>) {
   const first = e.points[0];
@@ -437,6 +456,17 @@ function edge(ctx: Ctx, e: SceneEdge, boxes: Map<string, Box>) {
         : e.flow === "conditional"
           ? { startArrow: "diamondThin", startFill: 0, startSize: 10 }
           : {}),
+    // A relationship's cardinality as draw.io's own crow's foot ends (its Entity Relation sidebar).
+    ...(e.card
+      ? {
+          startArrow: ER_ARROW[e.card.from],
+          startFill: 0,
+          startSize: 12,
+          endArrow: ER_ARROW[e.card.to],
+          endFill: 0,
+          endSize: 12,
+        }
+      : {}),
   });
   const bends = e.points.slice(1, -1);
   const points = bends.length
@@ -587,7 +617,11 @@ export function renderDrawio(scene: Scene, name = "Diagram"): string {
     );
   }
   if (scene.journey) journey(ctx, scene.journey);
+  // The axis and lanes under everything; lifelines and fragments over the participants' group
+  // panels and under the messages, as in the SVG.
+  if (scene.timeline) ctx.cells.push(...timelineDrawio(ctx, scene));
   for (const g of scene.groups) group(ctx, g);
+  if (scene.sequence) ctx.cells.push(...sequenceDrawio(ctx, scene));
   const boxes = new Map<string, Box>();
   for (const g of scene.groups) boxes.set(g.id, g.box);
   const vertical = scene.direction === "down" || scene.direction === "up";
@@ -598,7 +632,8 @@ export function renderDrawio(scene: Scene, name = "Diagram"): string {
     );
     node(ctx, nd);
   }
-  for (const e of scene.edges) edge(ctx, e, boxes);
+  // A sequence's messages are drawn by sequenceDrawio, each anchored at its row on the lifelines.
+  if (!scene.sequence) for (const e of scene.edges) edge(ctx, e, boxes);
   if (scene.legend?.items.length) legend(ctx, scene.legend);
   const bg = scene.background === "transparent" ? "none" : (scene.background ?? t.background);
   return [

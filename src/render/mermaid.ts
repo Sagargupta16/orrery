@@ -1,6 +1,7 @@
 // Mermaid text for the same diagram, in the syntax Mermaid draws natively: architecture-beta for
 // architectures (groups, services named after the logos icon pack, edges on the sides the layout
-// drew them), stateDiagram-v2, mindmap and journey for those kinds, and a flowchart for the rest.
+// drew them), stateDiagram-v2, mindmap and journey for those kinds, erDiagram, sequenceDiagram
+// and gantt from their own modules, and a flowchart for the rest.
 import { iconInfo, resolveIcon } from "../icons/index.ts";
 import type {
   ArrowMode,
@@ -15,8 +16,25 @@ import type {
   ShapeKind,
 } from "../types.ts";
 import { isBpmnEvent, isBpmnGateway } from "../types.ts";
+import { erMermaid } from "./mermaid-er.ts";
+import { sequenceMermaid } from "./mermaid-sequence.ts";
+import { timelineMermaid } from "./mermaid-timeline.ts";
 
 export function renderMermaid(model: Model, scene: Scene): string {
+  // The kinds whose Mermaid text comes from their own module (looked up here, not in a table at
+  // load time, so a module that imports this one back never meets an uninitialized binding).
+  const own =
+    model.kind === "er"
+      ? erMermaid
+      : model.kind === "sequence"
+        ? sequenceMermaid
+        : model.kind === "timeline"
+          ? timelineMermaid
+          : undefined;
+  if (own) {
+    const text = own(model);
+    return text.endsWith("\n") ? text : `${text}\n`;
+  }
   const lines =
     model.kind === "architecture"
       ? architecture(model, scene)

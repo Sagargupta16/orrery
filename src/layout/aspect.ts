@@ -1,7 +1,7 @@
 // layout.aspect: the candidate layouts (as written, flow turned, layers wrapped) and the choice of
 // the one nearest the target width:height that is no worse than the layout as written.
 
-import type { Direction, Model, Scene } from "../types.ts";
+import { type DiagramKind, type Direction, type Model, OWN_LAYOUT, type Scene } from "../types.ts";
 import { hiddenOf, type LayoutOptions, withIgnored } from "./context.ts";
 import { edgesThroughNodes, sceneCrossings, sceneDefects } from "./defects.ts";
 import { layoutGridded } from "./hints.ts";
@@ -11,6 +11,13 @@ const TURNED: Record<Direction, Direction> = {
   down: "right",
   left: "up",
   up: "left",
+};
+
+/** Why layout.aspect does nothing in a kind with its own layout (OWN_LAYOUT). */
+const OWN_REASON: Partial<Record<DiagramKind, string>> = {
+  journey: "a journey keeps its stages in one row",
+  sequence: "a sequence keeps its participants in one row and its messages in time order",
+  timeline: "a timeline keeps its date axis across the canvas",
 };
 
 /**
@@ -23,15 +30,10 @@ const TURNED: Record<Direction, Direction> = {
  */
 export async function layoutToAspect(model: Model, opts: LayoutOptions): Promise<Scene> {
   const target = model.aspect ?? 1;
-  if (model.kind === "journey") {
+  if (OWN_LAYOUT.has(model.kind)) {
     const scene = await layoutGridded(model, opts);
-    return withIgnored(scene, [
-      {
-        subject: "layout",
-        setting: "layout.aspect",
-        reason: "a journey keeps its stages in one row",
-      },
-    ]);
+    const reason = OWN_REASON[model.kind] ?? "this kind places every node itself";
+    return withIgnored(scene, [{ subject: "layout", setting: "layout.aspect", reason }]);
   }
   const turned = { ...model, direction: TURNED[model.direction] };
   // Wrapping moves whole layers, which pools, lanes and the kinds that place nodes themselves undo.

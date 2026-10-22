@@ -1,7 +1,7 @@
 // Composition checks: zig-zags and avoidable bends, nodes beside groups, uneven same-kind
 // siblings, and sparse or loosely padded frames (grid and layout findings).
 import type { PatchOp } from "../patch/index.ts";
-import type { Box, SceneGroup } from "../types.ts";
+import { type Box, OWN_LAYOUT, type SceneGroup } from "../types.ts";
 import {
   contentStart,
   horizontalFlow,
@@ -43,8 +43,8 @@ const TIER_GROUPS = new Set([
  */
 export function measureComposition(c: Ctx): void {
   const { scene, model } = c;
-  // A journey's grid places every step, so nothing here is the author's to fix.
-  if (model.kind === "journey") {
+  // A kind with its own layout places every node, so nothing here is the author's to fix.
+  if (OWN_LAYOUT.has(model.kind)) {
     Object.assign(c.metrics.grid, { zigZags: 0, avoidableBends: 0, unevenSiblings: 0, padding: 0 });
     Object.assign(c.metrics.layout, { sparseGroups: 0, besideGroup: 0 });
     return;

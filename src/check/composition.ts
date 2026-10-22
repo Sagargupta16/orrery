@@ -1,5 +1,5 @@
 // Spec against picture: empty groups, lone nodes, unexplained line styles and ignored settings.
-import type { EdgeLine, Model } from "../types.ts";
+import { type EdgeLine, type Model, OWN_LAYOUT } from "../types.ts";
 import type { CheckContext } from "./context.ts";
 
 /** DG207: empty groups. A node on a group's border (on:) is one of its members. */
@@ -22,11 +22,13 @@ export function emptyGroups({ model, warn }: CheckContext): void {
 
 /**
  * DG208: nodes nothing connects to, or, once, a diagram of several nodes with no edges at all
- * (without arrows the diagram shows no flow). A journey's grid tells its story without them.
+ * (without arrows the diagram shows no flow). A kind with its own layout (a journey's grid, a
+ * sequence's lifelines, a timeline's axis) places its nodes without them.
  */
 export function lonelyNodes({ model, parentOf, warn }: CheckContext): void {
+  const own = OWN_LAYOUT.has(model.kind);
   if (!model.edges.length) {
-    if (model.kind !== "journey" && model.nodes.length > 1) {
+    if (!own && model.nodes.length > 1) {
       warn("DG208", `${model.nodes.length} nodes and no edges, so the diagram shows no flow`, {
         evidence: { nodes: model.nodes.length, edges: 0 },
         fixes: [
@@ -42,8 +44,8 @@ export function lonelyNodes({ model, parentOf, warn }: CheckContext): void {
     for (let p: string | undefined = id; p; p = parentOf.get(p)) if (touched.has(p)) return true;
     return model.groups.some((g) => g.around?.includes(id) && touched.has(g.id));
   };
-  // A journey's grid places its steps, so links between them are optional.
-  for (const n of model.kind === "journey" ? [] : model.nodes) {
+  // Its own layout places every node, so links between them are optional.
+  for (const n of own ? [] : model.nodes) {
     if (!reached(n.id)) {
       warn("DG208", `node "${n.id}" has no connections`, {
         subject: { node: n.id },
@@ -55,13 +57,15 @@ export function lonelyNodes({ model, parentOf, warn }: CheckContext): void {
 
 /**
  * DG217: a line style is drawn that the legend does not explain. BPMN's own notation explains a
- * dashed message flow and a dotted association.
+ * dashed message flow and a dotted association, and UML's a sequence diagram's dashed replies and
+ * dotted signals.
  */
 export function unexplainedLines({ model, warn }: CheckContext): void {
   const explained = new Set<EdgeLine>((model.legend ?? []).map((l) => l.line));
   const notation = (e: Model["edges"][number]) =>
     (e.flow === "message" && e.line === "dashed") ||
-    (e.flow === "association" && e.line === "dotted");
+    (e.flow === "association" && e.line === "dotted") ||
+    (model.kind === "sequence" && (e.line === "dashed" || e.line === "dotted"));
   const styles = new Map<EdgeLine, number>();
   for (const e of model.edges) {
     if (e.line !== "solid" && !explained.has(e.line) && !notation(e))

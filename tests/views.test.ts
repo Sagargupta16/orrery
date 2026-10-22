@@ -378,3 +378,43 @@ describe("render --view", () => {
     expect((r as { stderr: string }).stderr).toContain("request, payments, jobs");
   });
 });
+
+describe("views of a sequence", () => {
+  const spec = `title: Checkout
+kind: sequence
+nodes:
+  user: { label: User, tags: [front] }
+  web: { label: Web app, tags: [front] }
+  api: { label: API }
+  db: { label: Database }
+edges:
+  - user -> web: open cart
+  - web -> api: GET /cart
+  - api -> db: select items
+  - db --> api: rows
+  - api --> web: cart
+  - web -> web: render
+  - user -> web: pay
+  - web -> api: POST /orders
+  - api --> web: order id
+fragments:
+  - { type: alt, label: cart cached, from: 2, to: 5, else: [{ at: 3, label: miss }] }
+  - { type: opt, label: pay now, from: 7, to: 9 }
+views:
+  front: { include: [tag:front] }
+`;
+  const m = model(spec);
+  const front = viewModel(m, must(m.views?.find((v) => v.name === "front"), "view"));
+
+  it("keeps every message in order, never merges repeats and keeps self messages", () => {
+    expect(front.edges.map((e) => `${e.from}>${e.to}:${e.label}`)).toEqual([
+      "user>web:open cart",
+      "web>web:render",
+      "user>web:pay",
+    ]);
+  });
+
+  it("renumbers fragments to the kept messages and drops the ones left empty", () => {
+    expect(front.fragments).toEqual([{ type: "opt", label: "pay now", from: 3, to: 3 }]);
+  });
+});

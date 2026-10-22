@@ -9,6 +9,7 @@ import {
 } from "../types.ts";
 import type { Ctx } from "./context.ts";
 import { EDGE_KEYS, EDGE_SYNONYMS } from "./keys.ts";
+import { edgeErKeys, flipErKeys } from "./kinds.ts";
 import { metaOf, tagged } from "./meta.ts";
 import { suggestIds } from "./suggest.ts";
 import { hexColor, isObj, type Obj, oneOf, pick, str, unknownKeys } from "./values.ts";
@@ -279,6 +280,13 @@ function push(
     });
   }
   const meta = metaOf(ctx, extra, where, { edge: where });
+  // Cardinality and field ends read left to right as written, so a reversed edge swaps them.
+  const written = edgeErKeys(ctx, where, from, to, {
+    card: pick(extra, "card", EDGE_SYNONYMS),
+    fromField: pick(extra, "from_field", EDGE_SYNONYMS),
+    toField: pick(extra, "to_field", EDGE_SYNONYMS),
+  });
+  const er = reverse ? flipErKeys(written) : written;
   // A tag's line replaces only the default solid one; any other arrow, a flow or line: is chosen.
   const tag = tagged(ctx, meta.tags);
   edges.push({
@@ -302,6 +310,7 @@ function push(
     step: step !== undefined && Number.isInteger(step) ? step : undefined,
     constraint: pick(extra, "constraint", EDGE_SYNONYMS) !== false,
     ...(flow && flow !== "sequence" ? { flow } : {}),
+    ...er,
     ...meta,
   });
 }

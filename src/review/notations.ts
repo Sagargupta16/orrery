@@ -1,7 +1,11 @@
 // Conventions of the diagram kinds that carry their own notation: BPMN processes, flowcharts,
-// UML state machines and customer journeys. Each returns its metrics for the conventions dimension.
+// UML state machines and customer journeys, and (each in its own module) data models, sequence
+// diagrams and timelines. Each returns its metrics for the conventions dimension.
 import type { DiagramKind, ModelEdge } from "../types.ts";
 import { edgeName, travel } from "./names.ts";
+import { measureEr } from "./notations-er.ts";
+import { measureSequence } from "./notations-sequence.ts";
+import { measureTimeline } from "./notations-timeline.ts";
 import type { Ctx } from "./types.ts";
 
 /** The notation rubric each diagram kind is judged by (references/review/conventions-<name>.md). */
@@ -10,6 +14,9 @@ export const NOTATIONS: Partial<Record<DiagramKind, string>> = {
   flowchart: "flowchart",
   state: "state",
   journey: "journey",
+  er: "er",
+  sequence: "sequence",
+  timeline: "timeline",
 };
 
 /** A process as BPMN reads it: element kinds, pools, and the sequence flows between them. */
@@ -369,4 +376,7 @@ export const NOTATION_CHECKS: Partial<Record<DiagramKind, (c: Ctx) => Record<str
   flowchart: measureFlowchart,
   state: measureStateMachine,
   journey: measureJourney,
+  er: measureEr,
+  sequence: measureSequence,
+  timeline: measureTimeline,
 };

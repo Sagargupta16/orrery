@@ -37,7 +37,7 @@ Usage:
   orrery describe <spec.yaml> [--json]
   orrery lsp
   orrery styles [--json]
-  orrery import <mermaid|terraform|cloudformation|compose|kubernetes|picture> <file> [-o diagram.yaml]
+  orrery import <mermaid|terraform|cloudformation|compose|kubernetes|picture|sql> <file> [-o diagram.yaml]
   orrery init [template] [-o diagram.yaml] [--list]
   orrery doctor
   orrery demo [out-dir]

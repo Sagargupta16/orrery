@@ -1,4 +1,5 @@
-// styles, init and import: the catalog of group styles, starting specs and converted Mermaid.
+// styles, init and import: the catalog of group styles, starting specs and converted Mermaid,
+// infrastructure, pictures and SQL DDL.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { importCloudFormation } from "../import/cloudformation.ts";
@@ -6,6 +7,7 @@ import { importCompose } from "../import/compose.ts";
 import { importKubernetes } from "../import/kubernetes.ts";
 import { importMermaid } from "../import/mermaid.ts";
 import { importPicture } from "../import/picture.ts";
+import { importSql } from "../import/sql.ts";
 import { importTerraform } from "../import/terraform.ts";
 import type { Imported } from "../import/types.ts";
 import { examplesDir } from "../paths.ts";
@@ -80,13 +82,21 @@ const IMPORTERS: Record<string, (path: string) => Imported | Promise<Imported>> 
   kubernetes: importKubernetes,
   k8s: importKubernetes,
   picture: importPicture,
+  // SQL DDL to an er spec; evidence: names the file as given, so it stays relative.
+  sql: (file) => {
+    const text = file === "-" ? readFileSync(0, "utf8") : readFileSync(resolve(file), "utf8");
+    return { yaml: importSql(text, file === "-" ? "stdin.sql" : file), warnings: [] };
+  },
 };
 
 export async function cmdImport(args: Args) {
   const [kind, file] = args._;
   const importer = kind ? IMPORTERS[kind] : undefined;
   if (!importer) usage(`import supports ${Object.keys(IMPORTERS).join(", ")}`);
-  if (!file) usage(`import ${kind} needs a file${kind === "mermaid" ? ", or - for stdin" : ""}`);
+  if (!file)
+    usage(
+      `import ${kind} needs a file${kind === "mermaid" || kind === "sql" ? ", or - for stdin" : ""}`,
+    );
   if (file !== "-" && !existsSync(resolve(file))) usage(`no such file: ${file}`);
   const result = await importer(file);
   for (const w of result.warnings) process.stderr.write(`warn  ${w}\n`);

@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../references/diagram.schema.json
+title: Read-through cache on a product API
+subtitle: Cache-aside with Amazon ElastiCache in front of DynamoDB; a miss reads the table and fills the cache for five minutes
+kind: sequence
+
+# The client starts every request; the AWS side is one box of participants.
+groups:
+  cloud: { type: aws:cloud }
+
+nodes:
+  client: { icon: generic:mobile, label: Mobile app }
+  gateway: { icon: aws:api-gateway, label: Amazon API Gateway, in: cloud }
+  service: { icon: aws:lambda, label: AWS Lambda, note: Product service, in: cloud }
+  cache: { icon: aws:elasticache, label: Amazon ElastiCache, note: Valkey, in: cloud }
+  table: { icon: aws:dynamodb, label: Amazon DynamoDB, note: Products table, in: cloud }
+
+edges:
+  - client -> gateway: GET /products/42
+  - gateway -> gateway: verify JWT, rate limit
+  - gateway -> service: getProduct(42)
+  - service -> cache: GET product:42
+  - cache --> service: product JSON
+  - cache --> service: nil
+  - service -> table: GetItem(id = 42)
+  - table --> service: product item
+  # Asynchronous: the service answers without waiting for the write.
+  - service --> cache: "SET product:42 EX 300"
+  - service --> gateway: 200 product
+  - gateway --> client: "200 product (max-age 60)"
+
+# Message 5 is the hit; 6 to 9 the miss.
+fragments:
+  - type: alt
+    label: cache hit
+    from: 5
+    to: 9
+    else: [{ at: 6, label: cache miss }]
