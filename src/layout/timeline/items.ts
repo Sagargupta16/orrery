@@ -16,12 +16,12 @@ import { round, type Scale } from "./axis.ts";
 import { spanOf } from "./dates.ts";
 import type { TimelineItem, TimelineLane, TimelineShape } from "./index.ts";
 
-export const LABEL_SIZE = 13;
-export const NOTE_SIZE = 11;
+const LABEL_SIZE = 13;
+const NOTE_SIZE = 11;
 const LABEL_MAX = 200;
 const LANE_SIZE = 13;
 const LANE_MAX = 132;
-export const BAR_H = 28;
+const BAR_H = 28;
 /** Diamond and dot sizes, and an item's icon. */
 const DIAMOND = 16;
 const DOT = 12;
@@ -317,7 +317,10 @@ export function placeLanes(
   let slot = 0;
   lanes.ids.forEach((id, li) => {
     const laneRows = rows[li] ?? [];
-    const heights = laneRows.map((r) => Math.max(BAR_H, ...r.map((it) => it.h)));
+    // A row of dates only is as tall as its text; a row with a bar is a bar tall.
+    const heights = laneRows.map((r) =>
+      Math.max(r.some((it) => it.shape === "bar") ? BAR_H : 20, ...r.map((it) => it.h)),
+    );
     const inner = heights.reduce((s, h) => s + h, 0) + gap * Math.max(0, heights.length - 1);
     const h = round(inner + 2 * pad);
     const box: Box = { x: plot.x, y: round(y), w: round(plot.right - plot.x), h };

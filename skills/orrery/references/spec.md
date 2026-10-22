@@ -321,7 +321,7 @@ edges:
 | DG122 | error or warning | An included file is missing, unreadable or part of a cycle (error), or defines an id this spec also defines (warning: this spec wins). |
 | DG123 | error | A node's `fields` is not a list, an item has no name, an unknown token after the type or a flag that is not `true` or `false`, or two fields share a name; or `fields` is used outside `kind: er`. |
 | DG124 | error | An edge's `card` is not `A:B` with each end `1`, `0..1`, `1..n` (`n`) or `0..n` (`*`), or its `from_field` or `to_field` names no field of that end; or one of them is used outside `kind: er`. |
-| DG125 | error | A sequence fragment is not a mapping, has an unknown `type`, a `from` or `to` outside the messages or `from` after `to`, an `else` outside its range or on a type other than `alt` and `par`, or overlaps another fragment without nesting; or `fragments` is used outside `kind: sequence`. |
+| DG125 | error | A sequence fragment is not a mapping, has an unknown `type`, a `from` or `to` outside the messages or `from` after `to`, an `else` outside its range or on a type other than `alt` and `par`, or overlaps another fragment without nesting; or `fragments` is used outside `kind: sequence`. Also a message sent to a group: only participants have a lifeline. |
 | DG126 | error or warning | A timeline date cannot be read, an `end` comes before its `start`, a node has both `date` and `start`/`end` or only one of `start` and `end`, `timeline` is not a mapping or its `scale` is unknown, or a timeline key is used outside `kind: timeline` (error); a timeline item has no date (warning). |
 | DG201 | warning | An edge passes through a node it does not connect. |
 | DG202 | warning | An edge label covers a node or another label. |

@@ -27,10 +27,15 @@ export function measureGrid(c: Ctx): void {
   const FW = horizontal ? "w" : "h";
   const frames = scene.groups.filter((g) => !g.overlay);
 
-  // Layers per parent: items whose flow-axis extents overlap (grid lane).
+  // Layers per parent: items whose flow-axis extents overlap (grid lane). A kind that places
+  // its own nodes has no layers (a timeline sets items at their dates, a sequence's participant
+  // groups run the whole height).
   let ragged = 0;
   const gaps: number[] = [];
-  for (const P of new Set<string | undefined>([undefined, ...frames.map((g) => g.id)])) {
+  const layered = !OWN_LAYOUT.has(scene.kind);
+  for (const P of layered
+    ? new Set<string | undefined>([undefined, ...frames.map((g) => g.id)])
+    : []) {
     const items = [
       ...scene.nodes
         .filter((n) => n.parent === P)
@@ -319,7 +324,8 @@ function extraBends(c: Ctx): number {
   }
   let count = 0;
   for (const e of scene.edges) {
-    if (!searchable(scene, e, seated) || sharesEnd(scene, e)) continue;
+    // A relationship's ends are held on the field rows it joins; a route between faces would leave them.
+    if (e.card || !searchable(scene, e, seated) || sharesEnd(scene, e)) continue;
     const now = bendsOf(e.points);
     if (!now) continue;
     const runs = orthogonalRuns(e.points) ?? [];

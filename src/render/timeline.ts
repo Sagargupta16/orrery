@@ -25,7 +25,7 @@ import { HEADER, KEY, mono, sizeFor } from "./stage/text.ts";
 import { keyTimes, n, secs, text } from "./svg.ts";
 
 /** Lane colors in order, after the vendor-neutral palette of the classic skin. */
-export const LANE_COLORS: Record<"light" | "dark", string[]> = {
+const LANE_COLORS: Record<"light" | "dark", string[]> = {
   light: ["#2563eb", "#7c3aed", "#0d9488", "#db2777", "#4f46e5", "#0891b2", "#65a30d"],
   dark: ["#60a5fa", "#a78bfa", "#2dd4bf", "#f472b6", "#818cf8", "#22d3ee", "#a3e635"],
 };
@@ -34,7 +34,7 @@ const NEUTRAL = { light: "#64748b", dark: "#94a3b8" };
 export const RISK = { light: "#b45309", dark: "#f59e0b" };
 export const TODAY = { light: "#dc2626", dark: "#f87171" };
 
-const canvasOf = (scene: Scene, t: Theme) =>
+export const canvasOf = (scene: Scene, t: Theme) =>
   scene.background && scene.background !== "transparent" ? scene.background : t.background;
 
 /** The color a lane draws its items in: its own, else its palette slot, else neutral. */
@@ -140,7 +140,7 @@ function glyph(it: TimelineItem, color: string, w: number) {
 
 // ---------------------------------------------------------------- classic
 
-interface Paint {
+export interface Paint {
   fill: string;
   stroke: string;
   width: number;
@@ -151,7 +151,12 @@ interface Paint {
 }
 
 /** How each status draws in classic: done filled and quiet, in progress lit, planned outlined. */
-function classicPaint(status: ItemStatus | undefined, c: string, t: Theme, bg: string): Paint {
+export function classicPaint(
+  status: ItemStatus | undefined,
+  c: string,
+  t: Theme,
+  bg: string,
+): Paint {
   const dark = t.name === "dark";
   const risk = RISK[t.name];
   switch (status) {

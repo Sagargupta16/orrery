@@ -82,10 +82,10 @@ const IMPORTERS: Record<string, (path: string) => Imported | Promise<Imported>> 
   kubernetes: importKubernetes,
   k8s: importKubernetes,
   picture: importPicture,
-  // SQL DDL to an er spec; evidence: names the file as given, so it stays relative.
+  // SQL DDL to an er spec; evidence: names the file as given, so it stays relative (none for -).
   sql: (file) => {
     const text = file === "-" ? readFileSync(0, "utf8") : readFileSync(resolve(file), "utf8");
-    return { yaml: importSql(text, file === "-" ? "stdin.sql" : file), warnings: [] };
+    return { yaml: importSql(text, file), warnings: [] };
   },
 };
 
@@ -110,6 +110,6 @@ export async function cmdImport(args: Args) {
   writeAtomic(out, result.yaml);
   const guessed = Object.keys(result.guessed ?? {}).length;
   process.stdout.write(
-    `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}\nnext: add icons, then orrery validate ${basename(out)}\n`,
+    `wrote ${out}${guessed ? ` (${guessed} icon(s) guessed from exact names)` : ""}\nnext: ${kind === "sql" ? "group related tables" : "add icons"}, then orrery validate ${basename(out)}\n`,
   );
 }

@@ -237,6 +237,14 @@ function expand(ctx: Ctx, expr: string, label: string | undefined, extra: Obj, w
 }
 
 const endpoint = (ctx: Ctx, id: string, where: string): boolean => {
+  // A sequence draws messages between lifelines, and only participants have one.
+  if (ctx.kind === "sequence" && ctx.ids.get(id) === "group") {
+    ctx.err("DG125", `${where} sends a message to group "${id}", which has no lifeline`, {
+      subject: { edge: where, id },
+      fixes: ["send it to one of the participants in the group"],
+    });
+    return false;
+  }
   if (ctx.ids.has(id)) return true;
   ctx.err("DG106", `${where} connects unknown id "${id}"`, {
     subject: { edge: where, id },
@@ -301,8 +309,9 @@ function push(
     arrow:
       arrowRaw !== undefined
         ? oneOf<ArrowMode>(ctx, arrowRaw, ARROWS, "end", `${where} arrow`)
-        : flow === "association"
-          ? "none"
+        : flow === "association" || er.card
+          ? // A relationship's ends carry crow's foot marks, which an arrowhead would cover.
+            "none"
           : reverse
             ? "end"
             : op.arrow,

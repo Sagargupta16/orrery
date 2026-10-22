@@ -1,6 +1,6 @@
 # Example gallery
 
-71 diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The pictures here are the default `stage` skin in the dark theme; add `--skin classic` to any command below for the same layout in each vendor's own style, `--theme light` for the light theme, or switch between them on the [website gallery](https://sagargupta.online/orrery/gallery/). The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
+77 diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The pictures here are the default `stage` skin in the dark theme; add `--skin classic` to any command below for the same layout in each vendor's own style, `--theme light` for the light theme, or switch between them on the [website gallery](https://sagargupta.online/orrery/gallery/). The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
 
 Run the commands from the repository root; `orrery` stands for `node skills/orrery/scripts/orrery.mjs`. `pnpm gallery` re-renders every picture here, and `node scripts/gallery.mjs --check` (run by CI) fails when a committed picture no longer matches its spec.
 
@@ -437,3 +437,43 @@ The same spec format drawn as flows: `kind:` picks the notation and the layout. 
 <a href="journey-saas-onboarding.svg"><img src="journey-saas-onboarding.svg" alt="SaaS onboarding customer journey map: five stages, four lanes of step cards and an emotion curve across the stages"></a>
 
 `orrery render skills/orrery/examples/journey-saas-onboarding.yaml -o examples/journey-saas-onboarding -f svg,png`
+
+## Data models, sequences and timelines
+
+Three more kinds for the pictures a README needs next to its architecture: the data model, a call flow message by message, and the roadmap.
+
+[`er-ecommerce`](../skills/orrery/examples/er-ecommerce.yaml): a shop's data model (`kind: er`): six tables as a header over typed rows with PK, FK and UQ tags, crow's foot ends from each key to the foreign key that holds it, and order_items as the join table between orders and products.
+
+<a href="er-ecommerce.svg"><img src="er-ecommerce.svg" alt="Data model: customers place orders and have addresses, orders ship to an address, contain order items and are settled by one payment, and products are sold as order items"></a>
+
+`orrery render skills/orrery/examples/er-ecommerce.yaml -o examples/er-ecommerce -f svg,png`
+
+[`er-blog`](../skills/orrery/examples/er-blog.yaml): the core of the Ghost CMS schema as a data model (`kind: er`): staff users write posts, members write comments, posts_tags joins posts and tags many to many, `from_field` names the author row, and `rank` sets members and tags beside the posts.
+
+<a href="er-blog.svg"><img src="er-blog.svg" alt="Blog data model: users write posts, members write comments on posts, and posts and tags meet in the posts_tags join table"></a>
+
+`orrery render skills/orrery/examples/er-blog.yaml -o examples/er-blog -f svg,png`
+
+[`sequence-oauth-pkce`](../skills/orrery/examples/sequence-oauth-pkce.yaml): a sequence diagram of the OAuth 2.0 authorization code flow with PKCE: the browser, the web app, the authorization server and the resource API through the redirects and the token exchange, with an alt for a verifier that does not match and activation bars from each call to its reply.
+
+<a href="sequence-oauth-pkce.svg"><img src="sequence-oauth-pkce.svg" alt="OAuth 2.0 authorization code flow with PKCE as a sequence diagram: browser, web app, authorization server and resource API, with an alt fragment at the token endpoint"></a>
+
+`orrery render skills/orrery/examples/sequence-oauth-pkce.yaml -o examples/sequence-oauth-pkce -f svg,png`
+
+[`sequence-api-cache`](../skills/orrery/examples/sequence-api-cache.yaml): a read-through cache in front of a product API on AWS: a mobile app calls Amazon API Gateway and AWS Lambda, which reads Amazon ElastiCache and, on a miss, Amazon DynamoDB before filling the cache asynchronously, with an alt fragment for hit and miss inside an AWS Cloud box.
+
+<a href="sequence-api-cache.svg"><img src="sequence-api-cache.svg" alt="Cache-aside sequence diagram: mobile app, Amazon API Gateway, AWS Lambda, Amazon ElastiCache and Amazon DynamoDB, with an alt fragment for cache hit and cache miss"></a>
+
+`orrery render skills/orrery/examples/sequence-api-cache.yaml -o examples/sequence-api-cache -f svg,png`
+
+[`timeline-product-roadmap`](../skills/orrery/examples/timeline-product-roadmap.yaml): a product roadmap (`kind: timeline`) by quarter: three workstream lanes under a row of company milestones, bars styled by status (done, in progress, planned, at risk) with a key under the lanes, finish-to-start dependency arrows and a today marker in May.
+
+<a href="timeline-product-roadmap.svg"><img src="timeline-product-roadmap.svg" alt="Product roadmap 2026 by quarter: Platform, Product and Growth lanes of status-styled bars, beta and general availability milestones, dependency arrows and a today line in Q2"></a>
+
+`orrery render skills/orrery/examples/timeline-product-roadmap.yaml -o examples/timeline-product-roadmap -f svg,png`
+
+[`timeline-cloud-migration`](../skills/orrery/examples/timeline-cloud-migration.yaml): a data center migration plan (`kind: timeline`) by month: discovery and the landing zone feed a pilot, a go or no-go gate opens three migration waves chained to the cutover and the shutdown, an at-risk database wave, operations work alongside, and today in April.
+
+<a href="timeline-cloud-migration.svg"><img src="timeline-cloud-migration.svg" alt="Data center migration plan from January to October 2026: Plan, Migrate and Operate lanes, a pilot, three waves chained to a cutover milestone, and a today line in April"></a>
+
+`orrery render skills/orrery/examples/timeline-cloud-migration.yaml -o examples/timeline-cloud-migration -f svg,png`

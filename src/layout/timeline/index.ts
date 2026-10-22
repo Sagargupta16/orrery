@@ -212,7 +212,13 @@ export async function timelineLayout(model: Model, theme: ThemeName): Promise<Sc
     const prev = tracks[i] ?? t;
     return round((prev.y + prev.h + t.y) / 2);
   });
-  const field = { nodes, items: new Map(drawn.map((d) => [d.id, d])), corridors, plot };
+  const field = {
+    nodes,
+    items: new Map(drawn.map((d) => [d.id, d])),
+    corridors,
+    plot,
+    ...(todayIn ? { today: sc.x((todayDay ?? 0) + 0.5) } : {}),
+  };
   const edges = routeEdges(model.edges, field);
   placeEdgeLabels(edges, field);
 

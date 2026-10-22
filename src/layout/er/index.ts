@@ -75,17 +75,19 @@ function seatTables(ctx: AfterLayout): void {
 
 /** Seats edge ends on field rows and fills SceneNode.fields and SceneEdge.card. */
 export const erHook: LayoutHooks = {
-  // Tables side by side along the flow keep a channel wide enough for a stub out of each and a
-  // riser between them (a vertical flow sets them side by side within a layer). ELK gives a
+  // Tables side by side keep a channel wide enough for a stub out of each and a riser between
+  // them: along the flow when it runs across, within a layer when it runs down (lines leave a
+  // table from its sides, so a vertical flow's layers need only the room for labels). ELK gives a
   // labelled edge a layer of its own, the gap on both sides of it, so labels halve the gap.
   elkOptions(model): Record<string, string> {
     if (model.kind !== "er") return {};
     const channel = Math.max(2 * STUB + 24, 96 * model.spacing);
     const labelled = model.edges.some((e) => e.label);
     const vertical = model.direction === "down" || model.direction === "up";
+    const layers = vertical ? 64 * model.spacing : channel;
     return {
       "elk.layered.spacing.nodeNodeBetweenLayers": String(
-        Math.round(labelled && !vertical ? channel / 2 + 8 : channel),
+        Math.round(labelled ? Math.max(24, layers / 2 + 8) : layers),
       ),
       ...(vertical ? { "elk.spacing.nodeNode": String(Math.round(channel)) } : {}),
     };

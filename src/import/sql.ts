@@ -369,7 +369,9 @@ function fieldText(c: Column): string {
 }
 
 export function importSql(text: string, path: string): string {
-  const shown = displayPath(path);
+  // Read from stdin (-) there is no file for evidence to point at, so none is written.
+  const stdin = path === "-";
+  const shown = stdin ? "standard input" : displayPath(path);
   const tables = readTables(text);
   const ids = new Map<string, string>();
   const taken = new Set<string>();
@@ -437,15 +439,15 @@ export function importSql(text: string, path: string): string {
         ...(inferred.from?.name === refColumn && inferred.to?.name === column
           ? []
           : [`from_field: ${q(refColumn)}`, `to_field: ${q(column)}`]),
-        `evidence: ${q(at(shown, fk.line, fk.ref))}`,
+        ...(stdin ? [] : [`evidence: ${q(at(shown, fk.line, fk.ref))}`]),
       ];
       lines.push(`  - ${from} -- ${to}: { ${keys.join(", ")} }`);
     }
   }
   const out = [
-    `# Drawn by \`orrery import sql ${shown}\`; run it again to redraw from the source.`,
-    "# Every node and edge carries the evidence it was read from.",
-    `title: ${q(`${humanize(shown.replace(/^.*\//, "").replace(/\.[^.]+$/, ""))} data model`)}`,
+    `# Drawn by \`orrery import sql ${stdin ? "-" : shown}\`; run it again to redraw from the source.`,
+    ...(stdin ? [] : ["# Every node and edge carries the evidence it was read from."]),
+    `title: ${q(stdin ? "Data model" : `${humanize(shown.replace(/^.*\//, "").replace(/\.[^.]+$/, ""))} data model`)}`,
     `subtitle: ${q(`${tables.length} table${tables.length === 1 ? "" : "s"} from ${shown}`)}`,
     "kind: er",
   ];
@@ -459,7 +461,7 @@ export function importSql(text: string, path: string): string {
         out.push("    fields:");
         for (const c of t.columns) out.push(`      - ${fieldText(c)}`);
       }
-      out.push(`    evidence: ${q(at(shown, t.line, t.name))}`);
+      if (!stdin) out.push(`    evidence: ${q(at(shown, t.line, t.name))}`);
     }
   }
   if (lines.length) out.push("edges:", ...lines);

@@ -86,7 +86,8 @@ function zigZags(c: Ctx): { zigs: number; bends: number } {
   let zigs = 0;
   let bends = 0;
   for (const e of scene.edges) {
-    if (!c.nodes.has(e.from) || !c.nodes.has(e.to)) continue;
+    // Relationship ends sit on the field rows they join, so their steps are not the layout's.
+    if (e.card || !c.nodes.has(e.from) || !c.nodes.has(e.to)) continue;
     if (outs.get(e.from) !== 1 || ins.get(e.to) !== 1 || band(e.from) !== band(e.to)) continue;
     const runs = orthogonalRuns(e.points);
     if (!runs) continue;

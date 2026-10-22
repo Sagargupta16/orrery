@@ -24,11 +24,13 @@ async function sequence(
   return data;
 }
 
-/** Message groups in drawing order, with the number in each badge. */
+// The sequence goes through renderSvg: messages are its edge groups, participants its node groups.
+/** Message groups in drawing order (top to bottom). */
 const messageIds = (svg: string, prefix: string) =>
-  [...svg.matchAll(new RegExp(`<g id="${prefix}-sq-(?!l-)([^"]+)">`, "g"))].map((m) => m[1]);
+  [...svg.matchAll(new RegExp(`<g id="${prefix}-e-([^"]+)">`, "g"))].map((m) => m[1]);
+/** Participant heads, left to right. */
 const lifelineIds = (svg: string, prefix: string) =>
-  [...svg.matchAll(new RegExp(`<g id="${prefix}-sq-l-([^"]+)">`, "g"))].map((m) => m[1]);
+  [...svg.matchAll(new RegExp(`<g id="${prefix}-n-([^"]+)">`, "g"))].map((m) => m[1]);
 const references = (doc: string) =>
   [...doc.matchAll(/url\(#([^)]+)\)|href="#([^"]+)"/g)].map((m) => m[1] ?? m[2] ?? "");
 
@@ -90,7 +92,9 @@ describe("sequence.svg for every example", () => {
         .sort((a, b) => (a.e.step ?? 0) - (b.e.step ?? 0) || a.i - b.i)
         .map(({ e }) => e.id);
       const drawnIds = messageIds(svg, `${name}-light`);
-      if (stepped.length) expect(drawnIds, name).toEqual(stepped);
+      // A sequence spec is drawn as it is: every message, in spec order.
+      if (m.kind === "sequence") expect(drawnIds, name).toEqual(m.edges.map((e) => e.id));
+      else if (stepped.length) expect(drawnIds, name).toEqual(stepped);
       else if (m.edges.length) {
         expect(drawnIds.length, name).toBeGreaterThan(0);
         expect(svg, name).toContain("Sequence of the longest path: 1. ");
@@ -138,7 +142,7 @@ edges:
       "back",
     );
     const group = (id: string) =>
-      must(svg.match(new RegExp(`<g id="back-light-sq-${id}">.*?</g>`, "s")), id)[0];
+      must(svg.match(new RegExp(`<g id="back-light-e-${id}">.*?</g>`, "s")), id)[0];
     const [ask, answer] = messageIds(svg, "back-light");
     expect(group(must(ask, "ask"))).not.toContain("stroke-dasharray");
     expect(group(must(answer, "answer"))).toContain("stroke-dasharray");
@@ -180,8 +184,19 @@ edges:
     expect(svg).toContain("Retry &lt;loop&gt; &amp; more");
     expect(svg).toContain("App &quot;x&quot;");
     expect(svg).toContain("retry &lt; 3");
-    const loop = must(svg.match(/<g id="self-light-sq-(?!l-)[^"]+"><path d="([^"]+)"/), "loop")[1];
-    expect(loop).toMatch(/^M[\d.]+ [\d.]+ H[\d.]+ V[\d.]+ H[\d.]+$/);
+    // The loop leaves the lifeline to the right and comes back to it lower down, corners rounded.
+    const loop = must(
+      must(svg.match(/<g id="self-light-e-[^"]+"><path d="([^"]+)"/), "loop")[1],
+      "d",
+    );
+    const coords = [...loop.matchAll(/-?[\d.]+/g)].map((x) => Number(x[0]));
+    const [x0 = 0, y0 = 0] = coords;
+    const [x1 = 0, y1 = 0] = coords.slice(-2);
+    expect(loop).toMatch(/^M[\d.]+ [\d.]+ L.* Q.* L[\d.]+ [\d.]+$/);
+    // The stroke stops at the arrowhead's base, a few px off the lifeline.
+    expect(Math.abs(x1 - x0)).toBeLessThan(12);
+    expect(y1).toBeGreaterThan(y0);
+    expect(Math.max(...coords.filter((_, i) => i % 2 === 0))).toBeGreaterThan(x0 + 20);
   });
 
   it("draws in the scene's skin and theme", async () => {

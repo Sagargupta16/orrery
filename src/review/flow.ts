@@ -498,11 +498,13 @@ function arrowSemantics(c: Ctx): { both: SceneEdge[]; none: SceneEdge[] } {
   const { scene, model, add } = c;
   const both = scene.edges.filter((e) => e.arrow === "both");
   // A plain line is meant when the legend explains its style (the rule's own fix), when it is a
-  // BPMN association, or when the notation draws no heads (tree and mind map connectors).
+  // BPMN association, or when the notation draws no heads (tree and mind map connectors, and
+  // data model relationships, whose ends carry cardinality marks instead).
   const keyed = new Set((model.legend ?? []).map((l) => l.line));
   const plain = (e: SceneEdge) =>
     model.kind === "tree" ||
     model.kind === "mindmap" ||
+    model.kind === "er" ||
     e.flow === "association" ||
     keyed.has(e.line);
   const none = scene.edges.filter((e) => e.arrow === "none" && !plain(e));

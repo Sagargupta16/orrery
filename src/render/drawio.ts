@@ -21,7 +21,7 @@ import {
 } from "../types.ts";
 import { erDrawio } from "./drawio-er.ts";
 import { sequenceDrawio } from "./drawio-sequence.ts";
-import { timelineDrawio } from "./drawio-timeline.ts";
+import { timelineDrawio, timelineItemDrawio } from "./drawio-timeline.ts";
 import { moodColor } from "./journey.ts";
 import { esc } from "./svg.ts";
 
@@ -269,6 +269,12 @@ function node(ctx: Ctx, nd: SceneNode) {
   const table = nd.fields ? erDrawio(ctx, nd) : undefined;
   if (table) {
     ctx.cells.push(...table);
+    return;
+  }
+  // A timeline item is its bar or marker, laid out by drawio-timeline.ts.
+  const item = ctx.scene.timeline ? timelineItemDrawio(ctx, nd) : undefined;
+  if (item) {
+    ctx.cells.push(...item);
     return;
   }
   const id = `n-${nd.id}`;
@@ -626,9 +632,12 @@ export function renderDrawio(scene: Scene, name = "Diagram"): string {
   for (const g of scene.groups) boxes.set(g.id, g.box);
   const vertical = scene.direction === "down" || scene.direction === "up";
   for (const nd of scene.nodes) {
+    // A timeline's dependencies run between its bars, so they anchor on the item's own box.
     boxes.set(
       nd.id,
-      symbolBox(nd) ?? (nd.look === "icon" && nd.iconBox && !vertical ? nd.iconBox : nd.box),
+      scene.timeline
+        ? nd.box
+        : (symbolBox(nd) ?? (nd.look === "icon" && nd.iconBox && !vertical ? nd.iconBox : nd.box)),
     );
     node(ctx, nd);
   }

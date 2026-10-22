@@ -3,8 +3,8 @@
 // messages as scene edges along their rows, the lifelines, bars and fragments, the legend and the
 // alt text.
 
-import type { Theme } from "../../themes.ts";
 import { textBlock } from "../../text.ts";
+import type { Theme } from "../../themes.ts";
 import type {
   Box,
   LegendEntry,

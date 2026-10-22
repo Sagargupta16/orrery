@@ -404,7 +404,13 @@ views:
   front: { include: [tag:front] }
 `;
   const m = model(spec);
-  const front = viewModel(m, must(m.views?.find((v) => v.name === "front"), "view"));
+  const front = viewModel(
+    m,
+    must(
+      m.views?.find((v) => v.name === "front"),
+      "view",
+    ),
+  );
 
   it("keeps every message in order, never merges repeats and keeps self messages", () => {
     expect(front.edges.map((e) => `${e.from}>${e.to}:${e.label}`)).toEqual([

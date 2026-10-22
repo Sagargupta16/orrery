@@ -20,7 +20,8 @@ export function measureSequence(c: Ctx): Record<string, number> {
 
   // SEQ-04: a message says what it sends. A reply may stay unlabelled: it answers its call.
   const bare = messages.filter((e) => !e.label?.trim() && kinds.get(e.id) !== "reply");
-  if (bare.length)
+  const firstBare = bare[0];
+  if (firstBare)
     add(
       "conventions.sequence-unlabelled",
       bare.length > 1 ? "major" : "minor",
@@ -28,11 +29,11 @@ export function measureSequence(c: Ctx): Record<string, number> {
       {
         unlabelled: bare.length,
         messages: messages.length,
-        first: edgeName(bare[0] ?? messages[0] ?? { from: "", to: "" }),
+        first: edgeName(firstBare),
       },
       `${bare.length} of ${messages.length} messages have no label, so the reader cannot tell what is asked or sent`,
       [
-        `label each message with a verb and its payload: - ${edgeName(bare[0] ?? { from: "a", to: "b" })}: "POST /orders (cart)"`,
+        `label each message with a verb and its payload: - ${edgeName(firstBare)}: "POST /orders (cart)"`,
       ],
       Math.min(16, 4 * bare.length),
       undefined,
@@ -85,7 +86,7 @@ export function measureSequence(c: Ctx): Record<string, number> {
     );
   }
 
-  // SEQ-06: a fragment holds the messages it names and nests inside any it overlaps.
+  // SEQ-07: a fragment holds the messages it names and nests inside any it overlaps.
   const laid = scene.sequence?.fragments ?? [];
   const lost = (model.fragments ?? []).filter(
     (f) => !laid.some((x) => x.type === f.type && x.from === f.from && x.to === f.to),
@@ -106,10 +107,10 @@ export function measureSequence(c: Ctx): Record<string, number> {
       ],
       Math.min(20, 8 * lost.length),
       undefined,
-      "SEQ-06",
+      "SEQ-07",
     );
 
-  // SEQ-07: one scenario a reader follows in one pass.
+  // SEQ-08: one scenario a reader follows in one pass.
   if (messages.length > LENGTH)
     add(
       "conventions.sequence-length",
@@ -124,7 +125,7 @@ export function measureSequence(c: Ctx): Record<string, number> {
       ],
       messages.length > LONG ? 10 : 4,
       undefined,
-      "SEQ-07",
+      "SEQ-08",
     );
 
   return {

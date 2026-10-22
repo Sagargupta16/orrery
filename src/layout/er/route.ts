@@ -10,7 +10,7 @@
 import type { Box, ErField, ModelEdge, Point, SceneEdge, SceneNode } from "../../types.ts";
 import { probe, type RouteView } from "../bends.ts";
 import { faceBox } from "../faces.ts";
-import { round, segmentsOf, union } from "../geometry.ts";
+import { round, type Seg, segmentsOf, union } from "../geometry.ts";
 import type { AfterLayout } from "../hooks.ts";
 import { labelSize, setLabel } from "../kinds/shared.ts";
 import { labelSpot } from "../labels.ts";
@@ -135,7 +135,8 @@ function overlapCost(pts: Point[], e: SceneEdge, others: SceneEdge[]): number {
         } else continue;
         if (span <= 0.5) continue;
         // Out of one point together, the first stub's length is the shared row's, not a defect.
-        if (shared && gap < 6 && touches(p, q, theirs)) cost += Math.max(0, span - STUB - PITCH) * 0.5;
+        if (shared && gap < 6 && touches(p, q, theirs))
+          cost += Math.max(0, span - STUB - PITCH) * 0.5;
         else if (gap < 6) cost += span * (related ? 2 : 12);
         else if (gap < 12 && !related) cost += span * 2;
       }
@@ -247,12 +248,11 @@ function placeLabels(ctx: AfterLayout, mine: SceneEdge[]): void {
 
 /** Above the middle of the longest run, when nothing is clear. */
 function fallbackSpot(points: Point[], w: number, h: number): Box {
-  const [p, q] = segmentsOf(points).sort(
-    ([a, b], [c, d]) => Math.hypot(d.x - c.x, d.y - c.y) - Math.hypot(b.x - a.x, b.y - a.y),
-  )[0] ?? [points[0] ?? { x: 0, y: 0 }, points[0] ?? { x: 0, y: 0 }];
-  const x = (p.x + q.x) / 2;
-  const y = (p.y + q.y) / 2;
-  return { x: round(x - w / 2), y: round(y - h - 3), w, h };
+  const len = ([p, q]: Seg) => Math.abs(q.x - p.x) + Math.abs(q.y - p.y);
+  const longest = segmentsOf(points).sort((s, t) => len(t) - len(s))[0];
+  const start = points[0] ?? { x: 0, y: 0 };
+  const [p, q] = longest ?? [start, start];
+  return { x: round((p.x + q.x) / 2 - w / 2), y: round((p.y + q.y) / 2 - h - 3), w, h };
 }
 
 /**

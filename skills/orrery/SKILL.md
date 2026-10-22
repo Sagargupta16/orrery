@@ -6,9 +6,10 @@ description: >-
   renders them to SVG and PNG for docs and READMEs, plus an editable draw.io file, a React TSX
   component and a standalone HTML viewer. Use when the user asks for an architecture diagram, a
   cloud, infrastructure or network diagram, a system design diagram, a data, ML or CI/CD pipeline,
-  a Kubernetes layout, a C4 container view, "diagram this repo", "draw the architecture for the
-  README", or to turn a description, Terraform, Kubernetes manifests, docker-compose or a Mermaid
-  flowchart into a clean diagram with real vendor icons.
+  a Kubernetes layout, a C4 container view, a data model or entity-relationship diagram, a
+  sequence diagram, a roadmap or timeline, "diagram this repo", "draw the architecture for the
+  README", or to turn a description, Terraform, Kubernetes manifests, docker-compose, a SQL schema
+  or a Mermaid flowchart into a clean diagram with real vendor icons.
 license: MIT
 metadata:
   version: "0.11.0"
@@ -29,7 +30,7 @@ Below, `orrery` means that command.
 
 Follow this order. Write the spec early and let the validator steer; do not plan coordinates, layout is automatic.
 
-1. **Pin the brief** in one line before drawing: what the diagram must show, for whom (README, design doc, slide), which cloud or vendor style, light/dark, which outputs. Default: SVG + PNG, the `stage` skin in the dark theme, `direction: right` (`down` for tiered stacks and long chains). A flow rather than an architecture gets a `kind:` (see [Kinds](references/spec.md#kinds)): `flowchart` (ISO 5807 symbols), `process` (BPMN 2.0 with `pool` and `lane` groups and `bpmn:` nodes), `state` (UML), `tree` (org charts), `mindmap`, `journey` (stages, lanes and scores).
+1. **Pin the brief** in one line before drawing: what the diagram must show, for whom (README, design doc, slide), which cloud or vendor style, light/dark, which outputs. Default: SVG + PNG, the `stage` skin in the dark theme, `direction: right` (`down` for tiered stacks and long chains). A flow rather than an architecture gets a `kind:` (see [Kinds](references/spec.md#kinds)): `flowchart` (ISO 5807 symbols), `process` (BPMN 2.0 with `pool` and `lane` groups and `bpmn:` nodes), `state` (UML), `tree` (org charts), `mindmap`, `journey` (stages, lanes and scores), `er` (data models: tables from `fields:`, crow's foot ends from `card:`), `sequence` (participants left to right, messages top to bottom in spec order, `fragments:` for loops and branches), `timeline` (roadmaps: lanes from groups, `start:`/`end:` bars, `date:` milestones, `status:`).
 2. **Find every icon id**, never guess one:
 
    ```bash
@@ -69,7 +70,7 @@ Follow this order. Write the spec early and let the validator steer; do not plan
    - With subagents, launch `orrery:conventions-reviewer`, `orrery:flow-reviewer` and `orrery:legibility-reviewer` in one message, plus `orrery:accuracy-reviewer` with the evidence paths when the diagram shows a real system. Without them, run the passes inline, one after another, each reading only its rubric. Skip the reviewers when the measured review passes with no findings.
    - Only you edit the spec. Reduce first (fewer arrows, one arrow to a group, cross-cutting services in a box), then write 2 to 4 candidate patch sets (with subagents, from `orrery:patch-proposer` agents, one strategy each) and try them in one call: `orrery patch <spec> candidates.json -o <spec>` reviews each on its own copy and keeps only the best one that raises the score with no hard count up.
    - Stop when it passes, after 3 rounds, or after 2 rounds without a kept patch. Never trust a reviewer's claim of an overlap or crossing that the measurement does not show.
-   - For a process, flowchart, state machine or journey, `kind:` picks the notation rubric (BPMN 2.0, ISO 5807, UML, journey maps) and `rubrics` in the review JSON lists it next to any vendor rubric. The measured review already checks start and end events, labelled gateway and decision branches, parallel joins and pool boundaries, so reviewers judge names (tasks verb plus object, events as states, lanes as roles) and symbol choice.
+   - For a process, flowchart, state machine, journey, data model, sequence or timeline, `kind:` picks the notation rubric (BPMN 2.0, ISO 5807, UML, journey maps, crow's foot, UML sequences, roadmaps) and `rubrics` in the review JSON lists it next to any vendor rubric. The measured review already checks start and end events, labelled gateway and decision branches, parallel joins and pool boundaries, so reviewers judge names (tasks verb plus object, events as states, lanes as roles) and symbol choice.
 7. **Report** the written paths, node/group/edge counts, the review score and pass, the patches kept, any findings that remain with their evidence, and the embed snippet if it goes into a README.
 
 ## What makes it look professional
@@ -115,6 +116,7 @@ Details, the JSON receipt and per-format notes: [references/outputs.md](referenc
 - **Terraform**: one node per meaningful resource (`aws_lambda_function` -> `aws:lambda`, `aws_db_instance` -> `aws:rds`), groups from VPC/subnet/region/account structure; skip glue resources (policies, attachments) unless they are the point.
 - **Kubernetes**: `k8s:` icons for kinds, `k8s:namespace` groups, Ingress -> Service -> Deployment -> Pods edges.
 - **Infrastructure, a picture, Mermaid**: [references/importing.md](references/importing.md). `orrery import terraform|cloudformation|cdk|kubernetes|compose <file>` draws a deterministic first draft with `evidence:` on every item; `orrery import picture <svg|png>` gives back the spec an orrery picture carries; `/orrery:import-image` reads any other picture.
+- **A database schema**: `orrery import sql schema.sql -o docs/data-model.yaml` reads `CREATE TABLE` statements (Postgres and SQLite, `pg_dump` output included) into a `kind: er` data model: a table per statement, a relationship per foreign key with its cardinality from `NOT NULL` and `UNIQUE`, and `evidence:` on each. Split a large schema into one figure per subject area.
 - **Mermaid flowchart**: `orrery import mermaid flow.mmd -o docs/architecture.yaml` converts nodes, subgraphs, edge styles and shapes, and sets an official icon where a label is exactly a product name (listed in a comment to check). Then swap the remaining shapes for icons, turn the `zone` groups into vendor groups and validate. Mermaid styling (`classDef`, `style`) is dropped on purpose.
 
 Patterns with spec fragments (three-tier, serverless, event-driven, data lake, streaming, RAG, CI/CD, hybrid network, Kubernetes, system design primitives): [references/patterns.md](references/patterns.md).
@@ -142,7 +144,7 @@ Patterns with spec fragments (three-tier, serverless, event-driven, data lake, s
 | `icons new <name> [--dir icons]`, `icons check <file.svg> [-o sheet]`, `icons adopt <file.svg> --name <name>` | Start a 24-grid icon, check one against rules IC01 to IC10 with a contact sheet in both skins and themes (exit 1 on a failure), or turn someone's SVG into a clean `local:` icon. |
 | `styles` | Group types and node shapes. |
 | `init [template] [-o file] [--list]` | Copy an example spec as a starting point. |
-| `import <mermaid\|terraform\|cloudformation\|cdk\|compose\|kubernetes\|picture> <file> [-o file]` | A first draft from a Mermaid flowchart or infrastructure, with `evidence:` on every item, or the spec an orrery SVG or PNG carries. |
+| `import <mermaid\|terraform\|cloudformation\|cdk\|compose\|kubernetes\|sql\|picture> <file> [-o file]` | A first draft from a Mermaid flowchart, infrastructure or a SQL schema (`CREATE TABLE` statements to a `kind: er` data model), with `evidence:` on every item, or the spec an orrery SVG or PNG carries. |
 | `doctor` | Checks Node, the catalogs, the icon libraries, the layout engine and the PNG renderer. |
 | `demo [dir]` | Renders every bundled example. |
 
@@ -157,6 +159,6 @@ Labels in scripts Inter lacks (CJK, Devanagari, Arabic) need a font for the PNG:
 - [references/outputs.md](references/outputs.md): formats, embedding, the receipt, `orrery doc`.
 - [references/importing.md](references/importing.md): starting from what exists: a picture orrery drew (it carries its spec), Terraform, CloudFormation, CDK, Kubernetes and Compose importers, Mermaid, and any other picture.
 - [references/planning.md](references/planning.md): planning a diagram from code and infrastructure: the plan, the evidence table, what counts as a flow, what to leave out, how many figures, the confirm list.
-- [references/review/loop.md](references/review/loop.md): the review loop, the finding and patch format, scores and every measured finding id. Its rubrics, one per reviewer pass: conventions for [AWS](references/review/conventions-aws.md), [Azure](references/review/conventions-azure.md), [Google Cloud](references/review/conventions-gcp.md) and [C4](references/review/conventions-c4.md) (vendor rules with ids, quotes and sources), notation for [BPMN](references/review/conventions-bpmn.md), [flowcharts](references/review/conventions-flowchart.md), [state machines](references/review/conventions-state.md) and [journeys](references/review/conventions-journey.md), [flow](references/review/flow.md), [legibility](references/review/legibility.md), and [accuracy](references/review/accuracy.md) against the code and infrastructure.
+- [references/review/loop.md](references/review/loop.md): the review loop, the finding and patch format, scores and every measured finding id. Its rubrics, one per reviewer pass: conventions for [AWS](references/review/conventions-aws.md), [Azure](references/review/conventions-azure.md), [Google Cloud](references/review/conventions-gcp.md) and [C4](references/review/conventions-c4.md) (vendor rules with ids, quotes and sources), notation for [BPMN](references/review/conventions-bpmn.md), [flowcharts](references/review/conventions-flowchart.md), [state machines](references/review/conventions-state.md) and [journeys](references/review/conventions-journey.md), [data models](references/review/conventions-er.md), [sequences](references/review/conventions-sequence.md) and [timelines](references/review/conventions-timeline.md), [flow](references/review/flow.md), [legibility](references/review/legibility.md), and [accuracy](references/review/accuracy.md) against the code and infrastructure.
 - [references/diagram.schema.json](references/diagram.schema.json): JSON Schema for editors (`# yaml-language-server: $schema=...`).
 - `examples/*.yaml`: complete specs for each pattern, used by `init` and `demo`.

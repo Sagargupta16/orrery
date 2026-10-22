@@ -51,11 +51,16 @@ const CATEGORIES = [
   ],
   ["network", "Networking", (n) => /network|hub-spoke|landing-zone/.test(n)],
   ["devops", "CI/CD and ops", (n) => /cicd|gitops|observability/.test(n)],
-  ["system-design", "System design", (n) => n.startsWith("system-design-") || n === "c4-container"],
+  [
+    "system-design",
+    "System design",
+    // Data models and sequence diagrams are system design figures too.
+    (n) => n.startsWith("system-design-") || n === "c4-container" || /^(er|sequence)-/.test(n),
+  ],
   [
     "flows",
     "Business flows",
-    (n) => /^(flowchart|process|swimlane|state|tree|mindmap|journey|local-icons)-/.test(n),
+    (n) => /^(flowchart|process|swimlane|state|tree|mindmap|journey|timeline|local-icons)-/.test(n),
   ],
   ["multi-cloud", "Multi-cloud", (n) => n === "multi-cloud"],
   ["web", "Web apps", (n) => /web|three-tier|serverless|starter|modern|ecommerce|media/.test(n)],

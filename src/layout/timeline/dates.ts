@@ -70,12 +70,6 @@ export function nextOf(start: number, scale: TimeScale): number {
   }
 }
 
-/** The first day of the period after `day`'s, unless `day` already starts one. */
-export const ceilTo = (day: number, scale: TimeScale): number => {
-  const f = floorTo(day, scale);
-  return f === day ? day : nextOf(f, scale);
-};
-
 /** Period starts from `from` up to (not including) `to`. */
 export function periods(from: number, to: number, scale: TimeScale): number[] {
   const out: number[] = [];
@@ -83,11 +77,14 @@ export function periods(from: number, to: number, scale: TimeScale): number[] {
   return out;
 }
 
-/** The scale one step finer, whose starts are the minor ticks; none under a day. */
+/**
+ * The scale one step finer, whose starts are the minor ticks. None under a day, and none in a
+ * month: weeks straddle months, so their marks fall unevenly and crowd the axis.
+ */
 export const FINER: Record<TimeScale, TimeScale | undefined> = {
   year: "quarter",
   quarter: "month",
-  month: "week",
+  month: undefined,
   week: "day",
   day: undefined,
 };

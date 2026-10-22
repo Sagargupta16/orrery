@@ -21,10 +21,12 @@ interface Port {
 export interface Field {
   nodes: SceneNode[];
   items: Map<string, TimelineItem>;
-  /** y of the gaps between rows (and above and below them), where a line may run across. */
+  /** y of the middle of each gap between two rows (in a lane or across lanes): a line runs there. */
   corridors: number[];
   /** The plot the lines stay inside: right of the lane headers, under the axis. */
   plot: Box;
+  /** x of the today line: an arrow running down it would vanish into it. */
+  today?: number;
 }
 
 const STUB = 12;
@@ -201,6 +203,8 @@ function cost(
       for (const tb of [nd.labelBox, nd.noteBox, nd.iconBox])
         if (real(tb) && tb !== nd.box && hitsBox(p, q, tb, -1)) c += HIT;
     }
+    if (field.today !== undefined && Math.abs(p.x - q.x) < 0.01 && Math.abs(p.x - field.today) < 5)
+      c += 30;
     for (const pt of [p, q])
       if (
         pt.x < plot.x - 0.5 ||

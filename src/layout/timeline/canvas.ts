@@ -13,7 +13,7 @@ export const TODAY_STRIP = 24;
 const KEY_SIZE = 11.5;
 const KEY_SWATCH = 24;
 
-export const STATUS_NAMES: Record<ItemStatus, string> = {
+const STATUS_NAMES: Record<ItemStatus, string> = {
   done: "Done",
   active: "In progress",
   planned: "Planned",

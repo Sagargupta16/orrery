@@ -2,7 +2,7 @@
 // months fits a README column), the ticks and their labels, the upper tier and the minor ticks.
 
 import { textBlock } from "../../text.ts";
-import type { Box, ModelTimeline, TextBlock, TimeScale } from "../../types.ts";
+import type { Box, ModelTimeline, TimeScale } from "../../types.ts";
 import {
   COARSER,
   dayOf,
@@ -21,8 +21,8 @@ export const round = (v: number) => Math.round(v * 100) / 100;
 
 /** The README column every timeline is sized for; wider timelines shrink to it. */
 export const DISPLAY = 880;
-export const TICK_SIZE = 11.5;
-export const PERIOD_SIZE = 12;
+const TICK_SIZE = 11.5;
+const PERIOD_SIZE = 12;
 const UPPER_H = 22;
 const LOWER_H = 24;
 /** Narrowest and widest column, px. */
@@ -90,7 +90,9 @@ export function pitchOf(scale: TimeScale, starts: number[], room: number): numbe
     ...starts.map((d) => textBlock(tickText(d, scale), TICK_SIZE, 400, 600).width),
   );
   const min = Math.max(MIN_PITCH[scale], Math.ceil(widest + 16));
-  return round(Math.max(min, Math.min(MAX_PITCH, room / Math.max(1, starts.length))));
+  // Rounded down, so the columns never push the canvas past the room.
+  const fit = Math.floor((room / Math.max(1, starts.length)) * 100) / 100;
+  return Math.max(min, Math.min(MAX_PITCH, fit));
 }
 
 /** The axis band over the plot, from `top`: ticks, the period tier above them and minor ticks. */
@@ -167,6 +169,3 @@ export function axisOf(
   };
   return { axis, bottom: top + box.h };
 }
-
-/** A label block, measured once, for the cells that print one. */
-export const tickLabel = (s: string): TextBlock => textBlock(s, TICK_SIZE, 400, 600);

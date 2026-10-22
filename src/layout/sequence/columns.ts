@@ -207,7 +207,9 @@ export function activations(msgs: Msg[]): Act[] {
         return;
       }
       // Calls into the sender after the one answered here end with it.
-      const done = stack.splice(i).map((s) => ({ col: m.a, level: s.level, start: s.start, end: k }));
+      const done = stack
+        .splice(i)
+        .map((s) => ({ col: m.a, level: s.level, start: s.start, end: k }));
       acts.push(...done);
       closed.set(m.a, { from: m.b, acts: done });
     }

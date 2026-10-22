@@ -333,7 +333,9 @@ export function erTableStage(ctx: StageCtx, nd: SceneNode): string | undefined {
         row.nullable ? t.muted : t.text,
         "start",
       ),
-      mono([typeText(row)], TYPE, TYPE.size, { x: b.x + cols.type, ...at }, t.muted, "start"),
+      typeText(row)
+        ? mono([typeText(row)], TYPE, TYPE.size, { x: b.x + cols.type, ...at }, t.muted, "start")
+        : "",
     );
   });
   return parts.join("");

@@ -152,7 +152,9 @@ function edgeLengths(c: Ctx): { lens: EdgeLength[]; median: number; long: EdgeLe
       ? (sorted[mid] ?? 0)
       : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2
     : 0;
-  const long = lens.filter((l) => l.len > 2.5 * median && l.len > 300);
+  // A timeline's dependency is as long as the dates between its ends, not a layout choice.
+  const long =
+    scene.kind === "timeline" ? [] : lens.filter((l) => l.len > 2.5 * median && l.len > 300);
   for (const l of long)
     add(
       "layout.long-edge",
@@ -254,8 +256,9 @@ function emptySpace(c: Ctx): number {
   const H = scene.height;
   const hole = largestHole(c);
   const holePct = (100 * hole.w * hole.h) / Math.max(1, W * H);
-  // A thin band between rows is spacing, not a hole a reader notices.
-  if (holePct > 22 && Math.min(hole.w, hole.h) >= 80) {
+  // A thin band between rows is spacing, not a hole a reader notices; on a timeline an empty
+  // stretch is time with nothing scheduled.
+  if (scene.kind !== "timeline" && holePct > 22 && Math.min(hole.w, hole.h) >= 80) {
     const inside = scene.groups
       .filter((g) => !g.overlay && interArea(g.box, hole) > 0.9 * hole.w * hole.h)
       .sort((a, b) => b.depth - a.depth)[0];

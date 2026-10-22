@@ -96,8 +96,14 @@ export function sequenceMermaid(model: Model): string {
   if (open) out.push("    end");
   // Messages in order, each fragment opened before its first and closed after its last.
   const nodes = new Set(model.nodes.map((n) => n.id));
+  const drawn = (k: number) => {
+    const e = model.edges[k - 1];
+    return !!e && nodes.has(e.from) && nodes.has(e.to);
+  };
+  // A block with no message in it would not parse; neither would a range past the messages.
   const frags = (model.fragments ?? [])
     .filter((f) => f.from >= 1 && f.to <= model.edges.length && f.from <= f.to)
+    .filter((f) => Array.from({ length: f.to - f.from + 1 }, (_, i) => f.from + i).some(drawn))
     .map((f, i) => ({ f, i }))
     .sort((p, q) => p.f.from - q.f.from || q.f.to - p.f.to || p.i - q.i)
     .map(({ f }) => f);
