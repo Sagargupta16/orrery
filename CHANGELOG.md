@@ -9,6 +9,10 @@ All notable changes to this project are documented here. Follows [Semantic Versi
 - **Icons are 64 px by default** (named `lg`), up from the AWS deck's 48 (`size: md` still draws 48, and `sm`, `xl` and a number of px work as before). At README width the 48 px tile read small beside two-line labels and notes. Cards keep their 32 px icon. Layouts grow by the extra tile height and keep their width, since labels set the column widths; all 77 examples still pass review at 880 px, the mean score stays 97.0 and no example drops more than a point. Folded view groups, sequence heads and `orrery import sql` tables follow the same default.
 - The infrastructure importers draw a chain of more than six steps run down the page with compact spacing, so a long first draft stays inside the 4.5:1 strip limit with the taller tiles (a 12-resource SAM template went from 4.6:1 to 4.3:1).
 
+### Fixed
+
+- A test of `orrery mcp`'s stderr log read it as soon as the render reply arrived; on a slow runner the log line came a moment later. It now waits for the line.
+
 ## [0.11.1] - 2026-10-23
 
 ### Fixed

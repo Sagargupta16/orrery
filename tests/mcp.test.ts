@@ -430,6 +430,9 @@ describe("mcp over stdio", () => {
   it("logs one line per call on stderr, without the spec", async () => {
     await call("validate", { spec: MARKED });
     await call("render", { spec: MARKED, spec_path: STARTER });
+    // stderr is its own pipe: the render's log line can land after its reply on stdout.
+    for (let waited = 0; !stderr.includes('"tool":"render"') && waited < 5000; waited += 20)
+      await new Promise((r) => setTimeout(r, 20));
     const lines = stderr
       .split("\n")
       .filter((l) => l.startsWith("{"))
