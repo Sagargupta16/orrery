@@ -13,7 +13,7 @@ One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML view
 **[sagargupta.online/orrery](https://sagargupta.online/orrery/)**: every example in light and dark, with its spec and downloads.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.11.0-2563eb)
+![Version](https://img.shields.io/badge/version-0.11.1-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-18%2C209-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 

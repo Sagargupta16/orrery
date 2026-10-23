@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.11.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.11.1 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -9228,7 +9228,7 @@ function starterIcon(name2) {
 }
 
 // src/cli/help.ts
-var VERSION = true ? "0.11.0" : "dev";
+var VERSION = true ? "0.11.1" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
@@ -15592,6 +15592,7 @@ function tagsFit(tags, k, d, nodes, groups, others, titles2) {
 }
 
 // src/layout/canvas.ts
+var MIN_TEXT = 420;
 function sizeCanvas(ctx) {
   const { model, hidden: hidden2, result: result2, top, titleBlock, subtitleBlock, nodes, groups, edges } = ctx;
   const snug = ctx.seats.size > 0;
@@ -15610,24 +15611,34 @@ function sizeCanvas(ctx) {
     width2 = Math.max(width2, round(b.x + b.w + SIZES.pad));
     height = Math.max(height, round(b.y + b.h + SIZES.pad));
   }
+  const room2 = Math.max(MIN_TEXT, width2 - SIZES.pad * 2);
+  const title2 = titleBlock && model.title && titleBlock.width > room2 ? textBlock(model.title, SIZES.title, room2, 600, 1.25) : titleBlock;
+  const subtitle = subtitleBlock && model.subtitle && subtitleBlock.width > room2 ? textBlock(model.subtitle, SIZES.subtitle, room2, 400) : subtitleBlock;
+  const grew = round(
+    (title2?.height ?? 0) - (titleBlock?.height ?? 0) + (title2 && subtitle?.height || 0) - (titleBlock && subtitleBlock?.height || 0)
+  );
+  if (grew > 0) {
+    shiftAll(ctx, 0, grew);
+    height = round(height + grew);
+  }
   let titleBox;
   let subtitleBox;
-  if (titleBlock) {
+  if (title2) {
     titleBox = {
       x: SIZES.pad,
       y: SIZES.pad - 4,
-      w: round(titleBlock.width),
-      h: round(titleBlock.height)
+      w: round(title2.width),
+      h: round(title2.height)
     };
-    width2 = Math.max(width2, round(titleBlock.width + SIZES.pad * 2));
-    if (subtitleBlock) {
+    width2 = Math.max(width2, round(title2.width + SIZES.pad * 2));
+    if (subtitle) {
       subtitleBox = {
         x: SIZES.pad,
-        y: round(titleBox.y + titleBlock.height + 4),
-        w: round(subtitleBlock.width),
-        h: round(subtitleBlock.height)
+        y: round(titleBox.y + title2.height + 4),
+        w: round(subtitle.width),
+        h: round(subtitle.height)
       };
-      width2 = Math.max(width2, round(subtitleBlock.width + SIZES.pad * 2));
+      width2 = Math.max(width2, round(subtitle.width + SIZES.pad * 2));
     }
   }
   width2 = Math.ceil(width2);
@@ -15638,7 +15649,7 @@ function sizeCanvas(ctx) {
     width2 = Math.max(width2, Math.ceil(legend5.box.w + SIZES.pad * 2));
     height = Math.ceil(legend5.box.y + legend5.box.h + SIZES.pad);
   }
-  return { width: width2, height, titleBox, subtitleBox, legend: legend5 };
+  return { width: width2, height, title: title2, subtitle, titleBox, subtitleBox, legend: legend5 };
 }
 function moveClear(ctx, snug) {
   const { top, titleBlock, nodes, groups, edges } = ctx;
@@ -15655,28 +15666,30 @@ function moveClear(ctx, snug) {
   const y0 = Math.min(...drawn2.map((b) => b.y));
   const dx = snug ? round(SIZES.pad - x0) : Math.max(0, Math.ceil(4 - x0));
   const dy = snug ? round(top + SIZES.pad - y0) : Math.max(0, Math.ceil(top + (titleBlock ? 8 : 4) - y0));
-  if (dx || dy) {
-    const moved = /* @__PURE__ */ new Set();
-    const move2 = (b) => {
-      if (!b || moved.has(b)) return;
-      moved.add(b);
-      b.x = round(b.x + dx);
-      b.y = round(b.y + dy);
-    };
-    for (const g of groups) [g.box, g.labelBox, g.iconBox, g.inner?.box].forEach(move2);
-    for (const n4 of nodes) {
-      [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox].forEach(move2);
-      for (const f of n4.fields ?? []) move2(f.box);
-    }
-    for (const e of edges) {
-      [e.labelBox, e.stepBox].forEach(move2);
-      e.points = e.points.map((p) => ({
-        x: round(p.x + dx),
-        y: round(p.y + dy)
-      }));
-    }
-  }
+  if (dx || dy) shiftAll(ctx, dx, dy);
   return { dx, dy };
+}
+function shiftAll(ctx, dx, dy) {
+  const { nodes, groups, edges } = ctx;
+  const moved = /* @__PURE__ */ new Set();
+  const move2 = (b) => {
+    if (!b || moved.has(b)) return;
+    moved.add(b);
+    b.x = round(b.x + dx);
+    b.y = round(b.y + dy);
+  };
+  for (const g of groups) [g.box, g.labelBox, g.iconBox, g.inner?.box].forEach(move2);
+  for (const n4 of nodes) {
+    [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox].forEach(move2);
+    for (const f of n4.fields ?? []) move2(f.box);
+  }
+  for (const e of edges) {
+    [e.labelBox, e.stepBox].forEach(move2);
+    e.points = e.points.map((p) => ({
+      x: round(p.x + dx),
+      y: round(p.y + dy)
+    }));
+  }
 }
 function placeLegend(entries4, width2, height) {
   const P2 = 10;
@@ -18767,9 +18780,9 @@ function assemble(ctx, routing, canvas2) {
     animate: animateOf(model),
     skin: model.skin,
     background: model.background,
-    title: titleBlock,
+    title: canvas2.title ?? titleBlock,
     titleBox,
-    subtitle: subtitleBlock,
+    subtitle: canvas2.subtitle ?? subtitleBlock,
     subtitleBox,
     nodes,
     groups,
@@ -36821,7 +36834,7 @@ var TOOLS = [
 var SERVER = {
   name: "orrery",
   title: "orrery",
-  version: true ? "0.11.0" : "dev"
+  version: true ? "0.11.1" : "dev"
 };
 var MODERN = ["2026-07-28"];
 var LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];

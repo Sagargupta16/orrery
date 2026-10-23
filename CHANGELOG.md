@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.11.1] - 2026-10-23
+
+### Fixed
+
+- **A long title or subtitle no longer widens the canvas.** Measured on one line up to 1,400 px, a subtitle wider than the drawing set the canvas width and left an empty band down the side; it now wraps to the drawing's width (never under 420 px) and the drawing moves down by the lines it adds. 20 of the 62 architecture examples change: the largest empty area drops from 17.3% of the canvas to 15.8% on average, aws-agentcore-mcp from 26.2% to 8.4% (793 px wide to 600 px, review 97.3 to 99), aws-central-logging from 17.1% to 7.1%; every example still passes review at 880 px and no score drops.
+
 ## [0.11.0] - 2026-10-22
 
 ### Added
