@@ -30,8 +30,8 @@ edges:
 
 | Key | Values | Default | Notes |
 | --- | --- | --- | --- |
-| `title` | text | none | Drawn top left; also the SVG `<title>` and the TSX component name. |
-| `subtitle` | text | none | One muted line under the title. |
+| `title` | text | none | Drawn top left; also the SVG `<title>` and the TSX component name. Wider than the drawing, it wraps to the drawing's width (never under 420 px) instead of widening the canvas. |
+| `subtitle` | text | none | A muted line under the title; wider than the drawing, it wraps to the drawing's width (never under 420 px), so a long subtitle never leaves an empty band beside the diagram. |
 | `kind` | `architecture`, `flowchart`, `process`, `state`, `tree`, `mindmap`, `journey`, `er`, `sequence`, `timeline` | `architecture` | What the diagram is; see [Kinds](#kinds). It sets the default `direction` and `arrowhead` (flowchart: `down` and `filled`; process: `right` and `filled`; tree: `down`; sequence: `down` and `filled`), which the spec can still set. |
 | `direction` | `right`, `down`, `left`, `up` | `right` | Main flow direction. `down` suits long chains and tiered architectures. |
 | `theme` | `light`, `dark` | `dark` | `render --theme` overrides it; `--theme both` writes both. |

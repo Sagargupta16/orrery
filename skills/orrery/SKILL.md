@@ -12,7 +12,7 @@ description: >-
   or a Mermaid flowchart into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.11.0"
+  version: "0.11.1"
   author: Sagar Gupta
 ---
 

@@ -1,15 +1,22 @@
 // The canvas: content moved clear of the left and top margins and the title, then sized to all
-// that is drawn, with the title, subtitle and line-style legend placed.
+// that is drawn, with the title, subtitle and line-style legend placed. A title or subtitle wider
+// than the drawing wraps to it, so it never widens the canvas into an empty band beside it.
 
 import { textBlock } from "../text.ts";
-import type { Box, LegendEntry, SceneLegend } from "../types.ts";
+import type { Box, LegendEntry, SceneLegend, TextBlock } from "../types.ts";
 import type { Routed } from "./context.ts";
 import { round } from "./geometry.ts";
 import { SIZES } from "./sizes.ts";
 
+/** The narrowest a wrapped title or subtitle gets, so a small drawing keeps readable lines. */
+const MIN_TEXT = 420;
+
 export interface Canvas {
   width: number;
   height: number;
+  /** The title and subtitle as drawn: wrapped to the drawing when it is narrower than their line. */
+  title?: TextBlock;
+  subtitle?: TextBlock;
   titleBox?: Box;
   subtitleBox?: Box;
   legend?: SceneLegend;
@@ -41,24 +48,44 @@ export function sizeCanvas(ctx: Routed): Canvas {
     width = Math.max(width, round(b.x + b.w + SIZES.pad));
     height = Math.max(height, round(b.y + b.h + SIZES.pad));
   }
+  // Wrapped lines push the drawing down by the height they add.
+  const room = Math.max(MIN_TEXT, width - SIZES.pad * 2);
+  const title =
+    titleBlock && model.title && titleBlock.width > room
+      ? textBlock(model.title, SIZES.title, room, 600, 1.25)
+      : titleBlock;
+  const subtitle =
+    subtitleBlock && model.subtitle && subtitleBlock.width > room
+      ? textBlock(model.subtitle, SIZES.subtitle, room, 400)
+      : subtitleBlock;
+  const grew = round(
+    (title?.height ?? 0) -
+      (titleBlock?.height ?? 0) +
+      ((title && subtitle?.height) || 0) -
+      ((titleBlock && subtitleBlock?.height) || 0),
+  );
+  if (grew > 0) {
+    shiftAll(ctx, 0, grew);
+    height = round(height + grew);
+  }
   let titleBox: Box | undefined;
   let subtitleBox: Box | undefined;
-  if (titleBlock) {
+  if (title) {
     titleBox = {
       x: SIZES.pad,
       y: SIZES.pad - 4,
-      w: round(titleBlock.width),
-      h: round(titleBlock.height),
+      w: round(title.width),
+      h: round(title.height),
     };
-    width = Math.max(width, round(titleBlock.width + SIZES.pad * 2));
-    if (subtitleBlock) {
+    width = Math.max(width, round(title.width + SIZES.pad * 2));
+    if (subtitle) {
       subtitleBox = {
         x: SIZES.pad,
-        y: round(titleBox.y + titleBlock.height + 4),
-        w: round(subtitleBlock.width),
-        h: round(subtitleBlock.height),
+        y: round(titleBox.y + title.height + 4),
+        w: round(subtitle.width),
+        h: round(subtitle.height),
       };
-      width = Math.max(width, round(subtitleBlock.width + SIZES.pad * 2));
+      width = Math.max(width, round(subtitle.width + SIZES.pad * 2));
     }
   }
   width = Math.ceil(width);
@@ -69,7 +96,7 @@ export function sizeCanvas(ctx: Routed): Canvas {
     width = Math.max(width, Math.ceil(legend.box.w + SIZES.pad * 2));
     height = Math.ceil(legend.box.y + legend.box.h + SIZES.pad);
   }
-  return { width, height, titleBox, subtitleBox, legend };
+  return { width, height, title, subtitle, titleBox, subtitleBox, legend };
 }
 
 // Overlay legends (a tile on the top border) and free-edge labels are placed after ELK and can
@@ -92,28 +119,32 @@ function moveClear(ctx: Routed, snug: boolean): { dx: number; dy: number } {
   const dy = snug
     ? round(top + SIZES.pad - y0)
     : Math.max(0, Math.ceil(top + (titleBlock ? 8 : 4) - y0));
-  if (dx || dy) {
-    const moved = new Set<Box>();
-    const move = (b: Box | undefined) => {
-      if (!b || moved.has(b)) return;
-      moved.add(b);
-      b.x = round(b.x + dx);
-      b.y = round(b.y + dy);
-    };
-    for (const g of groups) [g.box, g.labelBox, g.iconBox, g.inner?.box].forEach(move);
-    for (const n of nodes) {
-      [n.box, n.iconBox, n.labelBox, n.noteBox, n.badgeBox].forEach(move);
-      for (const f of n.fields ?? []) move(f.box);
-    }
-    for (const e of edges) {
-      [e.labelBox, e.stepBox].forEach(move);
-      e.points = e.points.map((p) => ({
-        x: round(p.x + dx),
-        y: round(p.y + dy),
-      }));
-    }
-  }
+  if (dx || dy) shiftAll(ctx, dx, dy);
   return { dx, dy };
+}
+
+/** Moves everything drawn (groups, nodes with their parts and rows, routes, labels) by dx, dy. */
+function shiftAll(ctx: Routed, dx: number, dy: number): void {
+  const { nodes, groups, edges } = ctx;
+  const moved = new Set<Box>();
+  const move = (b: Box | undefined) => {
+    if (!b || moved.has(b)) return;
+    moved.add(b);
+    b.x = round(b.x + dx);
+    b.y = round(b.y + dy);
+  };
+  for (const g of groups) [g.box, g.labelBox, g.iconBox, g.inner?.box].forEach(move);
+  for (const n of nodes) {
+    [n.box, n.iconBox, n.labelBox, n.noteBox, n.badgeBox].forEach(move);
+    for (const f of n.fields ?? []) move(f.box);
+  }
+  for (const e of edges) {
+    [e.labelBox, e.stepBox].forEach(move);
+    e.points = e.points.map((p) => ({
+      x: round(p.x + dx),
+      y: round(p.y + dy),
+    }));
+  }
 }
 
 /**

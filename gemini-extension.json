@@ -1,5 +1,5 @@
 {
   "name": "orrery",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Architecture, system design and business flow diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons, auto-laid out and rendered to SVG, PNG, draw.io, React TSX and HTML."
 }
