@@ -5,6 +5,7 @@ import {
   BPMN_KINDS,
   type BpmnKind,
   type DiagramKind,
+  ICON_SIZE,
   isBpmnEvent,
   isBpmnGateway,
   LOOKS,
@@ -216,7 +217,7 @@ function nodeUrl(ctx: Ctx, id: string, n: Obj) {
 
 function nodeSize(ctx: Ctx, id: string, n: Obj, look: NodeLook) {
   const sizeRaw = pick(n, "size", NODE_SYNONYMS);
-  let iconSize = look === "card" ? 32 : 48;
+  let iconSize = look === "card" ? 32 : ICON_SIZE;
   if (typeof sizeRaw === "number") iconSize = Math.max(16, Math.min(128, sizeRaw));
   else if (sizeRaw !== undefined) {
     const named = { sm: 32, md: 48, lg: 64, xl: 80 } as Record<string, number>;

@@ -81,6 +81,12 @@ export type DiagramKind =
   | "er"
   | "sequence"
   | "timeline";
+/**
+ * An icon node's size when the spec sets none. 64 px (named lg) rather than the AWS deck's 48: at
+ * README width the deck size reads small beside two-line labels and notes.
+ */
+export const ICON_SIZE = 64;
+
 export const DIAGRAM_KINDS: readonly DiagramKind[] = [
   "architecture",
   "flowchart",

@@ -495,9 +495,10 @@ edges:
     const vpc = groupOf(s, "vpc");
     const [igw, vgw] = [iconOf(s, "igw"), iconOf(s, "vgw")];
     expect([cx(igw), cx(vgw)]).toEqual([vpc.x, vpc.x]);
-    // In ELK's order, at a third and two thirds of the side.
+    // In ELK's order, at a third and two thirds of the side; a tile and its label taller than that
+    // third push the second just past it, so the two footprints stay apart.
     expect(cy(igw) - vpc.y).toBeCloseTo(vpc.h / 3, 0);
-    expect(cy(vgw) - vpc.y).toBeCloseTo((2 * vpc.h) / 3, 0);
+    expect(cy(vgw) - vpc.y).toBeGreaterThanOrEqual((2 * vpc.h) / 3 - 0.5);
     expect(meets(footprintOf(s, "igw"), footprintOf(s, "vgw"))).toBe(false);
     expect(s.ignored).toBeUndefined();
   });

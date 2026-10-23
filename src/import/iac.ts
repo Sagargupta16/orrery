@@ -283,7 +283,13 @@ export class Draft {
       title: opts.title,
       ...(opts.subtitle ? { subtitle: opts.subtitle } : {}),
       direction,
-      ...(depth >= 4 ? { layout: { spacing: "loose" } } : {}),
+      // A long chain run down the page is a tall strip at README width; compact gaps keep it
+      // readable. Deep nesting still wins, since it needs the room to route.
+      ...(depth >= 4
+        ? { layout: { spacing: "loose" } }
+        : direction === "down" && layers > 6
+          ? { layout: { spacing: "compact" } }
+          : {}),
       ...(dashed && opts.legend?.dashed
         ? { legend: { solid: "Traffic and data", dashed: opts.legend.dashed } }
         : {}),

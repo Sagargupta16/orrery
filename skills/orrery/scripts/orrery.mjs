@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.11.1 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.12.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -9228,7 +9228,7 @@ function starterIcon(name2) {
 }
 
 // src/cli/help.ts
-var VERSION = true ? "0.11.1" : "dev";
+var VERSION = true ? "0.12.0" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
@@ -9599,6 +9599,7 @@ var SHAPES = [
   "initial",
   "final"
 ];
+var ICON_SIZE = 64;
 var DIAGRAM_KINDS = [
   "architecture",
   "flowchart",
@@ -22749,7 +22750,7 @@ function participants(scene, model, list) {
       ...node4?.color ? { color: node4.color } : {},
       look: icon2 ? "icon" : "shape",
       shape: "rounded",
-      iconSize: icon2 && node4?.look === "icon" ? node4.iconSize : 48
+      iconSize: icon2 && node4?.look === "icon" ? node4.iconSize : ICON_SIZE
     });
   }
   return out;
@@ -28241,7 +28242,7 @@ function nodeUrl(ctx, id, n4) {
 }
 function nodeSize(ctx, id, n4, look) {
   const sizeRaw = pick(n4, "size", NODE_SYNONYMS);
-  let iconSize = look === "card" ? 32 : 48;
+  let iconSize = look === "card" ? 32 : ICON_SIZE;
   if (typeof sizeRaw === "number") iconSize = Math.max(16, Math.min(128, sizeRaw));
   else if (sizeRaw !== void 0) {
     const named2 = { sm: 32, md: 48, lg: 64, xl: 80 };
@@ -36834,7 +36835,7 @@ var TOOLS = [
 var SERVER = {
   name: "orrery",
   title: "orrery",
-  version: true ? "0.11.1" : "dev"
+  version: true ? "0.12.0" : "dev"
 };
 var MODERN = ["2026-07-28"];
 var LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
@@ -38464,7 +38465,9 @@ var Draft = class {
       title: opts.title,
       ...opts.subtitle ? { subtitle: opts.subtitle } : {},
       direction,
-      ...depth >= 4 ? { layout: { spacing: "loose" } } : {},
+      // A long chain run down the page is a tall strip at README width; compact gaps keep it
+      // readable. Deep nesting still wins, since it needs the room to route.
+      ...depth >= 4 ? { layout: { spacing: "loose" } } : direction === "down" && layers > 6 ? { layout: { spacing: "compact" } } : {},
       ...dashed && opts.legend?.dashed ? { legend: { solid: "Traffic and data", dashed: opts.legend.dashed } } : {},
       ...Object.keys(groups).length ? { groups } : {},
       nodes,
@@ -41090,7 +41093,7 @@ function importSql(text6, path) {
     label: t.name,
     look: "card",
     shape: "box",
-    iconSize: 48,
+    iconSize: ICON_SIZE,
     fields: t.columns.map(
       (c) => ({
         name: c.name,
@@ -42884,7 +42887,7 @@ function groupNode(g) {
     shape: "rounded",
     parent: g.parent,
     color: g.color,
-    iconSize: 48,
+    iconSize: ICON_SIZE,
     ...g.tags ? { tags: g.tags } : {},
     ...g.evidence ? { evidence: g.evidence } : {}
   };
