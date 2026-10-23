@@ -45,7 +45,7 @@ Plain Markdown works too: `![Architecture](docs/architecture-light.svg)`.
 - Opens in [diagrams.net](https://app.diagrams.net), the desktop app and the VS Code Draw.io extension.
 - Groups are containers (moving a VPC moves its contents), nodes are image cells with the official icon embedded as SVG data, edges keep the computed route as waypoints and the exact attachment points, labels stay editable.
 - Card nodes use draw.io's label shape (icon plus text in one cell); shape nodes map to draw.io's own shapes (cylinder, document, note, actor, hexagon, cloud...).
-- Icon labels keep the line breaks the layout chose and are not wrapped again to the 48 px icon width, so a long service name (in a left-to-right flow, say) does not stack three lines deep or run into the next icon.
+- Icon labels keep the line breaks the layout chose and are not wrapped again to the icon's width, so a long service name (in a left-to-right flow, say) does not stack three lines deep or run into the next icon.
 - A `legend:` becomes one group cell with a line cell and a text cell per style.
 - Works offline: nothing in the file points to the network.
 

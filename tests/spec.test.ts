@@ -356,9 +356,9 @@ describe("defaults", () => {
     expect(
       m.nodes.map(({ id, label, look, shape, iconSize }) => ({ id, label, look, shape, iconSize })),
     ).toEqual([
-      { id: "a", label: "AWS Lambda", look: "icon", shape: "rounded", iconSize: 48 },
-      { id: "b", label: "B", look: "shape", shape: "rounded", iconSize: 48 },
-      { id: "c", label: "c", look: "shape", shape: "rounded", iconSize: 48 },
+      { id: "a", label: "AWS Lambda", look: "icon", shape: "rounded", iconSize: 64 },
+      { id: "b", label: "B", look: "shape", shape: "rounded", iconSize: 64 },
+      { id: "c", label: "c", look: "shape", shape: "rounded", iconSize: 64 },
       {
         id: "d",
         label: "Amazon Simple Storage Service",

@@ -430,7 +430,8 @@ edges:
     intoTop(scene, "b", t.x + t.w - 3);
     const found = ids(scene, m, "grid.off-center");
     expect(found.map((f) => [f.evidence.node, f.evidence.side, f.evidence.pitchMaxPx])).toEqual([
-      ["hub", "top", 42],
+      // Ends 3px in from each corner of the tile.
+      ["hub", "top", t.w - 6],
     ]);
   });
 

@@ -13,7 +13,15 @@ import { SIZES } from "../layout/sizes.ts";
 import { stageColors } from "../skins.ts";
 import { textBlock } from "../text.ts";
 import type { StageInk, Theme } from "../themes.ts";
-import type { Box, Model, ModelEdge, ModelNode, Scene, SceneEdge } from "../types.ts";
+import {
+  type Box,
+  ICON_SIZE,
+  type Model,
+  type ModelEdge,
+  type ModelNode,
+  type Scene,
+  type SceneEdge,
+} from "../types.ts";
 import { type Ctx, fill, rect, stroke } from "./stage/ctx.ts";
 import { block, KEY, LABEL, NOTE, sizeFor } from "./stage/text.ts";
 import { lit } from "./stage/timing.ts";
@@ -202,7 +210,7 @@ function participants(scene: Scene, model: Model, list: Message[]): ModelNode[] 
       ...(node?.color ? { color: node.color } : {}),
       look: icon ? "icon" : "shape",
       shape: "rounded",
-      iconSize: icon && node?.look === "icon" ? node.iconSize : 48,
+      iconSize: icon && node?.look === "icon" ? node.iconSize : ICON_SIZE,
     });
   }
   return out;

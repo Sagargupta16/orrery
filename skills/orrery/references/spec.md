@@ -194,7 +194,7 @@ nodes:
 | `color` | Quoted hex accent: the outline and tint of a shape, the side bar of a card, or the color of a monochrome glyph icon. |
 | `badge` | Short tag drawn on the top right corner, for example `x3` or `HA`. |
 | `url` | Makes the node a link in SVG, HTML and draw.io. Only `http`, `https`, `mailto` and relative links are accepted (DG107); the scheme check ignores whitespace. Any control character, U+0000 to U+001F (tab, newline ...) or U+007F, fails with DG107: browsers drop them inside a URL, so `java<TAB>script:` would still run as `javascript:`. |
-| `size` | Icon size: `sm` (32), `md` (48, default), `lg` (64), `xl` (80) or a number of px. |
+| `size` | Icon size: `sm` (32), `md` (48), `lg` (64, the default), `xl` (80) or a number of px. Cards keep a 32 px icon. |
 
 ## Groups
 

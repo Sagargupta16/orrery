@@ -13,7 +13,7 @@
 // Deterministic: the same file gives the same text.
 
 import { joinedRows } from "../layout/er/rows.ts";
-import type { ErField, ModelEdge, ModelNode } from "../types.ts";
+import { type ErField, ICON_SIZE, type ModelEdge, type ModelNode } from "../types.ts";
 import { at, displayPath, humanize, slug } from "./iac.ts";
 
 interface Column {
@@ -388,7 +388,7 @@ export function importSql(text: string, path: string): string {
     label: t.name,
     look: "card",
     shape: "box",
-    iconSize: 48,
+    iconSize: ICON_SIZE,
     fields: t.columns.map(
       (c): ErField => ({
         name: c.name,

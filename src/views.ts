@@ -2,7 +2,15 @@
 // figures come from one source and cannot drift apart.
 import { usage } from "./cli/io.ts";
 import { resolveGroupStyle } from "./styles.ts";
-import type { Model, ModelEdge, ModelGroup, ModelNode, ModelView, SeqFragment } from "./types.ts";
+import {
+  ICON_SIZE,
+  type Model,
+  type ModelEdge,
+  type ModelGroup,
+  type ModelNode,
+  type ModelView,
+  type SeqFragment,
+} from "./types.ts";
 
 export interface ViewModel {
   /** The view's name; undefined for the whole diagram. */
@@ -160,7 +168,7 @@ function groupNode(g: ModelGroup): ModelNode {
     shape: "rounded",
     parent: g.parent,
     color: g.color,
-    iconSize: 48,
+    iconSize: ICON_SIZE,
     ...(g.tags ? { tags: g.tags } : {}),
     ...(g.evidence ? { evidence: g.evidence } : {}),
   };
