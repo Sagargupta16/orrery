@@ -13,7 +13,8 @@ legend:
 groups:
   sub: { type: azure:subscription, label: Production subscription }
   rg: { type: azure:resource-group, label: rg-web-prod, in: sub }
-  vnet: { type: azure:vnet, label: vnet-web-prod 10.20.0.0/16, in: rg }
+  # cols: 2 puts the integration subnet and the private endpoint subnet side by side.
+  vnet: { type: azure:vnet, label: vnet-web-prod 10.20.0.0/16, in: rg, cols: 2 }
   snet-app: { type: azure:subnet, label: snet-app-integration, in: vnet }
   snet-pe: { type: azure:subnet, label: snet-pe, in: vnet }
 
@@ -21,25 +22,25 @@ nodes:
   users: { icon: azure:users, label: Users }
   fd: { icon: azure:front-door, label: Azure Front Door, note: WAF policy, in: rg }
   # App Service is a PaaS service outside the VNet; only its integration interface sits in the subnet.
-  app: { icon: azure:app-service, label: App Service, note: Web app, in: rg }
-  vnet-int: { icon: azure:network-interfaces, label: Integration interface, note: Outbound traffic only, in: snet-app }
+  # align puts Front Door, App Service and Application Insights in one row above the VNet.
+  app: { icon: azure:app-service, label: App Service, note: Web app, align: fd, in: rg }
+  vnet-int: { icon: azure:network-interfaces, label: Integration interface, note: "VNet integration, outbound only", in: snet-app }
   pe-sql: { icon: azure:private-endpoint, label: Private endpoint, note: SQL Database, in: snet-pe }
   pe-kv: { icon: azure:private-endpoint, label: Private endpoint, note: Key Vault, in: snet-pe }
+  # Private DNS zones make App Service resolve the private endpoints instead of the public ones.
+  # Listed first of the services so the zones sit under the integration interface.
+  dns: { icon: azure:dns-zones, label: Private DNS zones, note: privatelink zones, in: rg }
   sql: { icon: azure:sql, label: Azure SQL Database, in: rg }
   kv: { icon: azure:key-vault, label: Key Vault, note: Connection secrets, in: rg }
-  # Private DNS zones make App Service resolve the private endpoints instead of the public ones.
-  dns: { icon: azure:dns-zones, label: Private DNS zones, note: privatelink zones, in: rg }
-  insights: { icon: azure:app-insights, label: Application Insights, note: Telemetry, in: rg }
+  insights: { icon: azure:app-insights, label: Application Insights, note: Telemetry, align: fd, in: rg }
 
 edges:
   - users -> fd: HTTPS
   - fd -> app
-  - app -> vnet-int: VNet integration
-  - vnet-int -> pe-sql
+  - app -> vnet-int
+  - vnet-int -> pe-sql: TCP 1433
   - pe-sql -> sql: Private Link
-  - vnet-int -> pe-kv
+  - vnet-int -> pe-kv: HTTPS
   - pe-kv -> kv: Private Link
   - vnet-int -> dns: name resolution
-  # Laid out Insights -> App Service (arrowhead at Insights) so it sits beside Front Door
-  # instead of past the VNet.
-  - { from: insights, to: app, arrow: start, line: dotted }
+  - app ..> insights

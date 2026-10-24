@@ -2,7 +2,7 @@
 title: Microservices e-commerce on Amazon EKS
 subtitle: Edge services in front of an ALB and Amazon Elastic Kubernetes Service microservices, with data stores, order events and platform services
 direction: down
-layout: { layering: simplex }
+layout: { layering: simplex, spacing: compact }
 
 legend:
   solid: Request path
@@ -13,16 +13,16 @@ groups:
   cloud: { type: aws:cloud }
   region: { type: aws:region, label: us-east-1, in: cloud }
   vpc: { type: aws:vpc, in: region }
-  private: { type: aws:private-subnet, label: Private subnets, in: vpc }
+  private: { type: aws:private-subnet, label: Private subnets (App), in: vpc }
   cluster: { type: aws:generic, label: Amazon EKS cluster, icon: aws:elastic-kubernetes-service, in: private }
-  data: { type: aws:private-subnet, label: Data subnets, in: vpc }
+  data: { type: aws:private-subnet, label: Private subnets (Data), in: vpc }
   messaging: { type: aws:generic, label: Async messaging, in: region }
 
 nodes:
   shoppers: { icon: aws:users, label: Shoppers, note: Web and mobile }
   # Route 53, CloudFront and AWS WAF are global services: they sit in the AWS Cloud group, outside the Region.
   dns: { icon: aws:route-53, label: Amazon Route 53, note: DNS, in: cloud }
-  cdn: { icon: aws:cloudfront, label: Amazon CloudFront, in: cloud }
+  cdn: { icon: aws:cloudfront, label: Amazon CloudFront, note: CDN, in: cloud }
   waf: { icon: aws:waf, label: AWS WAF, note: Web ACL, in: cloud }
   alb: { icon: aws:alb, label: Application Load Balancer, note: Public subnets, in: vpc }
   storefront: { icon: aws:eks, label: Storefront, note: Web front end, in: cluster }
@@ -51,8 +51,8 @@ edges:
   - cdn -> alb: { label: origin requests }
   - alb -> storefront
   - storefront -> cart, catalog, orders, payments
-  - cart -> cache
-  - orders -> aurora
+  - cart -> cache: sessions
+  - orders -> aurora: SQL
   - { from: storefront, to: cognito, line: dotted, label: verify tokens }
   - { from: cluster, to: ecr, arrow: start, line: dotted, label: pull images }
   - { from: cluster, to: secrets, arrow: start, line: dotted, label: credentials }

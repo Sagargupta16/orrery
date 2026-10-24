@@ -3,7 +3,9 @@ title: AKS application platform on Azure
 subtitle: Application Gateway in front of AKS, with secrets read through workload identity and logs in Log Analytics
 direction: down
 arrowhead: filled
-layout: { merge: false }
+# Compact spacing keeps the deep nesting (subscription, resource group, VNet, subnet, pool) from
+# stretching the column.
+layout: { merge: false, spacing: compact }
 
 legend:
   solid: Requests and access
@@ -27,7 +29,7 @@ nodes:
   system: { icon: azure:vm-scale-sets, label: System nodes, note: "VM Scale Sets, CoreDNS and add-ons", in: system-pool }
   apps: { icon: azure:vm-scale-sets, label: User nodes, note: "VM Scale Sets, application pods", in: user-pool }
   acr: { icon: azure:acr, label: Container Registry, in: rg }
-  identity: { icon: azure:managed-identity, label: Managed identity, note: Workload identity, in: rg }
+  identity: { icon: azure:managed-identity, label: Managed identity, note: Entra Workload ID, in: rg }
   kv: { icon: azure:key-vault, label: Key Vault, note: App secrets, in: rg }
   logs: { icon: azure:log-analytics, label: Log Analytics, note: Container insights, in: rg }
 
@@ -35,6 +37,6 @@ edges:
   - users -> agw: HTTPS
   - agw -> apps: HTTP to pod IPs (AGIC)
   - apps -> acr: pull images
-  - apps -> identity: token exchange (Entra ID)
+  - apps -> identity: get token
   - apps -> kv: read secrets
-  - system, apps ..> logs
+  - system, apps ..> logs: diagnostics

@@ -14,26 +14,31 @@ groups:
   region: { type: aws:region, label: us-east-1, in: cloud }
   pipeline: { type: aws:step-functions, label: Training pipeline, in: region }
 
+# Each stage is one row (data prep, the pipeline, serving, monitoring): `align` lines a stage's
+# services up side by side, so the figure folds into a block instead of a strip.
 nodes:
-  raw: { icon: aws:s3, label: Raw data lake, note: Amazon Simple Storage Service, in: region }
-  features: { icon: aws:sagemaker-ai, label: Feature pipeline, note: SageMaker AI Processing, in: region }
-  store: { icon: aws:sagemaker-ai, label: Feature Store, note: Offline store, in: region }
+  raw: { icon: aws:s3, label: Amazon Simple Storage Service, note: Raw data lake, in: region }
+  features: { icon: aws:sagemaker-ai, label: SageMaker AI Processing, note: Feature pipeline, in: region, align: raw }
+  store: { icon: aws:sagemaker-ai, label: SageMaker AI Feature Store, note: Offline store, in: region, align: raw }
   train: { icon: aws:sagemaker-ai-train, label: Train, note: SageMaker AI training job, in: pipeline }
-  evaluate: { icon: aws:lambda, label: Evaluate, note: Compare to baseline, in: pipeline }
+  evaluate: { icon: aws:lambda, label: AWS Lambda, note: Compare to baseline, in: pipeline, align: train }
+  # Batch scoring left of the registry and the endpoint right of it: the two ways a model is served.
+  batch: { icon: aws:sagemaker-ai, label: SageMaker AI Batch Transform, note: Nightly scoring, in: region, align: registry }
   registry: { icon: aws:sagemaker-ai-model, label: Model Registry, note: Approved versions, in: region }
-  batch: { icon: aws:sagemaker-ai, label: Batch transform, note: Nightly scoring, in: region }
-  scores: { icon: aws:s3, label: Predictions, note: S3 bucket, in: region }
-  endpoint: { icon: aws:sagemaker-ai, label: Real-time endpoint, note: Online serving, in: region }
+  scores: { icon: aws:s3, label: Amazon S3, note: Predictions, in: region }
+  endpoint: { icon: aws:sagemaker-ai, label: SageMaker AI endpoint, note: Real-time inference, in: region, align: registry }
   monitor: { icon: aws:cloudwatch-alarm, label: Drift alarm, note: Model Monitor and CloudWatch, in: region }
-  retrain: { icon: aws:eventbridge, label: Retraining rule, note: Amazon EventBridge, in: region }
+  retrain: { icon: aws:eventbridge, label: Amazon EventBridge, note: Retraining rule, in: region, align: monitor }
 
 edges:
   - raw -> features -> store
-  - store -> train -> evaluate -> registry
+  - store -> train: training data
+  - train -> evaluate
+  - evaluate -> registry: register model
   - registry -> batch, endpoint
   - batch -> scores
   - endpoint ..> monitor: captured traffic
-  # The retraining loop points back at the pipeline; written in layout order with the
-  # arrowheads at the start so it sits under the serving branch instead of past it.
+  # The retraining loop points back up at the pipeline; written in layout order with the
+  # arrowheads at the start, so the alarm sits under the endpoint and EventBridge beside it.
   - { from: pipeline, to: retrain, arrow: start, line: dashed, label: StartExecution }
   - { from: retrain, to: monitor, arrow: start, line: dashed }

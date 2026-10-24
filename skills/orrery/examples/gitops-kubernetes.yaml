@@ -12,11 +12,13 @@ legend:
   dotted: Monitoring
 
 groups:
-  app-repo: { type: box, label: App repository, icon: github:repo }
+  # Two columns per box: the pull request beside Actions, and each namespace as Ingress -> Service
+  # over Deployment -> Pods, so the figure stays near 3:4 instead of a strip.
+  app-repo: { type: box, label: App repository, icon: github:repo, cols: 2 }
   staging: { type: k8s:cluster, label: Staging cluster }
-  staging-ns: { type: k8s:namespace, label: Namespace shop, in: staging }
+  staging-ns: { type: k8s:namespace, label: Namespace shop, in: staging, cols: 2 }
   prod: { type: k8s:cluster, label: Production cluster }
-  prod-ns: { type: k8s:namespace, label: Namespace shop, in: prod }
+  prod-ns: { type: k8s:namespace, label: Namespace shop, in: prod, cols: 2 }
 
 nodes:
   dev: { icon: generic:user, label: Developer }
@@ -24,24 +26,26 @@ nodes:
   actions: { icon: logos:github-actions, label: GitHub Actions, note: "Build, test, push", in: app-repo }
   registry: { icon: github:container, label: Container registry, note: "ghcr.io, pulled by both" }
   config: { icon: github:repo, label: Config repository, note: Kustomize overlays }
-  argocd: { icon: logos:argo-icon, label: Argo CD, note: Watches config repo }
+  # Argo CD beside the repository it watches and Prometheus beside Grafana: one row above the clusters.
+  argocd: { icon: logos:argo-icon, label: Argo CD, note: Watches config repo, align: config }
   stg-ing: { icon: k8s:ing, label: Ingress, in: staging-ns }
   stg-svc: { icon: k8s:svc, label: Service, in: staging-ns }
-  stg-deploy: { icon: k8s:deploy, label: Deployment, in: staging-ns }
-  stg-pods: { icon: k8s:pod, label: Pods, note: web x2, in: staging-ns }
+  stg-deploy: { icon: k8s:deploy, label: Deployment, note: web, in: staging-ns }
+  stg-pods: { icon: k8s:pod, label: Pods, note: 2 replicas, in: staging-ns }
   prod-ing: { icon: k8s:ing, label: Ingress, in: prod-ns }
   prod-svc: { icon: k8s:svc, label: Service, in: prod-ns }
-  prod-deploy: { icon: k8s:deploy, label: Deployment, in: prod-ns }
-  prod-pods: { icon: k8s:pod, label: Pods, note: web x6, in: prod-ns }
+  prod-deploy: { icon: k8s:deploy, label: Deployment, note: web, in: prod-ns }
+  prod-pods: { icon: k8s:pod, label: Pods, note: 6 replicas, in: prod-ns }
   grafana: { icon: logos:grafana, label: Grafana, note: Dashboards }
-  prometheus: { icon: logos:prometheus, label: Prometheus, note: Metrics and alerts }
+  prometheus: { icon: logos:prometheus, label: Prometheus, note: Metrics and alerts, align: grafana }
 
 edges:
   - dev -> pr: { label: open PR }
   - pr -> actions: { label: merge }
-  - actions -> registry: { label: push image }
+  # The config repository's edge first, so its port sits nearer and the two lines out of Actions do not cross.
   - actions -> config: { label: bump image tag }
-  # Laid out config -> Argo CD so Argo CD sits right of the repository; the arrowhead stays on the repository.
+  - actions -> registry: { label: push image }
+  # The arrowhead stays on the repository: Argo CD pulls from it.
   - { from: config, to: argocd, arrow: start, label: watch }
   - argocd -> staging: { label: auto sync }
   - argocd -> prod: { label: manual sync }

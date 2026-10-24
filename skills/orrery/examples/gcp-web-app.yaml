@@ -4,7 +4,7 @@ subtitle: A global load balancer in front of Cloud Run, with Cloud CDN and Cloud
 direction: down
 # Product cards, as in Google Cloud's own architecture diagrams; one port per edge.
 look: card
-layout: { merge: false }
+layout: { merge: false, spacing: compact }
 
 legend:
   solid: Request traffic
@@ -19,9 +19,11 @@ groups:
 
 nodes:
   users: { icon: generic:users, label: Users, note: Browsers and mobile apps }
+  # Cloud Armor and Cloud CDN flank the load balancer in its row (align), so the request path
+  # runs straight down from Users to Cloud Run.
+  armor: { icon: gcp:cloud-armor, label: Cloud Armor, note: Policy on the LB backend, in: project, align: lb }
   lb: { icon: gcp:cloud-load-balancing, label: Cloud Load Balancing, note: Global external Application LB, in: project }
-  armor: { icon: gcp:cloud-armor, label: Cloud Armor, note: Policy on the LB backend, in: project }
-  cdn: { icon: gcp:cloud-cdn, label: Cloud CDN, note: Static asset cache on the LB backend, in: project }
+  cdn: { icon: gcp:cloud-cdn, label: Cloud CDN, note: Static asset cache on the LB backend, in: project, align: lb }
   run: { icon: gcp:cloud-run, label: Cloud Run, note: web service, in: region }
   sql: { icon: gcp:cloud-sql, label: Cloud SQL, note: PostgreSQL with HA, in: region }
   redis: { icon: gcp:memorystore, label: Memorystore, note: Redis session store, in: vpc }

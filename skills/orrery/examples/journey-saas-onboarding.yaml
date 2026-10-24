@@ -3,13 +3,15 @@ title: SaaS onboarding journey
 subtitle: A new customer's path from first search to the first renewal, with what hurts and what to fix
 kind: journey
 stages: [Discover, Sign up, Set up, First value, Renew]
+layout: { spacing: compact }
 
 legend:
   solid: The customer's path
   dotted: Where it happens, what fixes it
 
 # Each lane is a row; every step names its stage (the column) and the customer's steps carry a
-# score from -2 to 2, which the emotion curve averages per stage.
+# score from -2 to 2, which the emotion curve averages per stage. Only the touchpoints carry an
+# icon, the channel each one is; text cards keep the five columns narrow enough to read on a page.
 groups:
   actions: { type: lane, label: Customer actions }
   touchpoints: { type: lane, label: Touchpoints }
@@ -17,17 +19,17 @@ groups:
   ideas: { type: lane, label: Opportunities, color: "#1a7f37" }
 
 nodes:
-  search: { in: actions, stage: Discover, icon: generic:search, label: Compares tools, note: Reads reviews and a comparison post, score: 1 }
-  trial: { in: actions, stage: Sign up, icon: generic:user, label: Starts a free trial, note: Work email and password, score: -1 }
-  import: { in: actions, stage: Set up, icon: generic:files, label: Imports their data, note: Uploads a CSV export, score: -2 }
-  report: { in: actions, stage: First value, icon: generic:dashboard, label: Shares a first report, note: The moment it clicks, score: 2 }
-  invite: { in: actions, stage: First value, icon: generic:users, label: Invites the team, note: Three more seats, score: 1 }
-  upgrade: { in: actions, stage: Renew, icon: generic:payment, label: Upgrades to a paid plan, note: Before the trial ends, score: 1 }
+  search: { in: actions, stage: Discover, label: Compares tools, note: Reads reviews and a comparison post, score: 1 }
+  trial: { in: actions, stage: Sign up, label: Starts a free trial, note: Work email and password, score: -1 }
+  import: { in: actions, stage: Set up, label: Imports their data, note: Uploads a CSV export, score: -2 }
+  report: { in: actions, stage: First value, label: Shares a first report, note: The moment it clicks, score: 2 }
+  invite: { in: actions, stage: First value, label: Invites the team, note: Three more seats, score: 1 }
+  upgrade: { in: actions, stage: Renew, label: Upgrades to a paid plan, note: Before the trial ends, score: 1 }
 
-  review: { in: touchpoints, stage: Discover, icon: generic:browser, label: Review site, note: G2 and a blog post }
+  review: { in: touchpoints, stage: Discover, icon: generic:browser, label: Review site, note: G2 and blogs }
   form: { in: touchpoints, stage: Sign up, icon: generic:email, label: Sign-up form, note: Verify by email }
   wizard: { in: touchpoints, stage: Set up, icon: generic:etl, label: Import wizard, note: Column mapping }
-  dash: { in: touchpoints, stage: First value, icon: generic:analytics, label: Dashboard, note: Sharing and seat invites }
+  dash: { in: touchpoints, stage: First value, icon: generic:analytics, label: Dashboard, note: Share and invite }
   billing: { in: touchpoints, stage: Renew, icon: generic:notification, label: Trial-end email, note: Links to billing }
 
   spam: { in: pains, stage: Sign up, label: Verification lands in spam, note: A third never confirms }

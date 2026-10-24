@@ -4,7 +4,7 @@ subtitle: Event Hubs streams and Fabric Data Factory batch loads land in Data La
 direction: down
 # Filled triangles, as in Azure's reference diagrams; one port per edge.
 arrowhead: filled
-layout: { merge: false }
+layout: { merge: false, spacing: compact }
 
 legend:
   solid: Data flow
@@ -40,18 +40,19 @@ nodes:
   purview: { icon: generic:compliance, label: Microsoft Purview, note: Data map and classification, in: governance }
 
 edges:
-  - devices -> eh
+  - devices -> eh: events
   # Kept out of the layout so Data Factory sits beside the sources instead of a row below them.
-  - { from: dbs, to: adf, constraint: false }
+  - { from: dbs, to: adf, label: copy, constraint: false }
   - eh -> dbx: Spark streaming
-  - dbx -> bronze
+  - dbx -> bronze: Delta writes
   - adf -> bronze: raw batch
   - bronze -> silver: clean
   - silver -> gold: aggregate
-  - gold -> sqlwh, ml
+  - gold -> sqlwh: SQL
+  - gold -> ml: training data
   - { from: gold, to: onelake, line: dotted, label: mirroring }
-  - sqlwh -> powerbi
+  - sqlwh -> powerbi: DirectQuery
   - onelake -> powerbi: Direct Lake
   # Written from the lake so governance sits below it; the arrowheads stay on the lake.
-  - { from: lake, to: unity, arrow: start, line: dotted }
+  - { from: lake, to: unity, arrow: start, line: dotted, label: access policies }
   - { from: lake, to: purview, arrow: start, line: dotted, label: scan }

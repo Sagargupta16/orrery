@@ -2,7 +2,8 @@
 title: Serverless document pipeline on IBM Cloud Code Engine
 subtitle: Each upload to Object Storage starts a Code Engine job run that writes to PostgreSQL, and an app serves the results
 direction: right
-layout: { spacing: compact }
+# The tightest spacing keeps the five columns inside a README column at full label size.
+layout: { spacing: 0.5 }
 
 # IBM's technical diagram guide asks for a legend in every diagram, so solid lines get one too.
 legend:
@@ -19,7 +20,7 @@ groups:
   project: { type: box, label: Code Engine project, icon: ibm:ibm-cloud-code-engine, in: ibmcloud }
 
 nodes:
-  partners: { icon: ibm:document-import, label: Partner systems, note: Upload over the S3 API }
+  partners: { icon: ibm:document-import, label: Partner systems, note: S3 API uploads }
   staff: { icon: ibm:user-multiple, label: Operations team, note: Browser }
   registry: { icon: ibm:container-registry, label: Container Registry, note: Private images, in: ibmcloud }
   cos: { icon: ibm:object-storage, label: Cloud Object Storage, note: Inbound bucket, in: ibmcloud }
@@ -31,9 +32,9 @@ nodes:
   slack: { icon: logos:slack-icon, label: Slack, note: Destination }
 
 edges:
-  - partners -> cos: PUT object
+  - partners -> cos: PUT
   # A COS event subscription in the project turns each object write into a job run.
-  - cos --> job: object written
+  - cos --> job: write event
   - job -> db: insert
   - staff -> app: HTTPS
   - app -> db: query

@@ -1,7 +1,8 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Video on demand and live streaming on AWS
 subtitle: A VOD lane and a live lane built on AWS Elemental Media Services converge on Amazon CloudFront, with a serverless playback API beside them
-direction: down
+direction: right
+layout: { spacing: 0.7 }
 
 groups:
   cloud: { type: aws:cloud }
@@ -17,7 +18,7 @@ nodes:
   convert: { icon: aws:elemental-mediaconvert, label: AWS Elemental MediaConvert, note: Transcode to ABR, in: vod }
   packaged: { icon: aws:s3-bucket, label: Output bucket, note: HLS and DASH, in: vod }
   encode: { icon: aws:elemental-medialive, label: AWS Elemental MediaLive, note: Live encoding, in: live }
-  origin: { icon: aws:elemental-mediapackage, label: AWS Elemental MediaPackage, note: Just-in-time packaging, in: live }
+  origin: { icon: aws:elemental-mediapackage, label: AWS Elemental MediaPackage, note: JIT packaging, in: live }
   ads: { icon: aws:elemental-mediatailor, label: AWS Elemental MediaTailor, note: Ad insertion, in: live }
   # Players call the playback API before they stream; that hop is left to the notes.
   api: { icon: aws:api-gateway, label: Amazon API Gateway, note: Playback sessions, in: playback }
@@ -25,15 +26,15 @@ nodes:
   sessions: { icon: aws:dynamodb, label: Amazon DynamoDB, note: Sessions, in: playback }
   # CloudFront is a global service: it sits in the AWS Cloud group, outside the Region.
   cdn: { icon: aws:cloudfront, label: Amazon CloudFront, note: Edge delivery, in: cloud }
-  viewers: { icon: aws:mobile-client, label: Viewers, note: Web and mobile players }
+  viewers: { icon: aws:mobile-client, label: Viewers, note: Web and mobile }
 
 edges:
-  # The two lanes and the playback API read top to bottom side by side; the notes on the sources
-  # say what goes into each lane.
+  # The two lanes and the playback API read left to right, one above the other; the notes say
+  # what each service does, so only the hop into CloudFront carries a label.
   - studio -> source
-  - source -[transcode]-> convert -[renditions]-> packaged
+  - source -> convert -> packaged
   - camera -> encode
-  - encode -[HLS]-> origin -[manifests]-> ads
-  - packaged, ads -> cdn
-  - cdn -> viewers: stream
+  - encode -> origin -> ads
+  - packaged, ads -> cdn: origin
+  - cdn -> viewers
   - api -> entitle -> sessions

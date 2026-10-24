@@ -5,8 +5,10 @@ kind: state
 # Top to bottom: left to right, seven states with long transition labels make a strip.
 direction: down
 # One port per transition, as UML draws them; a self-transition then keeps the top of its state.
-layout: { merge: false, spacing: compact }
+layout: { merge: false, spacing: 0.9 }
 
+# The happy path runs down the left; align sets each way out beside the state it leaves, so the
+# cancelled order turns right at Created and a refund sits beside Delivered.
 nodes:
   start: { shape: initial }
   created: { shape: state, label: Created }
@@ -14,10 +16,10 @@ nodes:
   packed: { shape: state, label: Packed }
   shipped: { shape: state, label: Shipped }
   delivered: { shape: state, label: Delivered }
-  cancelled: { shape: state, label: Cancelled }
-  refunded: { shape: state, label: Refunded }
+  cancelled: { shape: state, label: Cancelled, align: created }
+  refunded: { shape: state, label: Refunded, align: delivered }
   end: { shape: final }
-  closed: { shape: final }
+  closed: { shape: final, align: cancelled }
 
 edges:
   - start -> created

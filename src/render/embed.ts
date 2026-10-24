@@ -3,10 +3,12 @@
 //
 // The SVG holds the spec as escaped text, not base64: it stays readable and searchable in the
 // file, a one-line spec edit is a one-line diff, and it costs a few bytes instead of a third more.
-// A carriage return goes in as &#13; because XML parsers fold CRLF into LF. Only a spec with a
-// character XML 1.0 cannot carry at all (a control character other than tab and line breaks,
-// U+FFFE, U+FFFF) goes in as base64, marked encoding="base64". Viewers draw neither: <metadata>
-// renders nothing, and an iTXt chunk is ancillary, so the pixels stay as they were.
+// Line ends go in as LF, so a spec checked out with CRLF on Windows draws the same picture as the
+// LF file git stores; a lone carriage return goes in as &#13; because XML parsers fold it into
+// LF. Only a spec with a character XML 1.0 cannot carry at all (a control character other than
+// tab and line breaks, U+FFFE, U+FFFF) goes in as base64, marked encoding="base64". Viewers draw
+// neither: <metadata> renders nothing, and an iTXt chunk is ancillary, so the pixels stay as they
+// were.
 import { deflateSync, inflateSync } from "node:zlib";
 import { parse } from "yaml";
 
@@ -31,17 +33,21 @@ function embeds(source: string | undefined): source is string {
   }
 }
 
+/** The spec with LF line ends, the way git stores it. */
+const lf = (source: string) => source.replace(/\r\n/g, "\n");
+
 /** The SVG with the spec embedded; unchanged when there is no spec text. */
 export function embedSvgSpec(svg: string, source?: string): string {
   if (!embeds(source)) return svg;
-  const plain = !NOT_XML.test(source);
+  const text = lf(source);
+  const plain = !NOT_XML.test(text);
   const body = plain
-    ? source
+    ? text
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/]]>/g, "]]&gt;")
         .replace(/\r/g, "&#13;")
-    : Buffer.from(source, "utf8").toString("base64");
+    : Buffer.from(text, "utf8").toString("base64");
   const attrs = `xmlns:orrery="${NAMESPACE}" version="${VERSION}"${plain ? "" : ' encoding="base64"'}`;
   const metadata = `\n<metadata><orrery:spec ${attrs}>${body}</orrery:spec></metadata>`;
   // A function, so a `$&` or `$1` in the spec is not read as a replacement pattern.
@@ -59,7 +65,7 @@ export function embedPngSpec(png: Uint8Array, source?: string): Uint8Array {
   const header = [...Buffer.from(KEYWORD, "latin1"), 0, 1, 0, 0, 0];
   const data = concat([
     new Uint8Array(header),
-    deflateSync(Buffer.from(source, "utf8"), { level: 9 }),
+    deflateSync(Buffer.from(lf(source), "utf8"), { level: 9 }),
   ]);
   return concat([png.subarray(0, end.at), chunk("iTXt", data), png.subarray(end.at)]);
 }

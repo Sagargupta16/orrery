@@ -43,9 +43,11 @@ nodes:
   w2: { icon: ibm:kubernetes-worker-node, label: Worker nodes, note: "Router, API pods", in: zone-2 }
   w3: { icon: ibm:kubernetes-worker-node, label: Worker nodes, note: "Router, API pods", in: zone-3 }
   vpe: { icon: ibm:ibm-cloud-vpc-endpoints, label: Virtual Private Endpoints, in: vpc }
+  # Object Storage first, so the backups line takes the outside lane and every endpoint line lands
+  # on its icon's center.
+  cos: { icon: ibm:object-storage, label: Cloud Object Storage, note: Backups and logs, in: services }
   registry: { icon: ibm:container-registry, label: Container Registry, note: Private images, in: services }
   db: { icon: ibm:ibm-cloud-databases, label: Databases for PostgreSQL, note: Multizone, in: services }
-  cos: { icon: ibm:object-storage, label: Cloud Object Storage, note: Backups and logs, in: services }
   secrets: { icon: ibm:ibm-cloud-secrets-manager, label: Secrets Manager, note: Credentials, in: services }
   kp: { icon: ibm:ibm-cloud-key-protect, label: Key Protect, note: HSM-backed, in: services }
   logs: { icon: ibm:cloud-logging, label: IBM Cloud Logs, note: App and audit logs, in: services }

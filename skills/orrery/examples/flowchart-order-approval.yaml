@@ -4,19 +4,21 @@ subtitle: An order that fails the credit check must be paid up front; one over t
 kind: flowchart
 layout: { spacing: compact }
 
+# The approved path runs straight down the middle; each decision's other exit leaves sideways
+# (align puts a step beside the one it names), so the sign-off sits left and prepayment right.
 nodes:
   received: { shape: terminator, label: Order received }
   details: { shape: input, label: Enter order details }
   credit: { shape: predefined, label: Run credit check, note: Credit bureau API }
   credit-ok: { shape: decision, label: Credit OK? }
+  call: { shape: manual, label: Ask for prepayment, note: Phone call, align: credit-ok }
+  sign-off: { shape: manual, label: Manager signs off, align: limit }
   limit: { shape: decision, label: Over the limit? }
-  sign-off: { shape: manual, label: Manager signs off }
-  call: { shape: manual, label: Ask for prepayment, note: Phone call }
-  wait: { shape: delay, label: Wait for payment, note: Up to 48 hours }
-  paid: { shape: decision, label: Paid in time? }
-  rejected: { shape: terminator, label: Order rejected }
+  wait: { shape: delay, label: Wait for payment, note: Up to 48 hours, align: limit }
   reserve: { shape: process, label: Reserve stock }
+  paid: { shape: decision, label: Paid in time?, align: reserve }
   invoice: { shape: document, label: Print invoice }
+  rejected: { shape: terminator, label: Order rejected, align: invoice }
   approved: { shape: terminator, label: Order approved }
 
 edges:

@@ -87,7 +87,7 @@ A single file with no network requests: header with the title, Theme (light/dark
 
 ## The spec inside the picture
 
-Every SVG and PNG carries the spec that drew it: the SVG in `<metadata>` as escaped text (readable, and a one-line spec edit is a one-line diff), the PNG in an `iTXt` chunk named `orrery-spec`. Viewers draw neither, so the pixels are unchanged. `orrery import picture <file>` gives the spec back byte for byte, so a diagram pasted in a wiki or a slide can be edited again. `embed: false` in the spec leaves it out, for pictures that travel outside the team (notes and evidence paths stay private).
+Every SVG and PNG carries the spec that drew it: the SVG in `<metadata>` as escaped text (readable, and a one-line spec edit is a one-line diff), the PNG in an `iTXt` chunk named `orrery-spec`. Viewers draw neither, so the pixels are unchanged. `orrery import picture <file>` gives the spec back as written, with LF line ends (a spec saved with CRLF on Windows embeds the same text as the LF file git stores, so the picture does not depend on the checkout), so a diagram pasted in a wiki or a slide can be edited again. `embed: false` in the spec leaves it out, for pictures that travel outside the team (notes and evidence paths stay private).
 
 ## Design documents
 

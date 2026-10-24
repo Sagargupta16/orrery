@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: IoT streaming analytics on AWS
-subtitle: Sensor telemetry flows through AWS IoT Core into Amazon Kinesis Data Streams, which feeds real-time alerts, a data lake and a time-series store
+subtitle: Sensor telemetry flows through AWS IoT Core into Amazon Kinesis Data Streams, which feeds Amazon Managed Service for Apache Flink for alerts, a data lake and a time-series store
 direction: down
 
 groups:
@@ -19,7 +19,7 @@ nodes:
   greengrass: { icon: aws:iot-greengrass, label: AWS IoT Greengrass, note: Gateway core device, in: site }
   iotcore: { icon: aws:iot-core, label: AWS IoT Core, note: MQTT broker and rules, in: ingestion }
   stream: { icon: aws:kinesis-data-streams, label: Amazon Kinesis Data Streams, note: Telemetry stream, in: ingestion }
-  flink: { icon: aws:flink, label: Anomaly detection, note: Amazon Managed Service for Apache Flink, in: realtime }
+  flink: { icon: aws:flink, label: Managed Service for Apache Flink, note: Anomaly detection, in: realtime }
   alerts: { icon: aws:sns-topic, label: Alerts topic, note: Amazon SNS, in: realtime }
   firehose: { icon: aws:firehose, label: Amazon Data Firehose, note: Batch delivery, in: storage }
   lake: { icon: aws:s3-bucket, label: Data lake, note: Amazon S3 bucket, in: storage }
@@ -32,7 +32,9 @@ edges:
   - { from: sensors, to: greengrass, constraint: false }
   - greengrass -> iotcore: MQTT
   - { from: iotcore, to: stream, constraint: false }
-  - stream -> flink, firehose, tsdb
+  - stream -> flink: analyze
+  - stream -> firehose: deliver
+  - stream -> tsdb: ingest
   - { from: flink, to: alerts, constraint: false }
   - { from: firehose, to: lake, constraint: false }
   - lake -> search: index

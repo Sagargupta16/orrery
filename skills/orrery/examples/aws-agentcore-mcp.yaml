@@ -15,13 +15,13 @@ groups:
 nodes:
   clients: { icon: aws:users, label: MCP clients, note: "Coding agents and IDEs, SigV4-signed" }
   gateway: { icon: aws:bedrock-agentcore, label: AgentCore Gateway, note: IAM authorization, in: region }
-  policy: { icon: aws:bedrock-agentcore, label: AgentCore Policy, note: Cedar rules per tool, in: region }
-  tools: { icon: aws:bedrock-agentcore, label: Tools runtime, note: "AgentCore Runtime, MCP server", in: region }
+  policy: { icon: aws:bedrock-agentcore, label: AgentCore Policy, note: Cedar rules per tool, in: region, align: gateway }
+  outputs: { icon: aws:simple-storage-service-bucket, label: Outputs bucket, note: Figures and documents, in: region, align: tools }
+  tools: { icon: aws:bedrock-agentcore, label: AgentCore Runtime, note: Tools MCP server, in: region }
+  bedrock: { icon: aws:bedrock, label: Amazon Bedrock, note: "Claude model, guardrail", in: region, align: harness }
   harness: { icon: aws:bedrock-agentcore, label: AgentCore harness, note: Managed agent loop, in: region }
-  outputs: { icon: aws:simple-storage-service-bucket, label: Outputs bucket, note: Figures and documents, in: region }
-  bedrock: { icon: aws:bedrock, label: Amazon Bedrock, note: "Claude model, guardrail", in: region }
-  memory: { icon: aws:bedrock-agentcore, label: AgentCore Memory, note: Session context, in: region }
-  logs: { icon: aws:cloudwatch, label: Amazon CloudWatch, note: Traces and alarms, in: region }
+  memory: { icon: aws:bedrock-agentcore, label: AgentCore Memory, note: Session context, in: region, align: harness }
+  logs: { icon: aws:cloudwatch, label: Amazon CloudWatch, note: Traces and alarms, in: region, align: harness }
   # The AWS Knowledge MCP server is a global AWS endpoint: in the AWS Cloud, outside the Region.
   knowledge: { icon: aws:document, label: AWS Knowledge MCP server, note: AWS documentation, in: cloud }
 

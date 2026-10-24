@@ -25,10 +25,10 @@ nodes:
   firehose: { icon: aws:firehose, label: Amazon Data Firehose, in: region }
   dms: { icon: aws:dms, label: AWS Database Migration Service, note: Change data capture, in: region }
   raw: { icon: aws:simple-storage-service-bucket, label: Raw bucket, note: "Amazon S3, JSON and CSV", in: raw-zone }
-  clean: { icon: aws:glue, label: Clean and convert, note: AWS Glue job, in: curated-zone }
+  clean: { icon: aws:glue, label: AWS Glue, note: Clean and convert job, in: curated-zone }
   curated: { icon: aws:simple-storage-service-bucket, label: Curated bucket, note: Parquet, in: curated-zone }
   analytics: { icon: aws:simple-storage-service-bucket, label: Analytics bucket, note: Iceberg tables, in: analytics-zone }
-  aggregate: { icon: aws:glue, label: Aggregate, note: AWS Glue job, in: analytics-zone }
+  aggregate: { icon: aws:glue, label: AWS Glue, note: Aggregate job, in: analytics-zone }
   crawler: { icon: aws:glue-crawler, label: AWS Glue crawlers, note: Discover table schemas, in: governance }
   catalog: { icon: aws:glue-data-catalog, label: AWS Glue Data Catalog, in: governance }
   lf: { icon: aws:lake-formation, label: AWS Lake Formation, note: Permissions, in: governance }

@@ -10,23 +10,23 @@ legend:
 groups:
   cloud: { type: aws:cloud }
   region: { type: aws:region, label: us-east-1, in: cloud }
-  api-tier: { type: zone, label: API, in: region }
   retrieval: { type: zone, label: Retrieval, in: region }
   ops: { type: zone, label: Security and operations, in: region }
 
 nodes:
   users: { icon: aws:users, label: Users, note: Chat and app clients }
   # CloudFront and AWS WAF are global services: they sit in the AWS Cloud group, outside the Region.
-  cdn: { icon: aws:cloudfront, label: Amazon CloudFront, in: cloud }
+  cdn: { icon: aws:cloudfront, label: Amazon CloudFront, note: Edge network, in: cloud }
   waf: { icon: aws:waf, label: AWS WAF, note: Web ACL, in: cloud }
-  auth: { icon: aws:cognito, label: Amazon Cognito, note: User pool, in: api-tier }
-  api: { icon: aws:api-gateway, label: Amazon API Gateway, note: Inference API, in: api-tier }
-  cache: { icon: aws:elasticache, label: Amazon ElastiCache, note: Prompt cache, in: api-tier }
-  orch: { icon: aws:lambda, label: RAG orchestrator, note: AWS Lambda, in: region }
-  embed: { icon: aws:sagemaker-ai, label: Embeddings endpoint, note: Amazon SageMaker AI, in: retrieval }
+  # One request row: Cognito, API Gateway, the orchestrator and its prompt cache side by side.
+  auth: { icon: aws:cognito, label: Amazon Cognito, note: User pool, in: region }
+  api: { icon: aws:api-gateway, label: Amazon API Gateway, in: region }
+  orch: { icon: aws:lambda, label: AWS Lambda, note: RAG orchestrator, in: region, align: api }
+  cache: { icon: aws:elasticache, label: Amazon ElastiCache, note: Prompt cache, in: region, align: api }
+  embed: { icon: aws:sagemaker-ai, label: Amazon SageMaker AI, note: Embeddings endpoint, in: retrieval }
   vector: { icon: aws:opensearch-service-index, label: Vector index, note: Amazon OpenSearch Service, in: retrieval }
   corpus: { icon: aws:s3-bucket, label: Corpus and model artifacts, note: Amazon S3, in: retrieval }
-  llm: { icon: aws:sagemaker-ai, label: LLM endpoint, note: SageMaker JumpStart model, in: region }
+  llm: { icon: aws:sagemaker-ai, label: Amazon SageMaker AI, note: LLM endpoint (JumpStart), in: region }
   sessions: { icon: aws:dynamodb, label: Amazon DynamoDB, note: Chat history, in: region }
   secrets: { icon: aws:secrets-manager, label: AWS Secrets Manager, note: Endpoint credentials, in: ops }
   cw: { icon: aws:cloudwatch, label: Amazon CloudWatch, note: Model latency, in: ops }
@@ -34,13 +34,13 @@ nodes:
 
 edges:
   - users -> cdn: { label: HTTPS }
-  # constraint: false keeps WAF beside CloudFront, Cognito and the cache beside API Gateway, and
-  # the corpus beside the index it feeds.
+  # constraint: false keeps WAF beside CloudFront, Cognito beside API Gateway and the corpus
+  # beside the index it feeds.
   - { from: waf, to: cdn, line: dotted, constraint: false }
   - cdn -> api: { label: /chat }
   - { from: auth, to: api, line: dotted, constraint: false }
-  - { from: api, to: cache, arrow: both, constraint: false }
   - api -> orch: { label: invoke }
+  - orch -> cache: lookup
   - orch -> embed: { label: embed query }
   - orch -> vector: { label: retrieve }
   - orch -> llm: { label: generate }

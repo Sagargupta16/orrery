@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "orrery",
   "display_name": "Orrery",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Architecture and system design diagrams with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons, laid out automatically and rendered to SVG, PNG, draw.io, React TSX and HTML.",
   "long_description": "Describe a system and Claude writes an orrery spec (a short YAML file), checks it, and renders it with the vendors' own icons. A measured review scores the diagram at the width readers see it and proposes spec fixes. Everything runs on your machine with no API key: the renderer, the icon catalogs and the fonts ship in the bundle, and only the optional logo and symbol sets download on first use.\n\nOutputs: SVG (animated or still), PNG, editable draw.io, a React TSX component and a standalone HTML page, plus a link that opens the diagram in diagrams.net.",
   "author": {

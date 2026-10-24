@@ -16,36 +16,35 @@ groups:
   tenant-a: { type: zone, label: Tenant A, in: data }
   tenant-b: { type: zone, label: Tenant B, in: data }
   tenant-c: { type: zone, label: Tenant C, in: data }
-  pipeline: { type: zone, label: Shared ML pipeline, in: region }
-  ingest: { type: aws:generic, label: Ingest and ETL, in: pipeline }
-  serve: { type: aws:generic, label: Train and serve, in: pipeline }
+  # cols: 5 lays the pipeline out as one row under the silos.
+  pipeline: { type: zone, label: Shared ML pipeline, in: region, cols: 5 }
 
 nodes:
   tenants: { icon: aws:users, label: Tenant users, note: Tenants A to C }
   auth: { icon: aws:cognito, label: Amazon Cognito, note: Pool per tenant, in: control }
   api: { icon: aws:api-gateway, label: Amazon API Gateway, in: control }
-  router: { icon: aws:lambda, label: Tenant router, note: AWS Lambda, in: region }
+  # align keeps the router in the control plane's row, after API Gateway.
+  router: { icon: aws:lambda, label: AWS Lambda, note: Tenant router, in: control, align: api }
   db-a: { icon: aws:aurora, label: Amazon Aurora, note: Tenant A data, in: tenant-a }
   db-b: { icon: aws:aurora, label: Amazon Aurora, note: Tenant B data, in: tenant-b }
   db-c: { icon: aws:aurora, label: Amazon Aurora, note: Tenant C data, in: tenant-c }
-  stream: { icon: aws:kinesis-data-streams, label: Amazon Kinesis Data Streams, note: Change events, in: ingest }
-  etl: { icon: aws:glue, label: AWS Glue, note: ETL jobs, in: ingest }
-  lake: { icon: aws:s3-bucket, label: Data lake, note: Amazon S3, in: ingest }
-  train: { icon: aws:sagemaker-ai-train, label: Training job, note: Amazon SageMaker AI, in: serve }
-  registry: { icon: aws:sagemaker-ai-model, label: Model registry, note: Versioned models, in: serve }
-  endpoint: { icon: aws:sagemaker-ai, label: Inference endpoint, note: Real-time predictions, in: serve }
+  # The endpoint the router calls sits beside the silos, level with the other request targets.
+  endpoint: { icon: aws:sagemaker-ai, label: Amazon SageMaker AI, note: Inference endpoint, in: region }
+  stream: { icon: aws:kinesis-data-streams, label: Amazon Kinesis Data Streams, note: Change events, in: pipeline }
+  etl: { icon: aws:glue, label: AWS Glue, note: ETL jobs, in: pipeline }
+  lake: { icon: aws:s3-bucket, label: Data lake, note: Amazon S3, in: pipeline }
+  train: { icon: aws:sagemaker-ai-train, label: Training job, note: Amazon SageMaker AI, in: pipeline }
+  registry: { icon: aws:sagemaker-ai-model, label: Model registry, note: Versioned models, in: pipeline }
 
 edges:
   - tenants ..> auth: sign in
-  - tenants -> api: { label: requests }
-  # constraint: false keeps Cognito beside API Gateway and each pipeline row side by side.
+  - tenants -> api: requests
+  # constraint: false keeps Cognito beside API Gateway.
   - { from: auth, to: api, line: dotted, constraint: false }
-  - api -> router: { label: tenant context }
-  - router -> db-a, db-b, db-c
-  - db-a, db-b, db-c -> stream
-  - { from: stream, to: etl, constraint: false }
-  - { from: etl, to: lake, constraint: false }
-  - lake -> train: training data
-  - { from: train, to: registry, constraint: false }
-  - { from: registry, to: endpoint, constraint: false }
-  - router -> endpoint: { label: predict }
+  - api -> router: tenant context
+  # One arrow into the silos box and one out of it say what an arrow per tenant would.
+  - router -> data: tenant's own database
+  - router -> endpoint: predict
+  - data -> stream: change events
+  - stream -> etl -> lake -> train -> registry
+  - endpoint -> registry: loads model

@@ -2,7 +2,9 @@
 title: Multi-cloud with a shared identity provider
 subtitle: One Okta tenant signs users in to AWS, Google Cloud and Azure; private interconnects meet at a colocation router
 direction: down
-layout: { merge: false }
+# Compact spacing and short network labels keep the three frames side by side under 1140px,
+# so the labels stay readable in an 880px README column.
+layout: { merge: false, spacing: compact }
 
 legend:
   solid: Network link, traffic both ways
@@ -11,14 +13,14 @@ legend:
 groups:
   aws: { type: aws:cloud }
   aws-region: { type: aws:region, label: us-east-1, in: aws }
-  aws-vpc: { type: aws:vpc, label: Orders VPC 10.10.0.0/16, in: aws-region }
+  aws-vpc: { type: aws:vpc, label: VPC 10.10.0.0/16, in: aws-region }
   gcloud: { type: gcp:cloud }
   gcp-project: { type: gcp:project, label: Project analytics, in: gcloud }
   gcp-vpc: { type: gcp:vpc, label: VPC network, in: gcp-project }
   tenant: { type: azure:tenant, label: Microsoft Entra tenant }
   azure: { type: azure:subscription, label: Azure subscription, in: tenant }
   azure-rg: { type: azure:resource-group, label: rg-partner-portal, in: azure }
-  azure-vnet: { type: azure:vnet, label: vnet-partner 10.20.0.0/16, in: azure-rg }
+  azure-vnet: { type: azure:vnet, label: VNet 10.20.0.0/16, in: azure-rg }
 
 nodes:
   idp: { icon: logos:okta-icon, label: Okta, note: Workforce identity }
@@ -28,7 +30,8 @@ nodes:
   cloud-router: { icon: gcp:cloud-router, label: Cloud Router, in: gcp-vpc }
   portal: { icon: azure:app-service, label: Azure App Service, note: Partner portal, in: azure-rg }
   pe: { icon: azure:private-endpoint, label: Private endpoint, note: App Service, in: azure-vnet }
-  er-gw: { icon: azure:virtual-network-gateways, label: ExpressRoute gateway, in: azure-vnet }
+  # Beside the private endpoint, so the Azure frame is no deeper than the other two.
+  er-gw: { icon: azure:virtual-network-gateways, label: ExpressRoute gateway, in: azure-vnet, align: pe }
   # The circuits sit outside the cloud frames, as in the hybrid examples.
   dx: { icon: aws:direct-connect, label: AWS Direct Connect }
   interconnect: { icon: gcp:partner-interconnect, label: Partner Interconnect }
@@ -41,13 +44,14 @@ edges:
   - idp --> aws: SAML
   - idp --> gcloud: OIDC
   - idp --> tenant: SAML
-  - orders -- dxgw
-  - dxgw -- dx
+  # Every link that leaves a frame names how it joins: the attachment inside, the circuit outside.
+  - orders -- dxgw: VGW association
+  - dxgw -- dx: private VIF
   - analytics -- cloud-router: Private Google Access
-  - cloud-router -- interconnect
+  - cloud-router -- interconnect: VLAN attachment
   - portal -- pe: Private Link
   - pe -- er-gw
-  - er-gw -- er
-  - dx -- router: private VIF
-  - interconnect -- router: VLAN attachment
+  - er-gw -- er: connection
+  - dx -- router: cross-connect
+  - interconnect -- router: service provider
   - er -- router: private peering

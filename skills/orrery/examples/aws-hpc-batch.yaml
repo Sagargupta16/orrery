@@ -32,6 +32,7 @@ edges:
   - { from: events, to: workflow, constraint: false }
   - { from: workflow, to: batch, constraint: false }
   - batch -> compute: { label: run jobs }
-  - input <-> fsx: import and export
-  - { from: fsx, to: compute, arrow: both, constraint: false }
-  - batch --> logs
+  # FSx for Lustre imports from and exports to the bucket; the jobs mount the file system.
+  - { from: input, to: fsx, arrow: start, label: import and export }
+  - { from: fsx, to: compute, arrow: start, constraint: false }
+  - batch --> logs: job logs

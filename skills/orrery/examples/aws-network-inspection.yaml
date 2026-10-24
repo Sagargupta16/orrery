@@ -2,6 +2,7 @@
 title: Hub-and-spoke network with central inspection on AWS
 subtitle: Workload VPCs attach to a Transit Gateway that sends their internet traffic through Network Firewall in an inspection VPC; the data center joins the same hub over VPN
 direction: down
+layout: { spacing: 0.9 }
 
 legend:
   solid: Egress traffic, inspected
@@ -15,7 +16,7 @@ groups:
   vpc-b: { type: aws:vpc, label: VPC B 10.2.0.0/16, in: spokes }
   vpc-c: { type: aws:vpc, label: VPC C 10.3.0.0/16, in: spokes }
   inspection: { type: aws:vpc, label: Inspection VPC, in: region }
-  firewall-subnet: { type: aws:private-subnet, label: Firewall subnet, in: inspection }
+  firewall-subnet: { type: aws:private-subnet, label: Private subnet (Firewall), in: inspection }
   public-subnet: { type: aws:public-subnet, label: Public subnet, in: inspection }
   dc: { type: aws:corporate-dc, label: Corporate data center }
 
@@ -34,10 +35,13 @@ nodes:
 
 edges:
   - spokes -> tgw: { label: VPC attachments }
-  - tgw -> firewall: { label: inspect }
-  # constraint: false keeps the inspection VPC one row deep: firewall, NAT and internet gateway side by side.
+  # The inspection VPC's attachment is the arrow to its border, so the firewall subnet's header
+  # has no arrow through it.
+  - tgw -> inspection: { label: inspect }
+  # constraint: false keeps the firewall and NAT subnets side by side; the internet gateway sits
+  # under the NAT gateway, on the way out.
   - firewall -> nat: { constraint: false }
-  - nat -> igw: { constraint: false }
+  - nat -> igw
   - igw -> internet: { label: public }
   - tgw --- vpn: VPN attachment
   - vpn --- cgw: IPsec

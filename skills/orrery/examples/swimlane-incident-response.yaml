@@ -17,8 +17,10 @@ nodes:
 
   declare: { shape: process, label: Declare an incident, in: lead }
   mitigate: { shape: process, label: Coordinate mitigation, in: lead }
-  resolved: { shape: decision, label: Resolved?, in: lead }
-  review: { shape: process, label: Schedule the postmortem, in: lead }
+  # align puts a step in the same row as the one it names: the lead's check sits beside the
+  # half-hourly updates, and the postmortem is scheduled straight across from the all clear.
+  resolved: { shape: decision, label: Resolved?, in: lead, align: update }
+  review: { shape: process, label: Schedule the postmortem, in: lead, align: allclear }
   closed: { shape: terminator, label: Incident closed, in: lead }
 
   status: { shape: process, label: Post a status page update, in: comms }

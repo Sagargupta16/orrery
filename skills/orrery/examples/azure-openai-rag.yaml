@@ -23,8 +23,8 @@ groups:
   ingestion: { type: zone, label: Ingestion, in: rg }
 
 nodes:
-  users: { icon: azure:users, label: Users }
-  entra: { icon: azure:entra-managed-identities, label: Microsoft Entra ID, note: Sign-in and managed identities }
+  users: { icon: azure:users, label: Users, note: Browser }
+  entra: { icon: azure:entra-managed-identities, label: Microsoft Entra ID, note: Managed identities }
   kv: { icon: azure:key-vaults, label: Key Vault, note: TLS certificate, in: rg }
   agw: { icon: azure:application-gateways, label: Application Gateway, note: WAF and TLS termination, in: snet-agw }
   app: { icon: azure:container-apps-environments, label: Container Apps, note: Chat UI and orchestrator, in: snet-aca }
@@ -38,13 +38,14 @@ nodes:
   insights: { icon: azure:application-insights, label: Application Insights, note: Log Analytics workspace, in: rg }
   chat: { icon: azure:azure-openai, label: Azure OpenAI, note: Chat deployment, in: rg }
   index: { icon: azure:cognitive-search, label: Azure AI Search, note: Vector and keyword index, in: rg }
-  embed: { icon: azure:azure-openai, label: Azure OpenAI, note: Embedding deployment, in: rg }
+  # align keeps the embedding deployment in the index's row, with room for the vectorizer label.
+  embed: { icon: azure:azure-openai, label: Azure OpenAI, note: Embedding deployment, align: index, in: rg }
 
 edges:
-  # Sign-in and the vectorizer call stay out of the layout, so they run sideways instead of adding rows.
+  # Sign-in stays out of the layout, so it runs sideways instead of adding a row.
   - { from: users, to: entra, line: dashed, constraint: false }
   - users -> agw: HTTPS
-  - agw -> pe-kv
+  - agw -> pe-kv: get certificate
   - pe-kv -> kv: TLS certificate
   - agw -> app: HTTPS
   - app -> pe-oai
@@ -52,7 +53,7 @@ edges:
   - pe-oai -> chat: prompt with top results
   - pe-search -> index: hybrid query
   # The index's vectorizer turns the query text into a vector with the same embedding model.
-  - { from: index, to: embed, label: vectorize query, constraint: false }
+  - index -> embed: vectorize query
   # The indexer pulls from Blob Storage on a schedule, so the arrow starts at the indexer.
   - { from: docs, to: indexer, arrow: start, label: pull documents }
   - indexer -> index: index chunks

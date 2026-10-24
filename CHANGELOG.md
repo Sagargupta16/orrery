@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.12.1] - 2026-10-24
+
+### Changed
+
+- **The examples are laid out again for the 64 px icons.** 0.12.0 only re-rendered them, so many had become tall strips or canvases too wide to read at 880 px. 64 of the 77 specs change; the other 13 already met the bar. Tall ones fold branches beside the main path (`align`, `cols`, a turned `direction`), wide ones narrow so labels stay readable in a README column, labels take the vendors' service names, and edges that cross a boundary say what they carry. Reviewed at 880 px, the mean score goes from 97.0 to 98.7 (lowest 91.4 to 92.4), 62 examples score 98 or more (was 32), none drops and all pass. Canvases wider than 1145 px go from 19 to 3, strips taller than 2:1 from 20 to 2, labels under 10 px from 19 to 3, conventions findings from 43 to 1 and all findings from 391 to 211. The org chart draws its people and teams as 64 px icons, the mind map puts icons on its root and workstreams, and the order-to-cash lanes run Sales, Finance, Warehouse, so the invoice and payment messages cross one lane fewer.
+
+### Fixed
+
+- A spec saved with CRLF line ends (a Windows checkout with `core.autocrlf`) put every carriage return into its SVG as `&#13;`, so one committed spec drew a different file on Windows than on Linux. Pictures now carry the spec with LF line ends, the way git stores it, and `orrery import picture` gives it back that way; a lone carriage return is still kept.
+
 ## [0.12.0] - 2026-10-23
 
 ### Changed

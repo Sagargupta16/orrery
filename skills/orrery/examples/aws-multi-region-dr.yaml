@@ -18,7 +18,7 @@ nodes:
   users: { icon: aws:users, label: Users, note: Worldwide }
   # Route 53 and Global Accelerator are global services: in the AWS Cloud, outside both Regions.
   dns: { icon: aws:route-53, label: Amazon Route 53, note: "Latency routing, health checks", in: cloud }
-  accel: { icon: aws:global-accelerator, label: AWS Global Accelerator, note: Anycast entry points, in: cloud }
+  accel: { icon: aws:global-accelerator, label: AWS Global Accelerator, note: Anycast entry points, in: cloud, align: dns }
   alb-east: { icon: aws:elastic-load-balancing-application-load-balancer, label: Application Load Balancer, in: east }
   eks-east: { icon: aws:elastic-kubernetes-service, label: Amazon Elastic Kubernetes Service, note: App pods, in: east }
   aurora-east: { icon: aws:aurora, label: Amazon Aurora, note: Global database, in: data-east }
@@ -34,7 +34,9 @@ edges:
   - users -> dns: resolve
   - dns -> accel: route
   - accel -> alb-east, alb-west: healthy Region
-  - alb-east -> eks-east -> aurora-east, table-east, bucket-east
-  - alb-west -> eks-west -> aurora-west, table-west, bucket-west
+  # One arrow to each data tier says what three arrows into its stores would.
+  - alb-east -> eks-east -[read and write]-> data-east
+  - alb-west -> eks-west -[read and write]-> data-west
   # The two Regions sit side by side; constraint: false keeps the replication link from stacking them.
-  - { from: data-east, to: data-west, line: dashed, arrow: both, constraint: false }
+  # Replication runs both ways, so the line has no heads; the legend says what it is.
+  - { from: data-east, to: data-west, line: dashed, arrow: none, constraint: false }

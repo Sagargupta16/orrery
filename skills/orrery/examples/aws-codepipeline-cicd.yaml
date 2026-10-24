@@ -10,7 +10,7 @@ legend:
 groups:
   cloud: { type: aws:cloud }
   region: { type: aws:region, label: us-east-1, in: cloud }
-  pipeline: { type: aws:generic, label: AWS CodePipeline, icon: aws:codepipeline, in: region }
+  pipeline: { type: aws:generic, label: AWS CodePipeline, in: region }
 
 nodes:
   dev: { icon: aws:user, label: Developer, note: git push }
@@ -18,17 +18,17 @@ nodes:
   github: { icon: aws:git-repository, label: GitHub, note: AWS CodeConnections }
   build: { icon: aws:codebuild, label: AWS CodeBuild, note: Build and test, in: pipeline }
   deploy-stg: { icon: aws:codedeploy, label: AWS CodeDeploy, note: Deploy to staging, in: pipeline }
-  approval: { icon: aws:sns, label: Approval gate, note: Amazon Simple Notification Service, in: pipeline }
+  approval: { icon: aws:sns, label: Amazon Simple Notification Service, note: Approval gate, in: pipeline }
   deploy-prd: { icon: aws:codedeploy, label: AWS CodeDeploy, note: Deploy to production, in: pipeline }
   ecr: { icon: aws:ecr, label: Amazon Elastic Container Registry, note: Image registry, in: region }
-  ecs-stg: { icon: aws:ecs, label: Staging service, note: Amazon ECS on AWS Fargate, in: region }
-  ecs-prd: { icon: aws:ecs, label: Production service, note: Amazon ECS on AWS Fargate, in: region }
+  ecs-stg: { icon: aws:ecs, label: Amazon ECS, note: Staging service on AWS Fargate, in: region }
+  ecs-prd: { icon: aws:ecs, label: Amazon ECS, note: Production service on AWS Fargate, in: region }
   cw: { icon: aws:cloudwatch, label: Amazon CloudWatch, note: Logs and alarms, in: region }
 
 edges:
   # constraint: false keeps the developer beside the repository and the four stages in one row.
   - { from: dev, to: github, constraint: false }
-  - github -> build: { label: source }
+  - github -> pipeline: { label: source }
   - { from: build, to: deploy-stg, constraint: false }
   - { from: deploy-stg, to: approval, constraint: false }
   - { from: approval, to: deploy-prd, constraint: false }
@@ -36,7 +36,6 @@ edges:
   - build -> ecr: { label: push image }
   - deploy-stg -> ecs-stg: { label: deploy }
   - deploy-prd -> ecs-prd: { label: deploy }
-  # CodeDeploy watches CloudWatch alarms (dashed, unlabelled) and rolls back a failing release. Both edges are free, so
-  # CloudWatch sits beside the pipeline, level with the production stage.
-  - { from: cw, to: deploy-prd, line: dashed, constraint: false }
-  - { from: ecs-prd, to: cw, line: dashed, label: metrics, constraint: false }
+  # CodeDeploy watches the CloudWatch alarms and rolls back a failing release.
+  - deploy-prd --> cw: alarms
+  - ecs-prd --> cw: metrics
