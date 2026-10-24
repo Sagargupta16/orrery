@@ -1,5 +1,5 @@
 // Every picture carries its spec: an SVG in <metadata>, a PNG in an iTXt chunk, and
-// `orrery import picture` reads it back byte for byte, while the picture draws exactly as before.
+// `orrery import picture` reads it back with LF line ends, while the picture draws exactly as before.
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -119,19 +119,31 @@ describe("SVG", () => {
     expect(file.replace(METADATA, "")).toBe(svgOf("classic plain", theme, "drawio.svg"));
   });
 
-  it("escapes markup, CRLF and replacement patterns, and reads every one back", () => {
+  it("escapes markup, a lone CR and replacement patterns, and reads every one back", () => {
     const text = [
       'title: "a & b <c> ]]> </orrery:spec> $& $1 $$ &amp;"',
       `subtitle: caf${String.fromCharCode(0xe9)} ${String.fromCodePoint(0x1d11e)}`,
+      "note: one\rtwo",
       "edges: [a -> b]",
       "",
-    ].join("\r\n");
+    ].join("\n");
     const svg = embedSvgSpec('<svg xmlns="http://www.w3.org/2000/svg"><g/></svg>', text);
     expect(xmlProblems(svg)).toEqual([]);
     expect(svg).not.toContain("base64");
-    expect(svg).toContain("&#13;\n");
+    expect(svg).toContain("one&#13;two");
     expect(svg).toContain("a -> b");
     expect(extractSpec(svg)).toBe(text);
+  });
+
+  it("embeds a CRLF spec with LF line ends, as git stores it", () => {
+    const text = "title: Windows\nedges: [a -> b]\n";
+    const root = '<svg xmlns="http://www.w3.org/2000/svg"/>';
+    const svg = embedSvgSpec(root, text.replace(/\n/g, "\r\n"));
+    expect(svg).toBe(embedSvgSpec(root, text));
+    expect(svg).not.toContain("&#13;");
+    expect(extractSpec(svg)).toBe(text);
+    const png = embedPngSpec(pngOf("classic plain", "light"), text.replace(/\n/g, "\r\n"));
+    expect(extractSpec(png)).toBe(text);
   });
 
   it("falls back to base64 for a character XML cannot carry", () => {
@@ -243,10 +255,10 @@ describe("orrery import picture", () => {
   });
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-  it.each(["x.svg", "x.png"])("gives back the spec that drew %s, byte for byte", (file) => {
+  it.each(["x.svg", "x.png"])("gives back the spec that drew %s, with LF line ends", (file) => {
     const r = cli("import", "picture", file);
     expect(r.status).toBe(0);
-    expect(r.stdout).toBe(text);
+    expect(r.stdout).toBe(SAMPLE);
   });
 
   it("stops with a usage error on a picture that carries no spec", () => {

@@ -1,23 +1,26 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Order to cash
-subtitle: A customer order through sales, the warehouse and finance in BPMN 2.0, with message flows between the two participants
+subtitle: A customer order through sales, finance and the warehouse in BPMN 2.0, with message flows between the two participants
 kind: process
 # Pools run top to bottom here, so the collaboration reads on a phone; direction: right lays the
 # same spec out as horizontal bands.
 direction: down
 layout: { spacing: compact }
 
+# Finance before the warehouse: the invoice and the payment then pass only the sales lane, idle by
+# that time, so the goods are the one message that crosses a sequence flow.
 groups:
   customer: { type: pool, label: Customer }
   supplier: { type: pool, label: Supplier }
   sales: { type: lane, in: supplier, label: Sales }
-  warehouse: { type: lane, in: supplier, label: Warehouse }
   finance: { type: lane, in: supplier, label: Finance }
+  warehouse: { type: lane, in: supplier, label: Warehouse }
 
 nodes:
   need: { bpmn: start, label: Goods needed, in: customer }
   place: { bpmn: user-task, label: Place order, in: customer }
-  pay: { bpmn: user-task, label: Pay invoice, in: customer }
+  # The customer pays while the goods are on their way.
+  pay: { bpmn: user-task, label: Pay invoice, in: customer, align: ship }
   receive: { bpmn: receive-task, label: Receive goods, in: customer }
   done: { bpmn: end, label: Order fulfilled, in: customer }
 

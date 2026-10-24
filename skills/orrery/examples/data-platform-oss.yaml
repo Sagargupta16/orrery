@@ -22,19 +22,20 @@ nodes:
   # Airflow stays outside the zones so Transform stays as narrow as its one node.
   airflow: { icon: logos:airflow-icon, label: Apache Airflow, note: Orchestration }
   dbt: { icon: logos:dbt-icon, label: dbt, note: SQL models on Trino, in: transform }
-  saas: { icon: generic:api, label: SaaS APIs, note: CRM and billing, in: sources }
   postgres: { icon: logos:postgresql, label: PostgreSQL, note: Orders, in: sources }
   mysql: { icon: logos:mysql-icon, label: MySQL, note: Inventory, in: sources }
-  airbyte: { icon: si:airbyte, label: Airbyte, note: API syncs, in: ingest }
+  saas: { icon: generic:api, label: SaaS APIs, note: CRM and billing, in: sources }
+  # Kafka between its two feeds on one row, under the databases and the APIs they read; Flink below it.
   # No Debezium mark in the packs: a neutral glyph with the product name.
   debezium: { icon: tabler:database-export, label: Debezium, note: Change data capture, in: ingest }
-  kafka: { icon: logos:kafka-icon, label: Apache Kafka, note: Event streams, in: ingest }
+  kafka: { icon: logos:kafka-icon, label: Apache Kafka, note: Event streams, in: ingest, align: debezium }
+  airbyte: { icon: si:airbyte, label: Airbyte, note: API syncs, in: ingest, align: debezium }
   flink: { icon: logos:apache-flink-icon, label: Apache Flink, note: Stream processing, in: ingest }
   iceberg: { icon: tabler:iceberg, label: Apache Iceberg, note: Lakehouse tables, in: ceph }
   # Flink and Trino share the Iceberg tables through one catalog.
   catalog: { icon: si:apachehive, label: Hive Metastore, note: Iceberg catalog, in: store }
   trino: { icon: si:trino, label: Trino, note: Reads and writes tables, in: serve }
-  superset: { icon: logos:apache-superset-icon, label: Apache Superset, note: Dashboards, in: serve }
+  superset: { icon: logos:apache-superset-icon, label: Apache Superset, note: Dashboards, in: serve, align: trino }
 
 edges:
   - saas -> airbyte: REST API

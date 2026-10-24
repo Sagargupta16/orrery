@@ -22,14 +22,18 @@ groups:
 nodes:
   staff: { icon: ibm:user-multiple, label: Employees, note: Chat }
   docs: { icon: ibm:object-storage, label: Cloud Object Storage, note: Policy and product documents, in: ibmcloud }
+  # align puts governance and the model in the agent's row, on either side of it, so the agent's
+  # monitoring and prompt lines stay short.
+  gov: { icon: ibm:watsonx-governance, label: watsonx.governance, note: Evaluations and guardrail metrics, align: agent, in: ibmcloud }
   agent: { icon: ibm:ibm-watsonx-orchestrate, label: watsonx Orchestrate, note: Support agent, in: ibmcloud }
   langflow: { icon: si:langflow, label: Langflow, note: Ingest and retrieval flows, in: openrag }
   search: { icon: logos:opensearch-icon, label: OpenSearch, note: Vector and keyword index, in: openrag }
   docling: { icon: ibm:document-processor, label: Docling, note: Parse and chunk, in: openrag }
   presto: { icon: logos:presto-icon, label: Presto, note: SQL engine, in: wxd }
-  llm: { icon: ibm:watsonx-ai, label: watsonx.ai, note: Granite chat model, in: ibmcloud }
-  gov: { icon: ibm:watsonx-governance, label: watsonx.governance, note: Evaluations and guardrail metrics, in: ibmcloud }
-  lake: { icon: ibm:object-storage, label: Cloud Object Storage, note: Iceberg tables, in: ibmcloud }
+  llm: { icon: ibm:watsonx-ai, label: watsonx.ai, note: Granite chat model, align: agent, in: ibmcloud }
+  # The Iceberg bucket is the storage registered with watsonx.data, so it sits in that box, beside
+  # the Presto engine that reads it.
+  lake: { icon: ibm:object-storage, label: Cloud Object Storage, note: Iceberg tables, align: presto, in: wxd }
 
 edges:
   - staff -> agent: ask

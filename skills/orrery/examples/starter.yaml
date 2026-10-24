@@ -3,8 +3,6 @@
 title: Web app on AWS
 subtitle: A container service behind a load balancer, with a database, a cache and file storage
 direction: right
-# A little extra spacing keeps the line to the bucket clear of the VPC border.
-layout: { spacing: 1.15 }
 
 groups:
   aws: { type: aws:cloud }
@@ -15,9 +13,9 @@ nodes:
   users: { icon: aws:users, label: Users }
   alb: { icon: aws:alb, label: Application Load Balancer, in: vpc }
   app: { icon: aws:fargate, label: Web service, note: Amazon ECS on AWS Fargate, badge: x3, in: vpc }
-  db: { icon: aws:aurora, label: Orders database, note: Amazon Aurora PostgreSQL, in: vpc }
-  cache: { icon: aws:elasticache, label: Session cache, note: Amazon ElastiCache for Valkey, in: vpc }
-  files: { icon: aws:s3, label: Uploads, note: Amazon Simple Storage Service, in: region }
+  db: { icon: aws:aurora, label: Amazon Aurora, note: "Orders database, PostgreSQL", in: vpc }
+  cache: { icon: aws:elasticache, label: Amazon ElastiCache, note: "Session cache, Valkey", in: vpc }
+  files: { icon: aws:s3, label: Amazon Simple Storage Service, note: Uploads bucket, in: region }
 
 edges:
   - users -> alb: HTTPS

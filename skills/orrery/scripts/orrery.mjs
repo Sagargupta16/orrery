@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.12.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.12.1 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -9228,7 +9228,7 @@ function starterIcon(name2) {
 }
 
 // src/cli/help.ts
-var VERSION = true ? "0.12.0" : "dev";
+var VERSION = true ? "0.12.1" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
@@ -25342,10 +25342,12 @@ function embeds(source) {
     return true;
   }
 }
+var lf = (source) => source.replace(/\r\n/g, "\n");
 function embedSvgSpec(svg, source) {
   if (!embeds(source)) return svg;
-  const plain2 = !NOT_XML.test(source);
-  const body = plain2 ? source.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/]]>/g, "]]&gt;").replace(/\r/g, "&#13;") : Buffer.from(source, "utf8").toString("base64");
+  const text6 = lf(source);
+  const plain2 = !NOT_XML.test(text6);
+  const body = plain2 ? text6.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/]]>/g, "]]&gt;").replace(/\r/g, "&#13;") : Buffer.from(text6, "utf8").toString("base64");
   const attrs = `xmlns:orrery="${NAMESPACE}" version="${VERSION2}"${plain2 ? "" : ' encoding="base64"'}`;
   const metadata = `
 <metadata><orrery:spec ${attrs}>${body}</orrery:spec></metadata>`;
@@ -25362,7 +25364,7 @@ function embedPngSpec(png2, source) {
   const header2 = [...Buffer.from(KEYWORD, "latin1"), 0, 1, 0, 0, 0];
   const data = concat([
     new Uint8Array(header2),
-    deflateSync(Buffer.from(source, "utf8"), { level: 9 })
+    deflateSync(Buffer.from(lf(source), "utf8"), { level: 9 })
   ]);
   return concat([png2.subarray(0, end.at), chunk("iTXt", data), png2.subarray(end.at)]);
 }
@@ -36835,7 +36837,7 @@ var TOOLS = [
 var SERVER = {
   name: "orrery",
   title: "orrery",
-  version: true ? "0.12.0" : "dev"
+  version: true ? "0.12.1" : "dev"
 };
 var MODERN = ["2026-07-28"];
 var LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];

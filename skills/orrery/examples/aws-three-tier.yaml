@@ -18,10 +18,11 @@ groups:
   az-b: { type: aws:az, label: Availability Zone B, in: vpc }
   public-a: { type: aws:public-subnet, label: Public subnet, in: az-a }
   public-b: { type: aws:public-subnet, label: Public subnet, in: az-b }
-  app-a: { type: aws:private-subnet, label: Web subnet, in: az-a }
-  app-b: { type: aws:private-subnet, label: Web subnet, in: az-b }
-  data-a: { type: aws:private-subnet, label: Data subnet, in: az-a }
-  data-b: { type: aws:private-subnet, label: Data subnet, in: az-b }
+  # The web and data tiers each get a private subnet per zone; the nodes say which tier is which.
+  app-a: { type: aws:private-subnet, label: Private subnet, in: az-a }
+  app-b: { type: aws:private-subnet, label: Private subnet, in: az-b }
+  data-a: { type: aws:private-subnet, label: Private subnet, in: az-a }
+  data-b: { type: aws:private-subnet, label: Private subnet, in: az-b }
   # One Auto Scaling group spans both zones: an overlay that does not move its members.
   asg: { type: aws:auto-scaling, around: [app-a, app-b] }
 
@@ -39,15 +40,17 @@ nodes:
   cache-b: { icon: aws:elasticache-cache-node, label: Amazon ElastiCache, note: Replica node, in: data-b }
 
 edges:
-  - users -> igw -> alb
-  - alb -> web-a, web-b
+  - users -> igw: HTTPS
+  - igw -> alb
+  - alb -> web-a, web-b: HTTP
   # Outbound traffic goes up through the NAT gateways; written in layout order (NAT first)
   # with the arrow at the start, so the public subnets stay above the private ones.
   - { from: igw, to: [nat-a, nat-b], arrow: start, line: dashed }
   - { from: nat-a, to: web-a, arrow: start, line: dashed }
   - { from: nat-b, to: web-b, arrow: start, line: dashed }
-  - web-a -> db-a, cache-a
-  - web-b -> db-b, cache-b
+  # One arrow into each data subnet stands for the database and the cache.
+  - web-a -> data-a: reads and writes
+  - web-b -> data-b: reads
   # Zone B writes go to the primary Aurora and ElastiCache nodes in zone A. constraint: false keeps
   # this edge out of the layout, so the zones stay side by side.
   - { from: web-b, to: data-a, label: writes, constraint: false }

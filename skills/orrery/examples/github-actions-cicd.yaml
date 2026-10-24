@@ -18,7 +18,8 @@ groups:
 nodes:
   dev: { icon: github:person, label: Developer }
   pr: { icon: github:git-pull-request, label: Pull request, note: Checks and review, in: repo }
-  actions: { icon: logos:github-actions, label: GitHub Actions, note: deploy.yml on main, in: repo }
+  # Beside the pull request, not under it: the repository is one row and the figure stays compact.
+  actions: { icon: logos:github-actions, label: GitHub Actions, note: deploy.yml on main, in: repo, align: pr }
   role: { icon: aws:iam-role, label: IAM role, note: Trusts GitHub OIDC, in: global }
   ecr: { icon: aws:ecr, label: Amazon ECR, note: Amazon Elastic Container Registry, in: region }
   stack: { icon: aws:cloudformation, label: AWS CloudFormation, note: App stack, in: region }

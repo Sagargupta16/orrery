@@ -37,7 +37,7 @@ nodes:
 
 edges:
   - users -> ingress: HTTPS
-  - ingress -> pods-a, pods-b
+  - ingress -> pods-a, pods-b: HTTP
   - group-a -> rb-a: subject
   - rb-a -> role-a
   - group-b -> rb-b: subject

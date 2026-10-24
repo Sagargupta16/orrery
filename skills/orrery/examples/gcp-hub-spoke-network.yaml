@@ -47,7 +47,8 @@ edges:
   - servers -> router
   - router ==> interconnect: Dedicated Interconnect
   - router --> vpn: IPsec tunnels
-  - cr ... interconnect, vpn
+  # The BGP sessions run between the two routers, over both links: one line down between them.
+  - router ... cr: BGP sessions
   - interconnect ==> ncc: hybrid spoke
   - vpn --> ncc: hybrid spoke
   - ncc -> prod-vpc: VPC spoke

@@ -29,5 +29,5 @@ edges:
   - ws-b -> ad-b: sign in
   - ws-a -> fsx-a: home folders
   - ws-b -> fsx-b: home folders
-  - ad-a, ad-b -> vpn
+  - ad-a, ad-b -> vpn: trust traffic
   - vpn -> onprem-ad: AD trust

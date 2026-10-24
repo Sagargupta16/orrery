@@ -26,6 +26,9 @@ nodes:
   devs: { icon: generic:users, label: Developers }
   repo: { icon: logos:github-icon, label: App repository, note: main branch, in: source }
   build: { icon: gcp:cloud-build, label: Cloud Build, note: Build and test, in: project }
+  # Observability shares Cloud Build's row, beside the delivery path rather than under the cluster.
+  logging: { icon: gcp:cloud-logging, label: Cloud Logging, in: observability }
+  monitoring: { icon: gcp:cloud-monitoring, label: Cloud Monitoring, in: observability }
   registry: { icon: gcp:artifact-registry, label: Artifact Registry, note: Container images, in: region }
   deploy: { icon: gcp:cloud-deploy, label: Cloud Deploy, note: Delivery pipeline, in: region }
   web: { icon: k8s:pod, look: icon, label: Pods, note: frontend x3, in: ns-web }
@@ -33,18 +36,18 @@ nodes:
   redis: { icon: gcp:memorystore, label: Memorystore, note: Redis cache, in: region }
   sql: { icon: gcp:cloud-sql, label: Cloud SQL, note: PostgreSQL with HA, in: region }
   secrets: { icon: gcp:secret-manager, label: Secret Manager, note: Regional secrets, in: region }
-  logging: { icon: gcp:cloud-logging, label: Cloud Logging, in: observability }
-  monitoring: { icon: gcp:cloud-monitoring, label: Cloud Monitoring, in: observability }
 
 edges:
-  # Drawn after layout, so Developers stack above the repository instead of taking a column.
-  - devs -> repo: { constraint: false }
+  - devs -> repo: git push
   - repo -> build: trigger
   - build -> registry: push image
   - build -> deploy: create release
   - deploy -> cluster: roll out
-  - cluster -> registry: pull image
-  - web -> redis
-  - api -> sql
-  - api -> secrets
-  - cluster ..> observability
+  # Laid out registry -> cluster so the registry sits beside Cloud Deploy, above the cluster;
+  # the arrowhead stays on the registry, which the nodes pull from.
+  - { from: registry, to: cluster, arrow: start, label: pull image }
+  - web -> redis: private IP
+  - api -> sql: private IP
+  - api -> secrets: Workload Identity
+  # Laid out the same way, so the telemetry climbs to the box beside Cloud Build.
+  - { from: observability, to: cluster, arrow: start, line: dotted, label: logs and metrics }

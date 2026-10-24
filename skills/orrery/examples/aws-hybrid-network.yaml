@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Hybrid network on AWS
 subtitle: A corporate data center reaches VPCs in three accounts in us-east-1 through one Transit Gateway, over Direct Connect with Site-to-Site VPN as backup
-direction: down
+direction: right
 # merge: false keeps the three solid Transit Gateway attachment links off one shared trunk.
-layout: { merge: false }
+layout: { merge: false, spacing: compact }
 
 legend:
   solid: Attachment or local link (both ways)
@@ -22,11 +22,11 @@ groups:
   shared-vpc: { type: aws:vpc, label: VPC 10.3.0.0/16, in: shared }
 
 nodes:
-  servers: { icon: aws:servers, label: Application servers, in: dc }
+  servers: { icon: aws:servers, label: Application servers, in: dc, align: router }
   router: { icon: aws:vpc-customer-gateway, label: Customer router, note: "BGP ASN 65000, VPN customer gateway", in: dc }
-  dx: { icon: aws:direct-connect, label: AWS Direct Connect, note: 10 Gbps primary link }
-  vpn: { icon: aws:site-to-site-vpn, label: AWS Site-to-Site VPN, note: IPsec backup link }
-  dxgw: { icon: aws:direct-connect-gateway, label: Direct Connect gateway, in: network }
+  dx: { icon: aws:direct-connect, label: AWS Direct Connect, note: 10 Gbps transit VIF }
+  vpn: { icon: aws:site-to-site-vpn, label: AWS Site-to-Site VPN, note: IPsec VPN attachment }
+  dxgw: { icon: aws:direct-connect-gateway, label: Direct Connect gateway, in: network, align: tgw }
   tgw: { icon: aws:tgw, label: AWS Transit Gateway, in: network }
   prod-att: { icon: aws:transit-gateway-attachment, label: TGW attachment, in: prod-vpc }
   prod-app: { icon: aws:eks, label: Amazon Elastic Kubernetes Service, note: Production workloads, in: prod-vpc }
@@ -39,10 +39,10 @@ nodes:
 edges:
   - servers -- router
   - router === dx
-  - dx === dxgw: transit VIF
+  - dx === dxgw
   - dxgw === tgw: association
   - router --- vpn
-  - vpn --- tgw: VPN attachment
+  - vpn --- tgw
   - tgw -- prod-att -- prod-app
   - tgw -- dev-att -- dev-app
   - tgw -- shared-att -- dns

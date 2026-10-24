@@ -380,7 +380,7 @@ Agents on Bedrock AgentCore, resilience, security, networking, migration, contai
 
 `orrery render skills/orrery/examples/aws-sagemaker-llm-gateway.yaml -o examples/aws-sagemaker-llm-gateway -f svg,png`
 
-[`aws-multitenant-saas`](../skills/orrery/examples/aws-multitenant-saas.yaml): a Cognito and API Gateway control plane routes each tenant through a Lambda router to its own Aurora silo; all silos stream through Kinesis, Glue and an S3 lake into SageMaker AI training, a model registry and the endpoint the router calls.
+[`aws-multitenant-saas`](../skills/orrery/examples/aws-multitenant-saas.yaml): a Cognito and API Gateway control plane routes each tenant through a Lambda router to its own Aurora silo and to a SageMaker AI endpoint; all silos stream through Kinesis, Glue and an S3 lake into SageMaker AI training and a model registry the endpoint loads its model from.
 
 <a href="aws-multitenant-saas.svg"><img src="aws-multitenant-saas.svg" alt="Multi-tenant SaaS: Cognito, API Gateway and a tenant router over three Aurora silos feeding Kinesis, Glue, S3 and SageMaker AI training and inference"></a>
 
@@ -402,9 +402,9 @@ The same spec format drawn as flows: `kind:` picks the notation and the layout. 
 
 `orrery render skills/orrery/examples/local-icons-order-desk.yaml -o examples/local-icons-order-desk -f svg,png`
 
-[`process-order-to-cash`](../skills/orrery/examples/process-order-to-cash.yaml): order to cash in BPMN 2.0 (`kind: process`): a Customer pool and a Supplier pool with Sales, Warehouse and Finance lanes, run top to bottom. A message start event, user, send, receive and service tasks, an exclusive gateway with Yes and No branches, a parallel split and join, and four message flows between the pools.
+[`process-order-to-cash`](../skills/orrery/examples/process-order-to-cash.yaml): order to cash in BPMN 2.0 (`kind: process`): a Customer pool and a Supplier pool with Sales, Finance and Warehouse lanes, run top to bottom. A message start event, user, send, receive and service tasks, an exclusive gateway with Yes and No branches, a parallel split and join, and four message flows between the pools.
 
-<a href="process-order-to-cash.svg"><img src="process-order-to-cash.svg" alt="BPMN order-to-cash process: a customer pool and a supplier pool with sales, warehouse and finance lanes, exchanging purchase order, invoice, payment and goods messages"></a>
+<a href="process-order-to-cash.svg"><img src="process-order-to-cash.svg" alt="BPMN order-to-cash process: a customer pool and a supplier pool with sales, finance and warehouse lanes, exchanging purchase order, invoice, payment and goods messages"></a>
 
 `orrery render skills/orrery/examples/process-order-to-cash.yaml -o examples/process-order-to-cash -f svg,png`
 
@@ -420,13 +420,13 @@ The same spec format drawn as flows: `kind:` picks the notation and the layout. 
 
 `orrery render skills/orrery/examples/state-order-lifecycle.yaml -o examples/state-order-lifecycle -f svg,png`
 
-[`tree-org-chart`](../skills/orrery/examples/tree-org-chart.yaml): a product organization as an org chart (`kind: tree`): the chief product officer, three directors and their eight teams as cards with generic icons, each parent centered over its reports on a shared connector bar.
+[`tree-org-chart`](../skills/orrery/examples/tree-org-chart.yaml): a product organization as an org chart (`kind: tree`): the chief product officer, three directors and their seven teams as 64 px icons, each parent centered over its reports on a shared connector bar.
 
 <a href="tree-org-chart.svg"><img src="tree-org-chart.svg" alt="Org chart: the Chief Product Officer over Design, Engineering and Product management, each over its teams"></a>
 
 `orrery render skills/orrery/examples/tree-org-chart.yaml -o examples/tree-org-chart -f svg,png`
 
-[`mindmap-product-launch`](../skills/orrery/examples/mindmap-product-launch.yaml): a product launch as a two-sided mind map (`kind: mindmap`): five workstreams split between the halves with fifteen ideas, curved branches thick out of the root and one color per workstream.
+[`mindmap-product-launch`](../skills/orrery/examples/mindmap-product-launch.yaml): a product launch as a two-sided mind map (`kind: mindmap`): five workstreams split between the halves with fifteen ideas, an icon on the root and on each workstream, curved branches thick out of the root and one color per workstream.
 
 <a href="mindmap-product-launch.svg"><img src="mindmap-product-launch.svg" alt="Mind map: Product launch in the middle, with Market, Sales and Support on the right and Product and Comms on the left, each with its ideas"></a>
 

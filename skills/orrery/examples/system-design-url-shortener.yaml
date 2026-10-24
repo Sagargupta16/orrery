@@ -9,20 +9,22 @@ legend:
   dashed: Asynchronous event or stream
 
 groups:
-  analytics: { type: zone, label: Click analytics pipeline }
+  # Two columns: Kafka into Flink, then down to ClickHouse, which the dashboards query.
+  analytics: { type: zone, label: Click analytics pipeline, cols: 2 }
 
 nodes:
   clients: { icon: generic:users, label: Clients, note: Browsers and apps }
-  cdn: { icon: generic:cdn, label: CDN, note: Caches popular redirects }
   lb: { icon: generic:load-balancer, label: Load balancer }
+  # Beside the load balancer it falls back to, and above the analytics pipeline its logs feed.
+  cdn: { icon: generic:cdn, label: CDN, note: Caches popular redirects, align: lb }
   api: { icon: generic:servers, label: API servers, note: Stateless, badge: x3 }
   cache: { icon: logos:redis, label: Redis, note: Hot short codes }
   db: { icon: logos:postgresql, label: PostgreSQL, note: Sharded by short code }
   ids: { icon: tabler:hash, label: ID generator, note: Base62 key ranges }
   events: { icon: logos:kafka-icon, label: Kafka, note: clicks topic, in: analytics }
   stream: { icon: logos:apache-flink-icon, label: Apache Flink, note: Counts per link, in: analytics }
+  dashboard: { icon: generic:dashboard, label: Dashboards, note: Clicks per link, in: analytics }
   olap: { icon: si:clickhouse, label: ClickHouse, note: Click analytics, in: analytics }
-  dashboard: { icon: generic:dashboard, label: Dashboards, in: analytics }
 
 edges:
   - clients -> cdn: GET /abc123

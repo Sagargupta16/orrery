@@ -7,7 +7,7 @@ direction: down
 layout: { merge: false }
 
 legend:
-  solid: Numbered order path
+  solid: Order path
   dashed: Other rule targets and subscribers
 
 groups:
@@ -17,14 +17,14 @@ groups:
 
 nodes:
   customers: { icon: aws:users, label: Customers }
-  api: { icon: aws:api-gateway, label: Orders API, note: "Amazon API Gateway, POST /orders", in: region }
-  bus: { icon: aws:eventbridge-custom-event-bus, label: Orders event bus, note: Amazon EventBridge, in: region }
-  reserve: { icon: aws:lambda, label: Reserve stock, note: AWS Lambda, in: workflow }
-  charge: { icon: aws:lambda, label: Charge payment, note: AWS Lambda, in: workflow }
-  ship: { icon: aws:lambda, label: Create shipment, note: AWS Lambda, in: workflow }
+  api: { icon: aws:api-gateway, label: Amazon API Gateway, note: POST /orders, in: region }
+  bus: { icon: aws:eventbridge-custom-event-bus, label: Orders event bus, note: Amazon EventBridge, in: region, align: api }
+  reserve: { icon: aws:lambda, label: AWS Lambda, note: Reserve stock, in: workflow }
+  charge: { icon: aws:lambda, label: AWS Lambda, note: Charge payment, in: workflow }
+  ship: { icon: aws:lambda, label: AWS Lambda, note: Create shipment, in: workflow }
   table: { icon: aws:dynamodb-table, label: Orders table, note: Amazon DynamoDB, in: region }
   billing: { icon: aws:simple-queue-service-queue, label: Billing queue, note: Amazon SQS queue, in: region }
-  invoice: { icon: aws:lambda, label: Invoice generator, note: AWS Lambda, in: region }
+  invoice: { icon: aws:lambda, label: AWS Lambda, note: Invoice generator, in: region }
   notices: { icon: aws:simple-notification-service-topic, label: Order notifications, note: Amazon SNS topic, in: region }
   email: { icon: aws:simple-notification-service-email-notification, label: Email subscription, in: region }
   analytics: { icon: aws:simple-queue-service-queue, label: Analytics queue, note: Amazon SQS queue, in: region }
@@ -32,7 +32,7 @@ nodes:
 edges:
   # The solid path is the main story. EventBridge invokes every target asynchronously, so
   # dashed marks the other rule targets and subscribers, not a different delivery mode.
-  - customers -> api
+  - customers -> api: HTTPS
   - api -> bus: { label: OrderPlaced }
   - bus -> workflow: { label: fulfillment rule }
   # constraint: false keeps the three workflow steps side by side in one row instead of three rows.

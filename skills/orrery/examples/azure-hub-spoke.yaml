@@ -23,23 +23,26 @@ groups:
   # azure:vnet-hub is the hub-and-spoke VNet style (dashed blue), used here for the spokes too.
   spoke-app: { type: azure:vnet-hub, label: vnet-spoke-app 10.1.0.0/16, in: sub }
   snet-aks: { type: azure:subnet, label: snet-aks, in: spoke-app }
-  spoke-data: { type: azure:vnet-hub, label: vnet-spoke-data 10.2.0.0/16, in: sub }
+  # cols: 2 puts the VM subnet and the private endpoint subnet side by side.
+  spoke-data: { type: azure:vnet-hub, label: vnet-spoke-data 10.2.0.0/16, in: sub, cols: 2 }
   snet-vm: { type: azure:subnet, label: snet-vm, in: spoke-data }
   snet-pe: { type: azure:subnet, label: snet-private-endpoints, in: spoke-data }
 
 nodes:
   servers: { icon: generic:servers, label: Corporate servers, in: onprem }
-  router: { icon: generic:router, label: Edge router, note: BGP ASN 65010, in: onprem }
+  router: { icon: generic:router, label: Edge router, note: BGP ASN 65010, align: servers, in: onprem }
   er: { icon: azure:expressroute, label: ExpressRoute circuit, note: 1 Gbps primary }
-  er-gw: { icon: azure:vpn-gateway, label: ExpressRoute gateway, in: snet-gw }
+  # The VPN gateway comes first so the IPsec tunnel and the ExpressRoute link enter the subnet
+  # without crossing.
   vpn-gw: { icon: azure:vpn-gateway, label: VPN gateway, note: Site-to-site backup, in: snet-gw }
+  er-gw: { icon: azure:vpn-gateway, label: ExpressRoute gateway, in: snet-gw }
   fw: { icon: azure:firewall, label: Azure Firewall, note: Filters spoke traffic, in: snet-fw }
   bastion: { icon: azure:bastion, label: Azure Bastion, note: RDP and SSH to VMs, in: snet-bastion }
   aks: { icon: azure:aks, label: AKS cluster, note: Private API server, in: snet-aks }
   vms: { icon: azure:vm, label: Virtual machines, note: App servers x2, in: snet-vm }
   pe: { icon: azure:private-endpoint, label: Private endpoint, in: snet-pe }
-  sql: { icon: azure:sql, label: Azure SQL Database, in: sub }
   dns: { icon: azure:dns-zones, label: Private DNS zone, note: "A record, linked to every VNet", in: sub }
+  sql: { icon: azure:sql, label: Azure SQL Database, in: sub }
   logs: { icon: azure:log-analytics, label: Log Analytics, note: Firewall and VNet flow logs, in: sub }
 
 # Arrows follow inbound traffic from on-premises through the hub to the spokes; replies take the
@@ -47,12 +50,13 @@ nodes:
 edges:
   - servers -> router
   - router ==> er: private peering
-  - er ==> er-gw
+  - er ==> er-gw: connection
   - router --> vpn-gw: IPsec tunnel
-  - er-gw, vpn-gw -> fw
+  # The GatewaySubnet route table sends spoke-bound traffic to the firewall.
+  - er-gw, vpn-gw -> fw: route table
   - fw -> spoke-app: via peering
   - fw -> spoke-data: via peering
   - bastion -> vms: RDP and SSH
   - fw ..> logs: diagnostics
-  - vms -> pe -> sql
+  - vms -[TCP 1433]-> pe -[Private Link]-> sql
   - vms -> dns: name lookup

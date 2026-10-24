@@ -4,7 +4,8 @@ subtitle: IoT Hub feeds Stream Analytics and Cosmos DB for the operational app, 
 direction: right
 # Filled triangles, as in Azure's reference diagrams; one port per edge.
 arrowhead: filled
-layout: { merge: false }
+# Compact spacing keeps the four columns inside a README column at full label size.
+layout: { merge: false, spacing: compact }
 
 legend:
   solid: Telemetry and queries
@@ -33,7 +34,7 @@ edges:
   - iothub -> asa
   - asa -> cosmos
   # The app reads Cosmos DB, so its arrow starts at the app.
-  - opsapp -> cosmos
+  - opsapp -> cosmos: reads
   - iothub -> adx: data connection
   - adx -> lake: export
   # Grafana and the Logic Apps connector both query Data Explorer; the arrowheads stay on it.

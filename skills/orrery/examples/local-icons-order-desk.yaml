@@ -16,7 +16,8 @@ nodes:
   desk: { icon: local:order-desk, label: Order desk, note: "Phone, mail or web" }
   credit: { icon: local:credit-check, label: Credit check }
   limit: { shape: decision, label: Within limit? }
-  manager: { icon: generic:manager, label: Sales manager }
+  # The no branch leaves the decision sideways, as flowcharts draw it; yes carries straight on.
+  manager: { icon: generic:manager, label: Sales manager, align: limit }
   declined: { shape: terminator, icon: generic:failure, label: Order declined }
   pick: { icon: local:pick-pack, label: Pick and pack, note: Warehouse bench }
   courier: { icon: generic:delivery, label: Courier }

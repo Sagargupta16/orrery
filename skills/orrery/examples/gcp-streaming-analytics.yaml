@@ -18,7 +18,8 @@ nodes:
   devices: { icon: generic:iot, label: Store devices, in: sources }
   apps: { icon: generic:mobile, label: Web and mobile apps, in: sources }
   topic: { icon: gcp:pubsub, label: Pub/Sub, note: events topic, in: project }
-  pipeline: { icon: gcp:dataflow, label: Dataflow, note: Streaming pipeline, in: project }
+  # Beside the topic (align), so ingestion reads across one row and the outputs fan out below.
+  pipeline: { icon: gcp:dataflow, label: Dataflow, note: Streaming pipeline, in: project, align: topic }
   archive: { icon: gcp:cloud-storage, label: Cloud Storage, note: Raw event archive, in: project }
   warehouse: { icon: gcp:bigquery, label: BigQuery, note: Analytics tables, in: project }
   model: { icon: gcp:vertex-ai, label: Vertex AI, note: Demand forecast model, in: project }

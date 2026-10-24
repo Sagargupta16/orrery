@@ -8,7 +8,9 @@ subtitle: Cloud Build ships the pipeline; Gemini Enterprise Agent Platform (form
 direction: down
 # Product cards, as in Google Cloud's own architecture diagrams.
 look: card
-layout: { spacing: compact, layering: simplex }
+# The figure is one loop: delivery and triggers on top, the pipeline across the middle,
+# serving back along the bottom, and drift alerts up the left side to the triggers.
+layout: { spacing: compact }
 
 legend:
   solid: Delivery, training and inference
@@ -28,22 +30,27 @@ groups:
 nodes:
   scientists: { icon: generic:users, label: Data scientists }
   repo: { icon: logos:github-icon, label: Source repository, note: Pipeline and component code, in: source }
-  build: { icon: gcp:cloud-build, label: Cloud Build, note: Test and compile, in: project }
-  registry: { icon: gcp:artifact-registry, label: Artifact Registry, note: Images and pipeline template, in: project }
-  scheduler: { icon: gcp:cloud-scheduler, label: Cloud Scheduler, in: project }
+  # The alert source first, above the left side where the drift alerts climb.
   logging: { icon: gcp:cloud-logging, label: Cloud Logging, note: Alert log filter, in: project }
+  scheduler: { icon: gcp:cloud-scheduler, label: Cloud Scheduler, in: project }
+  build: { icon: gcp:cloud-build, label: Cloud Build, note: Test and compile, in: project }
   topic: { icon: gcp:pubsub, label: Pub/Sub, note: Trigger topic, in: project }
+  registry: { icon: gcp:artifact-registry, label: Artifact Registry, note: Images and pipeline template, in: project }
+  # The training inputs share the launcher's row (align), right above the step that reads them.
+  bigquery: { icon: gcp:bigquery, label: BigQuery, note: Training data, in: project, align: launcher }
+  features: { icon: gcp:vertex-ai, label: Feature Store, in: project, align: launcher }
   launcher: { icon: gcp:cloud-functions, label: Cloud Run functions, note: Submits PipelineJob, in: project }
-  bigquery: { icon: gcp:bigquery, label: BigQuery, note: Training data, in: project }
-  features: { icon: gcp:vertex-ai, label: Feature Store, in: project }
+  # The steps run left to right in one row (align).
   prep: { icon: gcp:dataflow, label: Validate and transform, note: Dataflow, in: pipeline }
-  train: { icon: gcp:vertex-ai, label: Managed Training, note: Train and tune, in: pipeline }
-  evaluate: { icon: gcp:dataflow, label: Evaluate and validate, note: Dataflow, in: pipeline }
+  train: { icon: gcp:vertex-ai, label: Managed Training, note: Train and tune, in: pipeline, align: prep }
+  evaluate: { icon: gcp:dataflow, label: Evaluate and validate, note: Dataflow, in: pipeline, align: prep }
   artifacts: { icon: gcp:cloud-storage, label: Cloud Storage, note: Pipeline artifacts, in: project }
   metadata: { icon: gcp:vertex-ai, label: Vertex ML Metadata, note: Lineage, in: project }
-  models: { icon: gcp:vertex-ai, label: Model Registry, in: serving }
+  # Model Registry stores the model under the last step; serving runs back right to left in one
+  # row (align), so Model Monitoring ends under Cloud Logging.
+  models: { icon: gcp:vertex-ai, label: Model Registry, in: project }
+  monitor: { icon: gcp:vertex-ai, label: Model Monitoring, note: Skew and drift, in: serving, align: endpoint }
   endpoint: { icon: gcp:vertex-ai, label: Endpoint, note: Online inference, in: serving }
-  monitor: { icon: gcp:vertex-ai, label: Model Monitoring, note: Skew and drift, in: serving }
 
 edges:
   - scientists -> repo: push

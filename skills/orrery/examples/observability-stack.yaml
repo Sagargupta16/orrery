@@ -10,13 +10,14 @@ legend:
   dotted: Dashboard data source
 
 groups:
-  services: { type: zone, label: OpenTelemetry SDK services }
+  # A short zone label keeps the zone as narrow as its icons; each note names the SDK.
+  services: { type: zone, label: Services }
   backends: { type: zone, label: Telemetry backends }
 
 nodes:
-  checkout: { icon: logos:java, label: Checkout, note: Java, in: services }
-  payments: { icon: logos:go, label: Payments, note: Go, in: services }
-  search: { icon: logos:python, label: Search, note: Python, in: services }
+  checkout: { icon: logos:java, label: Checkout, note: Java SDK, in: services }
+  payments: { icon: logos:go, label: Payments, note: Go SDK, in: services }
+  search: { icon: logos:python, label: Search, note: Python SDK, in: services }
   collector: { icon: logos:opentelemetry-icon, label: OTel Collector, note: OTLP receiver and batching }
   prometheus: { icon: logos:prometheus, label: Prometheus, note: "Metrics, OTLP receiver", in: backends }
   # No official Loki or Tempo mark in the packs: generic glyphs in Grafana orange.

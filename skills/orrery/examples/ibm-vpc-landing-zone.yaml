@@ -2,7 +2,8 @@
 title: VPC landing zone on IBM Cloud
 subtitle: Two VPCs across three zones joined by Transit Gateway, VPN to the data center, audit data in Object Storage
 direction: right
-layout: { spacing: compact }
+# The tightest spacing keeps the five columns inside a README column at full label size.
+layout: { spacing: 0.5 }
 
 # IBM's technical diagram guide asks for a legend in every diagram, so solid lines get one too.
 legend:
@@ -28,7 +29,8 @@ groups:
   w-z1: { type: dashed, label: Zone 1, icon: ibm:data-center, in: work }
   w-z2: { type: dashed, label: Zone 2, icon: ibm:data-center, in: work }
   w-z3: { type: dashed, label: Zone 3, icon: ibm:data-center, in: work }
-  services: { type: box, label: Cloud services, in: region }
+  # Two columns keep the services box within the management VPC's width.
+  services: { type: box, label: Cloud services, in: region, cols: 2 }
 
 nodes:
   router: { icon: ibm:network-enterprise, label: Corporate router, note: VPN peer, in: dc }

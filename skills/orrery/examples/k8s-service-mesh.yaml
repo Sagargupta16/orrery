@@ -1,12 +1,13 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Istio service mesh with sidecars
 subtitle: Inside the mesh every hop runs over mutual TLS between Envoy proxies, from the ingress to the egress gateway; istiod configures them all
-direction: right
-# Spacing below compact keeps the six columns legible in an 880px README column (orrery review).
-layout: { merge: false, spacing: 0.6 }
+# Top to bottom, so the six hops fit an 880px README column at full label size (orrery review):
+# the Istio namespaces stack down the left, the shop namespace sits beside them.
+direction: down
+layout: { merge: false, spacing: compact }
 
 legend:
-  solid: Requests, mutual TLS between proxies
+  solid: Requests
   dotted: Config and certificates (xDS)
 
 groups:
@@ -23,7 +24,7 @@ groups:
 nodes:
   users: { icon: generic:users, label: Users }
   ingress: { icon: logos:envoy-icon, label: Ingress gateway, note: Terminates TLS, in: ingress-ns }
-  # Each app container sits under its sidecar (align), so a pod reads as one unit across the flow.
+  # Each app container sits beside its sidecar (align), so a pod reads as one unit across the flow.
   fe-proxy: { icon: logos:envoy-icon, label: Envoy sidecar, note: istio-proxy, in: fe-pod }
   fe: { icon: generic:container, label: frontend, note: App container, in: fe-pod, align: fe-proxy }
   cart-proxy: { icon: logos:envoy-icon, label: Envoy sidecar, note: istio-proxy, in: cart-pod }
@@ -36,16 +37,16 @@ nodes:
 
 edges:
   - users -> ingress: HTTPS
-  - ingress -> fe-proxy
+  - ingress -> fe-proxy: mTLS
   # The app talks to its own sidecar over localhost; the iptables redirect sends every call through it.
   - fe-proxy -- fe: localhost
-  - fe-proxy -> cart-proxy, co-proxy
+  - fe-proxy -> cart-proxy, co-proxy: mTLS
   - cart-proxy -- cart
   - co-proxy -- co
-  - co-proxy -> egress
+  - co-proxy -> egress: mTLS
   - egress -> psp: HTTPS
-  # Laid out ingress -> istiod -> egress so the control plane shares the shop column, above it;
-  # the arrowheads stay on the proxies.
-  - { from: ingress, to: istiod, arrow: start, line: dotted }
-  - istiod ..> egress
-  - { from: istiod, to: shop, line: dotted, constraint: false }
+  # Laid out ingress -> istiod -> egress so the control plane sits between the two gateways, beside
+  # the shop namespace; the arrowheads stay on the proxies.
+  - { from: ingress, to: istiod, arrow: start, line: dotted, label: xDS }
+  - istiod ..> egress: xDS
+  - { from: istiod, to: shop, line: dotted, label: xDS, constraint: false }

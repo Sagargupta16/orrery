@@ -4,7 +4,7 @@ subtitle: API Management fronts Logic Apps workflows that decouple back-end syst
 direction: down
 # Filled triangles, as in Azure's reference diagrams; one port per edge.
 arrowhead: filled
-layout: { merge: false }
+layout: { merge: false, spacing: compact }
 
 legend:
   solid: HTTPS calls
@@ -17,8 +17,9 @@ groups:
   backends: { type: zone, label: Back-end systems }
 
 nodes:
+  # Entra ID shares the client's row, to its left, so sign-in reads as a step beside the request path.
+  entra: { icon: azure:entra-managed-identities, label: Microsoft Entra ID, note: Managed identities, align: app }
   app: { icon: generic:client, label: Client application, note: Web or mobile app }
-  entra: { icon: azure:entra-managed-identities, label: Microsoft Entra ID, note: OAuth 2.0 tokens and managed identities }
   # align folds the chain into rows: the API layer, then the messaging layer, then the back ends.
   apim: { icon: azure:api-management-services, label: API Management, note: API gateway and developer portal, in: rg }
   intake: { icon: azure:logic-apps, label: Logic Apps, note: Intake workflow, align: apim, in: rg }
@@ -31,7 +32,7 @@ nodes:
 
 edges:
   # The client signs in first, then calls the gateway with the token.
-  - { from: app, to: entra, line: dotted, constraint: false }
+  - app ..> entra: OAuth 2.0
   - app -> apim: HTTPS
   - apim -> intake
   - intake --> bus: send
@@ -40,5 +41,6 @@ edges:
   - events --> process: trigger
   # The consumers pull from Service Bus with PeekLock, so the arrowheads stay on the queue.
   - { from: bus, to: process, arrow: start, line: dashed, label: peek-lock receive }
-  - process -> saas, sql
+  - process -> saas: REST connector
+  - process -> sql: SQL connector
   - { from: bus, to: legacy, arrow: start, line: dashed, label: topic subscription }

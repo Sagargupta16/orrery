@@ -2,15 +2,16 @@
 title: Product organization
 subtitle: Three levels, from the chief product officer to the teams, as an org chart
 kind: tree
-look: card
 
+# Icons with the label under them are narrower than cards, so the seven teams fit one row at full
+# size; each unit gets an icon of its own.
 nodes:
-  cpo: { icon: generic:user, label: Chief Product Officer, note: Strategy and roadmap }
-  design: { icon: generic:browser, label: Design, note: 9 people }
+  cpo: { icon: generic:manager, label: Chief Product Officer, note: Strategy and roadmap }
+  design: { icon: tabler:palette, label: Design, note: 9 people }
   engineering: { icon: generic:code, label: Engineering, note: 24 people }
-  pm: { icon: generic:dashboard, label: Product management, note: 7 people }
+  pm: { icon: tabler:compass, label: Product management, note: 7 people }
   research: { icon: generic:search, label: User research }
-  brand: { icon: generic:web, label: Brand and UI }
+  brand: { icon: tabler:brush, label: Brand and UI }
   platform: { icon: generic:server, label: Platform }
   web: { icon: generic:browser, label: Web app }
   mobile: { icon: generic:mobile, label: Mobile apps }

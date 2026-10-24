@@ -1,7 +1,8 @@
 # yaml-language-server: $schema=../references/diagram.schema.json
 title: Serverless web API on AWS
 subtitle: Single-page app on CloudFront, REST API on API Gateway and Lambda, Cognito sign-in
-direction: down
+direction: right
+layout: { spacing: 0.9 }
 
 legend:
   solid: Request path
@@ -17,7 +18,8 @@ nodes:
   # CloudFront is a global service: it sits in the AWS Cloud group, outside the Region.
   cdn: { icon: aws:cloudfront, label: Amazon CloudFront, in: cloud }
   site: { icon: aws:simple-storage-service-bucket, label: Web app bucket, note: Static SPA assets, in: region }
-  auth: { icon: aws:cognito, label: Amazon Cognito, note: User pool, in: region }
+  # align keeps Cognito under API Gateway, the service that calls it.
+  auth: { icon: aws:cognito, label: Amazon Cognito, note: User pool, in: region, align: api }
   api: { icon: aws:api-gateway, label: Amazon API Gateway, note: REST API, in: region }
   fn: { icon: aws:lambda-lambda-function, label: Orders function, note: AWS Lambda, in: region }
   table: { icon: aws:dynamodb-table, label: Orders table, note: Amazon DynamoDB, in: region }
@@ -28,7 +30,6 @@ edges:
   - users --> auth: sign in
   - cdn -> site: static files
   - cdn -> api: /api/*
-  # API Gateway calls Cognito to check the token: laid out Cognito -> API Gateway, arrow at the start.
-  - { from: auth, to: api, arrow: start, line: dotted, label: Cognito authorizer }
+  - api ..> auth: Cognito authorizer
   - api -> fn
   - fn -> table, uploads

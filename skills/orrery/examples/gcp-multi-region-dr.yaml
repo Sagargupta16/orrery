@@ -33,8 +33,9 @@ nodes:
   users: { icon: generic:users, label: Users }
   lb: { icon: gcp:cloud-load-balancing, label: Cloud Load Balancing, note: Global external Application LB, in: project }
   mig-east: { icon: gcp:compute-engine, label: Compute Engine, note: Regional MIG in 2 zones, badge: x4, in: east }
-  sql-standby: { icon: gcp:cloud-sql, label: Cloud SQL, note: Synchronous HA standby, in: east-c }
-  sql-primary: { icon: gcp:cloud-sql, label: Cloud SQL, note: Primary, in: east-b }
+  # Notes of one length keep the two zones the same width.
+  sql-standby: { icon: gcp:cloud-sql, label: Cloud SQL, note: HA standby, in: east-c }
+  sql-primary: { icon: gcp:cloud-sql, label: Cloud SQL, note: HA primary, in: east-b }
   mig-west: { icon: gcp:compute-engine, label: Compute Engine, note: Regional MIG scaled down, badge: x2, in: west }
   sql-replica: { icon: gcp:cloud-sql, label: Cloud SQL, note: Asynchronous read replica, in: west-a }
 
@@ -46,6 +47,6 @@ edges:
   - mig-east --> sql-standby: zone failover
   # Replication links sit side by side in one row; constraint: false keeps them out of the
   # layout so the zones and the regions stay next to each other.
-  - { from: sql-primary, to: sql-standby, line: dotted, constraint: false }
+  - { from: sql-primary, to: sql-standby, line: dotted, label: sync, constraint: false }
   - { from: sql-primary, to: sql-replica, line: dotted, constraint: false }
   - mig-west --> sql-replica: after promotion

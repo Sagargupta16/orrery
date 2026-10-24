@@ -22,8 +22,9 @@ groups:
   obs: { type: zone, label: Observability }
 
 nodes:
-  web: { icon: generic:browser, label: Web, note: Browser }
+  # The mobile app first, above Cloudflare, so its API calls drop straight into the edge.
   mobile: { icon: generic:mobile, label: Mobile app, note: iOS and Android }
+  web: { icon: generic:browser, label: Web, note: Browser }
   cloudflare: { icon: logos:cloudflare-icon, label: Cloudflare, note: CDN and WAF for the API, in: edge }
   api: { icon: logos:nodejs-icon, label: API service, note: "Node.js, verifies Clerk JWT", in: app }
   nextjs: { icon: logos:nextjs-icon, label: Next.js app, note: Hosted on Vercel, in: ui }
@@ -50,5 +51,8 @@ edges:
   - api -> resend: send email
   # Written in layout order with the arrow flipped, so the webhook does not loop around.
   - { from: api, to: stripe, arrow: start, line: dashed, label: webhooks via api.example.com }
-  - api, nextjs ..> sentry: errors
+  - nextjs ..> sentry: errors
+  # Kept out of the layout, so Observability sits beside the Backend instead of making a fourth row
+  # under it; the line runs straight across into Sentry.
+  - { from: api, to: sentry, line: dotted, constraint: false }
   - nextjs ..> posthog: events
