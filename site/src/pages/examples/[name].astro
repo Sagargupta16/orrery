@@ -31,6 +31,8 @@ const downloads = [
   ["React TSX", "dark", file("-dark.tsx")],
   ["HTML viewer", "both themes", file(".html")],
   ["YAML spec", "source", file(".yaml")],
+  // The spec reads its own icons at these paths beside it.
+  ...e.icons.map((icon) => ["Local icon", icon, url(`gallery/${e.name}/${icon}`)]),
 ];
 ---
 

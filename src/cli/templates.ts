@@ -2,16 +2,18 @@
 // infrastructure, pictures and SQL DDL.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
+import { parse as parseYaml } from "yaml";
 import { importCloudFormation } from "../import/cloudformation.ts";
 import { importCompose } from "../import/compose.ts";
 import { importKubernetes } from "../import/kubernetes.ts";
 import { importMermaid } from "../import/mermaid.ts";
 import { importPicture } from "../import/picture.ts";
-import { importSql } from "../import/sql.ts";
+import { importSql, sqlWarnings } from "../import/sql.ts";
 import { importTerraform } from "../import/terraform.ts";
 import type { Imported } from "../import/types.ts";
 import { examplesDir } from "../paths.ts";
 import { parseSpec } from "../spec/index.ts";
+import { isObj, readText } from "../spec/values.ts";
 import { GROUP_STYLES } from "../styles.ts";
 import { SHAPES } from "../types.ts";
 import type { Args } from "./args.ts";
@@ -69,12 +71,12 @@ export function cmdInit(args: Args) {
   process.stdout.write(`next: orrery render ${basename(out)}\n`);
 }
 
+/** The text an importer reads: stdin for -, else the file, by its byte order mark. */
+const inputText = (file: string) => readText(file === "-" ? 0 : resolve(file));
+
 /** Each importer reads its own input (a file, a folder, - for stdin where it makes sense). */
 const IMPORTERS: Record<string, (path: string) => Imported | Promise<Imported>> = {
-  mermaid: (file) => {
-    const text = file === "-" ? readFileSync(0, "utf8") : readFileSync(resolve(file), "utf8");
-    return importMermaid(text.replace(/^```mermaid\s*|```\s*$/gm, ""));
-  },
+  mermaid: (file) => importMermaid(inputText(file).replace(/^```mermaid\s*|```\s*$/gm, "")),
   terraform: importTerraform,
   cloudformation: importCloudFormation,
   cdk: importCloudFormation,
@@ -84,22 +86,36 @@ const IMPORTERS: Record<string, (path: string) => Imported | Promise<Imported>> 
   picture: importPicture,
   // SQL DDL to an er spec; evidence: names the file as given, so it stays relative (none for -).
   sql: (file) => {
-    const text = file === "-" ? readFileSync(0, "utf8") : readFileSync(resolve(file), "utf8");
-    return { yaml: importSql(text, file), warnings: [] };
+    const text = inputText(file);
+    return { yaml: importSql(text, file), warnings: sqlWarnings(text) };
   },
 };
 
+/** The importers that read - as standard input; the others read files or folders. */
+const STDIN = new Set(["mermaid", "sql"]);
+
+/** Whether the imported spec has any node; one with none cannot validate, so none is written. */
+function hasNodes(yaml: string): boolean {
+  const doc: unknown = parseYaml(yaml);
+  const nodes = isObj(doc) ? doc.nodes : undefined;
+  return Array.isArray(nodes) ? nodes.length > 0 : isObj(nodes) && Object.keys(nodes).length > 0;
+}
+
 export async function cmdImport(args: Args) {
   const [kind, file] = args._;
-  const importer = kind ? IMPORTERS[kind] : undefined;
-  if (!importer) usage(`import supports ${Object.keys(IMPORTERS).join(", ")}`);
-  if (!file)
-    usage(
-      `import ${kind} needs a file${kind === "mermaid" || kind === "sql" ? ", or - for stdin" : ""}`,
-    );
+  const importer = kind && Object.hasOwn(IMPORTERS, kind) ? IMPORTERS[kind] : undefined;
+  if (!kind || !importer) usage(`import supports ${Object.keys(IMPORTERS).join(", ")}`);
+  if (!file) usage(`import ${kind} needs a file${STDIN.has(kind) ? ", or - for stdin" : ""}`);
+  if (file === "-" && !STDIN.has(kind))
+    usage(`import ${kind} reads a file or folder; - (stdin) is only for mermaid and sql`);
   if (file !== "-" && !existsSync(resolve(file))) usage(`no such file: ${file}`);
   const result = await importer(file);
   for (const w of result.warnings) process.stderr.write(`warn  ${w}\n`);
+  if (!hasNodes(result.yaml)) {
+    process.stderr.write(`error nothing to draw: ${file} gave no nodes, so no spec was written\n`);
+    process.exitCode = 1;
+    return;
+  }
   const out = typeof args.flags.out === "string" ? resolve(args.flags.out) : undefined;
   if (!out) return void process.stdout.write(result.yaml);
   if (existsSync(out) && args.flags.force !== true) {

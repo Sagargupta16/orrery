@@ -359,11 +359,15 @@ class Kubernetes {
 
   /** The Service an environment host names: svc, svc.ns, svc.ns.svc or svc.ns.svc.cluster.local. */
   serviceFor(host: string, namespace: string | undefined): Item | undefined {
-    const [name, ns] = host.replace(/\.svc(\.cluster\.local)?$/, "").split(".");
-    return (
-      this.serviceNamed(name, ns ?? namespace) ??
-      (namespace ? undefined : this.serviceNamed(name, undefined))
-    );
+    const short = host.replace(/\.svc(\.cluster\.local)?$/, "");
+    const [name, ns, ...rest] = short.split(".");
+    // Any more labels make an outside hostname (api.stripe.com), never a Service.
+    if (rest.length) return undefined;
+    if (!ns) return this.serviceNamed(name, namespace);
+    const svc = this.serviceNamed(name, ns);
+    if (svc || namespace) return svc;
+    // With no namespaces in the manifests, svc.ns is a Service only when it says so (.svc, default).
+    return short !== host || ns === "default" ? this.serviceNamed(name, undefined) : undefined;
   }
 
   private envFlows() {

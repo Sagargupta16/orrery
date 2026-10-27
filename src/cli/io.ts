@@ -1,9 +1,10 @@
 // Shared CLI plumbing: usage errors, spec input, atomic writes and diagnostics on stderr.
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { LibraryError } from "../icons/libraries.ts";
 import { LocalIconError } from "../icons/local/index.ts";
+import { readText } from "../spec/values.ts";
 import type { Diagnostic } from "../types.ts";
 import type { Args } from "./args.ts";
 import { HELP } from "./help.ts";
@@ -66,20 +67,25 @@ export function renderFailure(e: unknown): Diagnostic | undefined {
   return undefined;
 }
 
+const isFile = (path: string) => existsSync(path) && statSync(path).isFile();
+
 export function readSpec(path: string): { text: string; name: string; path: string } {
-  if (path === "-") return { text: readFileSync(0, "utf8"), name: "diagram", path: "stdin.yaml" };
+  if (path === "-") return { text: readText(0), name: "diagram", path: "stdin.yaml" };
   const full = resolve(path);
   if (!existsSync(full)) usage(`no such spec file: ${path}`);
+  if (!isFile(full)) usage(`not a file: ${path} (pass the spec file, not its folder)`);
   return {
-    text: readFileSync(full, "utf8"),
+    // By its byte order mark: a Windows PowerShell `>` redirect writes UTF-16.
+    text: readText(full),
     name: basename(full).replace(/\.(ya?ml|json)$/i, ""),
     path: full,
   };
 }
 
-/** The --font files (the flag repeats), each of which must exist. */
+/** The --font files (the flag repeats), each of which must be a file. */
 export function fontFiles(args: Args): string[] {
   const fonts = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
-  for (const f of fonts) if (!existsSync(f)) usage(`no such file: ${f} (from --font)`);
+  for (const f of fonts)
+    if (!isFile(f)) usage(`${existsSync(f) ? "not a file" : "no such file"}: ${f} (from --font)`);
   return fonts;
 }

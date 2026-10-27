@@ -423,4 +423,41 @@ views:
   it("renumbers fragments to the kept messages and drops the ones left empty", () => {
     expect(front.fragments).toEqual([{ type: "opt", label: "pay now", from: 3, to: 3 }]);
   });
+
+  const branched = model(`kind: sequence
+nodes:
+  user: { label: User }
+  api: { label: API }
+  db: { label: DB }
+  cache: { label: Cache }
+edges:
+  - user -> api: POST /orders
+  - api -> db: read stock
+  - api -> cache: read cached price
+  - api -> db: reserve
+  - api --> user: 201 Created
+fragments:
+  - { type: alt, label: in stock, from: 2, to: 4, else: [{ at: 3, label: cached }, { at: 4, label: reserve only }] }
+views:
+  nocache: { exclude: [cache] }
+  nodb: { exclude: [db] }
+`);
+  const fragmentsIn = (name: string) =>
+    viewModel(
+      branched,
+      must(
+        branched.views?.find((v) => v.name === name),
+        "view",
+      ),
+    ).fragments;
+
+  it("keeps each kept message under its own branch and drops a branch left empty", () => {
+    expect(fragmentsIn("nocache")).toEqual([
+      { type: "alt", label: "in stock", from: 2, to: 3, else: [{ at: 3, label: "reserve only" }] },
+    ]);
+  });
+
+  it("labels the fragment with the first branch left when its own guard keeps nothing", () => {
+    expect(fragmentsIn("nodb")).toEqual([{ type: "alt", label: "cached", from: 2, to: 2 }]);
+  });
 });

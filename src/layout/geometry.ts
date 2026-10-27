@@ -17,6 +17,10 @@ export const contains = (outer: Box, b: Box): boolean =>
   b.x + b.w <= outer.x + outer.w + 0.01 &&
   b.y + b.h <= outer.y + outer.h + 0.01;
 
+/** Whether `inner` lies inside `outer` and is not the same box. */
+export const within = (inner: Box, outer: Box): boolean =>
+  contains(outer, inner) && !contains(inner, outer);
+
 export function union(boxes: (Box | undefined)[]): Box {
   const list = boxes.filter((b): b is Box => !!b);
   const x = Math.min(...list.map((b) => b.x));
@@ -43,15 +47,22 @@ export function dropStraightPoints(points: Point[]): Point[] {
   return out.length >= 2 ? out : points;
 }
 
-/** A straight run of 16px in front of each arrowhead, so the head does not sit on a bend. */
-export function headRoom(points: Point[], heads: { start: boolean; end: boolean }): boolean {
+/**
+ * A straight run of 16px (or the skin's `room`) in front of each arrowhead, so the head does not
+ * sit on a bend.
+ */
+export function headRoom(
+  points: Point[],
+  heads: { start: boolean; end: boolean; room?: number },
+): boolean {
   const run = (p: Point | undefined, q: Point | undefined) =>
     p && q ? Math.abs(p.x - q.x) + Math.abs(p.y - q.y) : 0;
   const n = points.length;
+  const room = heads.room ?? 16;
   return (
     n < 3 ||
-    ((!heads.start || run(points[0], points[1]) >= 16) &&
-      (!heads.end || run(points[n - 2], points[n - 1]) >= 16))
+    ((!heads.start || run(points[0], points[1]) >= room) &&
+      (!heads.end || run(points[n - 2], points[n - 1]) >= room))
   );
 }
 

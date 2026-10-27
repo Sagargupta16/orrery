@@ -140,7 +140,7 @@ const isObj = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
 function client(name: string): Client {
-  const c = CLIENTS[name];
+  const c = Object.hasOwn(CLIENTS, name) ? CLIENTS[name] : undefined;
   if (!c) throw new InstallError(`unknown client "${name}"`);
   return c;
 }
@@ -217,8 +217,12 @@ function tomlTable(c: Client): string {
 
 /** A [table] or [[array]] header line; the capture is its key. */
 const HEADER = /^\s*\[\[?\s*([^\]#]+?)\s*\]\]?\s*(?:#.*)?$/;
-const bareKey = (key: string) => key.replace(/\s*\.\s*/g, ".").replace(/["']/g, "");
-const startsKey = (key: string) => new RegExp(`^\\s*["']?${key}["']?\\s*[.=]`);
+/** A dotted key's segments without their quotes; a dot inside quotes belongs to its segment. */
+const keyPath = (key: string) =>
+  (key.match(/"(?:\\.|[^"\\])*"|'[^']*'|[^\s."']+/g) ?? []).map((s) =>
+    s.replace(/^(["'])(.*)\1$/, "$2"),
+  );
+const startsKey = (key: string) => new RegExp(`^\\s*(?:${key}|"${key}"|'${key}')\\s*[.=]`);
 
 /**
  * No TOML library ships with the CLI, so the edit is by lines: the orrery table and its
@@ -230,15 +234,15 @@ function mergeToml(c: Client, raw: string, path: string, force: boolean): Merged
   const byHand = `; add this by hand:\n${tomlTable(c)}`;
   const keep: string[] = [];
   const found: string[] = [];
-  let table = "";
+  let table: string[] = [];
   for (const line of raw.split(/\r?\n/)) {
     const header = line.match(HEADER)?.[1];
-    if (header !== undefined) table = bareKey(header);
-    else if (!table && startsKey(c.key).test(line))
+    if (header !== undefined) table = keyPath(header);
+    else if (!table.length && startsKey(c.key).test(line))
       throw new InstallError(`${path} sets ${c.key} with an inline or dotted key${byHand}`);
-    else if (table === c.key && startsKey(SERVER).test(line))
+    else if (table.length === 1 && table[0] === c.key && startsKey(SERVER).test(line))
       throw new InstallError(`${path} sets ${ours} with an inline or dotted key${byHand}`);
-    (table === ours || table.startsWith(`${ours}.`) ? found : keep).push(line);
+    (table[0] === c.key && table[1] === SERVER ? found : keep).push(line);
   }
   const want = tomlTable(c);
   if (found.length) {
@@ -297,7 +301,7 @@ export async function cmdMcpInstall(args: Args): Promise<void> {
   }
   const [name, scopeArg, ...extra] = args._;
   if (!name) usage(`mcp install needs a client: ${names.join(", ")} (or --list)`);
-  const c = CLIENTS[name];
+  const c = Object.hasOwn(CLIENTS, name) ? CLIENTS[name] : undefined;
   if (!c) usage(`unknown client "${name}"; one of ${names.join(", ")}`);
   if (extra.length) usage(`mcp install takes a client and a scope (got ${args._.join(" ")})`);
   if (scopeArg !== undefined && !SCOPES.includes(scopeArg as Scope))

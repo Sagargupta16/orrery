@@ -91,20 +91,23 @@ function fieldString(ctx: Ctx, item: unknown, where: string): ErField | undefine
     return undefined;
   }
   const field: ErField = { name };
+  // Own keys only: a type such as "constructor" is not a flag.
+  const flagOf = (token: string) =>
+    Object.hasOwn(FIELD_FLAGS, token.toLowerCase()) ? FIELD_FLAGS[token.toLowerCase()] : undefined;
   const first = rest[0];
-  if (first !== undefined && !(first.toLowerCase() in FIELD_FLAGS)) {
+  if (first !== undefined && !flagOf(first)) {
     field.type = first;
     rest.shift();
   }
   for (const token of rest) {
-    const flag = FIELD_FLAGS[token.toLowerCase()];
+    const flag = flagOf(token);
     if (flag) {
       field[flag] = true;
       continue;
     }
     const near = closest(token, Object.keys(FIELD_FLAGS));
     ctx.err("DG123", `${where} "${text}": unknown token "${token}" after the type`, {
-      subject: { where, value: text },
+      subject: { where, token, value: text },
       fixes: [
         near ? `use "${near}"` : "after the type, use only pk, fk, unique and null",
         `a type with spaces goes in the mapping form: { name: ${name}, type: "..." }`,
@@ -217,8 +220,10 @@ export function edgeErKeys(
 function cardOf(value: unknown): { from: ErEnd; to: ErEnd } | undefined {
   if (typeof value !== "string") return undefined;
   const m = /^\s*([^:\s]+)\s*:\s*([^:\s]+)\s*$/.exec(value);
-  const a = m?.[1] && CARD_ENDS[m[1].toLowerCase()];
-  const b = m?.[2] && CARD_ENDS[m[2].toLowerCase()];
+  const end = (s: string | undefined) =>
+    s && Object.hasOwn(CARD_ENDS, s.toLowerCase()) ? CARD_ENDS[s.toLowerCase()] : undefined;
+  const a = end(m?.[1]);
+  const b = end(m?.[2]);
   return a && b ? { from: a, to: b } : undefined;
 }
 
@@ -344,7 +349,12 @@ function fragment(ctx: Ctx, item: unknown, where: string, count: number): SeqFra
 const ORDER: TimeScale[] = ["day", "week", "month", "quarter", "year"];
 const pad = (v: number, w: number) => String(v).padStart(w, "0");
 const iso = (y: number, m: number, d: number) => `${pad(y, 4)}-${pad(m, 2)}-${pad(d, 2)}`;
-const daysIn = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+/** Days in month `m` (1 is January); setUTCFullYear keeps years 0 to 99 as written. */
+const daysIn = (y: number, m: number) => {
+  const t = new Date(0);
+  t.setUTCFullYear(y, m, 0);
+  return t.getUTCDate();
+};
 
 /** A written date as its first and last day, and the precision it was written in. */
 interface Dated {

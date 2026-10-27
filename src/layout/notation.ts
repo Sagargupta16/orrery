@@ -224,7 +224,7 @@ const r = (v: number) => Math.round(v * 100) / 100;
  * ELK ends a line on the bounding box, which meets a diamond or a circle at four points and a
  * slanted or wavy side nowhere; such an end would stop short in the air. It moves along its last
  * segment onto the outline. An end elsewhere on the box (under a label in a vertical flow) stays.
- * `shapes` adds the decision, connector and document shapes, outside architecture diagrams.
+ * `shapes` adds the document shape, outside architecture diagrams.
  */
 export function fitNotationEnds(nodes: SceneNode[], edges: SceneEdge[], shapes = false): void {
   const outlines = new Map<string, Outline>();
@@ -291,12 +291,14 @@ function outlineOf(nd: SceneNode, shapes: boolean): Outline | undefined {
           y >= b.y && y <= b.y + b.h && x >= b.x && (x <= b.x + b.w - rx || round(x, y)),
       };
     }
+    case "diamond":
+      return { box: b, inside: rhombus(b) };
+    case "circle":
+      return { box: b, inside: ellipse(b) };
     default:
       break;
   }
   if (!shapes) return undefined;
-  if (nd.shape === "diamond") return { box: b, inside: rhombus(b) };
-  if (nd.shape === "circle") return { box: b, inside: ellipse(b) };
   if (nd.shape === "document") {
     // svg.ts's wave: two quadratics 10px above the bottom, 5px up on the right, down on the left.
     const base = b.y + b.h - 10;

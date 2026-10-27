@@ -125,13 +125,18 @@ export function specInput(input: Obj, ctx: Context): Spec {
 }
 
 export function parse(spec: Spec, ctx: Context) {
-  const parsed = parseSpec(spec.text, spec.path);
+  // Over HTTP include: opens no file at all, so it cannot read one or say whether one exists.
+  const parsed = parseSpec(spec.text, spec.path, ctx.http ? { include: false } : {});
   // Refused whether or not the files exist: "not found" would answer that question too.
   const declares =
     !!parsed.model?.icons?.length || parsed.diagnostics.some((d) => d.subject?.where === "icons");
   if (ctx.http && declares)
     throw new ToolError(
       "icons: names SVG files on the server's disk, which is refused over HTTP: use icon ids from icons_search, or run the server over stdio",
+    );
+  if (ctx.http && parsed.diagnostics.some((d) => d.subject?.where === "include"))
+    throw new ToolError(
+      "include: names spec files on the server's disk, which is refused over HTTP: paste the shared groups, nodes and edges into the spec, or run the server over stdio",
     );
   return parsed;
 }

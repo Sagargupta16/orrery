@@ -20,6 +20,7 @@ export function assemble(ctx: Routed, routing: Routing, canvas: Canvas): Scene {
     skin: model.skin,
     background: model.background,
     title: canvas.title ?? titleBlock,
+    ...(model.title ? { name: model.title } : {}),
     titleBox,
     subtitle: canvas.subtitle ?? subtitleBlock,
     subtitleBox,

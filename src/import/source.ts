@@ -1,7 +1,6 @@
 // YAML and JSON sources with line numbers, for evidence: every importer that reads a file says
 // where in it each node, group and edge came from. CloudFormation's short tags (!Ref, !GetAtt,
 // !Sub ...) parse into their long forms, so templates read the same in YAML and JSON.
-import { readFileSync } from "node:fs";
 import {
   type Document,
   isAlias,
@@ -13,6 +12,8 @@ import {
   parseAllDocuments,
   type Tags,
 } from "yaml";
+// UTF-8, or UTF-16 by its byte order mark (what `>` writes in Windows PowerShell 5.1).
+import { readText } from "../spec/values.ts";
 
 export interface Source {
   doc: Document;
@@ -65,9 +66,11 @@ const CFN_TAGS: Tags = INTRINSICS.flatMap((name) => {
   ];
 });
 
+export { readText };
+
 /** Every document in a YAML (or JSON) file, with a shared line counter. */
 export function readSources(file: string, opts: { cfn?: boolean } = {}): Source[] {
-  const text = readFileSync(file, "utf8");
+  const text = readText(file);
   const lines = new LineCounter();
   const docs = parseAllDocuments(text, {
     lineCounter: lines,

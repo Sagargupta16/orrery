@@ -1,16 +1,17 @@
 import { mixHex } from "../color.ts";
 import { renderIcon } from "../icons/index.ts";
 import { FONT_STACK, type Theme, tokensFor } from "../themes.ts";
-import type {
-  Box,
-  EdgeLine,
-  Point,
-  Scene,
-  SceneEdge,
-  SceneGroup,
-  SceneLegend,
-  SceneNode,
-  TextBlock,
+import {
+  type Box,
+  type EdgeLine,
+  KIND_NAMES,
+  type Point,
+  type Scene,
+  type SceneEdge,
+  type SceneGroup,
+  type SceneLegend,
+  type SceneNode,
+  type TextBlock,
 } from "../types.ts";
 import { erEndsClassic, erTableClassic } from "./er.ts";
 import { journeyClassic } from "./journey.ts";
@@ -24,8 +25,17 @@ import { timelineClassic } from "./timeline.ts";
 const ASCENT = 0.96875;
 const DESCENT = 0.2412;
 
+/** The SVG's <title>: the title as written, else what the kind of diagram is called. */
+export const accessibleName = (scene: Scene): string =>
+  scene.name ?? scene.title?.lines.join(" ") ?? KIND_NAMES[scene.kind];
+
+/** Characters XML 1.0 forbids (most C0 controls, lone surrogates, U+FFFE, U+FFFF). */
+const NOT_XML = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
+
+/** Text for XML: markup characters escaped, characters XML may not hold dropped. */
 export function esc(s: string): string {
   return s
+    .replace(NOT_XML, "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -652,28 +662,67 @@ function badge(ctx: Ctx, label: string, anchor: Box, placed?: Box): string {
   return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(h / 2)}" fill="${ctx.t.stepFill}"/><text x="${n(x + w / 2)}" y="${n(y + h / 2 + 3.5)}" font-size="10" font-weight="600" fill="${ctx.t.stepText}" text-anchor="middle">${esc(label)}</text>`;
 }
 
+/** Where an icon's center sits on a group's border: the line, and whether it runs up and down. */
+interface Seat {
+  g: SceneGroup;
+  at: number;
+  upright: boolean;
+  /** The group's inside is past the line (left or top border), else before it. */
+  insidePast: boolean;
+}
+
+function seatOf(g: SceneGroup, cx: number, cy: number): Omit<Seat, "g"> | undefined {
+  const { x, y, w, h } = g.box;
+  const near = (v: number, line: number) => Math.abs(v - line) <= 1;
+  const across = cy > y && cy < y + h;
+  const along = cx > x && cx < x + w;
+  if (across && near(cx, x)) return { at: x, upright: true, insidePast: true };
+  if (across && near(cx, x + w)) return { at: x + w, upright: true, insidePast: false };
+  if (along && near(cy, y)) return { at: y, upright: false, insidePast: true };
+  if (along && near(cy, y + h)) return { at: y + h, upright: false, insidePast: false };
+  return undefined;
+}
+
 /**
- * A plate of the canvas color under an icon centered on a group's border line (a node with
- * on:), drawn over the frames and under the edges, so the border stops at the icon instead of
- * running through its glyph. Empty for every other node.
+ * A plate under an icon centered on a group's border line (a node with on:), drawn over the
+ * frames and under the edges, so the border stops at the icon instead of running through its
+ * glyph. Each half takes the surface it covers: the group's inside, and what is around the
+ * group. Empty for every other node.
  */
 function borderPlate(ctx: Ctx, nd: SceneNode): string {
   const b = nd.look === "icon" && nd.icon ? nd.iconBox : undefined;
   if (!b) return "";
   const cx = b.x + b.w / 2;
   const cy = b.y + b.h / 2;
-  const near = (v: number, line: number) => Math.abs(v - line) <= 1;
-  const seated = ctx.scene.groups.some(
-    ({ box: g }) =>
-      ((near(cx, g.x) || near(cx, g.x + g.w)) && cy > g.y && cy < g.y + g.h) ||
-      ((near(cy, g.y) || near(cy, g.y + g.h)) && cx > g.x && cx < g.x + g.w),
-  );
+  let seated = false;
+  let seat: Seat | undefined;
+  for (const g of ctx.scene.groups) {
+    const s = seatOf(g, cx, cy);
+    seated ||= !!s;
+    // The innermost group whose border it is; an overlay's line outlines, it holds nothing.
+    if (s && !g.overlay && (!seat || g.depth > seat.g.depth)) seat = { g, ...s };
+  }
   if (!seated) return "";
   const bg =
     ctx.scene.background && ctx.scene.background !== "transparent"
       ? ctx.scene.background
       : ctx.t.background;
-  return `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" fill="${bg}"/>`;
+  const plate = (x: number, y: number, w: number, h: number, fill: string) =>
+    `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" fill="${fill}"/>`;
+  const parent = seat?.g.parent && ctx.scene.groups.find((x) => x.id === seat?.g.parent);
+  const inside = seat ? surfaceBehind(ctx, seat.g) : bg;
+  const outside = parent ? surfaceBehind(ctx, parent) : bg;
+  if (!seat || inside === outside) return plate(b.x, b.y, b.w, b.h, inside);
+  const [past, before] = seat.insidePast ? [inside, outside] : [outside, inside];
+  if (seat.upright)
+    return (
+      plate(b.x, b.y, seat.at - b.x, b.h, before) +
+      plate(seat.at, b.y, b.x + b.w - seat.at, b.h, past)
+    );
+  return (
+    plate(b.x, b.y, b.w, seat.at - b.y, before) +
+    plate(b.x, seat.at, b.w, b.y + b.h - seat.at, past)
+  );
 }
 
 function node(ctx: Ctx, nd: SceneNode): string {
@@ -776,9 +825,7 @@ export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
   out.push(
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="${titleId} ${descId}" font-family="${esc(FONT_STACK)}">`,
   );
-  out.push(
-    `<title id="${titleId}">${esc(scene.title?.lines.join(" ") ?? "Architecture diagram")}</title>`,
-  );
+  out.push(`<title id="${titleId}">${esc(accessibleName(scene))}</title>`);
   out.push(`<desc id="${descId}">${esc(scene.description)}</desc>`);
   if (scene.animate === "flow") out.push(`<style>${FLOW_CSS}</style>`);
   const defsAt = out.length;
@@ -791,9 +838,12 @@ export function renderSvg(scene: Scene, opts: SvgOptions = {}): string {
   if (scene.journey) out.push(journeyClassic(scene, t));
   if (scene.timeline) out.push(timelineClassic(scene, t));
   // Pools and lanes are bands with a label strip; everything else is a frame and a header.
-  const lanes = new Map(scene.groups.map((g) => [g.id, g.lane ? laneClassic(g, t) : undefined]));
+  const lanes = new Map(
+    scene.groups.map((g) => [g.id, g.lane ? laneClassic(g, t, surfaceBehind(ctx, g)) : undefined]),
+  );
   for (const g of scene.groups)
     out.push(`<g id="${ctx.prefix}g-${g.id}">${lanes.get(g.id)?.frame ?? groupFrame(g)}</g>`);
+  for (const lane of lanes.values()) if (lane?.outline) out.push(lane.outline);
   // Lifelines, fragments and activations: over the participants' group panels, under messages.
   if (scene.sequence) out.push(sequenceClassic(scene, t));
   for (const nd of scene.nodes) {

@@ -2,7 +2,7 @@
 // blocks): the tests a route must pass, and laneRoutes, the elbows a free edge may take.
 
 import type { Box, Point } from "../types.ts";
-import { round, segmentHits, segmentsOf } from "./geometry.ts";
+import { round, segmentHits, segmentsOf, within } from "./geometry.ts";
 
 /** Whether any segment of the path runs through any of the boxes, each shrunk by `inset`. */
 export const runsThrough = (points: Point[], boxes: Box[], inset = 1): boolean =>
@@ -20,6 +20,8 @@ export interface RouteEnd {
 export interface Heads {
   start: boolean;
   end: boolean;
+  /** How long that run is: HEAD_ROOM unless the skin draws a longer head (headRoomFor). */
+  room?: number;
 }
 
 /** Straight run kept in front of an arrowhead so it does not sit on a bend. */
@@ -35,6 +37,21 @@ const ON_BORDER = 4;
 const ON_BORDER_ALONG = 24;
 /** A line closer than this to a group title's text crowds it (DG225). */
 const TITLE_CLEAR = 6;
+
+/** The stage skin draws its open chevrons at this length per hairline (render/stage/draw-edges.ts). */
+const STAGE_HEAD = 6;
+/** The display width the stage skin scales its hairline to (render/stage/index.ts). */
+const STAGE_DISPLAY = 880;
+
+/** How long the stage skin draws an arrowhead on a drawing `width` px wide (check DG222 too). */
+export const stageHead = (width: number): number => STAGE_HEAD * Math.max(1, width / STAGE_DISPLAY);
+
+/**
+ * The straight run kept in front of an arrowhead on a drawing `width` px wide: HEAD_ROOM, or on
+ * the stage skin, whose head grows with the width past its display width, that head and 1px.
+ */
+export const headRoomFor = (skin: string | undefined, width: number): number =>
+  skin === "stage" ? Math.max(HEAD_ROOM, Math.ceil(stageHead(width)) + 1) : HEAD_ROOM;
 
 /**
  * The first straight run of the path that lies on a group border, as check DG224 measures it:
@@ -109,22 +126,108 @@ export function laneRoutes(
   heads: Heads,
   borders: Box[],
   across = true,
+  label?: { w: number; h: number },
 ): Point[][] {
+  const out = exits(a, b, label);
+  if (out.length) return out;
   const sideBySide = a.full.x + a.full.w <= b.full.x || b.full.x + b.full.w <= a.full.x;
   const stacked = a.full.y + a.full.h <= b.full.y || b.full.y + b.full.h <= a.full.y;
   const order = across ? [sideBySide, !sideBySide && stacked] : [!stacked && sideBySide, stacked];
-  const out = [
+  out.push(
     ...(order[0] ? lanesFor(a, b, heads, borders, true) : []),
     ...(order[1] ? lanesFor(a, b, heads, borders, false) : []),
-  ];
+  );
   // The other family as a fallback when the boxes allow it.
   if (sideBySide && stacked) out.push(...lanesFor(a, b, heads, borders, !across));
   return out;
 }
 
+/**
+ * When one end lies inside the other (a node and the group around it), the straight runs from
+ * the inner end out to the outer one's border, the nearest side first: a side face at the icon's
+ * center line, or the top or bottom of the node with its text. A run too short for the edge's
+ * label beside it (`label`, its width and height) and 12px goes last. None otherwise.
+ */
+export function exits(a: RouteEnd, b: RouteEnd, label = { w: 0, h: 0 }): Point[][] {
+  if (within(b.full, a.full)) return exits(b, a, label).map((p) => [...p].reverse());
+  if (!within(a.full, b.full)) return [];
+  const { side, full } = a;
+  const outer = b.full;
+  const cx = round(side.x + side.w / 2);
+  const cy = round(side.y + side.h / 2);
+  const [left, right] = [side.x, side.x + side.w];
+  const [top, bottom] = [full.y, full.y + full.h];
+  const across = label.w + 12;
+  const down = label.h + 12;
+  return [
+    {
+      d: left - outer.x,
+      need: across,
+      p: [
+        { x: left, y: cy },
+        { x: outer.x, y: cy },
+      ],
+    },
+    {
+      d: outer.x + outer.w - right,
+      need: across,
+      p: [
+        { x: right, y: cy },
+        { x: outer.x + outer.w, y: cy },
+      ],
+    },
+    {
+      d: top - outer.y,
+      need: down,
+      p: [
+        { x: cx, y: top },
+        { x: cx, y: outer.y },
+      ],
+    },
+    {
+      d: outer.y + outer.h - bottom,
+      need: down,
+      p: [
+        { x: cx, y: bottom },
+        { x: cx, y: outer.y + outer.h },
+      ],
+    },
+  ]
+    .sort((m, n) => Number(m.d < m.need) - Number(n.d < n.need) || m.d - n.d)
+    .map((w) => w.p);
+}
+
+/**
+ * A self loop on each corner of an end, the top right one first as ELK draws it: out of the top
+ * (or bottom) face 14px in from the corner, round the corner 18px out, and back into the side
+ * face 14px from the corner.
+ */
+export function loops(end: RouteEnd): Point[][] {
+  const { side, full } = end;
+  const size = 18;
+  const inset = Math.max(4, Math.min(14, side.w / 2 - 2, side.h / 2 - 2));
+  return [true, false].flatMap((top) =>
+    [true, false].map((right) => {
+      const sx = right ? 1 : -1;
+      const sy = top ? -1 : 1;
+      const x = right ? side.x + side.w : side.x;
+      const y = top ? full.y : full.y + full.h;
+      const into = top ? side.y + inset : side.y + side.h - inset;
+      return [
+        { x: x - sx * inset, y },
+        { x: x - sx * inset, y: y + sy * size },
+        { x: x + sx * size, y: y + sy * size },
+        { x: x + sx * size, y: into },
+        { x, y: into },
+      ].map((p) => ({ x: round(p.x), y: round(p.y) }));
+    }),
+  );
+}
+
 /** h: risers run across x between side faces; otherwise across y between top and bottom faces. */
 function lanesFor(a: RouteEnd, b: RouteEnd, heads: Heads, borders: Box[], h: boolean): Point[][] {
   const out: Point[][] = [];
+  const room = heads.room ?? HEAD_ROOM;
   const cx = (r: Box) => r.x + r.w / 2;
   const cy = (r: Box) => r.y + r.h / 2;
   const A = h ? a.side : a.full;
@@ -141,10 +244,9 @@ function lanesFor(a: RouteEnd, b: RouteEnd, heads: Heads, borders: Box[], h: boo
     h ? { x: round(u), y: round(v) } : { x: round(v), y: round(u) };
   if (Math.abs(s0 - t0) >= 1) {
     const ok = (u: number) =>
-      (u - s) * dir >= (heads.start ? HEAD_ROOM : 8) &&
-      (t - u) * dir >= (heads.end ? HEAD_ROOM : 8);
+      (u - s) * dir >= (heads.start ? room : 8) && (t - u) * dir >= (heads.end ? room : 8);
     const mid = s + (t - s) * RISER;
-    const roomy = dir > 0 ? Math.min(mid, t - HEAD_ROOM) : Math.max(mid, t + HEAD_ROOM);
+    const roomy = dir > 0 ? Math.min(mid, t - room) : Math.max(mid, t + room);
     const [lo, hi] = [Math.min(s0, t0), Math.max(s0, t0)];
     const lines = borders.flatMap((g) => {
       const [from, to] = h ? [g.y, g.y + g.h] : [g.x, g.x + g.w];
@@ -164,8 +266,8 @@ function lanesFor(a: RouteEnd, b: RouteEnd, heads: Heads, borders: Box[], h: boo
       mid,
       s + 24 * dir,
       t - 24 * dir,
-      s + HEAD_ROOM * dir,
-      t - HEAD_ROOM * dir,
+      s + room * dir,
+      t - room * dir,
     ];
     for (const u of new Set(lanes.map(round)))
       if (ok(u)) out.push([pt(s, s0), pt(u, s0), pt(u, t0), pt(t, t0)]);
@@ -176,14 +278,14 @@ function lanesFor(a: RouteEnd, b: RouteEnd, heads: Heads, borders: Box[], h: boo
   if (s0 < b0 || s0 > b1) {
     const u = h ? cx(b.side) : cy(b.side);
     const end = s0 < b0 ? b0 : b1;
-    if ((u - s) * dir >= 8 && Math.abs(end - s0) >= (heads.end ? HEAD_ROOM : 8))
+    if ((u - s) * dir >= 8 && Math.abs(end - s0) >= (heads.end ? room : 8))
       out.push([pt(s, s0), pt(u, s0), pt(u, end)]);
   }
   const [a0, a1] = cross(h ? a.full : a.side);
   if (t0 < a0 || t0 > a1) {
     const u = h ? cx(a.side) : cy(a.side);
     const start = t0 < a0 ? a0 : a1;
-    if ((t - u) * dir >= (heads.end ? HEAD_ROOM : 8) && Math.abs(t0 - start) >= 8)
+    if ((t - u) * dir >= (heads.end ? room : 8) && Math.abs(t0 - start) >= 8)
       out.push([pt(u, start), pt(u, t0), pt(t, t0)]);
   }
   return out;

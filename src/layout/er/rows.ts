@@ -16,6 +16,9 @@ export function singular(word: string): string {
   return word;
 }
 
+/** The reading singular() leaves out so houses stays house: statuses -> status, quizzes -> quiz. */
+const otherSingular = (word: string) => word.replace(/([so])es$/, "$1").replace(/zzes$/, "z");
+
 /** The names an entity goes by in a column name: its id and label, plural and singular. */
 function namesOf(n: ModelNode): Set<string> {
   const out = new Set<string>();
@@ -24,6 +27,7 @@ function namesOf(n: ModelNode): Set<string> {
     if (!base) continue;
     out.add(base);
     out.add(singular(base));
+    out.add(otherSingular(base));
     // order_items reads as order_item; the last word carries the plural.
     const words = raw
       .toLowerCase()

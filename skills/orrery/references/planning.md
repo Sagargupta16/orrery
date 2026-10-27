@@ -47,7 +47,7 @@ The planner returns one JSON object; the orchestrator shows the confirm list to 
 - `source` on every edge: `declared` when the infrastructure wires it (an event source mapping, a subscription, an integration, a rule target), `inferred` when only code or configuration shows it (a client call, an environment variable holding a URL). The confirm list marks inferred flows so the user can check them first.
 - `aspect`: `overview`, `request`, `data`, `deploy`, `failure` or `security`.
 - Stay at the level of services and flows: no layout, no directions, no styling. Those are the author's and the measurement's job, and a plan that fixes them early passes its mistakes on to every figure.
-- Icons come from `orrery icons search`; a service with no official icon is listed in `standIns` with the icon used in its place.
+- Icons come from the catalog: `orrery icons search` in a session with a shell, or, in the planner agent (no shell), Grep in only-matching mode on `assets/icons/index.json` with the patterns in its step 5; a service with no official icon is listed in `standIns` with the icon used in its place.
 
 ## Reading the evidence
 

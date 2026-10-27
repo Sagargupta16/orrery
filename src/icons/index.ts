@@ -118,15 +118,15 @@ export function aliases(): Record<string, string> {
   return loadIndex().aliases;
 }
 
+/** A pack written before / or . ("aws/lambda", "aws.lambda"); other words keep it ("socket.io"). */
+const PACK_PREFIX = new RegExp(`^(${[...PACK_ORDER, "generic", LOCAL_PACK].join("|")})[/.]`);
+
 function clean(id: string): string {
-  return id
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/^([a-z0-9]+)[/.]/, "$1:");
+  return id.trim().toLowerCase().replace(/\s+/g, "-").replace(PACK_PREFIX, "$1:");
 }
 
-const known = (id: string) => infos().get(id) ?? locals.get(id)?.info ?? weights.get(id);
+const known = (id: string, withLocals = true) =>
+  infos().get(id) ?? (withLocals ? locals.get(id)?.info : undefined) ?? weights.get(id);
 
 /**
  * A weight an npm set names by suffix ("ph:cube-bold"). Only the plain name is indexed, so the
@@ -142,17 +142,24 @@ function weightOf(id: string): string | undefined {
 }
 
 /** Canonical icon id for an id or alias, or undefined when nothing matches exactly. */
-export function resolveIcon(id: string): string | undefined {
+export function resolveIcon(id: string, withLocals = true): string | undefined {
   let current = clean(id);
   const table = loadIndex().aliases;
   for (let hops = 0; hops < 4; hops++) {
-    if (known(current)) return current;
-    const next = table[current];
+    if (known(current, withLocals)) return current;
+    // Own keys only: "constructor" is not an alias, whatever Object.prototype says.
+    const next = Object.hasOwn(table, current) ? table[current] : undefined;
     if (!next) return weightOf(current);
     current = next;
   }
   return undefined;
 }
+
+/**
+ * resolveIcon without the local icons earlier renders in this process registered: the parse-time
+ * check, so a spec sees only the local:<name> icons it declares itself.
+ */
+export const resolveCatalogIcon = (id: string): string | undefined => resolveIcon(id, false);
 
 export function iconInfo(id: string): IconInfo | undefined {
   const resolved = resolveIcon(id);
@@ -307,7 +314,9 @@ export function searchIcons(query: string, opts: SearchOptions = {}): IconInfo[]
     let score = 0;
     let matched = 0;
     for (const t of qTokens) {
-      if (hayTokens.has(t)) {
+      // A pack word ("gcp storage", "k8s service") matches that pack's icons, whose names
+      // seldom carry it.
+      if (hayTokens.has(t) || t === info.pack) {
         matched += 1;
         score += 10;
       } else if (t.length >= 2 && [...hayTokens].some((h) => h.startsWith(t))) {
@@ -362,11 +371,17 @@ export function suggestIcons(id: string, limit = 3): string[] {
     })
     .sort((a, b) => a[0] - b[0]);
   const close: string[] = [];
-  // Typos: nearest slugs inside the same pack by edit distance.
+  // Typos: nearest slugs and short names (aws:sqs, generic:alert) inside the same pack by edit
+  // distance.
   if (pack) {
-    const near = [...infos().values()]
-      .filter((i) => i.pack === pack)
-      .map((i) => [levenshtein(slug, i.slug), i.id] as const)
+    const names = [
+      ...[...infos().values()].filter((i) => i.pack === pack).map((i) => [i.slug, i.id] as const),
+      ...Object.keys(loadIndex().aliases)
+        .filter((a) => a.startsWith(`${pack}:`))
+        .map((a) => [a.slice(pack.length + 1), a] as const),
+    ];
+    const near = names
+      .map(([s, nid]) => [levenshtein(slug, s), nid] as const)
       .filter(([d]) => d <= Math.max(2, Math.floor(slug.length / 4)))
       .sort((a, b) => a[0] - b[0]);
     for (const [, nid] of near) if (!close.includes(nid)) close.push(nid);

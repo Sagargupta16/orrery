@@ -38,6 +38,11 @@ export function placeTree(ctx: AfterLayout): void {
   restoreEdges(ctx);
   const before = snapshot(ctx);
   const h = hierarchy(ctx, false);
+  // The stage story grows along the edges the tree is drawn by.
+  for (const n of ctx.nodes) {
+    const via = h.via.get(n.id);
+    if (via) n.via = via.id;
+  }
   const m = new Map(ctx.nodes.map((n) => [n.id, measure(n, horizontal)]));
   const sizes = new Map<string, LabelSize>();
   for (const [child, e] of h.via) {

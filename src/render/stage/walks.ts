@@ -9,30 +9,44 @@ export const ends = (e: SceneEdge): [string, string] =>
 const src = (e: SceneEdge) => ends(e)[0];
 const dst = (e: SceneEdge) => ends(e)[1];
 
-/** The longest chain of directed edges (spec order breaks ties); loops are cut where they close. */
+/**
+ * The longest chain of directed edges (spec order breaks ties). Loops are cut first, where a walk
+ * from the sources (the nodes nothing enters, in spec order, then the rest) closes them, so each
+ * node's longest chain is one answer, whichever way it is reached.
+ */
 export function longestPath(edges: SceneEdge[]): SceneEdge[] {
   const out = new Map<string, SceneEdge[]>();
   const starts: string[] = [];
+  const entered = new Set<string>();
   for (const e of edges) {
     const [a, b] = ends(e);
     if (a === b) continue;
     out.set(a, [...(out.get(a) ?? []), e]);
     if (!starts.includes(a)) starts.push(a);
+    entered.add(b);
   }
+  const back = new Set<SceneEdge>();
+  const walked = new Map<string, boolean>();
+  const cut = (v: string) => {
+    walked.set(v, true);
+    for (const e of out.get(v) ?? []) {
+      const next = ends(e)[1];
+      if (walked.get(next)) back.add(e);
+      else if (!walked.has(next)) cut(next);
+    }
+    walked.set(v, false);
+  };
+  for (const v of [...starts.filter((s) => !entered.has(s)), ...starts]) if (!walked.has(v)) cut(v);
   const memo = new Map<string, SceneEdge[]>();
-  const open = new Set<string>();
   const from = (v: string): SceneEdge[] => {
     const known = memo.get(v);
     if (known) return known;
-    open.add(v);
     let best: SceneEdge[] = [];
     for (const e of out.get(v) ?? []) {
-      const next = ends(e)[1];
-      if (open.has(next)) continue;
-      const path = [e, ...from(next)];
+      if (back.has(e)) continue;
+      const path = [e, ...from(ends(e)[1])];
       if (path.length > best.length) best = path;
     }
-    open.delete(v);
     memo.set(v, best);
     return best;
   };
@@ -280,29 +294,35 @@ export function tokenWalk(scene: Scene, travel: (e: SceneEdge) => number): Walk 
 }
 
 /**
- * A tree or a mind map grows out of its roots: every edge of one level runs at once, from parent to
- * child whichever way it was written (mind map edges may point either way), then the next level.
+ * A tree or a mind map grows out of its roots along the hierarchy its layout drew (SceneNode.via):
+ * every edge from a parent of one level to its child runs at once, from parent to child whichever
+ * way it was written (mind map edges may point either way), then the next level. A link outside
+ * the hierarchy (a second parent, a back link, a free edge) is left to the side packets.
  */
 export function treeWalk(scene: Scene, travel: (e: SceneEdge) => number): Walk | undefined {
-  const drawn = scene.edges.filter((e) => e.points.length > 1 && e.from !== e.to);
-  if (!drawn.length) return undefined;
-  const into = new Set(drawn.map((e) => e.to));
-  const roots = scene.nodes.filter((nd) => !into.has(nd.id)).map((nd) => nd.id);
-  const seen = new Set(roots.length ? roots : scene.nodes.slice(0, 1).map((nd) => nd.id));
+  const drawn = new Map(
+    scene.edges.filter((e) => e.points.length > 1 && e.from !== e.to).map((e) => [e.id, e]),
+  );
+  // Each hierarchy edge with the parent it runs from.
+  const parentOf = new Map<string, string>();
+  for (const nd of scene.nodes) {
+    const e = nd.via ? drawn.get(nd.via) : undefined;
+    if (e) parentOf.set(e.id, e.from === nd.id ? e.to : e.from);
+  }
+  if (!parentOf.size) return undefined;
   const runs = new Map<string, Run[]>();
-  let level = [...seen];
+  let level = new Set(scene.nodes.filter((nd) => !nd.via).map((nd) => nd.id));
   let last: Run[] = [];
   let t = STORY_AT;
-  while (level.length) {
-    const next: string[] = [];
+  while (level.size) {
+    const next = new Set<string>();
     const ran: Run[] = [];
     let took = 0;
-    for (const e of drawn) {
-      const reverse = !level.includes(e.from);
-      const child = reverse ? e.from : e.to;
-      if (runs.has(e.id) || !level.includes(reverse ? e.to : e.from) || seen.has(child)) continue;
-      seen.add(child);
-      next.push(child);
+    for (const e of drawn.values()) {
+      const parent = parentOf.get(e.id);
+      if (parent === undefined || !level.has(parent) || runs.has(e.id)) continue;
+      const reverse = e.from !== parent;
+      next.add(reverse ? e.from : e.to);
       const tr = travel(e);
       const run = { t0: t, t1: t + tr, reverse, park: PAUSE };
       runs.set(e.id, [run]);

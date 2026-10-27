@@ -92,14 +92,13 @@ function fitToSafeArea(d: Drawing, bad: Bad): { k: number; fit: Mat } {
   };
 }
 
-/** The colors the drawing paints with, currentColor aside. */
+/** The colors the drawing paints with, currentColor one of them. */
 function colorsOf(d: Drawing): Set<string> {
   const colors = new Set<string>();
   for (const p of d.parts) {
     if (p.filled) colors.add(normalizeColor(p.fill ?? "#000000") ?? "");
     if (p.stroked) colors.add(normalizeColor(p.stroke ?? "") ?? "");
   }
-  colors.delete("currentColor");
   return colors;
 }
 
@@ -117,6 +116,9 @@ function pathRows(d: Drawing, k: number, fit: Mat, mono: boolean): Row[] {
       a["stroke-linejoin"] = p.join;
       if (p.miter && p.join === "miter") a["stroke-miterlimit"] = p.miter;
       if (p.strokeOpacity) a["stroke-opacity"] = p.strokeOpacity;
+      // Dashes scale with the drawing.
+      if (p.dash) a["stroke-dasharray"] = p.dash.map((v) => fmt(v * k)).join(" ");
+      if (p.dash && p.dashOffset) a["stroke-dashoffset"] = fmt(p.dashOffset * k);
     }
     if (p.filled && p.rule === "evenodd") a["fill-rule"] = "evenodd";
     if (p.filled && p.fillOpacity) a["fill-opacity"] = p.fillOpacity;

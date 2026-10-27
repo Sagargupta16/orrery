@@ -131,11 +131,15 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
       if (format === "tsx")
         artifacts.push({ ...base, data: renderTsx(scene, componentName(model.title, req.name)) });
       if (format === "mmd") artifacts.push({ ...base, data: renderMermaid(model, scene) });
-      if (format === "sequence.svg")
+      if (format === "sequence.svg") {
+        const sq = renderSequence(scene, model, { idPrefix: idPrefix(theme) });
         artifacts.push({
           ...base,
-          data: renderSequence(scene, model, { idPrefix: idPrefix(theme) }),
+          data: embedSvgSpec(sq.svg, req.source),
+          width: sq.width,
+          height: sq.height,
         });
+      }
     }
   }
   if (req.formats.includes("html") && scenes.light && scenes.dark) {

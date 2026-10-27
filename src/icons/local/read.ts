@@ -6,7 +6,7 @@ import { type LocalArt, registerLocalIcon } from "../index.ts";
 import { allDark } from "../libraries.ts";
 import { badFor, LocalIconError, shownPath } from "./errors.ts";
 import { NOT_PAINT, normalizeColor, paintsOf } from "./paint.ts";
-import { sanitize, viewBoxOf } from "./sanitize.ts";
+import { LOCAL_URL, sanitize, viewBoxOf } from "./sanitize.ts";
 import { escAttr, local, parseXml, serialize, type XNode } from "./xml.ts";
 
 // Icons are a few KB; anything this large is a whole illustration or an embedded bitmap.
@@ -37,7 +37,7 @@ export async function loadLocalIcons(model: Model): Promise<void> {
   }
 }
 
-/** Root attributes that paint the whole icon; they move onto a wrapping group. */
+/** Root attributes that paint the whole icon, inherited by every shape; they move onto a group. */
 const ROOT_PAINT = [
   "fill",
   "fill-opacity",
@@ -47,10 +47,18 @@ const ROOT_PAINT = [
   "stroke-linecap",
   "stroke-linejoin",
   "stroke-miterlimit",
+  "stroke-dasharray",
+  "stroke-dashoffset",
   "stroke-opacity",
   "clip-rule",
   "opacity",
   "color",
+  "paint-order",
+  "vector-effect",
+  "font-family",
+  "font-size",
+  "font-weight",
+  "text-anchor",
 ];
 
 /**
@@ -71,17 +79,24 @@ export function localArt(text: string, file: string): LocalArt {
   };
   collect(root);
   const { colors, current, servers } = paintsOf(root);
-  const mono = !servers && colors.size <= 1 && (colors.size > 0 || current);
+  // One paint, currentColor counted as one: currentColor beside a fixed color is two colors.
+  const mono = !servers && colors.size + (current ? 1 : 0) === 1;
   let inks = false;
-  const rewrite = (n: XNode, paint: boolean) => {
+  // `fill` is the fill this node inherits as the file wrote it, before any {{c}}.
+  const rewrite = (n: XNode, paint: boolean, fill: string | undefined) => {
     const tag = local(n.name);
     const inPaint = paint && !NOT_PAINT.has(tag);
+    const own = n.attrs.get("fill") ?? fill;
+    // A mask's content inherits the fill around the mask, which a one-color icon repaints {{c}};
+    // it keeps the file's own (black when none is set), so a cutout drawn unfilled stays a hole.
+    if (mono && tag === "mask" && !n.attrs.has("fill")) n.attrs.set("fill", fill ?? "#000000");
     for (const [k, v] of n.attrs) {
       let value = v;
       if (k === "id" && ids.has(v)) value = `sdwid_${v}`;
       else if (k === "href" && ids.has(v.slice(1))) value = `#sdwid_${v.slice(1)}`;
+      // The same url(#id) forms the sanitizer accepts as the file's own.
       else
-        value = value.replace(/url\(\s*(["']?)#([^)"'\s]+)\1\s*\)/g, (m, _q, ref: string) =>
+        value = value.replace(LOCAL_URL, (m, _q, ref: string) =>
           ids.has(ref) ? `url(#sdwid_${ref})` : m,
         );
       if (
@@ -101,9 +116,9 @@ export function localArt(text: string, file: string): LocalArt {
       }
       n.attrs.set(k, value);
     }
-    for (const c of n.children) rewrite(c, inPaint);
+    for (const c of n.children) rewrite(c, inPaint, own);
   };
-  rewrite(root, true);
+  rewrite(root, true, undefined);
   let body = root.children.map(serialize).join("");
   const paint = ROOT_PAINT.flatMap((k) => {
     const v = root.attrs.get(k);

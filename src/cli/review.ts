@@ -1,4 +1,5 @@
 // review: the measured review of a spec at the width readers see it.
+import { rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { DEFAULT_REVIEW_WIDTH, formatReview, reviewModel } from "../review/index.ts";
 import { parseSpec } from "../spec/index.ts";
@@ -11,7 +12,8 @@ export async function cmdReview(args: Args) {
   const [specPath] = args._;
   if (!specPath) usage("review needs a spec file");
   const width = args.flags.width === undefined ? DEFAULT_REVIEW_WIDTH : Number(args.flags.width);
-  if (!(width > 0)) usage("--width must be a positive number of px");
+  // The display PNG is drawn at this width, and resvg refuses one under 1 px.
+  if (!(width >= 1)) usage("--width must be a number of px, at least 1");
   const spec = readSpec(specPath);
   const parsed = parseSpec(spec.text, spec.path);
   if (!parsed.model) {
@@ -48,8 +50,10 @@ export async function cmdReview(args: Args) {
   }
   writeAtomic(`${base}.review.json`, `${JSON.stringify(run.report, null, 2)}\n`);
   if (run.png) writeAtomic(`${base}.review.png`, run.png);
-  // A display PNG over 1568 px a side also gets a copy that fits, for reviewers that view images.
+  // A display PNG over 1568 px a side also gets a copy that fits, for reviewers that view images;
+  // without one, an earlier review's copy goes, so nobody looks at the old picture.
   if (run.look) writeAtomic(`${base}.review.look.png`, run.look);
+  else rmSync(`${base}.review.look.png`, { force: true });
   const pngs = [run.png && `${base}.review.png`, run.look && `${base}.review.look.png`].filter(
     Boolean,
   );

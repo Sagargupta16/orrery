@@ -48,6 +48,11 @@ jobs:
       - name: Doctor
         run: node skills/orrery/scripts/orrery.mjs doctor
 
+      # No model calls: lints the eval cases, runs their graders on hand-made workspaces and
+      # re-measures the bad-spec baseline the review-loop eval grades against.
+      - name: Eval self-test
+        run: node evals/scripts/selftest.mjs
+
   tests:
     runs-on: ${{ matrix.os }}
     strategy:

@@ -99,6 +99,19 @@ export const DIAGRAM_KINDS: readonly DiagramKind[] = [
   "sequence",
   "timeline",
 ];
+/** What a screen reader calls an untitled diagram of each kind. */
+export const KIND_NAMES: Record<DiagramKind, string> = {
+  architecture: "Architecture diagram",
+  flowchart: "Flowchart",
+  process: "Process diagram",
+  state: "State diagram",
+  tree: "Tree diagram",
+  mindmap: "Mind map",
+  journey: "Journey map",
+  er: "Data model",
+  sequence: "Sequence diagram",
+  timeline: "Timeline",
+};
 /** Kinds that place every node themselves instead of handing the graph to ELK. */
 export const OWN_LAYOUT: ReadonlySet<DiagramKind> = new Set<DiagramKind>([
   "journey",
@@ -477,6 +490,11 @@ export interface SceneNode {
   score?: number;
   /** Entity rows (er diagrams), each with its box in scene coordinates. */
   fields?: SceneField[];
+  /**
+   * The edge from its parent in the hierarchy a tree or mind map was laid out by (unset for a
+   * root), which the stage story grows along.
+   */
+  via?: string;
 }
 
 export interface SceneGroup {
@@ -560,6 +578,8 @@ export interface Scene {
   skin: Skin;
   background?: string;
   title?: TextBlock;
+  /** The title as written, before wrapping split a long word: the SVG's accessible name. */
+  name?: string;
   titleBox?: Box;
   subtitle?: TextBlock;
   subtitleBox?: Box;

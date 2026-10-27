@@ -55,7 +55,8 @@ export function wrap(
 ): string[] {
   const lines: string[] = [];
   for (const paragraph of text.split(/\r?\n/)) {
-    const words = paragraph.split(/\s+/).filter(Boolean);
+    // Split at breaking whitespace only: a no-break space (U+00A0, U+2007, U+202F) joins its words.
+    const words = paragraph.split(/[^\S\u00a0\u2007\u202f]+/).filter(Boolean);
     let line = "";
     for (const word of words) {
       const candidate = line ? `${line} ${word}` : word;

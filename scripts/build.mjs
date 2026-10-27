@@ -53,7 +53,7 @@ const version = (name) =>
 const elkVersion = version("elkjs");
 const resvgVersion = version("@resvg/resvg-wasm");
 
-// THIRD_PARTY_NOTICES.md names the vendored versions too.
+// THIRD_PARTY_NOTICES.md names the vendored and bundled versions too.
 const noticesFile = join(root, "THIRD_PARTY_NOTICES.md");
 const notices = readFileSync(noticesFile, "utf8");
 const freshNotices = notices
@@ -61,7 +61,8 @@ const freshNotices = notices
   .replace(
     /(\[@resvg\/resvg-wasm\]\(https:\/\/github\.com\/thx\/resvg-js\) )[\d.]+\d/,
     `$1${resvgVersion}`,
-  );
+  )
+  .replace(/(\[yaml\]\(https:\/\/github\.com\/eemeli\/yaml\) )[\d.]+\d/, `$1${version("yaml")}`);
 
 if (check) {
   const stale = [];

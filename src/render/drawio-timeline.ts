@@ -213,7 +213,9 @@ export function timelineItemDrawio(ctx: Ctx, nd: SceneNode): string[] | undefine
     ...labelSide(it),
   });
   const cells = [
-    `<mxCell id="n-${nd.id}" value="${esc(value)}" style="${s}" vertex="1" parent="1">${geometry(nd.box)}</mxCell>`,
+    nd.url
+      ? `<UserObject id="n-${nd.id}" label="${esc(value)}" link="${esc(nd.url)}"><mxCell style="${s}" vertex="1" parent="1">${geometry(nd.box)}</mxCell></UserObject>`
+      : `<mxCell id="n-${nd.id}" value="${esc(value)}" style="${s}" vertex="1" parent="1">${geometry(nd.box)}</mxCell>`,
   ];
   if (nd.icon && nd.iconBox)
     cells.push(

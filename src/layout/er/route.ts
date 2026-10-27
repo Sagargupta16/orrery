@@ -256,15 +256,14 @@ function fallbackSpot(points: Point[], w: number, h: number): Box {
 }
 
 /**
- * Routes every edge between two nodes of which at least one is a table, from the rows `rowsFor`
- * names, and places its label on the final route.
+ * Routes every edge between two nodes of which at least one is a table (a table's line to itself
+ * too), from the rows `rowsFor` names, and places its label on the final route.
  */
 export function routeRelationships(ctx: AfterLayout, rowsFor: (e: SceneEdge) => Joined): void {
   const nodes = new Map(ctx.nodes.map((n) => [n.id, n]));
   const table = (id: string) => !!nodes.get(id)?.fields?.length;
   const mine = ctx.edges.filter(
-    (e) =>
-      e.from !== e.to && nodes.has(e.from) && nodes.has(e.to) && (table(e.from) || table(e.to)),
+    (e) => nodes.has(e.from) && nodes.has(e.to) && (table(e.from) || table(e.to)),
   );
   if (!mine.length) return;
   const ends = new Map<SceneEdge, [End, End]>();
@@ -273,7 +272,16 @@ export function routeRelationships(ctx: AfterLayout, rowsFor: (e: SceneEdge) => 
     const b = nodes.get(e.to);
     if (!a || !b) continue;
     const rows = rowsFor(e);
-    ends.set(e, [endOf(a, rows.from), endOf(b, rows.to)]);
+    const from = endOf(a, rows.from);
+    const to = endOf(b, rows.to);
+    // A table's line to itself leaves one row and comes back into another as a C. From a row (or
+    // its header) back into the same one, the ends part a pitch either side of its center line,
+    // in whole px so they stay the two pitches apart a C needs.
+    if (a === b && Math.abs(from.y - to.y) < 0.5) {
+      from.y = Math.floor(from.y - PITCH);
+      to.y = Math.ceil(to.y + PITCH);
+    }
+    ends.set(e, [from, to]);
     // ELK put the label on its own line; it goes beside the new one once every line is drawn.
     delete e.labelBox;
     delete e.stepBox;

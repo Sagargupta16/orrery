@@ -256,6 +256,14 @@ export function journeyStage(scene: Scene, k: StageInk, t: Theme, h: number): st
   j.rows.forEach((r, i) => {
     for (const c of r.cells) parts.push(rect(c, 2 * h, `${panel(i % 2 ? 0 : k.panel)} ${hair}`));
     parts.push(rect(r.header, 2 * h, `${panel(k.panel * 2)} ${hair}`));
+    if (r.color)
+      parts.push(
+        rect(
+          { x: r.header.x, y: r.header.y + 8, w: 3 * h, h: r.header.h - 16 },
+          1.5 * h,
+          `fill="${r.color}"`,
+        ),
+      );
     parts.push(mono(r.label.lines, HEAD, rowSize, r.labelBox, k.header));
   });
   const c = j.curve;

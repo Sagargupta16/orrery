@@ -14,9 +14,10 @@ const many = (end: string) => end === "many" || end === "zero-many";
 export function measureEr(c: Ctx): Record<string, number> {
   const { model, add } = c;
   const entities = new Map(model.nodes.map((n) => [n.id, n]));
-  const links = model.edges.filter(
-    (e) => e.from !== e.to && entities.has(e.from) && entities.has(e.to),
-  );
+  // A table's line to itself (manager_id on employees) says how many and uses its rows too; it
+  // joins no other entity.
+  const joins = model.edges.filter((e) => entities.has(e.from) && entities.has(e.to));
+  const links = joins.filter((e) => e.from !== e.to);
 
   // ER-03: every table says what identifies a row.
   let keys = 0;
@@ -41,7 +42,7 @@ export function measureEr(c: Ctx): Record<string, number> {
 
   // ER-05: both ends of every relationship say how many.
   let cardinality = 0;
-  for (const e of links) {
+  for (const e of joins) {
     if (e.card) continue;
     cardinality++;
     const rows = joinedRows(model, e);
@@ -63,7 +64,7 @@ export function measureEr(c: Ctx): Record<string, number> {
 
   // ER-06: a foreign key is drawn as the relationship it stands for.
   const used = new Set<string>();
-  for (const e of links) {
+  for (const e of joins) {
     const rows = joinedRows(model, e);
     if (rows.from) used.add(`${e.from}\u0000${rows.from.name}`);
     if (rows.to) used.add(`${e.to}\u0000${rows.to.name}`);

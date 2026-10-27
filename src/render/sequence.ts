@@ -151,7 +151,7 @@ export function sequenceStage(scene: Scene, k: StageInk, t: Theme, h: number, ct
       block(f.tag.label, f.tag.labelBox, KEY, size, k.header, "start"),
     );
     if (f.label && f.labelBox) {
-      const s = sizeFor(f.label.lines, NOTE, f.labelBox.w + 6, 8);
+      const s = sizeFor(f.label.lines, NOTE, f.labelBox.w, 8);
       out.push(chip(f.labelBox), block(f.label, f.labelBox, NOTE, s, t.edgeLabel, "start"));
     }
     for (const d of f.dividers) {
@@ -159,7 +159,7 @@ export function sequenceStage(scene: Scene, k: StageInk, t: Theme, h: number, ct
         `<path d="M${n(f.box.x)} ${n(d.y)} H${n(f.box.x + f.box.w)}" fill="none" ${stroke(k.line, k.frame, h)}${dash}/>`,
       );
       if (d.label && d.labelBox) {
-        const s = sizeFor(d.label.lines, NOTE, d.labelBox.w + 6, 8);
+        const s = sizeFor(d.label.lines, NOTE, d.labelBox.w, 8);
         out.push(chip(d.labelBox), block(d.label, d.labelBox, NOTE, s, t.edgeLabel, "start"));
       }
     }
@@ -244,14 +244,15 @@ function empty(scene: Scene, model: Model): Scene {
 /**
  * `-f sequence.svg`: a sequence spec as it is, any other the numbered steps (else the longest path)
  * as messages between the nodes they visit. A message back to an earlier lifeline is drawn as a
- * reply, dashed.
+ * reply, dashed. Returns the SVG with its own size: another kind's scene is laid out again here.
  */
 export function renderSequence(
   scene: Scene,
   model: Model,
   opts: { idPrefix?: string } = {},
-): string {
-  if (scene.sequence) return renderSvg(scene, opts);
+): { svg: string; width: number; height: number } {
+  const drawn = (s: Scene) => ({ svg: renderSvg(s, opts), width: s.width, height: s.height });
+  if (scene.sequence) return drawn(scene);
   const list = messages(scene, model);
   const who = participants(scene, model, list);
   const order = new Map(who.map((p, i) => [p.id, i]));
@@ -288,7 +289,7 @@ export function renderSequence(
     kind: "sequence",
   };
   const laid = list.length ? sequenceScene(seq, scene.theme) : undefined;
-  if (!laid) return renderSvg(empty(scene, model), opts);
+  if (!laid) return drawn(empty(scene, model));
   const named = (id: string) => who.find((p) => p.id === id)?.label ?? id;
   const steps = list.map(
     (m) => `${m.step}. ${named(m.from)} to ${named(m.to)}${m.label ? ` (${m.label})` : ""}`,
@@ -297,5 +298,5 @@ export function renderSequence(
     ? "the numbered steps"
     : "the longest path";
   const described = { ...laid, description: `Sequence of ${what}: ${steps.join("; ")}` };
-  return renderSvg(scene.skin === "stage" ? stageColors(described) : described, opts);
+  return drawn(scene.skin === "stage" ? stageColors(described) : described);
 }

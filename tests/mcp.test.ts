@@ -506,7 +506,9 @@ const modern = (
     {
       "mcp-protocol-version": MODERN,
       "mcp-method": method,
-      ...(typeof params.name === "string" ? { "mcp-name": params.name } : {}),
+      ...(typeof (params.name ?? params.uri) === "string"
+        ? { "mcp-name": String(params.name ?? params.uri) }
+        : {}),
       ...extra,
     },
   );

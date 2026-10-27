@@ -1,6 +1,6 @@
 // Nodes: icon, look and shape, BPMN, journey stage and score, link, size, label, rank and align,
 // and the er and timeline keys (kinds.ts).
-import { iconInfo, resolveIcon, suggestIcons } from "../icons/index.ts";
+import { iconInfo, resolveCatalogIcon, suggestIcons } from "../icons/index.ts";
 import {
   BPMN_KINDS,
   type BpmnKind,
@@ -98,7 +98,9 @@ function parseNode(ctx: Ctx, settings: Settings, id: string, value: unknown) {
 function nodeObject(value: unknown): Obj {
   if (isObj(value)) return value;
   if (typeof value === "string")
-    return resolveIcon(value) || ICON_ID.test(value.trim()) ? { icon: value } : { label: value };
+    return resolveCatalogIcon(value) || ICON_ID.test(value.trim())
+      ? { icon: value }
+      : { label: value };
   if (value === null || value === undefined) return {};
   return { label: String(value) };
 }
@@ -107,7 +109,7 @@ function nodeIcon(ctx: Ctx, id: string, n: Obj) {
   const iconRaw = str(pick(n, "icon", NODE_SYNONYMS));
   let icon: string | undefined;
   if (iconRaw) {
-    icon = localIcon(ctx, iconRaw) ?? resolveIcon(iconRaw);
+    icon = localIcon(ctx, iconRaw) ?? resolveCatalogIcon(iconRaw);
     if (!icon) {
       ctx.err("DG101", `node "${id}" uses unknown icon "${iconRaw}"`, {
         subject: { node: id, icon: iconRaw },
@@ -138,7 +140,9 @@ function nodeForm(
   const shapeRaw = pick(n, "shape", NODE_SYNONYMS);
   const shape = oneOf<ShapeKind>(
     ctx,
-    typeof shapeRaw === "string" ? (SHAPE_SYNONYMS[shapeRaw.toLowerCase()] ?? shapeRaw) : shapeRaw,
+    typeof shapeRaw === "string" && Object.hasOwn(SHAPE_SYNONYMS, shapeRaw.toLowerCase())
+      ? SHAPE_SYNONYMS[shapeRaw.toLowerCase()]
+      : shapeRaw,
     SHAPES,
     "rounded",
     `node "${id}" shape`,
@@ -218,10 +222,11 @@ function nodeUrl(ctx: Ctx, id: string, n: Obj) {
 function nodeSize(ctx: Ctx, id: string, n: Obj, look: NodeLook) {
   const sizeRaw = pick(n, "size", NODE_SYNONYMS);
   let iconSize = look === "card" ? 32 : ICON_SIZE;
-  if (typeof sizeRaw === "number") iconSize = Math.max(16, Math.min(128, sizeRaw));
+  if (typeof sizeRaw === "number" && Number.isFinite(sizeRaw))
+    iconSize = Math.max(16, Math.min(128, sizeRaw));
   else if (sizeRaw !== undefined) {
     const named = { sm: 32, md: 48, lg: 64, xl: 80 } as Record<string, number>;
-    const v = named[String(sizeRaw)];
+    const v = Object.hasOwn(named, String(sizeRaw)) ? named[String(sizeRaw)] : undefined;
     if (v) iconSize = v;
     else
       ctx.err("DG107", `node "${id}" size must be sm, md, lg, xl or a number of px`, {

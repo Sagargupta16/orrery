@@ -92,6 +92,18 @@ function rankAnchors(
   const layersAround = layersAroundOf(model);
   const anchors = new Map<string, string>();
   const want = new Map<string, number>();
+  // A ranked node not in its layer yet (layers counted with it) moves in the second layout, and so
+  // does every node aligned with it: none of them can anchor another.
+  const moving = new Set(
+    model.nodes
+      .filter(
+        (x) =>
+          typeof x.rank === "number" && layersAround(probe, x.id, true).get(x.id) !== x.rank - 1,
+      )
+      .map((x) => x.id),
+  );
+  const moves = (id: string) =>
+    (plan.blocks.get(plan.blockOf.get(id) ?? "") ?? [id]).some((m) => moving.has(m));
   for (const n of model.nodes.filter((x) => typeof x.rank === "number")) {
     const rank = typeof n.rank === "number" ? n.rank : 1;
     const p = parent.get(n.id);
@@ -103,9 +115,9 @@ function rankAnchors(
       ignore(n.id, `group "${p}" places its children in ${plan.grids.get(p)} columns`);
       continue;
     }
-    // Layers are counted with the node to see whether it is there already, and without it to find
-    // the layer it joins (leaving a layer of its own shifts the ones after it).
-    if (layersAround(probe, n.id, true).get(n.id) === rank - 1) continue;
+    // Layers are counted without the node to find the layer it joins (leaving a layer of its own
+    // shifts the ones after it).
+    if (!moving.has(n.id)) continue;
     const others = layersAround(probe, n.id, false);
     const count = new Set(others.values()).size;
     if (rank > count) {
@@ -115,20 +127,27 @@ function rankAnchors(
     const linked = (id: string) =>
       model.edges.some((e) => (e.from === n.id && e.to === id) || (e.to === n.id && e.from === id));
     const order = new Map(model.nodes.map((x, i) => [x.id, i]));
-    const pick = [...others]
+    const there = [...others]
       .filter(
         ([id, l]) =>
           l === rank - 1 &&
           order.has(id) &&
           !(parent.get(id) && plan.grids.has(parent.get(id) ?? "")),
       )
-      .map(([id]) => id)
+      .map(([id]) => id);
+    const pick = there
+      .filter((id) => !moves(id))
       .sort(
         (a, b) =>
           Number(linked(a)) - Number(linked(b)) || (order.get(a) ?? 0) - (order.get(b) ?? 0),
       )[0];
     if (!pick) {
-      ignore(n.id, `layer ${rank} of its group holds only groups`);
+      ignore(
+        n.id,
+        there.length
+          ? `the nodes in layer ${rank} of its group move for a rank too`
+          : `layer ${rank} of its group holds only groups`,
+      );
       continue;
     }
     anchors.set(n.id, pick);

@@ -11,7 +11,8 @@ import { asList, isObj, lineOf, type Obj, readSources, type Source, text } from 
 import { CONTAINER, IMAGES, K8S } from "./tables.ts";
 import type { Imported } from "./types.ts";
 
-const USERS = "users";
+// A Compose service name cannot hold a colon, so the Users actor never shares a service's key.
+const USERS = ":users";
 
 export async function importCompose(path: string): Promise<Imported> {
   const src = readSources(path)[0];
@@ -106,7 +107,9 @@ function composeSpec(src: Source, data: Obj, path: string): Imported {
       const published = publishedPort(p);
       if (!published) return;
       const users = K8S.users;
-      const ev = [where([...base, "ports", i], String(published.host))];
+      const ev = [where([...base, "ports", i], published.host)];
+      for (const v of published.unset)
+        draft.warn(`${name}: a published port reads \${${v}}, which has no default here`);
       if (!users) return;
       draft.node(USERS, { icon: users.icon, name: "Users", what: "", hint: "users", evidence: ev });
       draft.edge(USERS, name, published.label, ev);
@@ -125,10 +128,9 @@ function composeSpec(src: Source, data: Obj, path: string): Imported {
     if (isObj(data[kind]))
       for (const v of Object.keys(data[kind])) draft.leave(`${kind}.${v}`, why);
 
-  const drawn = [...draft.nodes.keys()].filter((k) => k !== USERS).length;
   return draft.write({
     title: titleOf(data, path),
-    subtitle: `From Docker Compose: ${drawn} services${drawNetworks ? `, ${declared.length} networks` : ""}`,
+    subtitle: `From Docker Compose: ${Object.keys(services).length} services${drawNetworks ? `, ${declared.length} networks` : ""}`,
     command: `orrery import compose ${shown}`,
   });
 }
@@ -150,25 +152,43 @@ function envOf(env: unknown, base: (string | number)[]): [string, string, (strin
   return [];
 }
 
-/** A published port: "8080:80", "127.0.0.1:8080:80/tcp" or { target, published }; none for "80". */
-function publishedPort(p: unknown): { host: number; label: string } | undefined {
-  let host: number | undefined;
-  let target: number | undefined;
+/**
+ * A published port: "8080:80", "127.0.0.1:8080:80/tcp" or { target, published }; none for "80".
+ * `${VAR:-8080}` reads as its default; a port left as a variable is named in `unset`, and the
+ * label comes from the other port.
+ */
+function publishedPort(
+  p: unknown,
+): { host: string; label: string | undefined; unset: string[] } | undefined {
+  // Defaults first, as hostsIn reads them; any other variable becomes $NAME, so the colon in
+  // ${PORT:?unset} does not split the mapping.
+  const plain = (v: unknown) =>
+    String(v ?? "")
+      .replace(/\$\{[A-Za-z_][A-Za-z0-9_]*:?-([^}]*)\}/g, "$1")
+      .replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)[^}]*\}/g, "$$$1");
+  let host: string;
+  let target: string;
   if (isObj(p)) {
-    host = Number(p.published);
-    target = Number(p.target);
+    host = plain(p.published);
+    target = plain(p.target);
   } else {
-    const parts = String(p)
+    const parts = plain(p)
       .replace(/\/(tcp|udp)$/, "")
       .split(":");
     if (parts.length < 2) return undefined;
-    target = Number(parts.at(-1)?.split("-")[0]);
-    host = Number(parts.at(-2)?.split("-")[0]);
+    target = parts.at(-1)?.split("-")[0] ?? "";
+    host = parts.at(-2)?.split("-")[0] ?? "";
   }
-  if (!host || !target) return undefined;
-  const label =
-    host === target ? portLabel(target) : `${portLabel(target).replace(/ :\d+$/, "")} :${host}`;
-  return { host, label };
+  const named = (s: string) => /^\$[A-Za-z_][A-Za-z0-9_]*$/.test(s);
+  const from = Number(host);
+  const to = Number(target);
+  if (!(from || named(host)) || !(to || named(target))) return undefined;
+  const unset = [...new Set([host, target].filter(named).map((s) => s.slice(1)))];
+  let label: string | undefined;
+  if (from && to)
+    label = from === to ? portLabel(to) : `${portLabel(to).replace(/ :\d+$/, "")} :${from}`;
+  else if (from || to) label = portLabel(to || from);
+  return { host: from ? String(from) : host.slice(1), label, unset };
 }
 
 /** "ghcr.io/acme/api:1.4" reads "api:1.4"; official images keep their name. */

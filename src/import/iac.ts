@@ -437,9 +437,37 @@ const ACTIONS: Record<string, [string[], Access][]> = {
   ecs: [[["RunTask"], { verb: "runs" }]],
 };
 
-/** Every flow an IAM action grants: `s3:Get*` reads, `sqs:*` enqueues and polls, `*` nothing. */
-export function accessOf(action: string): Access[] {
+/** The IAM services that act on a resource type, Terraform's (aws_s3_bucket) or CloudFormation's. */
+const SERVICES: [RegExp, string[]][] = [
+  [/^(aws_s3_|AWS::S3::)/, ["s3"]],
+  [/^(aws_dynamodb_|AWS::DynamoDB::|AWS::Serverless::SimpleTable$)/, ["dynamodb"]],
+  [/^(aws_sqs_|AWS::SQS::)/, ["sqs"]],
+  [/^(aws_sns_|AWS::SNS::)/, ["sns"]],
+  [/^(aws_cloudwatch_event_|AWS::Events::)/, ["events"]],
+  [/^(aws_kinesis_firehose_|AWS::KinesisFirehose::)/, ["firehose"]],
+  [/^(aws_kinesis_|AWS::Kinesis::)/, ["kinesis"]],
+  [/^(aws_lambda_|AWS::Lambda::|AWS::Serverless::Function$)/, ["lambda"]],
+  [/^(aws_sfn_|AWS::StepFunctions::|AWS::Serverless::StateMachine$)/, ["states"]],
+  [/^(aws_opensearch_|aws_elasticsearch_|AWS::OpenSearchService::|AWS::Elasticsearch::)/, ["es"]],
+  [/^(aws_rds_|aws_db_|AWS::RDS::)/, ["rds-db", "rds-data"]],
+  [/^(aws_elasticache_|AWS::ElastiCache::)/, ["elasticache"]],
+  [
+    /^(aws_api_gateway_|aws_apigatewayv2_|AWS::ApiGateway(V2)?::|AWS::Serverless::(Http)?Api$)/,
+    ["execute-api"],
+  ],
+  [/^(aws_appsync_|AWS::AppSync::)/, ["appsync"]],
+  [/^(aws_ecs_|AWS::ECS::)/, ["ecs"]],
+];
+
+/**
+ * Every flow an IAM action grants: `s3:Get*` reads, `sqs:*` enqueues and polls, `*` nothing. With
+ * the target's resource type, an action of another service grants nothing on it, so a statement
+ * that lists a bucket and a queue does not enqueue to the bucket. Types not in the table pass.
+ */
+export function accessOf(action: string, type?: string): Access[] {
   const [service = "", name = ""] = action.split(":");
+  const owners = type ? SERVICES.find(([re]) => re.test(type))?.[1] : undefined;
+  if (owners && !owners.includes(service.toLowerCase())) return [];
   const rules = ACTIONS[service.toLowerCase()] ?? [];
   // Action names are letters and digits; `*` and `?` are the only wildcards IAM knows.
   const glob = name
@@ -473,10 +501,17 @@ const PORTS: Record<number, string> = {
   27017: "MongoDB",
 };
 
-/** "HTTPS" for 443, "PostgreSQL" for 5432, "HTTP :8080" for 8080, "TCP :7000-7010" for a range. */
+/**
+ * "HTTPS" for 443, "PostgreSQL" for 5432, "HTTP :8080" for 8080, "TCP :7000-7010" for a range,
+ * "ICMP" for ICMP (its ports are a type and code), and the protocol alone when a port is unknown.
+ */
 export function portLabel(from: number, to = from, protocol = "tcp"): string {
-  const p = protocol.toLowerCase();
+  const lower = protocol.toLowerCase();
+  // Security groups also name protocols by number: 6 is TCP, 17 UDP, 1 ICMP and 58 ICMPv6.
+  const p = lower === "6" ? "tcp" : lower === "17" ? "udp" : lower;
   if (p === "-1" || p === "all" || (from <= 0 && to >= 65535)) return "all traffic";
+  if (p === "icmp" || p === "icmpv6" || p === "1" || p === "58") return "ICMP";
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return p === "udp" ? "UDP" : "TCP";
   if (from !== to) return `${p === "udp" ? "UDP" : "TCP"} :${from}-${to}`;
   const known = PORTS[from];
   if (known) return known;

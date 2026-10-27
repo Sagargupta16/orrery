@@ -6,10 +6,19 @@
 // a caller with a target, event source mappings, subscriptions, rule targets, API integrations,
 // load balancer targets, CloudFront origins, bucket notifications, dead-letter queues and security
 // group rules. Evidence is `template:line#LogicalId`, the form `orrery verify` reads.
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { accessOf, at, Draft, displayPath, humanize, portLabel } from "./iac.ts";
-import { asList, isObj, lineOf, type Obj, readSources, type Source, text } from "./source.ts";
+import {
+  asList,
+  isObj,
+  lineOf,
+  type Obj,
+  readSources,
+  readText,
+  type Source,
+  text,
+} from "./source.ts";
 import { AWS, awsBalancer, awsEngine, CFN_AWS, GLUE, type Kind } from "./tables.ts";
 import type { Imported } from "./types.ts";
 
@@ -107,6 +116,7 @@ function readStacks(path: string): Stack[] {
     const env = envs[basename(file)] ?? envs[name];
     const transform = JSON.stringify(data.Transform ?? "");
     const resources = data.Resources as Record<string, Obj>;
+    withGlobals(resources, data.Globals);
     out.push({
       name,
       file,
@@ -122,12 +132,41 @@ function readStacks(path: string): Stack[] {
   return out;
 }
 
+/**
+ * SAM's Globals: `Globals.Function` applies to every AWS::Serverless::Function (and Api, HttpApi,
+ * StateMachine ... to theirs) as SAM merges it. The resource's own values win, maps merge and
+ * lists add up.
+ */
+function withGlobals(resources: Record<string, Obj>, globals: unknown) {
+  if (!isObj(globals)) return;
+  const intrinsic = (v: Obj) => Object.keys(v).some((k) => k === "Ref" || k.startsWith("Fn::"));
+  const merge = (global: Obj, own: Obj): Obj => {
+    const out: Obj = { ...global };
+    for (const [k, v] of Object.entries(own)) {
+      const g = global[k];
+      out[k] =
+        isObj(g) && isObj(v) && !intrinsic(g) && !intrinsic(v)
+          ? merge(g, v)
+          : Array.isArray(g) && Array.isArray(v)
+            ? [...g, ...v]
+            : v;
+    }
+    return out;
+  };
+  for (const r of Object.values(resources)) {
+    const section = isObj(r) ? text(r.Type)?.match(/^AWS::Serverless::(\w+)$/)?.[1] : undefined;
+    const shared = section ? globals[section] : undefined;
+    if (isObj(r) && isObj(shared))
+      r.Properties = merge(shared, isObj(r.Properties) ? r.Properties : {});
+  }
+}
+
 /** `cdk.out/manifest.json`: each stack's template file and its `aws://account/region`. */
 function environments(file: string): Record<string, { account?: string; region?: string }> {
   const out: Record<string, { account?: string; region?: string }> = {};
   let json: unknown;
   try {
-    json = JSON.parse(readFileSync(file, "utf8"));
+    json = JSON.parse(readText(file));
   } catch {
     return out;
   }
@@ -535,6 +574,8 @@ class CloudFormation {
       "Subnets",
       "VPCZoneIdentifier",
       "VpcConfig.SubnetIds",
+      "VPCOptions.SubnetIds",
+      "ResourcesVpcConfig.SubnetIds",
       "NetworkConfiguration.AwsvpcConfiguration.Subnets",
       "VpcConfiguration.SubnetIds",
       "BrokerNodeGroupInfo.ClientSubnets",
@@ -873,7 +914,16 @@ class CloudFormation {
         });
       }
       if (type === "AWS::IAM::Policy" || type === "AWS::IAM::ManagedPolicy") {
-        const callers = this.targets(key, "Roles", role).flatMap((r) => [...(users.get(r) ?? [])]);
+        const roles = this.targets(key, "Roles", role);
+        // A role can attach a managed policy itself, as CDK's addManagedPolicy writes it.
+        if (type === "AWS::IAM::ManagedPolicy")
+          for (const r of this.res.keys())
+            if (
+              this.type(r) === "AWS::IAM::Role" &&
+              this.targets(r, "ManagedPolicyArns").includes(key)
+            )
+              roles.push(r);
+        const callers = roles.flatMap((r) => [...(users.get(r) ?? [])]);
         const doc = this.props(key).PolicyDocument;
         this.statementFlows(stack, callers, isObj(doc) ? doc.Statement : undefined, key, [
           "Properties",
@@ -904,8 +954,8 @@ class CloudFormation {
         const ev = [
           this.where(key, [...base, i, "Action", ...(Array.isArray(s.Action) ? [k] : [])], action),
         ];
-        for (const access of accessOf(action))
-          for (const t of targets)
+        for (const t of targets)
+          for (const access of accessOf(action, this.type(t)))
             for (const target of this.nodesFor(t))
               for (const c of callers) {
                 if (c === target) continue;
@@ -926,7 +976,11 @@ class CloudFormation {
         "SecurityGroupIds",
         "SecurityGroups",
         "VpcSecurityGroupIds",
+        "VPCSecurityGroups",
         "VpcConfig.SecurityGroupIds",
+        "VPCOptions.SecurityGroupIds",
+        "BrokerNodeGroupInfo.SecurityGroups",
+        "ResourcesVpcConfig.SecurityGroupIds",
         "NetworkConfiguration.AwsvpcConfiguration.SecurityGroups",
         "LaunchTemplateData.SecurityGroupIds",
         "LaunchTemplateData.NetworkInterfaces.Groups",
@@ -938,8 +992,16 @@ class CloudFormation {
         }
     }
     const allow = (target: string, rule: Obj, stack: Stack, ev: string) => {
-      const from = Number(rule.FromPort ?? 0);
-      const to = Number(rule.ToPort ?? from);
+      // A port can be a parameter (`!Ref DbPort`): its Default, else unknown, so the label names
+      // the protocol alone.
+      const params = isObj(stack.src.data) ? stack.src.data.Parameters : undefined;
+      const port = (v: unknown) => {
+        const ref = isObj(v) ? text(v.Ref) : undefined;
+        const param = ref && isObj(params) ? params[ref] : undefined;
+        return Number(ref ? (isObj(param) ? param.Default : undefined) : v);
+      };
+      const from = port(rule.FromPort ?? 0);
+      const to = port(rule.ToPort ?? rule.FromPort ?? 0);
       const label = portLabel(from, to, text(rule.IpProtocol));
       const world = rule.CidrIp === "0.0.0.0/0" || rule.CidrIpv6 === "::/0";
       for (const t of members.get(target) ?? []) {

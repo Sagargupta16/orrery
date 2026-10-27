@@ -11,6 +11,9 @@ import { SIZES } from "./sizes.ts";
 /** The narrowest a wrapped title or subtitle gets, so a small drawing keeps readable lines. */
 const MIN_TEXT = 420;
 
+/** How far a route's ink reaches past its points: a thick arrowhead's half width, a crow's foot. */
+const ROUTE_INK = 8;
+
 export interface Canvas {
   width: number;
   height: number;
@@ -37,16 +40,21 @@ export function sizeCanvas(ctx: Routed): Canvas {
     model.kind !== "architecture" || hidden.size > 0 || snug
       ? nodes.flatMap((n) => [n.box, n.labelBox, n.noteBox, n.badgeBox])
       : [];
-  const routes = snug ? edges.flatMap((e) => e.points.map((p) => ({ ...p, w: 0, h: 0 }))) : [];
   for (const b of [
     ...groups.map((g) => g.box),
     ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
     ...relocated,
-    ...routes,
   ]) {
     if (!b) continue;
     width = Math.max(width, round(b.x + b.w + SIZES.pad));
     height = Math.max(height, round(b.y + b.h + SIZES.pad));
+  }
+  // Hooks and the last routing step reroute edges after ELK sized the canvas, at times past the
+  // outermost box: every route keeps its stroke and ends on the canvas (a page margin when snug).
+  const reach = snug ? SIZES.pad : ROUTE_INK;
+  for (const p of edges.flatMap((e) => e.points)) {
+    width = Math.max(width, round(p.x + reach));
+    height = Math.max(height, round(p.y + reach));
   }
   // Wrapped lines push the drawing down by the height they add.
   const room = Math.max(MIN_TEXT, width - SIZES.pad * 2);
@@ -133,7 +141,8 @@ function shiftAll(ctx: Routed, dx: number, dy: number): void {
     b.x = round(b.x + dx);
     b.y = round(b.y + dy);
   };
-  for (const g of groups) [g.box, g.labelBox, g.iconBox, g.inner?.box].forEach(move);
+  for (const g of groups)
+    [g.box, g.labelBox, g.iconBox, g.inner?.box, g.lane?.header].forEach(move);
   for (const n of nodes) {
     [n.box, n.iconBox, n.labelBox, n.noteBox, n.badgeBox].forEach(move);
     for (const f of n.fields ?? []) move(f.box);

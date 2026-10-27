@@ -322,10 +322,13 @@ function extraBends(c: Ctx): number {
     outs.set(e.from, (outs.get(e.from) ?? 0) + 1);
     ins.set(e.to, (ins.get(e.to) ?? 0) + 1);
   }
+  const table = (id: string) => !!c.nodes.get(id)?.fields?.length;
   let count = 0;
   for (const e of scene.edges) {
-    // A relationship's ends are held on the field rows it joins; a route between faces would leave them.
-    if (e.card || !searchable(scene, e, seated) || sharesEnd(scene, e)) continue;
+    // A line to a table is held on the field rows it joins (else the header), card or none
+    // (layout/er/route.ts); a route between faces would leave them.
+    if (table(e.from) || table(e.to) || !searchable(scene, e, seated) || sharesEnd(scene, e))
+      continue;
     const now = bendsOf(e.points);
     if (!now) continue;
     const runs = orthogonalRuns(e.points) ?? [];

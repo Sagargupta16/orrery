@@ -1,5 +1,6 @@
 // The layout dimension: direction agreement, crossings, edge lengths, empty space, proportions,
 // layout diagnostics and how well spec order is kept.
+import { ownNarrower, turnFix } from "../check/canvas.ts";
 import { type Box, type Diagnostic, OWN_LAYOUT, type SceneEdge } from "../types.ts";
 import {
   along,
@@ -257,8 +258,13 @@ function emptySpace(c: Ctx): number {
   const hole = largestHole(c);
   const holePct = (100 * hole.w * hole.h) / Math.max(1, W * H);
   // A thin band between rows is spacing, not a hole a reader notices; on a timeline an empty
-  // stretch is time with nothing scheduled.
-  if (scene.kind !== "timeline" && holePct > 22 && Math.min(hole.w, hole.h) >= 80) {
+  // stretch is time with nothing scheduled, and on a sequence a lifeline idle between messages.
+  if (
+    scene.kind !== "timeline" &&
+    scene.kind !== "sequence" &&
+    holePct > 22 &&
+    Math.min(hole.w, hole.h) >= 80
+  ) {
     const inside = scene.groups
       .filter((g) => !g.overlay && interArea(g.box, hole) > 0.9 * hole.w * hole.h)
       .sort((a, b) => b.depth - a.depth)[0];
@@ -269,7 +275,8 @@ function emptySpace(c: Ctx): number {
       { holePct: r1(holePct), x: hole.x, y: hole.y, w: hole.w, h: hole.h },
       `an empty ${hole.w}x${hole.h}px rectangle covers ${r1(holePct)}% of the canvas`,
       [
-        "change direction so the long chain wraps",
+        ...(besideText(c, hole) ? ["shorten the title or subtitle, which set the width"] : []),
+        ...(OWN_LAYOUT.has(c.model.kind) ? [] : ["change direction so the long chain wraps"]),
         "move a side branch next to the empty area in the nodes list",
         "split the diagram",
       ],
@@ -277,6 +284,29 @@ function emptySpace(c: Ctx): number {
     );
   }
   return holePct;
+}
+
+/**
+ * Whether the hole is a column right of the drawing that only the title or subtitle reaches over:
+ * a line under 420px does not wrap to a narrower drawing, so it widens the canvas past it.
+ */
+function besideText(c: Ctx, hole: Box): boolean {
+  const { scene } = c;
+  const right = Math.max(
+    ...[
+      ...scene.nodes.map((n) => c.foot.get(n.id)),
+      ...scene.groups.map((g) => g.box),
+      ...scene.edges.flatMap((e) => [e.labelBox, e.stepBox]),
+    ]
+      .filter(real)
+      .map((b) => b.x + b.w),
+    ...scene.edges.flatMap((e) => e.points.map((p) => p.x)),
+  );
+  return (
+    Number.isFinite(right) &&
+    hole.x >= right &&
+    [scene.titleBox, scene.subtitleBox].some((b) => b && b.x + b.w > right)
+  );
 }
 
 /** The upper median: the middle value, or the higher of the two middle ones. */
@@ -369,11 +399,13 @@ function nodeSpacing(c: Ctx): { gap: number; pitch: number } {
 
 /** Proportions, canvas width and the ELK fallback. */
 function proportions(c: Ctx): number {
-  const { scene, add } = c;
+  const { scene, model, add } = c;
   const W = scene.width;
   const H = scene.height;
   const aspect = W / Math.max(1, H);
   const tall = H / Math.max(1, W);
+  // A journey, a sequence or a timeline places every node itself: no direction or tiers to change.
+  const own = OWN_LAYOUT.has(model.kind);
   if (aspect > 3 || tall > 2.5) {
     const wide = aspect > 3;
     const ratio = wide ? aspect : tall;
@@ -384,9 +416,11 @@ function proportions(c: Ctx): number {
       [],
       { aspect: r2(aspect), width: W, height: H },
       `the canvas is ${r1(ratio)}:1 ${wide ? "wide" : "tall"} (${W}x${H}px)`,
-      wide
-        ? ["use direction: down for long chains", "group stages into zones"]
-        : ["use direction: right", "put independent tiers side by side"],
+      own
+        ? [...(wide ? ownNarrower(model) : []), "split the diagram"]
+        : wide
+          ? [...turnFix(model, " for long chains"), "group stages into zones"]
+          : [...turnFix(model), "put independent tiers side by side"],
       (ratio - (wide ? 3 : 2.5)) * 10,
     );
   }
@@ -397,7 +431,9 @@ function proportions(c: Ctx): number {
       [],
       { width: W },
       `the canvas is ${W}px wide (over 2400px)`,
-      ["use direction: down", "group related nodes", "split into two diagrams"],
+      own
+        ? [...ownNarrower(model), "split into two diagrams"]
+        : [...turnFix(model), "group related nodes", "split into two diagrams"],
       15,
     );
   if (scene.layoutFallback)

@@ -25,11 +25,18 @@ const out = env.ORRERY_OUT || join(tmpdir(), "orrery-action");
 const resultsFile = join(out, "results.json");
 
 function run(cmd, args) {
-  const r = spawnSync(cmd, args, {
+  // npx is a .cmd shim on Windows runners, and cmd.exe would split a spec path on spaces and run
+  // what follows a `&`, so run npm's own npx script on this node instead.
+  const [file, argv] =
+    process.platform === "win32" && cmd === "npx"
+      ? [
+          process.execPath,
+          [join(dirname(process.execPath), "node_modules", "npm", "bin", "npx-cli.js"), ...args],
+        ]
+      : [cmd, args];
+  const r = spawnSync(file, argv, {
     encoding: "utf8",
     maxBuffer: 256 * 1024 * 1024,
-    // npx is a .cmd shim on Windows runners.
-    shell: process.platform === "win32" && cmd === "npx",
   });
   return {
     code: r.status ?? 1,
@@ -101,12 +108,13 @@ function changedFiles(base) {
   if (!base) return undefined;
   if (git("cat-file", "-e", `${base}^{commit}`).code)
     git("fetch", "--no-tags", "--depth=1", "origin", base);
-  const d = git("diff", "--name-only", "--no-renames", base, "HEAD");
+  // -z prints names raw, as ls-files -z does, where the default quotes non-ASCII ones.
+  const d = git("diff", "--name-only", "-z", "--no-renames", base, "HEAD");
   if (d.code) {
     console.log(`::warning::cannot diff against the base ${base}: ${firstLine(d.stderr)}`);
     return undefined;
   }
-  return new Set(d.stdout.split(/\r?\n/).filter(Boolean));
+  return new Set(d.stdout.split("\0").filter(Boolean));
 }
 
 const slugOf = (spec) => spec.replace(/\.(ya?ml|json)$/i, "").replace(/[^A-Za-z0-9._-]+/g, "__");

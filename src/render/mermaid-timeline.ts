@@ -9,14 +9,17 @@ import type { Model, ModelNode } from "../types.ts";
 /** Mermaid's entity codes (`#58;` for `:`), so a name never reads as task syntax. */
 const code = (s: string, chars: RegExp) => s.replace(chars, (c) => `#${c.codePointAt(0)};`);
 const flat = (s: string) => s.replace(/\s+/g, " ").trim();
+/** The first character of a name that would start a gantt statement: a keyword or a date. */
+const STATEMENT =
+  /^(?=(?:accdescr|accdescription|acctitle|axisformat|call|click|dateformat|excludes|gantt|href|inclusiveenddates|includes|section|tickinterval|title|todaymarker|topaxis|weekday|weekend)\b|\d{4}-\d\d-\d\d\b)./i;
 /** A task or section name runs to the colon that starts its data. */
-const name = (s: string) => code(flat(s), /[#;:%&<>"\\]/g);
+const name = (s: string) => code(code(flat(s), /[#;:%&<>"\\]/g), STATEMENT);
 /** A title or description keeps its colons. */
 const prose = (s: string) => code(flat(s), /[#;%&<>\\]/g);
 
 /** Words a gantt task id could read as: its keywords and tags. */
 const RESERVED = new Set(
-  "after active crit done milestone section title dateformat axisformat tickinterval excludes includes todaymarker inclusiveenddates weekday".split(
+  "after active crit done milestone vert section title dateformat axisformat tickinterval excludes includes todaymarker inclusiveenddates weekday".split(
     " ",
   ),
 );
@@ -98,7 +101,7 @@ export function timelineMermaid(model: Model): string {
           deps.length ? `after ${deps.join(" ")}` : w.start,
           w.end ?? w.start,
         ];
-      out.push(`    ${name(n.label) || n.id} :${data.join(", ")}`);
+      out.push(`    ${name(n.label) || name(n.id)} :${data.join(", ")}`);
     }
   }
   return `${out.join("\n")}\n`;

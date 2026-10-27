@@ -17,11 +17,12 @@ const fail = (file, msg) => problems.push(`${file}: ${msg}`);
 
 function tracked() {
   try {
-    const out = execFileSync("git", ["ls-files", "-co", "--exclude-standard"], {
+    // -z: names as they are, never C-quoted ("caf\303\251.md" names no file).
+    const out = execFileSync("git", ["ls-files", "-z", "-co", "--exclude-standard"], {
       cwd: root,
       encoding: "utf8",
     });
-    return out.split("\n").filter(Boolean);
+    return out.split("\0").filter(Boolean);
   } catch {
     const walk = (dir) =>
       readdirSync(join(root, dir), { withFileTypes: true }).flatMap((d) => {
@@ -33,43 +34,51 @@ function tracked() {
   }
 }
 
-const TEXT = new Set([
-  ".md",
-  ".mjs",
-  ".js",
-  ".cjs",
-  ".ts",
-  ".tsx",
-  ".json",
-  ".yaml",
-  ".yml",
-  ".svg",
-  ".html",
-  ".txt",
-  ".drawio",
-  "",
+// Every other file is text and gets the checks below (the website's .astro and .css too); a
+// file with a NUL byte near its start is binary whatever its name.
+const BINARY = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".ico",
+  ".ttf",
+  ".otf",
+  ".woff",
+  ".woff2",
+  ".wasm",
+  ".zip",
+  ".gz",
+  ".tgz",
+  ".mcpb",
+  ".vsix",
+  ".pdf",
+  ".docx",
 ]);
 const files = tracked().filter((f) => existsSync(join(root, f)));
 
 for (const f of files) {
   if (
-    !TEXT.has(extname(f)) ||
+    BINARY.has(extname(f).toLowerCase()) ||
     f.startsWith("skills/orrery/scripts/vendor/") ||
     f === "pnpm-lock.yaml"
   )
     continue;
-  const text = readFileSync(join(root, f), "utf8");
+  const bytes = readFileSync(join(root, f));
+  if (bytes.subarray(0, 8000).includes(0)) continue;
+  const text = bytes.toString("utf8");
   // 1. No en or em dashes anywhere (vendor data included; sync-icons normalizes it).
   const dash = text.search(/[\u2013\u2014]/);
   if (dash >= 0)
     fail(f, `en/em dash at offset ${dash}: "${text.slice(Math.max(0, dash - 20), dash + 20)}"`);
   if (f.startsWith("skills/orrery/assets/")) continue;
-  // 2. No machine-specific paths.
-  const home = text.match(/[A-Za-z]:\\Users\\|\/Users\/[a-z]|\/home\/[a-z]|C:\/Users\//);
+  // 2. No machine-specific paths, in any case, and with the doubled backslashes JSON writes.
+  const home = text.match(/[a-z]:(?:\\{1,2}|\/)users(?:\\{1,2}|\/)|\/users\/[a-z]|\/home\/[a-z]/i);
   if (home) fail(f, `absolute home path "${home[0]}"`);
-  // 3. No secrets.
+  // 3. No secrets: AWS key ids, GitHub, Anthropic, OpenAI, npm, Slack, Google, private keys.
   const secret = text.match(
-    /AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|sk-[A-Za-z0-9]{32,}|-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+    /AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|sk-[A-Za-z0-9]{32,}|sk-ant-[A-Za-z0-9_-]{20,}|sk-(?:proj|svcacct|admin)-[A-Za-z0-9_-]{20,}|npm_[A-Za-z0-9]{36}|xox[abpr]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35}|-----BEGIN [A-Z ]*PRIVATE KEY-----/,
   );
   if (secret) fail(f, "looks like a secret");
 }
@@ -172,6 +181,10 @@ for (const f of ["README.md", "skills/orrery/SKILL.md", "skills/orrery/reference
   for (const m of text.matchAll(/badge\/version-([\d.]+)-/g))
     if (m[1] !== pkg.version)
       fail(f, `version badge says ${m[1]}, package.json has ${pkg.version}`);
+  // A copied Action snippet runs the CLI of the tag it pins, so it pins this release.
+  for (const m of text.matchAll(/uses: Sagargupta16\/orrery@v([\d.]+)/g))
+    if (m[1] !== pkg.version)
+      fail(f, `the Action snippet pins v${m[1]}, package.json has ${pkg.version}`);
   for (const m of text.matchAll(/(\d{3}) (?:short names|aliases)/g))
     if (m[1] !== aliasCount) fail(f, `says ${m[1]} aliases, catalogs have ${aliasCount}`);
   for (const [pack, info] of Object.entries(index.packs)) {
@@ -214,9 +227,11 @@ const validate = (yaml, label) => {
 for (const f of files.filter((f) => f.endsWith(".md"))) {
   const text = readFileSync(join(root, f), "utf8");
   let i = 0;
-  for (const m of text.matchAll(/```ya?ml\n([\s\S]*?)```/g)) {
+  // A block inside a list item is indented: the fence's indent comes off every line of it.
+  for (const m of text.matchAll(/^([ \t]*)```ya?ml\r?\n([\s\S]*?)^\1```/gm)) {
     i += 1;
-    if (/^nodes:/m.test(m[1])) validate(m[1], `${f} (yaml block ${i})`);
+    const body = m[1] ? m[2].replace(new RegExp(`^${m[1]}`, "gm"), "") : m[2];
+    if (/^nodes:/m.test(body)) validate(body, `${f} (yaml block ${i})`);
   }
 }
 

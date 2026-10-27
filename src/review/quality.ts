@@ -1,5 +1,6 @@
 // The quality dimension: text and icon sizes at the display width, WCAG text contrast in every
 // theme, and the size of the story (node count, long labels, mid-word breaks).
+import { turnFix } from "../check/canvas.ts";
 import { contrast, isHex, mixHex } from "../color.ts";
 import { tokensFor } from "../themes.ts";
 import type { Box, Scene, SceneGroup, ThemeName } from "../types.ts";
@@ -135,6 +136,9 @@ function legibility(c: Ctx): {
   iconPx: number;
 } {
   const { scene, add, s } = c;
+  // A turn swaps width and height, so it narrows only a canvas wider than it is tall.
+  const narrower =
+    scene.width > scene.height ? turnFix(c.model, " so the diagram is narrower") : [];
   const nodeSizes = scene.nodes.filter((n) => n.label.lines.length).map((n) => n.label.size);
   const nodeLabelPx = (nodeSizes.length ? Math.min(...nodeSizes) : 13) * s;
   if (nodeLabelPx < 10) {
@@ -150,7 +154,7 @@ function legibility(c: Ctx): {
       },
       `node labels render at ${r2(nodeLabelPx)}px at this width (${scene.width}px canvas shown at ${r2(s)}x)`,
       [
-        "use direction: down so the diagram is narrower",
+        ...narrower,
         "split into an overview and detail diagrams",
         "move detail from labels into note and drop nodes the reader does not need",
       ],
@@ -173,10 +177,7 @@ function legibility(c: Ctx): {
       [],
       { smallestTextPx: r2(textPx), fontPx: smallest, scale: r2(s) },
       `the smallest text (${smallest}px notes, edge labels or badges) renders at ${r2(textPx)}px`,
-      [
-        "shorten notes and edge labels or drop them",
-        "use direction: down so the diagram is narrower",
-      ],
+      ["shorten notes and edge labels or drop them", ...narrower],
       (8 - textPx) * 4,
     );
   }
@@ -191,7 +192,7 @@ function legibility(c: Ctx): {
       [],
       { iconPx: r1(iconPx), scale: r2(s) },
       `icons render at ${r1(iconPx)}px, too small to tell apart`,
-      ["use direction: down so the diagram is narrower", "split the diagram"],
+      [...narrower, "split the diagram"],
       (20 - iconPx) * 1.5,
     );
   return { nodeLabelPx, others: others.length, textPx, iconPx };

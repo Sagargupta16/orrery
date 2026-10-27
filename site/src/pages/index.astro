@@ -32,7 +32,7 @@ const starterFile = (suffix: string) => url(`gallery/starter/starter${suffix}`);
 const install = [
   {
     name: "Claude Code plugin",
-    note: "The skill, three reviewer agents and the /orrery:review loop.",
+    note: "The skill, four reviewer agents and the /orrery:review loop.",
     prompt: ">",
     lines: ["/plugin marketplace add Sagargupta16/orrery", "/plugin install orrery@orrery"],
   },
@@ -131,10 +131,10 @@ blocker quality.label-size node labels render
       <dl class="mt-12 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
         {
           [
-            [fmt(meta.icons), "official icons"],
+            [fmt(meta.icons), "icons"],
             [String(meta.packs), "icon packs"],
             [String(meta.examples), "reference diagrams"],
-            ["5", "output formats"],
+            ["8", "output formats"],
           ].map(([value, label]) => (
             <div class="bg-canvas px-4 py-4">
               <dt class="sr-only">{label}</dt>
@@ -293,8 +293,9 @@ blocker quality.label-size node labels render
         <h3 class="text-lg font-semibold tracking-tight">A review board that measures before it judges</h3>
         <p class="mt-2 max-w-2xl text-sm text-dim">
           <code class="font-mono text-ink">orrery review</code> scores six dimensions at the width readers see the
-          diagram. In Claude Code, <code class="font-mono text-ink">/orrery:review</code> adds three reviewer agents for
-          vendor conventions, the story the arrows tell, and legibility, and keeps a patch only when the score rises.
+          diagram. In Claude Code, <code class="font-mono text-ink">/orrery:review</code> adds four reviewer agents for
+          vendor conventions, the story the arrows tell, legibility, and accuracy against the code and infrastructure,
+          and keeps a patch only when the score rises.
         </p>
         <pre class="mt-4 overflow-x-auto rounded-xl border border-line bg-canvas/60 p-4 font-mono text-[0.74rem] leading-relaxed text-dim"><code set:text={reviewSample} /></pre>
       </div>

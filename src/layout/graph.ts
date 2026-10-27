@@ -52,8 +52,7 @@ export function buildGraph(ctx: Setup): Graph {
     if (el && gg && !el.children?.length) {
       el.width = gg.minWidth;
       el.height = gg.header + 60;
-      // One with only border nodes is as long as its header and those nodes side by side. ELK
-      // takes an empty compound's minimum as written, not turned with a vertical flow.
+      // One with only border nodes is as long as its header and those nodes side by side.
       const seated = model.nodes.filter((n) => plan.seats.get(n.id) === grp.id);
       if (seated.length) {
         el.width += seated.reduce((w, n) => {
@@ -63,11 +62,12 @@ export function buildGraph(ctx: Setup): Graph {
         const grow = opts.grow?.get(grp.id);
         el.width = Math.max(el.width, grow?.w ?? 0);
         el.height = Math.max(el.height, grow?.h ?? 0);
-        el.layoutOptions = {
-          ...el.layoutOptions,
-          "elk.nodeSize.minimum": `(${el.width}, ${el.height})`,
-        };
       }
+      // ELK takes an empty compound's minimum as written, not turned with a vertical flow.
+      el.layoutOptions = {
+        ...el.layoutOptions,
+        "elk.nodeSize.minimum": `(${el.width}, ${el.height})`,
+      };
     }
   }
 

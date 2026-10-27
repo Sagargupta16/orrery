@@ -73,7 +73,9 @@ export async function cmdRender(args: Args, validateOnly: boolean) {
           ? "packets"
           : args.flags.animate;
     // The whole diagram, or with --view one figure per named view (`<base>.<view>.<format>`).
-    for (const view of viewsOf(parsed.model, args.flags.view)) {
+    const views = viewsOf(parsed.model, args.flags.view);
+    if (!validateOnly) clashingPaths(views, themes, formats, base);
+    for (const view of views) {
       const result = await renderOrFail(
         {
           model: view.model,
@@ -140,15 +142,47 @@ function outputTarget(args: Args, spec: Spec): { formats: Format[]; base: string
   return { formats, base };
 }
 
+/** The file an artifact goes to: next to base, with a -<theme> suffix when there are two. */
+const artifactPath = (base: string, themes: ThemeName[], format: Format, theme?: ThemeName) =>
+  `${base}${themes.length > 1 && format !== "html" ? `-${theme}` : ""}.${format}`;
+
+/**
+ * Stops before writing when two outputs would land on one file: a view named drawio or
+ * sequence, drawn with --view all, writes `<base>.drawio.svg` over the editable SVG.
+ */
+function clashingPaths(
+  views: ReturnType<typeof viewsOf>,
+  themes: ThemeName[],
+  formats: Format[],
+  base: string,
+): void {
+  const seen = new Map<string, string>();
+  for (const view of views)
+    for (const format of formats)
+      for (const theme of format === "html" ? [themes[0]] : themes) {
+        const path = artifactPath(view.name ? `${base}.${view.name}` : base, themes, format, theme);
+        const what = `${view.name ? `view ${view.name}` : "the diagram"} as ${format}`;
+        const other = seen.get(path);
+        if (other)
+          usage(`${other} and ${what} would both write ${path}; rename the view or drop a format`);
+        seen.set(path, what);
+      }
+}
+
 /** Renders, or for validate only lays out; a library or local icon failure becomes a diagnostic. */
 async function renderOrFail(req: RenderRequest, diagnostics: Diagnostic[]): Promise<RenderResult> {
   try {
     return await renderModel(req);
   } catch (e) {
     const failure = renderFailure(e);
-    if (!failure) throw e;
-    diagnostics.push(failure);
-    return { artifacts: [], diagnostics: [], scenes: {} };
+    if (failure) {
+      diagnostics.push(failure);
+      return { artifacts: [], diagnostics: [], scenes: {} };
+    }
+    // resvg refuses a PNG under 1 px, which a small enough --scale asks for.
+    if (req.formats.includes("png") && /target size is zero/i.test((e as Error)?.message ?? ""))
+      usage(`--scale ${req.scale} draws the PNG smaller than 1 px; use a larger --scale`);
+    throw e;
   }
 }
 
@@ -174,8 +208,7 @@ function renderStats(model: Model, scene: Scene | undefined): Record<string, unk
 function writeArtifacts(artifacts: Artifact[], themes: ThemeName[], base: string): Output[] {
   const outputs: Output[] = [];
   for (const a of artifacts) {
-    const suffix = themes.length > 1 && a.format !== "html" ? `-${a.theme}` : "";
-    const path = `${base}${suffix}.${a.format}`;
+    const path = artifactPath(base, themes, a.format, a.theme);
     writeAtomic(path, a.data);
     outputs.push({
       path,

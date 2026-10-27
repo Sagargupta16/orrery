@@ -1,5 +1,5 @@
 // Block Markdown for `orrery doc`: front matter, headings, lists, tables, quotes, code and markers.
-import { type Inline, inline, plain } from "./inline.ts";
+import { type Inline, inline, labelKey, outsideCode, plain, type Refs } from "./inline.ts";
 
 export type Align = "left" | "center" | "right" | undefined;
 
@@ -40,7 +40,8 @@ export interface ParsedDoc {
   markerLines: number[];
 }
 
-const FENCE = /^ {0,3}(`{3,}|~{3,})\s*([^\s`]*)/;
+// A backtick fence's info string has no backticks: "```npm ci``` runs" is a code span.
+const FENCE = /^ {0,3}(`{3,}(?![^`]*`)|~{3,})\s*([^\s`]*)/;
 const FENCE_END = /^ {0,3}(`{3,}|~{3,})\s*$/;
 const HEADING = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/;
 const HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
@@ -50,6 +51,11 @@ const MARKER = /^ {0,3}<!--\s*orrery:(.*?)-->\s*$/;
 const ANY_MARKER = /<!--\s*orrery:/;
 const COMMENT = /^ {0,3}<!--/;
 const TABLE_SEP = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
+const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
+const DEF =
+  /^ {0,3}\[(?!\^)((?:[^[\]\\]|\\.)+)\]:[ \t]*(?:<([^<>]*)>|([^\s<]\S*))(?:[ \t]+(?:"[^"]*"|'[^']*'|\([^()]*\)))?[ \t]*$/;
+/** Lines that open a block whatever follows; a table also needs its separator line. */
+const BLOCK_START = [FENCE, HEADING, HR, QUOTE, ITEM, COMMENT];
 
 function fenceCloses(line: string, mark: string): boolean {
   const m = FENCE_END.exec(line)?.[1] ?? "";
@@ -76,7 +82,7 @@ function tableAt(lines: string[], i: number): boolean {
 
 function startsBlock(lines: string[], i: number): boolean {
   const line = lines[i] ?? "";
-  return [FENCE, HEADING, HR, QUOTE, ITEM, COMMENT].some((r) => r.test(line)) || tableAt(lines, i);
+  return BLOCK_START.some((r) => r.test(line)) || tableAt(lines, i);
 }
 
 function alignOf(cell: string): Align {
@@ -85,7 +91,7 @@ function alignOf(cell: string): Align {
   return cell.startsWith(":") ? "left" : undefined;
 }
 
-function parseList(lines: string[], from: number): [ListItem[], number] {
+function parseList(lines: string[], from: number, refs: Refs): [ListItem[], number] {
   const items: (Omit<ListItem, "c"> & { text: string })[] = [];
   const indents: number[] = [];
   const last: (typeof items)[number][] = [];
@@ -120,25 +126,34 @@ function parseList(lines: string[], from: number): [ListItem[], number] {
       i += 1;
     }
   }
-  return [items.map(({ text, ...item }) => ({ ...item, c: inline(text) })), i];
+  return [items.map(({ text, ...item }) => ({ ...item, c: inline(text, refs) })), i];
 }
 
-function parseTable(lines: string[], from: number): [Block, number] {
+function parseTable(lines: string[], from: number, refs: Refs): [Block, number] {
   const head = splitRow(lines[from] ?? "");
   const align = splitRow(lines[from + 1] ?? "").map(alignOf);
   const rows: Inline[][][] = [];
   let i = from + 2;
   for (; i < lines.length; i++) {
     const line = lines[i] ?? "";
-    if (!line.trim() || !line.includes("|")) break;
+    // Any other block ends the table, as in GFM: a captioned marker's pipe makes no row.
+    if (!line.trim() || !line.includes("|") || BLOCK_START.some((r) => r.test(line))) break;
     const cells = splitRow(line);
-    rows.push(head.map((_, k) => inline(cells[k] ?? "")));
+    rows.push(head.map((_, k) => inline(cells[k] ?? "", refs)));
   }
-  return [{ t: "table", align, head: head.map(inline), rows }, i];
+  return [{ t: "table", align, head: head.map((c) => inline(c, refs)), rows }, i];
 }
 
-/** Block Markdown from `from`; figure markers count only where `markers` is given (top level). */
-function parseBlocks(lines: string[], from: number, markers?: Marker[]): Block[] {
+/**
+ * Block Markdown from `from`; figure markers count only where `markers` is given (top level).
+ * Link definitions go into `refs`, and inline links resolve against what it already holds.
+ */
+function parseBlocks(
+  lines: string[],
+  from: number,
+  refs: Map<string, string>,
+  markers?: Marker[],
+): Block[] {
   const blocks: Block[] = [];
   let i = from;
   while (i < lines.length) {
@@ -146,6 +161,7 @@ function parseBlocks(lines: string[], from: number, markers?: Marker[]): Block[]
     const fence = FENCE.exec(line);
     const marker = MARKER.exec(line);
     const heading = HEADING.exec(line);
+    const def = DEF.exec(line);
     if (!line.trim()) i += 1;
     else if (fence) {
       const mark = fence[1] ?? "```";
@@ -170,7 +186,8 @@ function parseBlocks(lines: string[], from: number, markers?: Marker[]): Block[]
       while (i < lines.length && !(lines[i] ?? "").includes("-->")) i++;
       i += 1;
     } else if (heading) {
-      blocks.push({ t: "heading", level: (heading[1] ?? "#").length, c: inline(heading[2] ?? "") });
+      const c = inline(heading[2] ?? "", refs);
+      blocks.push({ t: "heading", level: (heading[1] ?? "#").length, c });
       i += 1;
     } else if (HR.test(line)) {
       blocks.push({ t: "hr" });
@@ -178,20 +195,38 @@ function parseBlocks(lines: string[], from: number, markers?: Marker[]): Block[]
     } else if (QUOTE.test(line)) {
       const inner: string[] = [];
       for (let q = QUOTE.exec(line); q; q = QUOTE.exec(lines[++i] ?? "")) inner.push(q[1] ?? "");
-      blocks.push({ t: "quote", c: parseBlocks(inner, 0) });
+      blocks.push({ t: "quote", c: parseBlocks(inner, 0, refs) });
     } else if (ITEM.test(line)) {
-      const [items, next] = parseList(lines, i);
+      const [items, next] = parseList(lines, i, refs);
       blocks.push({ t: "list", items });
       i = next;
     } else if (tableAt(lines, i)) {
-      const [table, next] = parseTable(lines, i);
+      const [table, next] = parseTable(lines, i, refs);
       blocks.push(table);
       i = next;
+    } else if (def?.[1]?.trim()) {
+      // A link definition draws nothing; the first one for a label wins.
+      const key = labelKey(def[1] ?? "");
+      if (!refs.has(key)) refs.set(key, def[2] ?? def[3] ?? "");
+      i += 1;
     } else {
       const text = [line.trimStart()];
-      for (i += 1; i < lines.length && (lines[i] ?? "").trim() && !startsBlock(lines, i); i++)
+      for (
+        i += 1;
+        i < lines.length &&
+        (lines[i] ?? "").trim() &&
+        !SETEXT.test(lines[i] ?? "") &&
+        !startsBlock(lines, i);
+        i++
+      )
         text.push((lines[i] ?? "").trimStart());
-      blocks.push({ t: "para", c: inline(text.join("\n").trimEnd()) });
+      // An underline of = or - makes the lines above it a heading, not a rule or a list item.
+      const setext = SETEXT.exec(lines[i] ?? "");
+      const c = inline(text.join("\n").trimEnd(), refs);
+      if (setext) {
+        blocks.push({ t: "heading", level: setext[1]?.startsWith("=") ? 1 : 2, c });
+        i += 1;
+      } else blocks.push({ t: "para", c });
     }
   }
   return blocks;
@@ -199,7 +234,8 @@ function parseBlocks(lines: string[], from: number, markers?: Marker[]): Block[]
 
 /** The document's blocks and figure markers; front matter is skipped and its title kept. */
 export function parseDoc(text: string): ParsedDoc {
-  const lines = text.split(/\r?\n/);
+  // A byte order mark (Notepad, PowerShell) is not part of line 1.
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
   let from = 0;
   let title: string | undefined;
   if (lines[0]?.trim() === "---") {
@@ -213,7 +249,10 @@ export function parseDoc(text: string): ParsedDoc {
     }
   }
   const markers: Marker[] = [];
-  const blocks = parseBlocks(lines, from, markers);
+  // A link may come before its definition, so a first pass collects the definitions.
+  const refs = new Map<string, string>();
+  parseBlocks(lines, from, refs);
+  const blocks = parseBlocks(lines, from, refs, markers);
   // Every marker-like comment outside code, so one the parser did not take (inside a list or a
   // quote, or sharing its line) shows up as a missing figure instead of vanishing.
   const markerLines: number[] = [];
@@ -223,7 +262,7 @@ export function parseDoc(text: string): ParsedDoc {
     if (fence) {
       if (fenceCloses(l, fence)) fence = "";
     } else if (FENCE.test(l)) fence = FENCE.exec(l)?.[1] ?? "";
-    else if (ANY_MARKER.test(l)) markerLines.push(k + 1);
+    else if (outsideCode(l).some((t) => ANY_MARKER.test(t))) markerLines.push(k + 1);
   }
   const h1 = blocks.find((b) => b.t === "heading" && b.level === 1);
   title ??= h1?.t === "heading" ? plain(h1.c) : undefined;

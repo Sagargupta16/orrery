@@ -2,6 +2,91 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.12.2] - 2026-10-27
+
+### Fixed
+
+A sweep of every subsystem, with each defect reproduced by command and confirmed by an independent check before it was fixed: 139 fixes. All 77 examples review to the same scores and sizes as before; seven of their gallery pictures change (sequence guard chips, timeline markers, journey stage headers, and two stage stories that now follow the longest chain).
+
+- **Security.**
+  - Over MCP HTTP, `include:` read files from the server's disk. It is now refused there before any file is opened (DG122), and `try_patches` runs the same guard on every patched copy, not only the original spec.
+  - The local icon sanitizer let CSS-escaped `url()`, `image-set()`, `image()`, `cross-fade()` and `element()` through, and a `<use>` loop or deep nesting could expand without bound. It now refuses all of them.
+  - `publish.yml` runs a pinned `mcp-publisher` checked against its SHA-256 and no longer leaves the checkout token on disk.
+  - `scripts/check-repo.mjs` knows more secret shapes (Anthropic, OpenAI project keys, npm, Slack, Google, every GitHub prefix), JSON-escaped home paths and every text file type, and it lists file names with `-z`.
+- **Spec.**
+  - A node named `constructor` or `__proto__` (or a class, field flag or card named so) no longer crashes the parser.
+  - Text keys keep what was written, so `note: 3.10` shows 3.10, not 3.1.
+  - `constraint`, `dashed` and `step` reject values that are not booleans or whole numbers.
+  - An unquoted `#` inside `{ }` gets a DG107 at its own line instead of a generic parse error.
+  - Specs saved as UTF-16 or with a byte order mark (Windows PowerShell 5.1 `>`) are read.
+  - Includes are merged once when two of them share a frame, unknown keys in an included file are reported, and the LSP places a finding on an included edge at the `include:` line.
+  - An overlay around another overlay is drawn whatever the spec order, and overlays drawn around each other fail with DG105.
+- **Layout and routing.**
+  - Faster with the same output. The detour search marks the walls once per search instead of retesting each on every step, and skips searches that could not win. The timeline router only scores what lies near each route.
+    - Validating all 77 examples takes 28.8 s instead of 64.1 s; the slowest, azure-openai-rag, takes 0.4 s instead of 4.7 s.
+    - A timeline with 90 dated items reviews in 1.1 s instead of 44.6 s.
+  - Self loops and `constraint: false` edges no longer collapse, run inside their node or sit on top of another edge between the same two nodes.
+  - An edge between a node and the group around it leaves by the nearest side with room for its label.
+  - The canvas grows to hold routes that bend past the outermost box.
+  - Pool and lane headers move with their bands.
+  - An empty group in a vertical flow is no longer drawn turned on its side.
+  - `rank:` and `align:` work with border nodes and with ranks in other groups.
+  - The stage skin's arrowheads get a straight run as long as the head on wide diagrams.
+  - Circles and diamonds in architecture diagrams take their line ends on the outline.
+  - Timeline years 0 to 99 are no longer drawn as the 1900s.
+- **Kinds.**
+  - A data model's self relationship goes from row to row.
+  - Foreign keys are found for plurals such as statuses and quizzes.
+  - A sequence view keeps each message under its own branch.
+  - Stage sequence guards fit their chips.
+  - Timeline markers no longer start invisible where SMIL does not run, and stage icon points show their status.
+  - A dashed lane in a pool is drawn dashed.
+  - Journey stage rows show their color.
+  - Tree and mind map stories grow along the drawn hierarchy.
+- **Rendering.**
+  - Control characters no longer break SVG, draw.io or PNG output.
+  - A border node's plate takes the colors on either side of the border.
+  - The accessible title falls back to the kind's name.
+  - No-break spaces keep their words together.
+  - The HTML viewer's download names are escaped for JavaScript, and `>` in a local icon attribute no longer breaks `-f tsx`.
+  - Stage group header chips use the spec's background, and stage icon inks hold 4.5:1.
+  - `-f sequence.svg` carries the spec and reports its own size.
+- **Exports.**
+  - Mermaid `erDiagram` output parses with keyword entity names and `pk`/`fk` field names.
+  - `architecture-beta` labels no longer show entity codes.
+  - Gantt and journey names that start with a keyword or a date stay names.
+  - Sequence step numbers carry over.
+  - draw.io timeline items keep their links.
+- **Importers.**
+  - Terraform reads inline `route` and `ingress` blocks as real plans write them. IAM actions apply only to their own service's resources. Evidence is a form `orrery verify` can read. `count` copies that share one name keep it.
+  - CloudFormation reads SAM `Globals`, role `ManagedPolicyArns`, more security group and subnet paths, ICMP and parameter ports.
+  - Compose keeps a service named `users` apart from the Users actor and reads ports written as variables.
+  - Kubernetes no longer draws outside hostnames as in-cluster Services.
+  - SQL handles same-named tables in two schemas, quoted names, MySQL `#` comments and backslash escapes, and columns named `key`, `period` or `exclude`.
+  - Mermaid reads link text forms and arrows inside labels, and places subgraph members as Mermaid does.
+  - An import that finds nothing to draw exits 1 instead of writing an empty spec.
+- **CLI, doc, review, patch, LSP, MCP.**
+  - `--view all` stops before two outputs would write one file.
+  - A tiny `--scale` or `--width`, or a folder given as the spec or a font, is a usage error rather than a stack trace.
+  - `watch` follows an include whose first parse failed.
+  - `icons show -o x.PNG` writes a PNG.
+  - A downloaded icon library is used even when the cache cannot be written.
+  - `orrery doc` handles inline triple backticks, markers under tables or in code spans, setext headings, reference links and a byte order mark, and Word files survive U+FFFE.
+  - The review drops direction fixes for kinds that lay themselves out and for the direction already in effect, names the title when it sets the width, and stops flagging idle lifelines and table routes. A stale `review.look.png` is removed.
+  - Patches no longer swallow the line after a block scalar, and an edge op can take one hop out of a fan or chain.
+  - The LSP no longer parses YAML that is not a spec on every keystroke, and its quick fixes and outlines land on the right text.
+  - MCP stdio no longer splits messages at U+2028, cancelled calls get no reply, Streamable HTTP checks `Mcp-Name` on `resources/read`, and `mcp install codex` keeps a server named `orrery.beta`.
+  - The GitHub Action quotes spec paths on Windows and reads non-ASCII file names.
+  - `describe` tells a sequence in message order with its fragments, and a timeline by date. `orrery diff` pairs repeated edges by label and reads a git side's includes at that ref.
+- **Plugin, docs and site.**
+  - `loop.md` keeps accuracy-reviewer findings, and the planner's catalog search returns rows.
+  - `/orrery:doc` writes the document where its markers point.
+  - The eval self-test matches the 70.9 baseline and now runs in CI.
+  - The README's Action snippet pins this release, which check-repo now enforces.
+  - The docs give the right SVG ids and date and milestone behavior.
+  - The site gets its icon and format counts right, takes edge counts from the model, matches gallery categories by whole word and ships local icons with downloaded specs.
+  - The playground indents a multi-line selection and applies a pasted link's theme, skin and width.
+
 ## [0.12.1] - 2026-10-24
 
 ### Changed

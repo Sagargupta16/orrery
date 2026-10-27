@@ -1,6 +1,6 @@
 # The review loop
 
-How a rendered diagram gets reviewed and improved: **measure, critique, patch, ratchet**. Code measures everything that can be measured; three model reviewers judge only what code cannot; one orchestrator (the main session) is the only one that edits the spec; a patch is kept only when the measured score goes up and no hard count goes up.
+How a rendered diagram gets reviewed and improved: **measure, critique, patch, ratchet**. Code measures everything that can be measured; three model reviewers, and a fourth for accuracy when the diagram shows a real system, judge only what code cannot; one orchestrator (the main session) is the only one that edits the spec; a patch is kept only when the measured score goes up and no hard count goes up.
 
 ## Roles
 
@@ -11,8 +11,9 @@ How a rendered diagram gets reviewed and improved: **measure, critique, patch, r
 | Conventions reviewer | `orrery:conventions-reviewer`, or an inline pass | one JSON findings array | the rubric files named in `rubrics` of the review JSON |
 | Flow reviewer | `orrery:flow-reviewer`, or an inline pass | one JSON findings array | [flow.md](flow.md) |
 | Legibility reviewer | `orrery:legibility-reviewer`, or an inline pass | one JSON findings array | [legibility.md](legibility.md) |
+| Accuracy reviewer | `orrery:accuracy-reviewer`, or an inline pass, when the diagram shows a real system | one JSON findings array | [accuracy.md](accuracy.md) and the evidence paths |
 
-Reviewers are read-only (Read, Glob, Grep): they cannot edit, write or spawn agents. Rubrics: [conventions-aws.md](conventions-aws.md), [conventions-azure.md](conventions-azure.md), [conventions-gcp.md](conventions-gcp.md), [conventions-c4.md](conventions-c4.md), [conventions-bpmn.md](conventions-bpmn.md), [conventions-flowchart.md](conventions-flowchart.md), [conventions-state.md](conventions-state.md), [conventions-journey.md](conventions-journey.md), [conventions-er.md](conventions-er.md), [conventions-sequence.md](conventions-sequence.md), [conventions-timeline.md](conventions-timeline.md), [flow.md](flow.md), [legibility.md](legibility.md).
+Reviewers are read-only (Read, Glob, Grep): they cannot edit, write or spawn agents. Rubrics: [conventions-aws.md](conventions-aws.md), [conventions-azure.md](conventions-azure.md), [conventions-gcp.md](conventions-gcp.md), [conventions-c4.md](conventions-c4.md), [conventions-bpmn.md](conventions-bpmn.md), [conventions-flowchart.md](conventions-flowchart.md), [conventions-state.md](conventions-state.md), [conventions-journey.md](conventions-journey.md), [conventions-er.md](conventions-er.md), [conventions-sequence.md](conventions-sequence.md), [conventions-timeline.md](conventions-timeline.md), [flow.md](flow.md), [legibility.md](legibility.md), [accuracy.md](accuracy.md).
 
 ### Which conventions rubrics apply
 
@@ -63,25 +64,26 @@ When the display PNG is taller or wider than 1568 px (a tall diagram at a README
 
 - `pass` is true and there are no findings: stop and report.
 - Under 10 nodes, or only minor findings: one inline pass that reads all the named rubrics.
-- Otherwise: the three reviewers.
+- Otherwise: the three reviewers, and the accuracy reviewer when the diagram shows a real system (the repository has its code or infrastructure, or the user names it).
 
 ### 3. Critique
 
-With subagents (the Claude Code plugin), spawn the three reviewers **in one message** so they run in parallel, each with this prompt:
+With subagents (the Claude Code plugin), spawn the reviewers (three, or four with accuracy) **in one message** so they run in parallel, each with this prompt:
 
 ```text
 Spec: <spec path>. Brief: <one line>. Review JSON: <base>.review.json.
 Display PNG: <base>.review.png (<display.width>x<display.height>, the diagram as readers see it at <width>px).
 Look PNG: <base>.review.look.png (only when the review wrote one; view it instead of the display PNG).
 Rubrics: <rubrics from the JSON, for the conventions reviewer>.
+Evidence: <the code and infrastructure paths, and the plan's leftOut list only, for the accuracy reviewer>.
 Return only the JSON findings array.
 ```
 
-Without subagents (the Agent Skills install, or a client with no agent tool), run three passes inline, one after another. In each pass read only that pass's rubric, the spec, the review JSON and the PNG (the look PNG when there is one), write that pass's findings array down, and only then start the next pass, so one rubric does not color another.
+Without subagents (the Agent Skills install, or a client with no agent tool), run the passes inline (three, or four with accuracy), one after another. In each pass read only that pass's rubric, the spec, the review JSON and the PNG (the look PNG when there is one), write that pass's findings array down, and only then start the next pass, so one rubric does not color another.
 
 ### 4. Merge
 
-1. **Drop** a finding when it has no evidence; when its `id` is neither a measured id (table below) nor a rule id in one of the rubric files; when a subject is not an `elements` id; or when it asserts geometry (overlap, crossing, cut off, text size, contrast) that no measured finding shows.
+1. **Drop** a finding when it has no evidence; when its `id` is neither a measured id (table below) nor a rule id in one of the rubric files (the ACC ids of accuracy.md included); when a subject is not an `elements` id; or when it asserts geometry (overlap, crossing, cut off, text size, contrast) that no measured finding shows.
 2. **Dedupe** by dimension plus sorted subjects. Keep the higher priority finding; union the fixes and patches.
 3. **Rank**: measured blocker > cited vendor rule > brief and audience > taste. Within a level: higher severity, then measured before judged, then the patch that touches fewer elements.
 
@@ -146,7 +148,7 @@ Measured findings (in the review JSON) and reviewer findings share one shape. Re
 ```
 
 - `dimension`: conventions, layout, grid, flow, overlap or quality. `severity`: blocker, major or minor.
-- `evidence` carries at least one of: `measured` (a metric name from `dimensions.*.metrics` or a measured finding id) with its `value`; `rule` and `quote` (a rubric rule id and its quote, verbatim); `box` (an `elements` id) with the region in PNG pixels.
+- `evidence` carries at least one of: `measured` (a metric name from `dimensions.*.metrics` or a measured finding id) with its `value`; `rule` and `quote` (a rubric rule id and its quote, verbatim); `box` (an `elements` id) with the region in PNG pixels; the spec lines relied on (`edge`, `from`, `to`, `step`); `file` and `line` with the quoted text, `brief` with its words, or `missing` with the file and line of what the figure lacks (accuracy findings).
 - `subjects` are spec ids. An empty list means the whole diagram.
 
 ### Patches

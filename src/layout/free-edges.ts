@@ -2,13 +2,23 @@
 // on a border), and the align-block edges ELK took the long way round, which give way to a shorter
 // clear route.
 
-import type { ModelEdge, Point } from "../types.ts";
+import { textBlock } from "../text.ts";
+import type { Box, ModelEdge, Point } from "../types.ts";
 import type { Placed } from "./context.ts";
 import { detour } from "./detour.ts";
 import { elkRoute } from "./edges.ts";
-import { alongBorder, clearOfFrames, laneRoutes, runsThrough } from "./elbows.ts";
-import { collinear, headRoom } from "./geometry.ts";
+import {
+  alongBorder,
+  clearOfFrames,
+  headRoomFor,
+  laneRoutes,
+  loops,
+  type RouteEnd,
+  runsThrough,
+} from "./elbows.ts";
+import { collinear, headRoom, round } from "./geometry.ts";
 import { seatEnd } from "./seats.ts";
+import { SIZES } from "./sizes.ts";
 import { attachBox, freeRoute, steer } from "./steer.ts";
 import type { Walls } from "./walls.ts";
 
@@ -23,6 +33,7 @@ interface Claim {
 export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
   const { model, opts, plan, horizontal, rel } = ctx;
   const { borders, titles } = w;
+  const room = roomOf(ctx);
   /** Off every group border line and clear beside every title, which clearing the walls is not. */
   const framed = (p: Point[]) => clearOfFrames(p, borders, titles);
   /**
@@ -86,6 +97,13 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
           return pts ? pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q })) : [];
         })
       : [];
+  /** The lines of the other edges joining the same two ends: ELK's, and free ones drawn so far. */
+  const pairLines = (e: ModelEdge) =>
+    model.edges.flatMap((o) => {
+      const same = (o.from === e.from && o.to === e.to) || (o.from === e.to && o.to === e.from);
+      const pts = o === e || !same ? undefined : (freeRoutes.get(o.id) ?? elkRoute(ctx, o));
+      return pts ? pts.slice(1).map((q, i) => ({ p: pts[i] ?? q, q })) : [];
+    });
   for (const straight of [true, false]) {
     for (const e of model.edges) {
       // A node on a border is reached through a stub out of its icon's face: the route runs to
@@ -95,24 +113,50 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
       const a = sa?.attach ?? attachBox(ctx, e.from);
       const b = sb?.attach ?? attachBox(ctx, e.to);
       if (!rel.free(e) || !a || !b) continue;
+      const known =
+        !rel.inBlock(e) && !rel.gridBetween(e) && !rel.seated(e) && !opts.loose?.has(e.id);
+      // A self loop (constraint: false, or on an overlay) goes round a corner of its node or
+      // group: the first corner clear of the walls and the frames, an overlay's own header
+      // included.
+      if (e.from === e.to && known) {
+        if (straight) continue;
+        const walls = [...w.walls(e), ...(a.avoid ? [a.avoid] : [])];
+        const all = loops(a);
+        const loop = all.find((p) => !runsThrough(p, walls) && framed(p)) ?? all[0] ?? [];
+        freeRoutes.set(e.id, loop);
+        claimed.push(...loop.slice(1).map((q, i) => ({ e, p: loop[i] ?? q, q })));
+        continue;
+      }
       const stubbed = (p: Point[]) => [...(sa ? [sa.face] : []), ...p, ...(sb ? [sb.face] : [])];
       const onward = (p: Point[]) =>
         (!sa || ahead(sa, p[1])) && (!sb || ahead(sb, p[p.length - 2]));
       const steered = (p: Point[]) =>
         steer(steer(p, "to", b.avoid, b.full), "from", a.avoid, a.full);
-      const route = (d: number) => steered(freeRoute(a, b, d));
+      const label = labelSize(e);
+      const route = (d: number) => steered(freeRoute(a, b, d, label));
       let points = route(0);
       if ((points.length === 2) !== straight) continue;
+      const walls = w.walls(e);
+      // Two edges between the same ends never share a line, or they read as one: a straight
+      // route on top of the other slides 12px, then 24px, across with both ends on their faces.
+      const pair = pairLines(e);
+      const doubled = (p: Point[]) => pair.some((c) => collinear(p, c.p, c.q));
+      if (straight && doubled(points))
+        points =
+          [12, -12, 24, -24]
+            .flatMap((d) => slide(points, d, a, b))
+            .map(steered)
+            .find((p) => !doubled(p) && unclaimed(p, e) && !runsThrough(p, walls) && framed(p)) ??
+          points;
       const shifts = [0, 12, -12, 24, -24, 36, -36].map(route);
-      if (!straight) points = shifts.find((p) => fits(p, e)) ?? points;
+      if (!straight)
+        points =
+          shifts.find((p) => fits(p, e) && !doubled(p)) ?? shifts.find((p) => fits(p, e)) ?? points;
       // An edge that was free before rank, align and cols keeps today's route when it clears
       // everything, group border lines and titles included. Otherwise the first lane clear of the
       // walls with a margin, off group borders and off ELK's lines wins, then a detour around
       // them, then a lane clear of the walls and the frames, then any lane clear of the walls.
-      const walls = w.walls(e);
-      const known =
-        !rel.inBlock(e) && !rel.gridBetween(e) && !rel.seated(e) && !opts.loose?.has(e.id);
-      if (!known || runsThrough(points, walls) || !framed(points)) {
+      if (!known || doubled(points) || runsThrough(points, walls) || !framed(points)) {
         // Today's route that only lies on a border or beside a title gives way to a lane that cuts
         // through no more groups holding neither end (DG223), or stays.
         const kept = known && !runsThrough(points, walls) ? points : undefined;
@@ -123,13 +167,15 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
         const heads = {
           start: !sa && (e.arrow === "start" || e.arrow === "both"),
           end: !sb && e.arrow !== "none" && e.arrow !== "start",
+          room,
         };
         const open = [
           ...(straight ? [points] : shifts.filter((p) => fits(p, e))),
-          ...laneRoutes(a, b, heads, borders, horizontal).map(steered),
+          ...laneRoutes(a, b, heads, borders, horizontal, label).map(steered),
         ].filter(
           (p) =>
             unclaimed(p, e, !known) &&
+            !doubled(p) &&
             !elkLines.some((c) => collinear(p, c.p, c.q)) &&
             (known || headRoom(p, heads)) &&
             onward(p) &&
@@ -153,7 +199,7 @@ export function routeFree(ctx: Placed, w: Walls): Map<string, Point[]> {
         }));
         const taken = [...claimed.filter((c) => c.e !== e), ...elkLines].flatMap((c) => [c.p, c.q]);
         const around = () => {
-          const path = detour(a, b, roomy, [...borders, ...drawn], taken);
+          const path = detour(a, b, roomy, [...borders, ...drawn], taken, room);
           const out = path && steered(path);
           return out && !runsThrough(out, walls) && framed(out) && fair(out) && onward(out)
             ? out
@@ -188,6 +234,7 @@ export function rerouteBlocks(
   const { borders } = w;
   const rerouted = new Set<string>();
   if (!plan.blocks.size) return rerouted;
+  const room = roomOf(ctx);
   const length = (pts: Point[]) =>
     pts
       .slice(1)
@@ -221,16 +268,71 @@ export function rerouteBlocks(
     const heads = {
       start: e.arrow === "start" || e.arrow === "both",
       end: e.arrow !== "none" && e.arrow !== "start",
+      room,
     };
+    // No route is shorter than the gap between the two ends, so the detour search runs only when
+    // one could come in under the cap.
     const better =
       [freeRoute(a, b, 0), ...laneRoutes(a, b, heads, borders, horizontal)].find(clear) ??
-      [detour(a, b, roomy, borders)].find((p): p is Point[] => !!p && clear(p));
+      (gap(a.full, b.full) < most + 1
+        ? [detour(a, b, roomy, borders, [], room)].find((p): p is Point[] => !!p && clear(p))
+        : undefined);
     if (!better) continue;
     freeRoutes.set(e.id, better);
     rerouted.add(e.id);
   }
   return rerouted;
 }
+
+/**
+ * The straight run kept in front of an arrowhead drawn after ELK, for the canvas as wide as ELK
+ * and the placed boxes make it (the stage skin's head grows with the width).
+ */
+function roomOf(ctx: Placed): number {
+  const right = [...ctx.nodes.map((n) => n.box), ...ctx.groups.map((g) => g.box)].map(
+    (b) => b.x + b.w + SIZES.pad,
+  );
+  return headRoomFor(ctx.model.skin, Math.max(ctx.result.width ?? 0, ...right));
+}
+
+/** The box a free edge's label and step take beside its route, as labels.ts sizes it. */
+function labelSize(e: ModelEdge): { w: number; h: number } {
+  const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+  const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
+  return {
+    w: Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0)),
+    h: Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0)),
+  };
+}
+
+/**
+ * A straight route moved `d` px across itself, or none when an end would leave its face: the
+ * side of the icon (or box) it meets, 2px in from the corners.
+ */
+function slide(points: Point[], d: number, a: RouteEnd, b: RouteEnd): Point[][] {
+  const [s, t] = points;
+  if (!s || !t || points.length !== 2) return [];
+  const k = Math.abs(s.y - t.y) < 0.5 ? "y" : "x";
+  const v = round(s[k] + d);
+  const on = (r: Box) => (k === "y" ? [r.y, r.y + r.h] : [r.x, r.x + r.w]);
+  const fits = (r: Box) => {
+    const [lo = 0, hi = 0] = on(r);
+    return v >= lo + 2 && v <= hi - 2;
+  };
+  return fits(a.side) && fits(b.side)
+    ? [
+        [
+          { ...s, [k]: v },
+          { ...t, [k]: v },
+        ],
+      ]
+    : [];
+}
+
+/** How far apart two boxes are along x plus along y: no orthogonal route between them is shorter. */
+const gap = (a: Box, b: Box) =>
+  Math.max(0, b.x - (a.x + a.w), a.x - (b.x + b.w)) +
+  Math.max(0, b.y - (a.y + a.h), a.y - (b.y + b.h));
 
 /** Whether a route's first step from a stub's tip goes on, or at least turns, rather than back. */
 function ahead(s: { face: Point; tip: Point }, next: Point | undefined): boolean {

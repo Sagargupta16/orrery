@@ -71,6 +71,9 @@ function serial<T>(job: () => Promise<T>): Promise<T> {
   return run;
 }
 
+/** Each connection's requests in flight (stdio has one), and whether the client cancelled each. */
+const inFlight = new WeakMap<Context, Map<unknown, boolean>>();
+
 async function callTool(params: Obj, ctx: Context): Promise<Obj> {
   const tool = TOOLS.find((t) => t.name === params.name);
   if (!tool) throw new RpcError(-32602, `Unknown tool: ${String(params.name)}`);
@@ -101,7 +104,12 @@ async function callTool(params: Obj, ctx: Context): Promise<Obj> {
   }
 }
 
-async function result(method: string, params: Obj, ctx: Context): Promise<Obj> {
+async function result(
+  method: string,
+  params: Obj,
+  ctx: Context,
+  cancelled: () => boolean,
+): Promise<Obj> {
   const version = declaredVersion(params);
   const modern = version !== undefined;
   if (modern) {
@@ -151,8 +159,11 @@ async function result(method: string, params: Obj, ctx: Context): Promise<Obj> {
       return done({});
     case "tools/list":
       return done({ tools: TOOLS.map(({ run, ...t }) => t) });
-    case "tools/call":
-      return done(await serial(() => callTool(params, call)));
+    case "tools/call": {
+      // A call cancelled while it waits never starts; dispatch drops its reply either way.
+      const job = async (): Promise<Obj> => (cancelled() ? {} : callTool(params, call));
+      return done(await serial(job));
+    }
     case "resources/list":
       return done({ resources: [VIEWER_RESOURCE] });
     case "resources/templates/list":
@@ -176,7 +187,7 @@ export interface Reply {
   body: Obj;
 }
 
-/** The reply to one message, or undefined for a notification or a client's response. */
+/** The reply to one message; undefined for a notification, a response or a cancelled request. */
 export async function dispatch(msg: unknown, ctx: Context): Promise<Reply | undefined> {
   if (!isObj(msg) || msg.jsonrpc !== "2.0")
     return { status: 400, body: rpcError(null, -32600, "Invalid Request") };
@@ -185,18 +196,31 @@ export async function dispatch(msg: unknown, ctx: Context): Promise<Reply | unde
     if ("result" in msg || "error" in msg) return undefined;
     return { status: 400, body: rpcError(id ?? null, -32600, "Invalid Request: no method") };
   }
-  // notifications/initialized and notifications/cancelled need nothing: calls run to the end.
-  if (!("id" in msg)) return undefined;
+  const params = isObj(msg.params) ? msg.params : {};
+  const calls = inFlight.get(ctx) ?? new Map<unknown, boolean>();
+  inFlight.set(ctx, calls);
+  // notifications/initialized needs nothing. A request the client cancels (stdio) gets no reply,
+  // and a queued call is skipped; one already running still runs to the end.
+  if (!("id" in msg)) {
+    if (method === "notifications/cancelled" && calls.has(params.requestId))
+      calls.set(params.requestId, true);
+    return undefined;
+  }
   if (typeof id !== "string" && typeof id !== "number")
     return {
       status: 400,
       body: rpcError(null, -32600, "Invalid Request: id must be a string or number"),
     };
+  calls.set(id, false);
+  const cancelled = () => calls.get(id) === true;
   try {
-    const params = isObj(msg.params) ? msg.params : {};
-    return { status: 200, body: { jsonrpc: "2.0", id, result: await result(method, params, ctx) } };
+    const body = { jsonrpc: "2.0", id, result: await result(method, params, ctx, cancelled) };
+    return cancelled() ? undefined : { status: 200, body };
   } catch (e) {
     if (!(e instanceof RpcError)) throw e;
+    if (cancelled()) return undefined;
     return { status: e.status, body: rpcError(id, e.code, e.message, e.data) };
+  } finally {
+    calls.delete(id);
   }
 }

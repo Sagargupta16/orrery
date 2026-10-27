@@ -2,8 +2,8 @@ schema_version: "1.1"
 name: review-raises-score
 context:
   scaffold_script: scaffold.sh
-# The fixture (../../fixtures/bad-spec/repo/docs/architecture.yaml) measures 74.1 at 880 px with
-# every hard count at 0, so score-raised accepts 74.2 to 100 from the final review JSON, which the
+# The fixture (../../fixtures/bad-spec/repo/docs/architecture.yaml) measures 70.9 at 880 px with
+# every hard count at 0, so score-raised accepts 71.0 to 100 from the final review JSON, which the
 # bundled CLI writes. evals/scripts/selftest.mjs fails if that baseline moves; for the exact ratchet
 # check run evals/scripts/review-delta.mjs on the fixture and the --keep-temp workspace's spec.
 graders:
@@ -23,7 +23,7 @@ graders:
     type: regex
     weight: 3
     target: { source: file, path: out/final.review.json }
-    pattern: '"width"\s*:\s*880\s*,\s*"scale"[\s\S]*?"score"\s*:\s*(?:74\.[2-9]\d*|7[5-9](?:\.\d+)?|[89]\d(?:\.\d+)?|100(?:\.0+)?)\s*,\s*"pass"'
+    pattern: '"width"\s*:\s*880\s*,\s*"scale"[\s\S]*?"score"\s*:\s*(?:7[1-9](?:\.\d+)?|[89]\d(?:\.\d+)?|100(?:\.0+)?)\s*,\s*"pass"'
   - name: no-hard-count-up
     type: regex
     target: { source: file, path: out/final.review.json }

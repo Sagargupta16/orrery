@@ -78,7 +78,8 @@ export function iconInk(ctx: Ctx, id: string): string {
   const most = Math.max(4.5, contrast(glyph, tile));
   let quiet = ink;
   for (let t = 0.05; contrast(quiet, tile) > most && t < 1; t += 0.05) quiet = mixHex(tile, ink, t);
-  return quiet;
+  // A 5% step can jump past 4.5:1 as well; bring that one back up to the floor.
+  return ensureContrast(quiet, tile);
 }
 
 /** The filter that paints one tone in one color; one per pair, shared by every icon. */

@@ -40,13 +40,18 @@ export function lonelyNodes({ model, parentOf, warn }: CheckContext): void {
     return;
   }
   const touched = new Set(model.edges.flatMap((e) => [e.from, e.to]));
-  const reached = (id: string): boolean => {
-    for (let p: string | undefined = id; p; p = parentOf.get(p)) if (touched.has(p)) return true;
-    return model.groups.some((g) => g.around?.includes(id) && touched.has(g.id));
+  // A node is reached by an edge to it, to one of its groups or the group it sits on (on:), or to
+  // an overlay whose around: lists any of them (the membership rule DG223 uses).
+  const ends = (id: string) =>
+    touched.has(id) || model.groups.some((g) => g.around?.includes(id) && touched.has(g.id));
+  const reached = (n: Model["nodes"][number]): boolean => {
+    for (const start of [n.id, n.on])
+      for (let p: string | undefined = start; p; p = parentOf.get(p)) if (ends(p)) return true;
+    return false;
   };
   // Its own layout places every node, so links between them are optional.
   for (const n of own ? [] : model.nodes) {
-    if (!reached(n.id)) {
+    if (!reached(n)) {
       warn("DG208", `node "${n.id}" has no connections`, {
         subject: { node: n.id },
         fixes: [`connect "${n.id}" or remove it (fine for a legend or a standalone service)`],

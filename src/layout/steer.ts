@@ -3,6 +3,7 @@
 
 import type { Box, Point, SceneEdge } from "../types.ts";
 import type { Placed } from "./context.ts";
+import { exits } from "./elbows.ts";
 import { round, union } from "./geometry.ts";
 
 export interface Attach {
@@ -85,9 +86,18 @@ export function steer(
 
 /**
  * An orthogonal connector between two placed nodes or groups, for edges the layout ignored.
- * `shift` moves the elbow off the midpoint so unrelated connectors do not share a trunk.
+ * `shift` moves the elbow off the midpoint so unrelated connectors do not share a trunk. An end
+ * inside the other leaves by its side nearest the border with room for the `label`, and runs
+ * straight out to it.
  */
-export function freeRoute(from: Attach, to: Attach, shift: number): Point[] {
+export function freeRoute(
+  from: Attach,
+  to: Attach,
+  shift: number,
+  label?: { w: number; h: number },
+): Point[] {
+  const [out] = exits(from, to, label);
+  if (out) return out;
   const sideBySide = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
   const a = sideBySide ? from.side : from.full;
   const b = sideBySide ? to.side : to.full;

@@ -16,6 +16,7 @@ import {
   EDGE_LABEL_MAX,
   footOf,
   grow,
+  PAD,
   type Routing,
   round,
 } from "./shared.ts";
@@ -165,7 +166,8 @@ function gridLines(r: Routing): Lines {
   }
   const drawn = r.all.filter((b) => b.group || b.items.length);
   for (const b of drawn) {
-    cLines.add(round(b.c0 + b.size / 2));
+    // A parent band is the sum of its kids, so its center often lands on a border between them.
+    if (!b.kids.length) cLines.add(round(b.c0 + b.size / 2));
     cLines.add(round(b.c0 + CHANNEL));
     cLines.add(round(b.c0 + b.size - CHANNEL));
   }
@@ -215,7 +217,7 @@ function sceneEdgeFor(me: ModelEdge, prior: SceneEdge | undefined): SceneEdge {
   return edge;
 }
 
-/** One edge's route between its ports, or a plain elbow when the grid has none. */
+/** One edge's route between its ports, or a plain elbow (or loop) when the grid has none. */
 function routeOne(
   rt: Router,
   me: ModelEdge,
@@ -251,8 +253,23 @@ function routeOne(
     );
   const s0 = starts[0];
   const e0 = ends[0];
-  if (!points && s0 && e0) points = elbow(s0.p, e0.p, horizontal);
+  // An elbow between two sides of one node runs inside it.
+  if (!points && s0 && e0)
+    points = me.from === me.to ? loopOf(s0, e0) : elbow(s0.p, e0.p, horizontal);
   return points;
+}
+
+/**
+ * A self-loop outside its node: out of one port, round the corner between them, into the other,
+ * half the band's padding away, so it stays clear of the band's border too.
+ */
+function loopOf(s: Port, e: Port): Point[] {
+  const out = STEPS[s.d];
+  const into = STEPS[e.d];
+  const k = PAD / 2;
+  const p = { x: s.p.x + out.x * k, y: s.p.y + out.y * k };
+  const q = { x: e.p.x - into.x * k, y: e.p.y - into.y * k };
+  return [s.p, p, out.x ? { x: p.x, y: q.y } : { x: q.x, y: p.y }, q, e.p];
 }
 
 /** Other nodes, strips and headers, and each end's own parts, which only its port's ray skips. */
@@ -275,16 +292,21 @@ function obstaclesFor(
   }
   for (const h of rt.groupHeads) obstacles.push({ box: h, own: false });
   // An end's own box keeps lines a little away, except the ray out of its port, which only its
-  // own label or note in the way stops.
-  for (const [end, ports, out] of [
-    [a, starts, true],
-    [b, ends, false],
-  ] as const)
+  // own label or note in the way stops. A self-loop's two ends are one node: its parts go in
+  // once, and the rays of both its port lists skip them.
+  const own: [End, Port[]][] =
+    a.id === b.id
+      ? [[a, [...starts, ...ends]]]
+      : [
+          [a, starts],
+          [b, ends],
+        ];
+  for (const [end, ports] of own)
     for (const part of end.parts) {
       const o = { box: grow(part, part === end.box ? 4 : 2), own: true };
       obstacles.push(o);
       for (const port of ports) {
-        const step = STEPS[out ? port.d : flip(port.d)];
+        const step = STEPS[starts.includes(port) ? port.d : flip(port.d)];
         const far = { x: port.p.x + step.x * 1e4, y: port.p.y + step.y * 1e4 };
         const mine = part === end.box || part === end.frame || port.through?.includes(part);
         if (mine || !cuts(port.p, far, part)) port.skip = [...(port.skip ?? []), o.box];

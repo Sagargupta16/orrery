@@ -36,6 +36,10 @@ const HEAD_RUN = 14;
 const SKIM = 10;
 
 const HIT = 1000;
+/** What a path pays for each turn, each px of length, and each end that leaves across a row. */
+const BEND = 8;
+const PER_PX = 0.02;
+const ACROSS = 10;
 
 function hitsBox(p: Point, q: Point, b: Box, inset: number): boolean {
   const box = { x: b.x + inset, y: b.y + inset, w: b.w - 2 * inset, h: b.h - 2 * inset };
@@ -59,6 +63,108 @@ function distance(p: Point, q: Point, b: Box): number {
 }
 
 const real = (b?: Box): b is Box => !!b && b.w > 0 && b.h > 0;
+
+/** The box a segment must reach before cost() charges it anything for the thing inside. */
+interface Reach {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  /** The last query that returned it, so a query lists it once however many cells it spans. */
+  seen: number;
+}
+
+/** A node with its text boxes: a segment within SKIM of the node or 1px of a text box pays. */
+interface Obstacle extends Reach {
+  nd: SceneNode;
+  texts: Box[];
+}
+
+/** A segment of an arrow routed before: one within 3px of it pays for running along it. */
+interface Track extends Reach {
+  p: Point;
+  q: Point;
+}
+
+function obstacleOf(nd: SceneNode): Obstacle {
+  const texts = [nd.labelBox, nd.noteBox, nd.iconBox].filter(
+    (tb): tb is Box => real(tb) && tb !== nd.box,
+  );
+  const b = nd.box;
+  return {
+    nd,
+    texts,
+    x0: Math.min(b.x - SKIM, ...texts.map((t) => t.x - 1)),
+    y0: Math.min(b.y - SKIM, ...texts.map((t) => t.y - 1)),
+    x1: Math.max(b.x + b.w + SKIM, ...texts.map((t) => t.x + t.w + 1)),
+    y1: Math.max(b.y + b.h + SKIM, ...texts.map((t) => t.y + t.h + 1)),
+    seen: 0,
+  };
+}
+
+function trackOf(p: Point, q: Point): Track {
+  const x0 = Math.min(p.x, q.x) - 3;
+  const y0 = Math.min(p.y, q.y) - 3;
+  const x1 = Math.max(p.x, q.x) + 3;
+  const y1 = Math.max(p.y, q.y) + 3;
+  return { p, q, x0, y0, x1, y1, seen: 0 };
+}
+
+const CELL = 64;
+
+/**
+ * Reaches bucketed by the CELL squares over the plot that they cover (anything outside lands in
+ * the border cells), so a segment looks only at what lies near it, not at every node and arrow.
+ */
+interface Grid<T extends Reach> {
+  x: number;
+  y: number;
+  cols: number;
+  rows: number;
+  cells: T[][];
+  queries: number;
+}
+
+function gridOver<T extends Reach>(area: Box): Grid<T> {
+  const cols = Math.max(1, Math.ceil(area.w / CELL));
+  const rows = Math.max(1, Math.ceil(area.h / CELL));
+  const cells = Array.from({ length: cols * rows }, (): T[] => []);
+  return { x: area.x, y: area.y, cols, rows, cells, queries: 0 };
+}
+
+/** Every cell a box covers, row by row. */
+function cellsOf<T extends Reach>(g: Grid<T>, x0: number, y0: number, x1: number, y1: number) {
+  const col = (x: number) => Math.min(g.cols - 1, Math.max(0, Math.floor((x - g.x) / CELL)));
+  const row = (y: number) => Math.min(g.rows - 1, Math.max(0, Math.floor((y - g.y) / CELL)));
+  const out: T[][] = [];
+  for (let j = row(y0); j <= row(y1); j++)
+    for (let i = col(x0); i <= col(x1); i++) out.push(g.cells[j * g.cols + i] ?? []);
+  return out;
+}
+
+function put<T extends Reach>(g: Grid<T>, r: T): void {
+  for (const cell of cellsOf(g, r.x0, r.y0, r.x1, r.y1)) cell.push(r);
+}
+
+/** Each reach that meets the box from (x0, y0) to (x1, y1), once. */
+function nearby<T extends Reach>(g: Grid<T>, x0: number, y0: number, x1: number, y1: number): T[] {
+  const q = ++g.queries;
+  const out: T[] = [];
+  for (const cell of cellsOf(g, x0, y0, x1, y1))
+    for (const r of cell)
+      if (r.seen !== q && !(x1 < r.x0 || r.x1 < x0 || y1 < r.y0 || r.y1 < y0)) {
+        r.seen = q;
+        out.push(r);
+      }
+  return out;
+}
+
+/** What every path is scored against: the field, its nodes and the arrows routed so far. */
+interface Scan {
+  field: Field;
+  obstacles: Grid<Obstacle>;
+  routed: Grid<Track>;
+}
 
 function exits(it: TimelineItem, nd: SceneNode): Port[] {
   const b = nd.box;
@@ -131,8 +237,24 @@ const segs = (pts: Point[]) => pts.slice(1).map((q, i) => [pts[i] ?? q, q] as [P
 const length = (pts: Point[]) =>
   segs(pts).reduce((s, [p, q]) => s + Math.abs(q.x - p.x) + Math.abs(q.y - p.y), 0);
 
-/** Every orthogonal path from port to port: straight, one turn, or a jog along a row gap. */
-function candidates(a: Port, b: Port, field: Field): Point[][] {
+/**
+ * Every orthogonal path from port to port that could still cost less than `limit`: straight, one
+ * turn, or a jog along a row gap. `clear` holds the columns just clear of each item's ends.
+ */
+function candidates(a: Port, b: Port, field: Field, clear: number[], limit: number): Point[][] {
+  // The least a path through column m can cost (every cost() term only adds): its ends, its
+  // length to m and on to the target (less 1px for the rounding in tidy), and the two turns it
+  // takes to come back when m lies beyond both ports.
+  const ends = (a.across ? ACROSS : 0) + (b.across ? ACROSS : 0);
+  const rise = Math.abs(a.p.y - b.p.y);
+  const least = (m: number) => {
+    const back = m > Math.max(a.p.x, b.p.x) + 0.5 || m < Math.min(a.p.x, b.p.x) - 0.5;
+    const run = Math.abs(m - a.p.x) + Math.abs(m - b.p.x) + rise - 1;
+    return ends + (back ? 2 * BEND : 0) + run * PER_PX;
+  };
+  // Every path starts at x = a.p.x, so this bounds them all.
+  if (least(a.p.x) >= limit) return [];
+  const open = (m: number) => least(m) < limit;
   const s = { x: a.p.x + a.d.x * STUB, y: a.p.y + a.d.y * STUB };
   const t = { x: b.p.x + b.d.x * STUB, y: b.p.y + b.d.y * STUB };
   const mids: Point[][] = [[{ x: t.x, y: s.y }], [{ x: s.x, y: t.y }]];
@@ -143,14 +265,12 @@ function candidates(a: Port, b: Port, field: Field): Point[][] {
     ]);
   // Columns a line can drop down: evenly between the ports, and just clear of each item's ends.
   const { plot } = field;
-  const clearOf = field.nodes.flatMap((nd) => [
-    nd.box.x - SKIM - 2,
-    nd.box.x + nd.box.w + SKIM + 2,
-  ]);
   const columns = [
-    ...Array.from({ length: 7 }, (_, k) => s.x + ((t.x - s.x) * (k + 1)) / 8),
-    ...clearOf,
-  ].filter((m) => m > plot.x + 2 && m < plot.x + plot.w - 2);
+    ...Array.from({ length: 7 }, (_, k) => s.x + ((t.x - s.x) * (k + 1)) / 8).filter(
+      (m) => m > plot.x + 2 && m < plot.x + plot.w - 2,
+    ),
+    ...clear,
+  ].filter(open);
   for (const m of columns)
     mids.push([
       { x: m, y: s.y },
@@ -160,9 +280,10 @@ function candidates(a: Port, b: Port, field: Field): Point[][] {
   // gap next to the target.
   const near = (y: number) =>
     [...field.corridors].sort((u, v) => Math.abs(u - y) - Math.abs(v - y) || u - v).slice(0, 2);
+  const around = clear.filter(open);
   for (const c1 of near(s.y))
     for (const c2 of near(t.y))
-      for (const m of clearOf.filter((x) => x > plot.x + 2 && x < plot.x + plot.w - 2))
+      for (const m of around)
         mids.push([
           { x: s.x, y: c1 },
           { x: m, y: c1 },
@@ -180,28 +301,43 @@ function candidates(a: Port, b: Port, field: Field): Point[][] {
   return out;
 }
 
-/** Penalty of a path: what it runs through, how close it passes, its bends and its length. */
+/**
+ * Penalty of a path: what it runs through, how close it passes, its bends and its length.
+ * Infinite once the sum reaches `limit`: every term only adds, so the path cannot win.
+ */
 function cost(
   path: Point[],
   from: string,
   to: string,
-  field: Field,
-  routed: Point[][],
+  scan: Scan,
   a: Port,
   b: Port,
+  limit: number,
 ): number {
+  const bends = (path.length - 2) * BEND;
+  const run = length(path) * PER_PX;
+  const aEnd = a.across ? ACROSS : 0;
+  const bEnd = b.across ? ACROSS : 0;
+  const tail = bends + run + aEnd + bEnd;
+  if (tail >= limit) return Number.POSITIVE_INFINITY;
   let c = 0;
   const ss = segs(path);
+  const { field } = scan;
   const { plot } = field;
   for (const [i, [p, q]] of ss.entries()) {
-    for (const nd of field.nodes) {
+    const x0 = Math.min(p.x, q.x);
+    const x1 = Math.max(p.x, q.x);
+    const y0 = Math.min(p.y, q.y);
+    const y1 = Math.max(p.y, q.y);
+    // The terms are whole numbers, so the order the grid lists things in cannot change the sum.
+    for (const o of nearby(scan.obstacles, x0, y0, x1, y1)) {
+      const { nd } = o;
       const own = nd.id === from || nd.id === to;
       // Its own bar only at the ends: the first segment leaves it, the last arrives.
       const skip = (nd.id === from && i === 0) || (nd.id === to && i === ss.length - 1);
       if (!skip && hitsBox(p, q, nd.box, own ? 1 : -2)) c += HIT;
       if (!own && distance(p, q, nd.box) < SKIM) c += 40;
-      for (const tb of [nd.labelBox, nd.noteBox, nd.iconBox])
-        if (real(tb) && tb !== nd.box && hitsBox(p, q, tb, -1)) c += HIT;
+      for (const tb of o.texts) if (hitsBox(p, q, tb, -1)) c += HIT;
     }
     if (field.today !== undefined && Math.abs(p.x - q.x) < 0.01 && Math.abs(p.x - field.today) < 5)
       c += 30;
@@ -213,48 +349,54 @@ function cost(
         pt.y > plot.y + plot.h
       )
         c += HIT;
-    for (const other of routed)
-      for (const [u, v] of segs(other)) {
-        const ph = Math.abs(p.y - q.y) < 0.01;
-        const uh = Math.abs(u.y - v.y) < 0.01;
-        if (ph === uh) {
-          // Running along another line on the same track reads as one line.
-          const same = ph ? Math.abs(p.y - u.y) < 3 : Math.abs(p.x - u.x) < 3;
-          const lo = ph
-            ? Math.max(Math.min(p.x, q.x), Math.min(u.x, v.x))
-            : Math.max(Math.min(p.y, q.y), Math.min(u.y, v.y));
-          const hi = ph
-            ? Math.min(Math.max(p.x, q.x), Math.max(u.x, v.x))
-            : Math.min(Math.max(p.y, q.y), Math.max(u.y, v.y));
-          if (same && hi - lo > 1) c += 60;
-        } else {
-          const [h0, h1, vv0, vv1] = ph ? [p, q, u, v] : [u, v, p, q];
-          const x = vv0.x;
-          const y = h0.y;
-          if (
-            x > Math.min(h0.x, h1.x) + 0.5 &&
-            x < Math.max(h0.x, h1.x) - 0.5 &&
-            y > Math.min(vv0.y, vv1.y) + 0.5 &&
-            y < Math.max(vv0.y, vv1.y) - 0.5
-          )
-            c += 12;
-        }
+    if (c + tail >= limit) return Number.POSITIVE_INFINITY;
+    for (const { p: u, q: v } of nearby(scan.routed, x0, y0, x1, y1)) {
+      const ph = Math.abs(p.y - q.y) < 0.01;
+      const uh = Math.abs(u.y - v.y) < 0.01;
+      if (ph === uh) {
+        // Running along another line on the same track reads as one line.
+        const same = ph ? Math.abs(p.y - u.y) < 3 : Math.abs(p.x - u.x) < 3;
+        const lo = ph
+          ? Math.max(Math.min(p.x, q.x), Math.min(u.x, v.x))
+          : Math.max(Math.min(p.y, q.y), Math.min(u.y, v.y));
+        const hi = ph
+          ? Math.min(Math.max(p.x, q.x), Math.max(u.x, v.x))
+          : Math.min(Math.max(p.y, q.y), Math.max(u.y, v.y));
+        if (same && hi - lo > 1) c += 60;
+      } else {
+        const [h0, h1, vv0, vv1] = ph ? [p, q, u, v] : [u, v, p, q];
+        const x = vv0.x;
+        const y = h0.y;
+        if (
+          x > Math.min(h0.x, h1.x) + 0.5 &&
+          x < Math.max(h0.x, h1.x) - 0.5 &&
+          y > Math.min(vv0.y, vv1.y) + 0.5 &&
+          y < Math.max(vv0.y, vv1.y) - 0.5
+        )
+          c += 12;
       }
+    }
+    if (c + tail >= limit) return Number.POSITIVE_INFINITY;
   }
   const last = ss[ss.length - 1];
   if (last) {
     const [p, q] = last;
     if (Math.abs(q.x - p.x) + Math.abs(q.y - p.y) < HEAD_RUN) c += 300;
   }
-  return (
-    c + (path.length - 2) * 8 + length(path) * 0.02 + (a.across ? 10 : 0) + (b.across ? 10 : 0)
-  );
+  return c + bends + run + aEnd + bEnd;
 }
 
 /** The dependency arrows, in spec order; each sees the ones routed before it. */
 export function routeEdges(edges: ModelEdge[], field: Field): SceneEdge[] {
   const byId = new Map(field.nodes.map((nd) => [nd.id, nd]));
-  const routed: Point[][] = [];
+  const { plot } = field;
+  // The same for every arrow: the columns just clear of each item's ends, and the nodes. Items
+  // that share a date share a column, and a repeat could only tie with the path it repeats.
+  const clear = [
+    ...new Set(field.nodes.flatMap((nd) => [nd.box.x - SKIM - 2, nd.box.x + nd.box.w + SKIM + 2])),
+  ].filter((m) => m > plot.x + 2 && m < plot.x + plot.w - 2);
+  const scan: Scan = { field, obstacles: gridOver(plot), routed: gridOver(plot) };
+  for (const nd of field.nodes) put(scan.obstacles, obstacleOf(nd));
   const out: SceneEdge[] = [];
   for (const e of edges) {
     const an = byId.get(e.from);
@@ -266,15 +408,15 @@ export function routeEdges(edges: ModelEdge[], field: Field): SceneEdge[] {
     let bestCost = Number.POSITIVE_INFINITY;
     for (const a of exits(ai, an))
       for (const b of entries(bi, bn))
-        for (const path of candidates(a, b, field)) {
-          const c = cost(path, e.from, e.to, field, routed, a, b);
+        for (const path of candidates(a, b, field, clear, bestCost)) {
+          const c = cost(path, e.from, e.to, scan, a, b, bestCost);
           if (c < bestCost - 1e-9) {
             best = path;
             bestCost = c;
           }
         }
     if (!best) continue;
-    routed.push(best);
+    for (const [p, q] of segs(best)) put(scan.routed, trackOf(p, q));
     out.push({
       id: e.id,
       from: e.from,

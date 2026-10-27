@@ -147,6 +147,11 @@ export function placeMindmap(ctx: AfterLayout): void {
   const root = rootOf(ctx);
   if (!root) return;
   const h = hierarchy(ctx, true, root);
+  // The stage story grows along the edges the map is drawn by, whichever way they are written.
+  for (const n of ctx.nodes) {
+    const via = h.via.get(n.id);
+    if (via) n.via = via.id;
+  }
   const rootNode = ctx.nodes.find((n) => n.id === root);
   const rootModel = model.nodes.find((n) => n.id === root);
   if (rootNode && rootModel) enlargeRoot(rootNode, rootModel.label, horizontal);

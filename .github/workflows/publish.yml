@@ -23,7 +23,11 @@ jobs:
       contents: write # attach the Gemini CLI archive and the MCP Bundle to the release
       id-token: write # npm trusted publishing (OIDC) + provenance, MCP Registry login (OIDC)
     steps:
+      # Nothing here pushes (gh uploads with GH_TOKEN), so the token is not left on disk for the
+      # steps that follow, one of which runs a downloaded binary.
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
@@ -75,14 +79,22 @@ jobs:
 
       # No token: mcp-publisher logs in with this job's GitHub OIDC token, which grants the
       # io.github.Sagargupta16/* namespace. The registry refuses to list a version twice.
+      # This job can also publish to npm, so the publisher is a pinned release checked against its
+      # sha256 (the line for it in that release's registry_<version>_checksums.txt); bump both
+      # together, on purpose, never back to releases/latest.
       - name: Publish to the MCP Registry
+        env:
+          PUBLISHER: https://github.com/modelcontextprotocol/registry/releases/download/v1.8.5/mcp-publisher_linux_amd64.tar.gz
+          PUBLISHER_SHA256: 2d151ac57275c9a6684d9d22b1cba81058bab195ea0a162e8fce3c6a5ec32812
         run: |
           VERSION=$(node -p "require('./package.json').version")
           LISTED="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.Sagargupta16%2Forrery/versions/$VERSION"
           if curl -fs -o /dev/null "$LISTED"; then
             echo "io.github.Sagargupta16/orrery $VERSION is already in the MCP Registry"
           else
-            curl -fsSL https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz | tar xz mcp-publisher
+            curl -fsSL -o mcp-publisher.tar.gz "$PUBLISHER"
+            echo "$PUBLISHER_SHA256  mcp-publisher.tar.gz" | sha256sum -c -
+            tar xzf mcp-publisher.tar.gz mcp-publisher
             ./mcp-publisher login github-oidc
             # The registry reads the version back from npm, which can take a minute to show a
             # package published a moment ago; try again until it does.

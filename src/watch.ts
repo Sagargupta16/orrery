@@ -3,16 +3,23 @@
 // Each watched file has its own fs.watch handle, so writes to the outputs (even next to the spec)
 // never trigger a run. Editors that save by renaming a temp file over the original replace the
 // watched file and kill its handle, so a rename re-arms the watch.
-import { existsSync, type FSWatcher, readFileSync, statSync, watch } from "node:fs";
-import { join, resolve } from "node:path";
-import { parse as parseYaml } from "yaml";
+import { existsSync, type FSWatcher, statSync, watch } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import type { Args } from "./cli/args.ts";
-import { printDiagnostics, readSpec, renderFailure, usage, writeAtomic } from "./cli/io.ts";
+import {
+  fontFiles,
+  printDiagnostics,
+  readSpec,
+  renderFailure,
+  usage,
+  writeAtomic,
+} from "./cli/io.ts";
 import { shownPath } from "./icons/local/index.ts";
 import { FORMATS, type Format, formatOf, renderModel } from "./render/index.ts";
 import { DEFAULT_REVIEW_WIDTH, formatReview, reviewModel } from "./review/index.ts";
 import { parseSpec } from "./spec/index.ts";
 import { includedFiles } from "./spec/reuse.ts";
+import { isObj, parseText, readText } from "./spec/values.ts";
 import type { AnimateMode, Diagnostic, Skin, ThemeName } from "./types.ts";
 
 const DEBOUNCE_MS = 120;
@@ -44,8 +51,7 @@ function watchOptions(args: Args): WatchOptions {
   const themeFlag = args.flags.theme === undefined ? undefined : String(args.flags.theme);
   if (themeFlag !== undefined && !["light", "dark", "both"].includes(themeFlag))
     usage("--theme must be light, dark or both");
-  const fonts = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
-  for (const f of fonts) if (!existsSync(f)) usage(`no such file: ${f} (from --font)`);
+  const fonts = fontFiles(args);
 
   // Output path and formats, as render names them.
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : undefined;
@@ -75,7 +81,7 @@ function watchOptions(args: Args): WatchOptions {
   ) as AnimateMode | undefined;
   const skin = args.flags.skin as Skin | undefined;
   const width = args.flags.width === undefined ? DEFAULT_REVIEW_WIDTH : Number(args.flags.width);
-  if (!(width > 0)) usage("--width must be a positive number of px");
+  if (!(width >= 1)) usage("--width must be a number of px, at least 1");
   const review = args.flags.review === true;
   return { spec, theme: themeFlag, fonts, formats, base, scale, animate, skin, width, review };
 }
@@ -96,15 +102,25 @@ async function renderSpec(
   follow: (files: string[]) => void,
 ): Promise<void> {
   const { spec, formats, base, scale, fonts, animate, skin, width } = opts;
-  const text = readFileSync(spec.path, "utf8");
+  const text = readText(spec.path);
   const parsed = parseSpec(text, spec.path);
   run.diagnostics.push(...parsed.diagnostics);
+  // The spec, its local icons and every spec it includes: a save to any of them re-renders. Also
+  // after a failed run, whose fix may be in one of them; text that does not parse keeps the set.
+  let raw: unknown;
+  try {
+    raw = parseText(text, spec.path);
+  } catch {
+    raw = undefined;
+  }
+  if (isObj(raw)) {
+    const icons = isObj(raw.icons) ? Object.values(raw.icons) : [];
+    const iconFiles = icons.flatMap((v) =>
+      typeof v === "string" ? [resolve(dirname(spec.path), v.trim())] : [],
+    );
+    follow([spec.path, ...iconFiles.filter(existsSync), ...includedFiles(raw, spec.path)]);
+  }
   if (!parsed.model || run.diagnostics.some((d) => d.severity === "error")) return;
-  // The spec, its local icons and every spec it includes: a save to any of them re-renders.
-  const raw: unknown = /\.json$/i.test(spec.path) ? JSON.parse(text) : parseYaml(text);
-  const included =
-    raw && typeof raw === "object" ? includedFiles(raw as Record<string, unknown>, spec.path) : [];
-  follow([spec.path, ...(parsed.model.icons ?? []).map((i) => i.path), ...included]);
   const theme = opts.theme ?? parsed.model.theme;
   const themes: ThemeName[] = theme === "both" ? ["light", "dark"] : [theme as ThemeName];
   const result = await renderModel({

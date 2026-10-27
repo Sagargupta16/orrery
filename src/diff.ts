@@ -8,7 +8,7 @@
 // (icon nodes get an outline overlay), removed ones come back as gray, dashed ghosts where they
 // were, and a key for the three colors is drawn under the diagram.
 import { execFileSync } from "node:child_process";
-import { basename, resolve } from "node:path";
+import { basename, relative, resolve } from "node:path";
 import type { Args } from "./cli/args.ts";
 import { printDiagnostics, readSpec, renderFailure, usage, writeAtomic } from "./cli/io.ts";
 import { mixHex } from "./color.ts";
@@ -16,6 +16,7 @@ import { SIZES } from "./layout/sizes.ts";
 import { renderModel } from "./render/index.ts";
 import { renderPng } from "./render/png.ts";
 import { parseSpec } from "./spec/index.ts";
+import type { IncludeReader } from "./spec/reuse.ts";
 import { measure } from "./text.ts";
 import { THEME_TOKENS } from "./themes.ts";
 import type {
@@ -103,7 +104,11 @@ function matchById<T extends { id: string }>(
 
 const SYMMETRIC = new Set<ArrowMode>(["both", "none"]);
 
-/** Pairs edges by ends and arrow (in spec order when one pair of ends repeats). */
+/**
+ * Pairs edges by ends and arrow. When one pair of ends repeats, an edge pairs first with one that
+ * has its label and line too (so removing one of several messages names that one), and what is
+ * left pairs in spec order.
+ */
 function matchEdges(
   before: ModelEdge[],
   after: ModelEdge[],
@@ -118,11 +123,20 @@ function matchEdges(
   for (const e of after) open.set(key(e), [...(open.get(key(e)) ?? []), e]);
   const pairs: [ModelEdge, ModelEdge][] = [];
   const removed: ModelEdge[] = [];
+  const left: ModelEdge[] = [];
   for (const b of before) {
+    const list = open.get(key(b, rename)) ?? [];
+    const i = list.findIndex((a) => (a.label ?? "") === (b.label ?? "") && a.line === b.line);
+    const [a] = i >= 0 ? list.splice(i, 1) : [];
+    if (a) pairs.push([b, a]);
+    else left.push(b);
+  }
+  for (const b of left) {
     const a = open.get(key(b, rename))?.shift();
     if (a) pairs.push([b, a]);
     else removed.push(b);
   }
+  pairs.sort((x, y) => before.indexOf(x[0]) - before.indexOf(y[0]));
   const added = [...open.values()].flat();
   added.sort((x, y) => after.indexOf(x) - after.indexOf(y));
   return { pairs, added, removed, renamed: [] };
@@ -393,11 +407,21 @@ export function diffPicture(before: Model, after: Model, theme: ThemeName): Mode
     nodes.splice(at, 0, ghostNode);
     outline(id, ink.removed, true);
   }
+  // A sequence's edges are its messages in order, so a removed one's ghost goes where it was:
+  // after the nearest earlier message still drawn. Elsewhere ghosts go last.
+  const sequence = after.kind === "sequence";
+  const drawn = new Map<ModelEdge, ModelEdge>();
+  for (const [b, a] of c.edges.pairs) {
+    const at = after.edges.indexOf(a);
+    const e = edges[at];
+    if (e) drawn.set(b, e);
+  }
+  const kept = [...edges];
   for (const e of c.edges.removed) {
     const from = present(e.from);
     const to = present(e.to);
     if (!from || !to) continue;
-    edges.push({
+    const ghostEdge: ModelEdge = {
       id: freshId(`removed-${e.id}`, taken),
       from,
       to,
@@ -407,13 +431,33 @@ export function diffPicture(before: Model, after: Model, theme: ThemeName): Mode
       color: ink.removed,
       constraint: e.constraint,
       ...(e.flow ? { flow: e.flow } : {}),
-    });
+    };
+    if (!sequence) {
+      edges.push(ghostEdge);
+      continue;
+    }
+    const prior = before.edges.slice(0, before.edges.indexOf(e)).reverse();
+    const anchor = prior.map((p) => drawn.get(p)).find((x) => x !== undefined);
+    edges.splice(anchor ? edges.indexOf(anchor) + 1 : 0, 0, ghostEdge);
+    drawn.set(e, ghostEdge);
   }
+  // Fragments count messages, which the ghosts moved: message n is where after's n now sits.
+  const moved = (n: number) => {
+    const e = kept[n - 1];
+    return e ? edges.indexOf(e) + 1 : n;
+  };
+  const fragments = after.fragments?.map((f) => ({
+    ...f,
+    from: moved(f.from),
+    to: moved(f.to),
+    ...(f.else ? { else: f.else.map((b) => ({ ...b, at: moved(b.at) })) } : {}),
+  }));
   return {
     ...after,
     nodes,
     groups: [...groups, ...overlays],
     edges,
+    ...(sequence && fragments ? { fragments } : {}),
     animate: "none",
     views: undefined,
     story: undefined,
@@ -473,25 +517,41 @@ export function withKey(svg: string, theme: ThemeName, counts: SpecDiff["counts"
 
 // ---------------------------------------------------------------- the command
 
-/** A spec from a file, stdin, or `git:<ref>:<path>` (read with git show, path from the repo root). */
+/**
+ * A spec from a file, stdin, or `git:<ref>:<path>` (read with git show, path from the repo root).
+ * A git side also reads its `include:` files at that ref, so the before picture is the spec as it
+ * was then, shared frame and all.
+ */
 export function readSide(
   arg: string,
   cwd = process.cwd(),
-): { text: string; path: string; name: string } {
+): { text: string; path: string; name: string; include?: IncludeReader } {
   const m = /^git:([^:]+):(.+)$/.exec(arg);
   if (!m) return readSpec(arg);
   const [, ref = "", path = ""] = m;
-  try {
-    const text = execFileSync("git", ["show", `${ref}:${path}`], {
+  const git = (...gitArgs: string[]) =>
+    execFileSync("git", gitArgs, {
       cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       maxBuffer: 64 * 1024 * 1024,
     });
+  try {
+    const text = git("show", `${ref}:${path}`);
+    const root = git("rev-parse", "--show-toplevel").trim();
+    const include = (file: string): string | undefined => {
+      const at = relative(root, file).replaceAll("\\", "/");
+      try {
+        return at.startsWith("../") ? undefined : git("show", `${ref}:${at}`);
+      } catch {
+        return undefined;
+      }
+    };
     return {
       text,
-      path: resolve(cwd, path),
+      path: resolve(root, path),
       name: basename(path).replace(/\.(ya?ml|json)$/i, ""),
+      include,
     };
   } catch (e) {
     const why = String((e as { stderr?: string }).stderr ?? (e as Error).message).split("\n")[0];
@@ -505,7 +565,9 @@ export async function cmdDiff(args: Args): Promise<void> {
   if (!beforeArg || !afterArg) usage("diff needs two specs: before and after");
   const json = args.flags.json === true;
   const sides = [readSide(beforeArg), readSide(afterArg)] as const;
-  const [before, after] = sides.map((s) => parseSpec(s.text, s.path));
+  const [before, after] = sides.map((s) =>
+    parseSpec(s.text, s.path, s.include ? { include: s.include } : {}),
+  );
   let failed = false;
   for (const [i, p] of [before, after].entries()) {
     if (p?.model) continue;

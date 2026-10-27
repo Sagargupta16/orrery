@@ -6,6 +6,7 @@ import {
   EDGE_LINES,
   type EdgeFlow,
   type EdgeLine,
+  type ModelEdge,
 } from "../types.ts";
 import type { Ctx } from "./context.ts";
 import { EDGE_KEYS, EDGE_SYNONYMS } from "./keys.ts";
@@ -151,7 +152,8 @@ export function parseEdgeExpression(expr: string): { hops: EdgeHop[]; label?: st
 
 // ---------------------------------------------------------------- the edges list
 
-export function parseEdges(ctx: Ctx) {
+/** `names`: the parser's name for each item (applyIncludes), else `edges[i]`. */
+export function parseEdges(ctx: Ctx, names: string[] = []) {
   const rawEdges = ctx.raw.edges;
   const list: unknown[] = Array.isArray(rawEdges)
     ? rawEdges
@@ -164,7 +166,19 @@ export function parseEdges(ctx: Ctx) {
       fixes: ["write edges as a list: - a -> b"],
     });
   }
-  for (const [i, item] of list.entries()) parseEdgeItem(ctx, item, `edges[${i}]`);
+  const included = new Set<ModelEdge>();
+  for (const [i, item] of list.entries()) {
+    const before = ctx.edges.length;
+    const where = names[i] ?? `edges[${i}]`;
+    parseEdgeItem(ctx, item, where);
+    if (where.startsWith("include ")) for (const e of ctx.edges.slice(before)) included.add(e);
+  }
+  // This file's own edges are e1, e2 ... as written here, so an e<n> a finding names is the n-th
+  // edge this file draws; the edges its includes brought (drawn first) take the numbers after.
+  if (included.size)
+    [...ctx.edges.filter((e) => !included.has(e)), ...included].forEach((e, i) => {
+      e.id = `e${i + 1}`;
+    });
 }
 
 /** One entry of the list: "a -> b", { "a -> b": label or options } or { from, to, ... }. */
@@ -280,13 +294,25 @@ function push(
     edge: where,
   });
   const stepRaw = pick(extra, "step", EDGE_SYNONYMS);
-  const step = stepRaw === undefined ? undefined : Number(stepRaw);
+  // An empty step: or step: true is not a number, though Number() reads them as 0 and 1.
+  const step =
+    stepRaw === undefined
+      ? undefined
+      : typeof stepRaw === "number" || (typeof stepRaw === "string" && stepRaw.trim())
+        ? Number(stepRaw)
+        : Number.NaN;
   if (step !== undefined && (!Number.isInteger(step) || step < 0 || step > 99)) {
     ctx.err("DG107", `${where} step must be a whole number from 0 to 99`, {
       subject: { edge: where },
       fixes: ["use step: 1, 2, 3..."],
     });
   }
+  const constraint = pick(extra, "constraint", EDGE_SYNONYMS);
+  if (constraint !== undefined && typeof constraint !== "boolean")
+    ctx.err("DG107", `${where} constraint must be true or false`, {
+      subject: { edge: where },
+      fixes: ["write constraint: false to draw the edge after layout, outside it"],
+    });
   const meta = metaOf(ctx, extra, where, { edge: where });
   // Cardinality and field ends read left to right as written, so a reversed edge swaps them.
   const written = edgeErKeys(ctx, where, from, to, {
@@ -317,7 +343,7 @@ function push(
             : op.arrow,
     color: color ?? tag.color,
     step: step !== undefined && Number.isInteger(step) ? step : undefined,
-    constraint: pick(extra, "constraint", EDGE_SYNONYMS) !== false,
+    constraint: constraint !== false,
     ...(flow && flow !== "sequence" ? { flow } : {}),
     ...er,
     ...meta,

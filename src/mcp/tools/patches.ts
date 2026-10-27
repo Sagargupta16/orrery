@@ -55,7 +55,10 @@ export const tryPatchesTool: Tool = {
               },
               after: { type: "string", description: "move: the sibling id to follow." },
               before: { type: "string", description: "move: the sibling id to precede." },
-              match: { type: "string", description: "edge: the spec edge line to replace." },
+              match: {
+                type: ["string", "null"],
+                description: "edge: the spec edge line to replace; null appends a new edge.",
+              },
             },
             required: ["op"],
           },
@@ -82,12 +85,23 @@ export const tryPatchesTool: Tool = {
     const skin = oneOf(input, "skin", SKINS);
     const parsed = parse(spec, ctx);
     if (!parsed.model) return [json(verdict(parsed.diagnostics))];
+    // A patch can add what parse() refuses over HTTP (icons:), so every patched copy goes through it too.
+    const check = (patched: string) => {
+      try {
+        parse({ ...spec, text: patched }, ctx);
+        return undefined;
+      } catch (e) {
+        if (e instanceof ToolError) return e.message;
+        throw e;
+      }
+    };
     let run: Awaited<ReturnType<typeof tryCandidates>>;
     try {
       run = await tryCandidates({
         source: spec.text,
         filename: spec.path,
         candidates,
+        ...(ctx.http ? { check } : {}),
         ...(width ? { width } : {}),
         ...(theme ? { theme } : {}),
         ...(skin ? { skin } : {}),

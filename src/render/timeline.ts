@@ -109,8 +109,6 @@ function popAt(c: Clock, t: number): string {
 const todayLine = (td: TimelineToday, paint: string) =>
   `<path d="${td.segments.map((sg) => `M${n(td.x)} ${n(sg.y0)} V${n(sg.y1)}`).join(" ")}" fill="none" ${paint}/>`;
 
-const hidden = (c: Clock) => (c.on ? ` opacity="0"` : "");
-
 /** A ring that swells off the today chip and fades, forever. */
 function pulse(chip: Box, color: string, rx: number, width: number): string {
   const loop = `dur="${PULSE}s" repeatCount="indefinite"`;
@@ -237,7 +235,7 @@ function classicItem(
       );
     parts.push(rect(b, 6, `fill="${p.fill}" ${stroked(p)}`, grow(c, b)));
     const g = glyph(it, p.mark, 1.6);
-    if (g) parts.push(`<g${hidden(c)}>${g}${popAt(c, c.at(b.x + b.w))}</g>`);
+    if (g) parts.push(`<g>${g}${popAt(c, c.at(b.x + b.w))}</g>`);
   } else {
     const cx = b.x + b.w / 2;
     const cy = b.y + b.h / 2;
@@ -263,7 +261,7 @@ function classicItem(
         ? `<path d="${diamond(cx, cy, r + 4)}" fill="none" stroke="${p.ring}" stroke-opacity="0.25" stroke-width="3"/>`
         : `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r + 4)}" fill="none" stroke="${p.ring}" stroke-opacity="0.25" stroke-width="3"/>`
       : "";
-    parts.push(`<g${hidden(c)}>${ring}${body}${popAt(c, c.at(cx))}</g>`);
+    parts.push(`<g>${ring}${body}${popAt(c, c.at(cx))}</g>`);
   }
   return parts.join("");
 }
@@ -449,7 +447,7 @@ function stageItem(
     );
     parts.push(rect(b, 3 * h, p.plate, grow(c, b)));
     const g = glyph(it, p.mark, 1.4 * h);
-    if (g) parts.push(`<g${hidden(c)}>${g}${popAt(c, c.at(b.x + b.w))}</g>`);
+    if (g) parts.push(`<g>${g}${popAt(c, c.at(b.x + b.w))}</g>`);
   } else {
     const cx = b.x + b.w / 2;
     const cy = b.y + b.h / 2;
@@ -463,14 +461,16 @@ function stageItem(
       it.shape === "milestone"
         ? `<path d="${diamond(cx, cy, r)}" fill="${p.solid}" ${edge}/>`
         : nd?.iconBox
-          ? ""
+          ? // An icon marks the date: a plate under it on the opaque tile, in the item's status.
+            `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r + 3 * h)}" fill="${k.tile}"/>` +
+            `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r + 3 * h)}" ${p.plate}/>`
           : `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" fill="${p.solid}" ${edge}/>`;
     const ring = p.ring
       ? it.shape === "milestone"
         ? `<path d="${diamond(cx, cy, r + 4 * h)}" fill="none" stroke="${p.ring}" stroke-opacity="0.3" stroke-width="${n(2 * h)}"/>`
         : `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r + 4 * h)}" fill="none" stroke="${p.ring}" stroke-opacity="0.3" stroke-width="${n(2 * h)}"/>`
       : "";
-    if (ring || body) parts.push(`<g${hidden(c)}>${ring}${body}${popAt(c, c.at(cx))}</g>`);
+    parts.push(`<g>${ring}${body}${popAt(c, c.at(cx))}</g>`);
   }
   return parts.join("");
 }

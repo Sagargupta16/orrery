@@ -5,7 +5,7 @@ import type { Scene } from "../../types.ts";
 import { journeyStage } from "../journey.ts";
 import { laneStage } from "../lanes.ts";
 import { sequenceStage } from "../sequence.ts";
-import { esc, FLOW_CSS, type SvgOptions } from "../svg.ts";
+import { accessibleName, esc, FLOW_CSS, type SvgOptions } from "../svg.ts";
 import { timelineStage } from "../timeline.ts";
 import type { Ctx } from "./ctx.ts";
 import { canvas, titles } from "./draw-backdrop.ts";
@@ -70,9 +70,7 @@ export function renderStage(scene: Scene, opts: SvgOptions = {}): string {
   out.push(
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="${titleId} ${descId}" font-family="${esc(MONO)}">`,
   );
-  out.push(
-    `<title id="${titleId}">${esc(scene.title?.lines.join(" ") ?? "Architecture diagram")}</title>`,
-  );
+  out.push(`<title id="${titleId}">${esc(accessibleName(scene))}</title>`);
   out.push(`<desc id="${descId}">${esc(scene.description)}</desc>`);
   if (scene.animate === "flow") out.push(`<style>${FLOW_CSS}</style>`);
   const defsAt = out.length;

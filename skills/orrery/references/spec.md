@@ -54,10 +54,10 @@ edges:
 | `tags` | mapping of a tag name to `{ color, line, label }` | none | How a tag draws. An item tagged with it (`tags: [pci]` on a node, group or edge) takes the color and line unless it sets its own, and a tag with a `label` gets a legend row (a color chip, or a line sample in its style) after the line-style rows, when something carries it. Names use letters, digits, `-` and `_` (DG117). |
 | `views` | mapping of a view name to `{ include, exclude, depth, title, subtitle }` | none | Named subsets drawn as their own figures from this one spec, so an overview and its details cannot drift apart. `include` and `exclude` list node or group ids, `group:<id>` (the group and everything in it) or `tag:<name>`; ancestors of what is kept stay, edges stay when both ends do, `depth: 1` folds every group deeper than the top level into one node for it. `render --view <name>` draws one view, `--view all` the whole diagram and every view as `<base>.<view>.<format>`. DG118 for a bad shape or an id that names nothing; `all` is reserved. |
 | `classes` | mapping of a class name to node, group or edge keys | none | Shared presets applied with `class: <name>` (or a list) on any item, before its own keys: the item's keys win, a later class wins over an earlier one. An unknown class fails with DG121. |
-| `include` | a spec file or a list of them | none | Specs merged into this one before it is read, paths relative to this file: their groups, nodes, edges, classes and tags. This spec wins an id clash (DG122 warning); a cycle or a missing or unreadable file is a DG122 error. Use it for a frame every figure of a document shares (the account, the Region, the VPC). |
+| `include` | a spec file or a list of them | none | Specs merged into this one before it is read, paths relative to this file: their groups, nodes, edges, classes and tags. A file reached twice (two includes that share a frame) is merged once. This spec wins an id clash (DG122 warning); a cycle or a missing or unreadable file is a DG122 error, and an unknown top-level key in an included file is DG108, naming the file. Use it for a frame every figure of a document shares (the account, the Region, the VPC). The MCP server over HTTP reads no files, so there it is refused. |
 | `embed` | `true`, `false` | `true` | Whether rendered SVG and PNG files carry this spec (an SVG in `<metadata>`, a PNG in an `iTXt` chunk), so `orrery import picture` gives it back. `false` keeps notes and evidence paths out of pictures that travel. |
 
-Colors (node `color`, group `color` and `fill`, edge `color` and the top-level `background`) are `#` plus 3 or 6 hex digits, and they need quotes: `color: "#2563eb"`. `fill` also accepts `none` and `background` also accepts `transparent`. A value without the `#` (`color: 2563eb`) fails with DG107 "... must be a hex color with a leading #", fixed by `use a quoted hex color such as "#2563eb"`. An unquoted `#` starts a YAML comment, so `color: #2563eb` reaches orrery as an empty value; that fails with DG107 "<where> color is empty; an unquoted # starts a YAML comment" instead of silently dropping the color.
+Colors (node `color`, group `color` and `fill`, edge `color` and the top-level `background`) are `#` plus 3 or 6 hex digits, and they need quotes: `color: "#2563eb"`. `fill` also accepts `none` and `background` also accepts `transparent`. A value without the `#` (`color: 2563eb`) fails with DG107 "... must be a hex color with a leading #", fixed by `use a quoted hex color such as "#2563eb"`. An unquoted `#` starts a YAML comment, so `color: #2563eb` reaches orrery as an empty value; that is a DG107 warning, "<where> color is empty; an unquoted # starts a YAML comment", and the diagram renders in its theme's color (`--strict` fails on it). Inside `{ ... }` the comment also hides the closing `}`, so the YAML itself breaks: that fails with DG107 "line N: color: #2563eb inside { } is cut short ...", pointing at the `#`, with the same quoting fix.
 
 Ids (node and group keys) use letters, digits, `_`, `-` and `.`, and must be unique across nodes and groups.
 
@@ -173,7 +173,7 @@ nodes:
 | --- | --- |
 | `icon` | Icon id such as `aws:lambda` or an alias such as `aws:s3`. Find ids with `orrery icons search <words>`. |
 | `label` | Text under (or inside) the node. Defaults to the icon's official name, so `{ icon: aws:sqs }` reads "Amazon Simple Queue Service". |
-| `note` | Second, smaller, muted line: instance type, version, count, purpose. Quote it if it contains a comma. |
+| `note` | Second, smaller, muted line: instance type, version, count, purpose. Quote it if it contains a comma. A version that YAML would read as a number keeps what you wrote, here and in every text key (`note: 3.10` shows 3.10, not 3.1). |
 | `in` | Id of the group the node sits in. |
 | `look` | `icon` (icon with the label below), `card` (icon beside the label in a bordered box) or `shape`. |
 | `shape` | For icon-less nodes: `box`, `rounded` (default), `pill`, `circle`, `diamond`, `hexagon`, `cylinder` (database), `queue`, `document`, `note`, `person`, `cloud`, `stack`; for flowcharts (ISO 5807) `parallelogram` (data in or out), `subroutine` (predefined process), `trapezoid` (manual operation), `delay`; for state machines `initial` and `final`. Flowchart shapes are drawn as ISO 5807 draws them (the parallelogram leans right, the subroutine has double side bars, the trapezoid its wide side on top, the delay is flat on the left and round on the right); `initial` is a filled dot and `final` a bullseye, unlabeled unless `label:` is set, and then the label sits below. The flowchart and state names work too: `terminator` and `terminal` (pill), `decision` (diamond), `process` (box), `data`, `io`, `input`, `output` (parallelogram), `predefined` (subroutine), `manual` (trapezoid), `database` (cylinder), `state` (rounded). Setting a shape on an icon node draws the shape with a small icon inside. |
@@ -212,7 +212,7 @@ groups:
 | `label` | Header text. Defaults to the style's label ("VPC", "Region", ...). |
 | `in` | Parent group id. Groups nest to any depth. |
 | `contains` | List of child ids; the same as writing `in:` on each child. |
-| `around` | List of node or group ids to outline after layout, without moving them: an overlay for things that cross the tree, such as an Auto Scaling group spanning two Availability Zones. Its label sits on the top border. When the members are the first row of their group, so the overlay's header would land on that group's header, layout moves them down just far enough for the header to clear. |
+| `around` | List of node or group ids to outline after layout, without moving them: an overlay for things that cross the tree, such as an Auto Scaling group spanning two Availability Zones. Its label sits on the top border. When the members are the first row of their group, so the overlay's header would land on that group's header, layout moves them down just far enough for the header to clear. A member may be another overlay, outlined whatever the spec order; overlays that outline each other fail with DG105. |
 | `color` | Quoted hex override for the border and label. |
 | `fill` | Quoted hex override for the background, or `none`. |
 | `icon` | Override the header icon with any icon id, or `false` to hide it. |
@@ -301,10 +301,10 @@ edges:
 | DG102 | error | Unknown group type. |
 | DG103 | error | Duplicate or malformed id. |
 | DG104 | error | `in:` or `contains` points at something that is not a group. |
-| DG105 | error | Groups contain each other. |
+| DG105 | error | Groups contain each other, or overlay groups are drawn `around` each other (or one around itself). |
 | DG106 | error | An edge names an id that does not exist. |
-| DG107 | error | A value is not one of the allowed options (with the nearest one): also a color that is not `#` plus 3 or 6 hex digits or is empty because an unquoted `#` started a YAML comment, a `legend:` entry with an unknown line style or an empty meaning, and a node `url` with an unsafe scheme or a control character. |
-| DG108 | error | Unknown key (a typo such as `lable`, or a comma inside an unquoted `{...}` value). |
+| DG107 | error or warning | A value is not one of the allowed options (with the nearest one): also a color that is not `#` plus 3 or 6 hex digits, a `legend:` entry with an unknown line style or an empty meaning, a node `url` with an unsafe scheme or a control character, an edge `constraint` or a group `dashed` that is not `true` or `false`, a `step` that is not a whole number from 0 to 99, and an unquoted `#` inside `{ ... }` that broke the YAML (errors); a color that is empty because an unquoted `#` started a YAML comment (warning: the color is dropped). |
+| DG108 | error | Unknown key (a typo such as `lable`, or a comma inside an unquoted `{...}` value), also at the top level of an included spec. |
 | DG109 | error | An edge cannot be read. |
 | DG110 | warning | A label on a chain was dropped; label one hop inline instead. |
 | DG111 | error | An `icons:` entry has a bad name, is not an `.svg` file or does not exist; or a node or group uses `local:<name>` without declaring it. |
@@ -318,7 +318,7 @@ edges:
 | DG119 | error | `evidence` is not text or a list of text. |
 | DG120 | error | A node sits `on` a group that does not exist. |
 | DG121 | error | `class` names a class that `classes:` does not define. |
-| DG122 | error or warning | An included file is missing, unreadable or part of a cycle (error), or defines an id this spec also defines (warning: this spec wins). |
+| DG122 | error or warning | An included file is missing, unreadable or part of a cycle, or `include` is refused where no file may be read (error); or an included file defines an id this spec also defines (warning: this spec wins). |
 | DG123 | error | A node's `fields` is not a list, an item has no name, an unknown token after the type or a flag that is not `true` or `false`, or two fields share a name; or `fields` is used outside `kind: er`. |
 | DG124 | error | An edge's `card` is not `A:B` with each end `1`, `0..1`, `1..n` (`n`) or `0..n` (`*`), or its `from_field` or `to_field` names no field of that end; or one of them is used outside `kind: er`. |
 | DG125 | error | A sequence fragment is not a mapping, has an unknown `type`, a `from` or `to` outside the messages or `from` after `to`, an `else` outside its range or on a type other than `alt` and `par`, or overlaps another fragment without nesting; or `fragments` is used outside `kind: sequence`. Also a message sent to a group: only participants have a lifeline. |
@@ -327,7 +327,7 @@ edges:
 | DG202 | warning | An edge label covers a node or another label. |
 | DG203 | warning | Two nodes' labels collide. |
 | DG204 | warning | A label wraps to more than three lines. |
-| DG205 | warning | The diagram is over 2400 px wide, or a long thin strip: wider than 4.5 times its height, or taller than 4.5 times its width, with more than six nodes. |
+| DG205 | warning | The diagram is over 2400 px wide, or a long thin strip: wider than 4.5 times its height, or taller than 4.5 times its width and over 1800 px tall, with more than six nodes. |
 | DG206 | warning | More than 40 nodes in one diagram. |
 | DG207 | warning | An empty group. |
 | DG208 | warning | A node nothing connects to, or (once) a diagram of two or more nodes with no edges at all, which shows no flow. Journeys, sequence diagrams and timelines are exempt: their own layout places every node. |

@@ -643,10 +643,10 @@ nodes:
   b: { icon: k8s:pod, label: Pods, in: ns2 }
 `;
 
-  it("boundary-label flags two sibling namespaces with one label (FLOW-12)", async () => {
+  it("boundary-label flags two sibling namespaces with one label (FLOW-11)", async () => {
     const [hit] = await findings(namespaces("Namespace web"), "conventions.boundary-label");
     expect(hit?.subjects).toEqual(["ns1", "ns2"]);
-    expect(hit?.rule).toBe("FLOW-12");
+    expect(hit?.rule).toBe("FLOW-11");
     expect(await findings(namespaces("Namespace api"), "conventions.boundary-label")).toEqual([]);
   });
 
@@ -662,7 +662,7 @@ ${extra}`;
       "conventions.service-group",
     );
     expect(hit?.subjects).toEqual(["app", "kv"]);
-    expect(hit?.rule).toBe("FLOW-12");
+    expect(hit?.rule).toBe("FLOW-11");
     expect(hit?.patches).toEqual([{ op: "unset", path: "groups.app.icon" }]);
     expect(await findings(appFrame(""), "conventions.service-group")).toEqual([]);
   });

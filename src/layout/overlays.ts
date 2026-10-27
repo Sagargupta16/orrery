@@ -1,20 +1,54 @@
 // Overlay groups (around:), which ELK never sees: drawn around their members' footprint once the
 // nodes are placed, and moved off any edge that runs right along their border once edges exist.
 
-import type { Box, SceneGroup, SceneNode } from "../types.ts";
+import type { Box, Model, ModelGroup, SceneGroup, SceneNode } from "../types.ts";
 import type { Routed } from "./context.ts";
 import { round } from "./geometry.ts";
 import { type PaintContext, paintGroup } from "./groups.ts";
 import { SIZES } from "./sizes.ts";
 
-/** Overlay groups (around:) are drawn around their members' drawn footprint, plus a header. */
-export function drawOverlays(ctx: PaintContext, groups: SceneGroup[], nodes: SceneNode[]): void {
+/** The overlay groups, each after the overlays it outlines, whose boxes it is drawn around. */
+function overlayOrder(model: Model): ModelGroup[] {
+  const byId = new Map(model.groups.filter((g) => g.around?.length).map((g) => [g.id, g]));
+  const order: ModelGroup[] = [];
+  const seen = new Set<string>();
+  const visit = (g: ModelGroup) => {
+    if (seen.has(g.id)) return;
+    seen.add(g.id);
+    for (const id of g.around ?? []) {
+      const inner = byId.get(id);
+      if (inner) visit(inner);
+    }
+    order.push(g);
+  };
+  for (const g of byId.values()) visit(g);
+  return order;
+}
+
+/** The overlays drawn around any of these ids, and the overlays drawn around those. */
+export function overlaysAround(model: Model, ids: Set<string>): Set<string> {
+  const out = new Set<string>();
+  for (const g of overlayOrder(model))
+    if (g.around?.some((id) => ids.has(id) || out.has(id))) out.add(g.id);
+  return out;
+}
+
+/**
+ * Overlay groups (around:) are drawn around their members' drawn footprint, plus a header.
+ * `only` redraws just those overlays, in place, once their members have moved.
+ */
+export function drawOverlays(
+  ctx: PaintContext,
+  groups: SceneGroup[],
+  nodes: SceneNode[],
+  only?: Set<string>,
+): void {
   const { model, groupGeom } = ctx;
-  for (const grp of model.groups) {
-    if (!grp.around?.length) continue;
+  for (const grp of overlayOrder(model)) {
+    if (only && !only.has(grp.id)) continue;
     const gg = groupGeom.get(grp.id);
     const boxes: Box[] = [];
-    for (const id of grp.around) {
+    for (const id of grp.around ?? []) {
       const nd = nodes.find((x) => x.id === id);
       if (nd)
         boxes.push(
@@ -45,7 +79,9 @@ export function drawOverlays(ctx: PaintContext, groups: SceneGroup[], nodes: Sce
       { x: round(x0), y: round(y0), w: round(x1 - x0), h: round(y1 - y0) },
       true,
     );
-    if (sg) groups.push(sg);
+    const at = groups.findIndex((x) => x.id === grp.id && x.overlay);
+    if (sg && at >= 0) groups[at] = sg;
+    else if (sg) groups.push(sg);
   }
 }
 

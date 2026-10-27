@@ -10,7 +10,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { isMap, isScalar, isSeq, parseDocument } from "yaml";
+import { isMap, isScalar, isSeq, LineCounter, parseAllDocuments, parseDocument } from "yaml";
 import type { Args } from "./cli/args.ts";
 import { printDiagnostics, readSpec, usage, writeAtomic } from "./cli/io.ts";
 import { edgeName } from "./diff.ts";
@@ -347,32 +347,71 @@ function checkTerraform(repo: Repo, address: string): Outcome {
 /** Text that matches itself inside a RegExp: every metacharacter, backslash included, escaped. */
 const escapeRe = (s: string) => s.replace(/[\\^$.*+?()[\]{}|/]/g, "\\$&");
 
+/**
+ * The objects a manifest file declares, each with its own kind and metadata.name and the name's
+ * line: every document and every item of a List. A file that does not parse (a Helm template)
+ * is read by lines instead: each document's top-level kind and the name directly under its
+ * top-level metadata. A name nested deeper (a scaleTargetRef, a volume's configMap) is a
+ * reference, never a declaration.
+ */
+function declared(lines: string[]): { kind: string; name: string; line: number }[] {
+  const out: { kind: string; name: string; line: number }[] = [];
+  const counter = new LineCounter();
+  const parsed = parseAllDocuments(lines.join("\n"), { lineCounter: counter, uniqueKeys: false });
+  const docs = Array.isArray(parsed) ? parsed : [];
+  if (docs.every((d) => !d.errors.length)) {
+    for (const doc of docs) {
+      const top = doc.contents;
+      const items = isMap(top) && /List$/.test(String(top.get("kind"))) ? top.get("items") : null;
+      for (const obj of [top, ...(isSeq(items) ? items.items : [])]) {
+        const named = isMap(obj) ? obj.getIn(["metadata", "name"], true) : undefined;
+        if (isMap(obj) && isScalar(named) && named.range)
+          out.push({
+            kind: String(obj.get("kind")),
+            name: String(named.value),
+            line: counter.linePos(named.range[0]).line,
+          });
+      }
+    }
+    return out;
+  }
+  const value = (key: string, l: string) =>
+    new RegExp(`^${key}:\\s*["']?([\\w.-]+)["']?\\s*(#.*)?$`).exec(l)?.[1];
+  let kind: string | undefined;
+  let found: { name: string; line: number } | undefined;
+  let meta = false;
+  let indent: number | undefined;
+  for (let i = 0; i <= lines.length; i++) {
+    const l = lines[i] ?? "";
+    if (i === lines.length || /^---/.test(l)) {
+      if (kind && found) out.push({ kind, ...found });
+      kind = undefined;
+      found = undefined;
+      indent = undefined;
+      meta = false;
+    } else if (/^[^\s#{]/.test(l)) {
+      kind = value("kind", l) ?? kind;
+      meta = /^metadata:\s*(#.*)?$/.test(l);
+    } else if (meta && /^\s+[^\s#{]/.test(l)) {
+      const pad = l.length - l.trimStart().length;
+      indent ??= pad;
+      const name = pad === indent ? value("name", l.trimStart()) : undefined;
+      if (name && !found) found = { name, line: i + 1 };
+    }
+  }
+  return out;
+}
+
 function checkKubernetes(repo: Repo, kind: string, name: string): Outcome {
-  const q = (v: string) => `["']?${escapeRe(v)}["']?`;
-  const kindRe = new RegExp(`^\\s*-?\\s*kind:\\s*${q(kind)}\\s*(#.*)?$`);
-  const nameRe = new RegExp(`^\\s+name:\\s*${q(name)}\\s*(#.*)?$`);
-  const jsonKind = new RegExp(`"kind"\\s*:\\s*"${escapeRe(kind)}"`);
-  const jsonName = new RegExp(`"name"\\s*:\\s*"${escapeRe(name)}"`);
+  // Only files that mention the kind are read for what they declare.
+  const mentions = new RegExp(`kind["']?\\s*:\\s*["']?${escapeRe(kind)}(?![\\w-])`);
   const others = new Set<string>();
   for (const { file, lines } of addressFiles(repo, (f) => !/\.tf$/i.test(f))) {
-    if (/\.json$/i.test(file)) {
-      if (!lines.some((l) => jsonKind.test(l))) continue;
-      const hit = hitsIn(lines, jsonName)[0];
-      if (hit) return { ok: true, file: display(repo, file), line: hit };
-      continue;
-    }
-    // One YAML file can hold many documents; kind and name must meet in the same one.
-    let start = 0;
-    for (let i = 0; i <= lines.length; i++) {
-      if (i < lines.length && !/^---/.test(lines[i] ?? "")) continue;
-      const doc = lines.slice(start, i);
-      if (doc.some((l) => kindRe.test(l))) {
-        const at = doc.findIndex((l) => nameRe.test(l));
-        if (at >= 0) return { ok: true, file: display(repo, file), line: start + at + 1 };
-        const named = doc.map((l) => /^\s{2}name:\s*["']?([\w.-]+)/.exec(l)?.[1]).find(Boolean);
-        if (named) others.add(named);
-      }
-      start = i + 1;
+    if (!lines.some((l) => mentions.test(l))) continue;
+    for (const d of declared(lines)) {
+      if (d.kind !== kind) continue;
+      if (d.name === name) return { ok: true, file: display(repo, file), line: d.line };
+      others.add(d.name);
     }
   }
   const near = [...others].slice(0, 3).map((n) => `${kind}/${n}`);
