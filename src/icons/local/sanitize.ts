@@ -46,10 +46,26 @@ const DROP = new Set(["metadata", "title", "desc", "sodipodi:namedview"]);
 
 /** Properties a style="" declaration may carry; each becomes a presentation attribute. */
 const PRESENTATION = new Set(
-  "fill fill-opacity fill-rule stroke stroke-width stroke-linecap stroke-linejoin stroke-miterlimit stroke-dasharray stroke-dashoffset stroke-opacity opacity color display visibility clip-path clip-rule mask filter stop-color stop-opacity flood-color flood-opacity lighting-color font-family font-size font-weight font-style text-anchor dominant-baseline letter-spacing paint-order vector-effect shape-rendering marker-start marker-mid marker-end".split(
+  "fill fill-opacity fill-rule stroke stroke-width stroke-linecap stroke-linejoin stroke-miterlimit stroke-dasharray stroke-dashoffset stroke-opacity opacity color display visibility clip-path clip-rule mask mask-type filter stop-color stop-opacity flood-color flood-opacity lighting-color color-interpolation color-interpolation-filters mix-blend-mode isolation transform-origin transform-box font-family font-size font-weight font-style text-anchor dominant-baseline letter-spacing paint-order vector-effect shape-rendering marker-start marker-mid marker-end".split(
     " ",
   ),
 );
+
+/**
+ * CSS reads u\72l( as url( and image-set('a.png' 1x) (or image(), cross-fade(), element()) as
+ * an image to load, so a value with a backslash escape or one of those functions may point
+ * outside the file. An icon needs neither.
+ */
+const hidesUrl = (value: string) =>
+  value.includes("\\") || /\b(?:image-set|image|cross-fade|element)\s*\(/i.test(value);
+
+/** url(#id) as CSS reads it, quoted or not, with spaces: url(#g), url('#g'), url( " #g " ). */
+export const LOCAL_URL = /url\(\s*(["']?)\s*#([^)"'\s]+)\s*\1\s*\)/gi;
+
+/** Nesting deeper than this is no icon, and would overflow the stack of every walk over it. */
+const MAX_DEPTH = 64;
+/** Elements once every <use> is expanded; past this it is copies of copies, not artwork. */
+const MAX_ELEMENTS = 20000;
 
 const declarations = (style: string): [string, string][] =>
   style
@@ -113,9 +129,19 @@ export function sanitize(root: XNode, bad: Bad, adopt = false): XNode {
     };
     collect(root);
   }
-  const visit = (n: XNode): XNode | undefined => {
+  const hidden = (key: string, el: string) =>
+    bad(
+      `points outside the file in ${key} on <${el}>`,
+      "an icon may only reference its own ids, url(#id); write the value without a backslash escape, image-set(), image(), cross-fade() or element()",
+    );
+  const visit = (n: XNode, depth: number): XNode | undefined => {
     if (n.name === "#text") return n;
     if (n.name === "#style") return undefined;
+    if (depth > MAX_DEPTH)
+      throw bad(
+        `nests elements more than ${MAX_DEPTH} deep`,
+        "flatten the groups in the editor; an icon is a few shapes",
+      );
     const tag = local(n.name);
     const unsafe = UNSAFE[tag];
     if (unsafe) throw bad(unsafe[0], unsafe[1]);
@@ -165,11 +191,17 @@ export function sanitize(root: XNode, bad: Bad, adopt = false): XNode {
         key === "enable-background"
       )
         continue;
+      if (hidesUrl(value)) throw hidden(rawKey, n.name);
       attrs.set(rawKey, value);
     }
     // Stylesheet rules beat presentation attributes, inline styles beat both (CSS cascade).
-    for (const [k, v] of styled) if (PRESENTATION.has(k)) attrs.set(k, v);
-    const children = n.children.map(visit).filter((c): c is XNode => !!c);
+    for (const [k, v] of styled) {
+      if (!PRESENTATION.has(k)) continue;
+      if (hidesUrl(v) || externalUrl(v) || /javascript:/i.test(v.replace(/\s/g, "")))
+        throw hidden(k, n.name);
+      attrs.set(k, v);
+    }
+    const children = n.children.map((c) => visit(c, depth + 1)).filter((c): c is XNode => !!c);
     const keepText = tag === "text" || tag === "tspan" || tag === "textpath";
     return {
       name: n.name,
@@ -177,9 +209,57 @@ export function sanitize(root: XNode, bad: Bad, adopt = false): XNode {
       children: keepText ? children : children.filter((c) => c.name !== "#text"),
     };
   };
-  const clean = visit(root);
+  const clean = visit(root, 0);
   if (!clean) throw bad("draws nothing", "draw two to six shapes on a 24 grid (IC06)");
+  checkUses(clean, bad);
   return clean;
+}
+
+/**
+ * Refuses a <use> inside what it copies (a copy that never ends) and an icon whose copies of
+ * copies expand past MAX_ELEMENTS, before anything (a browser, `icons check`) expands them.
+ */
+function checkUses(root: XNode, bad: Bad): void {
+  const byId = new Map<string, XNode>();
+  const index = (n: XNode) => {
+    const id = n.attrs.get("id");
+    if (id) byId.set(id, n);
+    n.children.forEach(index);
+  };
+  index(root);
+  const counted = new Map<XNode, number>();
+  const open = new Set<XNode>();
+  const count = (n: XNode): number => {
+    const known = counted.get(n);
+    if (known !== undefined) return known;
+    if (open.has(n))
+      throw bad(
+        "has a <use> inside the element it copies, a copy that never ends",
+        "point the <use> at an element outside it, or delete it",
+      );
+    open.add(n);
+    let total = 1;
+    for (const c of n.children) if (c.name !== "#text") total += count(c);
+    const ref =
+      local(n.name) === "use" ? byId.get((n.attrs.get("href") ?? "").slice(1)) : undefined;
+    if (ref) total += count(ref);
+    open.delete(n);
+    if (total > MAX_ELEMENTS)
+      throw bad(
+        `draws more than ${MAX_ELEMENTS} elements once its <use> copies are expanded`,
+        "draw the shapes once instead of copying copies; an icon is a few shapes (IC06)",
+      );
+    counted.set(n, total);
+    return total;
+  };
+  try {
+    count(root);
+  } catch (e) {
+    // A chain of thousands of <use> hops outruns the stack before the count does.
+    if (e instanceof RangeError)
+      throw bad("chains <use> copies too deep", "draw the shapes once instead of copying copies");
+    throw e;
+  }
 }
 
 /** The viewBox, or 0 0 width height. */

@@ -8,7 +8,7 @@
 import { execFile } from "node:child_process";
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { parse } from "yaml";
@@ -27,6 +27,9 @@ for (const dir of [galleryOut, artOut, dataOut]) {
   mkdirSync(dir, { recursive: true });
 }
 
+// Whole words of an example's name, so "ml" does not match swimlane or "rag" storage.
+const words = (list) => new RegExp(`(^|-)(${list.split(" ").join("|")})(-|$)`);
+
 // Category chips on the gallery. An example can sit in several.
 const CATEGORIES = [
   ["aws", "AWS", (n, packs) => n.startsWith("aws-") || (packs.includes("aws") && n !== "multi-cloud")],
@@ -42,14 +45,19 @@ const CATEGORIES = [
       !packs.some((p) => ["aws", "azure", "gcp", "ibm", "k8s"].includes(p)) &&
       !/k8s|kubernetes|aks|gke|eks/.test(n),
   ],
-  ["ai", "AI and ML", (n) => /rag|ml|genai|vertex|agent|openai|llm|sagemaker|multitenant/.test(n)],
-  ["data", "Data", (n) => /data|lake|streaming-analytics|iot-analytics/.test(n)],
+  [
+    "ai",
+    "AI and ML",
+    (n) =>
+      words("rag ml mlops genai vertex agent agentic agentcore openai llm sagemaker multitenant").test(n),
+  ],
+  ["data", "Data", (n) => words("data databricks lake streaming-analytics iot-analytics").test(n)],
   [
     "security",
     "Security and resilience",
     (n) => /threat|central-logging|backup|multi-region-dr|network-inspection|org-ou-tree/.test(n),
   ],
-  ["network", "Networking", (n) => /network|hub-spoke|landing-zone/.test(n)],
+  ["network", "Networking", (n) => words("network hub-spoke landing-zone").test(n)],
   ["devops", "CI/CD and ops", (n) => /cicd|gitops|observability/.test(n)],
   [
     "system-design",
@@ -63,7 +71,7 @@ const CATEGORIES = [
     (n) => /^(flowchart|process|swimlane|state|tree|mindmap|journey|timeline|local-icons)-/.test(n),
   ],
   ["multi-cloud", "Multi-cloud", (n) => n === "multi-cloud"],
-  ["web", "Web apps", (n) => /web|three-tier|serverless|starter|modern|ecommerce|media/.test(n)],
+  ["web", "Web apps", (n) => words("web three-tier serverless starter modern ecommerce media").test(n)],
 ];
 
 // Captions and alt text come from examples/README.md, which already describes every example.
@@ -72,8 +80,15 @@ const captions = new Map();
 for (const m of examplesReadme.matchAll(
   /\[`([\w-]+)`\]\([^)]*\): (.+)\n\n<a href="[^"]+"><img src="[^"]+" alt="([^"]+)"/g,
 ))
-  // The README writes captions as the second half of a sentence; a card starts one.
-  captions.set(m[1], { caption: m[2].trim().replace(/^[a-z]/, (c) => c.toUpperCase()), alt: m[3] });
+  // The README writes captions as the second half of a sentence; a card starts one. Cards and meta
+  // descriptions show plain text, so the Markdown code marks go.
+  captions.set(m[1], {
+    caption: m[2]
+      .trim()
+      .replace(/^[a-z]/, (c) => c.toUpperCase())
+      .replaceAll("`", ""),
+    alt: m[3],
+  });
 
 const prefixOf = (id) => (typeof id === "string" && id.includes(":") ? id.split(":")[0] : undefined);
 
@@ -100,6 +115,15 @@ async function renderExample(file) {
     "classic",
   ]);
   copyFileSync(specPath, join(dir, `${name}.yaml`));
+  // The spec's own icons go along at the same relative paths, so the downloaded spec renders.
+  const icons = Object.values(spec.icons ?? {}).map((p) => posix.normalize(p));
+  for (const icon of icons) {
+    mkdirSync(dirname(join(dir, icon)), { recursive: true });
+    copyFileSync(join(examplesDir, icon), join(dir, icon));
+  }
+  // Counts from the model, which expands chained (a -> b -> c) and fan-out edges.
+  const described = await run(process.execPath, [cli, "describe", specPath, "--json"]);
+  const { counts } = JSON.parse(described.stdout);
 
   const nodes = Object.values(spec.nodes ?? {});
   const groups = Object.values(spec.groups ?? {});
@@ -123,11 +147,8 @@ async function renderExample(file) {
     height: Math.round(Number(h) || 800),
     packs,
     categories: CATEGORIES.filter(([, , test]) => test(name, packs)).map(([id]) => id),
-    counts: {
-      nodes: nodes.length,
-      groups: groups.length,
-      edges: Array.isArray(spec.edges) ? spec.edges.length : 0,
-    },
+    counts,
+    icons,
     spec: text,
   };
 }

@@ -64,8 +64,6 @@ export function sequenceMermaid(model: Model): string {
   if (model.subtitle) out.push(`    accDescr: ${words(model.subtitle).replace(/<br\/>/g, " ")}`);
   const ids = idMap(model.nodes.map((n) => n.id));
   const id = (x: string) => ids.get(x) ?? x;
-  // Numbered messages keep their numbers.
-  if (model.edges.some((e) => e.step !== undefined)) out.push("    autonumber");
   // Participants in spec order; members of a top-level group sit in its box.
   const top = (n: ModelNode) => {
     let g = n.parent;
@@ -110,6 +108,11 @@ export function sequenceMermaid(model: Model): string {
   let depth = 1;
   const pad = () => "    ".repeat(depth);
   const stack: typeof frags = [];
+  // Numbered messages keep their numbers: Mermaid counts every message from 1, so a step that
+  // differs from its count restarts it there (never at 0, Mermaid reads that as no start), and an
+  // unnumbered message after a numbered one turns the numbers off.
+  let count = 1;
+  let shown = false;
   model.edges.forEach((e, i) => {
     const k = i + 1;
     // A further branch of the innermost open fragment ends the one before it.
@@ -130,9 +133,18 @@ export function sequenceMermaid(model: Model): string {
       depth++;
     }
     if (nodes.has(e.from) && nodes.has(e.to)) {
+      if (e.step !== undefined && (!shown || e.step !== count)) {
+        out.push(`${pad()}autonumber ${e.step}`);
+        count = e.step || count;
+        shown = true;
+      } else if (e.step === undefined && shown) {
+        out.push(`${pad()}autonumber off`);
+        shown = false;
+      }
       const [a, b] = e.arrow === "start" ? [e.to, e.from] : [e.from, e.to];
       const text = e.label ? words(e.label) : "";
       out.push(`${pad()}${id(a)}${arrow(e)}${id(b)}: ${text || " "}`.trimEnd());
+      count++;
     }
     while (stack.length && (stack[stack.length - 1]?.to ?? 0) <= k) {
       stack.pop();

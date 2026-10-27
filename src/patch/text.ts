@@ -35,7 +35,7 @@ interface Span {
 
 export const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
-const lineStart = (t: string, p: number) => t.lastIndexOf("\n", p - 1) + 1;
+export const lineStart = (t: string, p: number) => t.lastIndexOf("\n", p - 1) + 1;
 const lineEnd = (t: string, p: number) => {
   const n = t.indexOf("\n", p);
   return n < 0 ? t.length : n + 1;
@@ -46,12 +46,21 @@ const firstNode = (item: Item): ParsedNode =>
 const lastNode = (item: Item): ParsedNode => (isPair(item) ? (item.value ?? item.key) : item);
 
 /** Where a node's own text ends: before trailing comments, blank lines and the next item. */
-export function contentEnd(n: ParsedNode): number {
+export function contentEnd(n: ParsedNode, text?: string): number {
   if ((isMap(n) || isSeq(n)) && !n.flow) {
     const last = n.items.at(-1);
-    if (last) return contentEnd(lastNode(last));
+    if (last) return contentEnd(lastNode(last), text);
   }
-  return n.range[1];
+  let end = n.range[1];
+  // A block scalar (| or >) owns the line breaks after it, which whole-line spans keep; a
+  // splice passes the text to stop before them, so the next line stays on its own.
+  if (
+    text !== undefined &&
+    isScalar(n) &&
+    (n.type === "BLOCK_LITERAL" || n.type === "BLOCK_FOLDED")
+  )
+    while (end > n.range[0] && /\s/.test(text[end - 1] ?? "")) end -= 1;
+  return end;
 }
 
 /** The first of the comment lines directly above `start` (no blank line between), not before `floor`. */
@@ -169,9 +178,9 @@ export function replaceValue(
     return { start: node.range[0], end: node.range[0], text: ` ${text}` };
   if ((isMap(node) || isSeq(node)) && !node.flow) {
     const colon = v.text.indexOf(":", pair.key.range[1]);
-    return { start: colon, end: contentEnd(node), text: `: ${text}` };
+    return { start: colon, end: contentEnd(node, v.text), text: `: ${text}` };
   }
-  return { start: node.range[0], end: node.range[1], text };
+  return { start: node.range[0], end: contentEnd(node, v.text), text };
 }
 
 /** Sets key in map; new top-level keys go above the groups, nodes and edges sections. */

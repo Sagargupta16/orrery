@@ -47,10 +47,10 @@ const STYLES = `${DECL}<w:styles xmlns:w="${W}"><w:docDefaults><w:rPrDefault><w:
   `<w:style w:type="table" w:customStyle="1" w:styleId="DocTable"><w:name w:val="Doc Table"/><w:basedOn w:val="TableNormal"/><w:tblPr><w:tblBorders>${["top", "left", "bottom", "right", "insideH", "insideV"].map((s) => `<w:${s} w:val="single" w:sz="4" w:space="0" w:color="D1D9E0"/>`).join("")}</w:tblBorders><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>`,
 ].join("")}</w:styles>`;
 
-/** XML text or attribute value; control characters XML 1.0 forbids are dropped. */
+/** XML text or attribute value; control characters and U+FFFE, U+FFFF, which XML 1.0 forbids, are dropped. */
 const x = (s: string) =>
   s
-    .replace(/[^\P{Cc}\t\n\r]/gu, "")
+    .replace(/[^\P{Cc}\t\n\r]|[\uFFFE\uFFFF]/gu, "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

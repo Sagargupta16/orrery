@@ -13,7 +13,7 @@ One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML view
 **[sagargupta.online/orrery](https://sagargupta.online/orrery/)**: every example in light and dark, with its spec and downloads.
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.12.1-2563eb)
+![Version](https://img.shields.io/badge/version-0.12.2-2563eb)
 ![Icons](https://img.shields.io/badge/official_icons-18%2C209-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
@@ -172,7 +172,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: Sagargupta16/orrery@v0.10.0
+      - uses: Sagargupta16/orrery@v0.12.2
         with:
           specs: docs/**/*.yaml   # git pathspec globs, one per line
           fail-on: error          # or warning, or review (fail when the review does not pass)

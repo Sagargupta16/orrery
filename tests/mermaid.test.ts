@@ -93,15 +93,18 @@ edges:
     expect(out).toMatch(/ {2}user:\w --> \w:empty_edge\n/);
   });
 
-  it("quotes and escapes titles", async () => {
+  it("quotes titles and writes them as they read", async () => {
     const out = await mmd(`nodes:
   a: { label: 'Say "hi" [now] #1 <b> | a\\b' }
   b: { label: B }
+  c: { label: 'Run \`make\` on \\\\srv\\' }
 edges:
   - a -> b: "x & y"
 `);
-    expect(out).toContain('service a(server)["Say #34;hi#34; [now] #35;1 #60;b#62; #124; a#92;b"]');
-    expect(out).toContain('-["x #38; y"]->');
+    expect(out).toContain('service a(server)["Say \\"hi\\" [now] #1 <b> | a\\b"]');
+    expect(out).toContain('-["x & y"]->');
+    // Markdown would read a backtick pair as code and a backslash before punctuation as an escape.
+    expect(out).toContain('service c(server)["Run \u02cbmake\u02cb on \\\u200b\\srv\\\u200b"]');
   });
 });
 
@@ -339,5 +342,32 @@ nodes:
   a: { stage: One, label: Step }
 `);
     expect(out).toContain("  section One\n    Step: 3\n");
+  });
+
+  it("codes the first character of a step that would start a statement", async () => {
+    const out = await mmd(`title: Visit
+kind: journey
+stages: [One]
+nodes:
+  a: { stage: One, label: Title search }
+  b: { stage: One, label: Section signs }
+`);
+    expect(out).toContain(
+      "  title Visit\n  section One\n    #84;itle search: 3\n    #83;ection signs: 3\n",
+    );
+  });
+});
+
+describe("Mermaid export: gantt", () => {
+  it("codes the first character of a name that would start a statement, and ids no task vert", async () => {
+    const out = await mmd(`title: Roadmap
+kind: timeline
+nodes:
+  vert: { label: Title page, start: 2026-01, end: 2026-02 }
+  cut: { label: 2026-05-01 cutover, date: 2026-05-01 }
+`);
+    expect(out).toContain("  title Roadmap\n");
+    expect(out).toContain("    #84;itle page :t_vert, 2026-01-01, 2026-02-28\n");
+    expect(out).toContain("    #50;026-05-01 cutover :milestone, cut, 2026-05-01, 0d\n");
   });
 });

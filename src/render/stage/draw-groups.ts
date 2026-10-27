@@ -74,7 +74,9 @@ export function groupHeader(ctx: Ctx, g: SceneGroup): string {
         return q !== undefined && crosses(p, q, chip);
       }),
     );
-    if (crossed) parts.push(rect(chip, 3, fill(ctx.t.background)));
+    const bg = ctx.scene.background;
+    const surface = bg && bg !== "transparent" ? bg : ctx.t.background;
+    if (crossed) parts.push(rect(chip, 3, fill(surface)));
     parts.push(block(g.label, b, HEADER, size, g.labelColor, "start"));
   }
   return parts.join("");

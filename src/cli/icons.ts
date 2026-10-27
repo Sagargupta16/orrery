@@ -132,6 +132,10 @@ function iconList(args: Args, json: boolean) {
 async function iconShow(args: Args, rest: string[]) {
   const [id] = rest;
   if (!id) usage("icons show needs an icon id");
+  const out = typeof args.flags.out === "string" ? args.flags.out : undefined;
+  const ext = out ? extname(out).toLowerCase() : "";
+  if (ext && ext !== ".svg" && ext !== ".png")
+    usage(`icons show -o needs an .svg or .png name (got "${out}")`);
   const info = iconInfo(id);
   if (!info) {
     const near = searchIcons(id.split(":").pop() ?? id, { limit: 5 }).map((i) => i.id);
@@ -146,9 +150,8 @@ async function iconShow(args: Args, rest: string[]) {
   await loadIconLibraries([info.id]);
   const r = renderIcon(info.id, "s", { theme, background: t.background, ink: t.text });
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="96" height="96" viewBox="${r.viewBox.join(" ")}">${r.body}</svg>\n`;
-  const out = typeof args.flags.out === "string" ? args.flags.out : undefined;
   if (out) {
-    writeAtomic(resolve(out), out.endsWith(".png") ? await renderPng(svg, { scale: 4 }) : svg);
+    writeAtomic(resolve(out), ext === ".png" ? await renderPng(svg, { scale: 4 }) : svg);
     process.stdout.write(`wrote ${resolve(out)}\n`);
   }
   process.stdout.write(`${JSON.stringify(info, null, 2)}\n`);
@@ -189,8 +192,15 @@ async function iconCheck(args: Args, rest: string[]) {
   const [file] = rest;
   if (!file) usage("icons check needs an .svg file");
   if (!existsSync(file)) usage(`no such file: ${file}`);
-  const out = typeof args.flags.out === "string" ? resolve(args.flags.out) : undefined;
-  process.exitCode = (await checkIconFile(resolve(file), out)) ? 0 : 1;
+  process.exitCode = (await checkIconFile(resolve(file), sheetOut(args))) ? 0 : 1;
+}
+
+/** The resolved -o for the contact sheet: a .png name, or a name without an extension. */
+function sheetOut(args: Args): string | undefined {
+  const out = typeof args.flags.out === "string" ? args.flags.out : undefined;
+  if (out && extname(out) && extname(out).toLowerCase() !== ".png")
+    usage(`-o is the contact sheet and needs a .png name (got "${out}")`);
+  return out === undefined ? undefined : resolve(out);
 }
 
 async function iconAdopt(args: Args, rest: string[]) {
@@ -200,6 +210,7 @@ async function iconAdopt(args: Args, rest: string[]) {
   if (typeof name !== "string" || !ICON_NAME.test(name))
     usage("icons adopt needs --name <name> of lowercase letters, digits and -");
   if (!existsSync(src)) usage(`no such file: ${src}`);
+  const out = sheetOut(args);
   const file = iconTarget(args, name);
   if (!file) return;
   const from = shownPath(resolve(src));
@@ -209,7 +220,6 @@ async function iconAdopt(args: Args, rest: string[]) {
     writeAtomic(file, adopted.svg);
     process.stdout.write(`wrote ${shownPath(file)} from ${from}\n`);
     for (const note of adopted.notes) process.stdout.write(`  ${note}\n`);
-    const out = typeof args.flags.out === "string" ? resolve(args.flags.out) : undefined;
     ok = await checkIconFile(file, out);
   } catch (e) {
     if (!(e instanceof LocalIconError)) throw e;

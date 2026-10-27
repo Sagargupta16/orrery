@@ -8,6 +8,11 @@ import { esc, n } from "./svg.ts";
 export interface LaneDrawing {
   /** Drawn with the group frames, under the edges. */
   frame: string;
+  /**
+   * A dashed band's border, drawn after every frame and still under the edges, so its gaps are
+   * not filled by the solid lines its pool and the bands beside it draw on the same place.
+   */
+  outline?: string;
   /** Drawn with the group headers, over the edges. */
   header: string;
 }
@@ -70,14 +75,22 @@ function lines(
 
 /**
  * Classic: the BPMN modeler look (bpmn-js): square bands in one dark line, 1.5px, no fill, and the
- * name centered in its strip, read bottom to top across a horizontal flow.
+ * name centered in its strip, read bottom to top across a horizontal flow. `surface` is the color
+ * under the band, which a dashed border's gaps show.
  */
-export function laneClassic(g: SceneGroup, _t: Theme): LaneDrawing | undefined {
+export function laneClassic(g: SceneGroup, _t: Theme, surface = "none"): LaneDrawing | undefined {
   if (!g.lane) return undefined;
   const b = g.box;
-  const dash = g.dash ? ` stroke-dasharray="${g.dash}"` : "";
+  const rect = (paint: string) =>
+    `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" ${paint}/>`;
   const line = `stroke="${g.stroke}" stroke-width="${g.strokeWidth}"`;
-  const frame = `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" fill="${g.fill}" ${line}${dash}/>`;
+  const frame = rect(`fill="${g.fill}" ${g.dash ? `stroke="none"` : line}`);
+  // A solid line in the surface color first knocks out the lines shared with the pool and the
+  // bands beside it, so the dashes show.
+  const outline = g.dash
+    ? rect(`fill="none" stroke="${surface}" stroke-width="${n(g.strokeWidth + 1)}"`) +
+      rect(`fill="none" ${line} stroke-dasharray="${g.dash}"`)
+    : undefined;
   const parts: string[] = [];
   const d = divider(g);
   if (d) parts.push(`<path d="${d}" fill="none" ${line}/>`);
@@ -88,7 +101,7 @@ export function laneClassic(g: SceneGroup, _t: Theme): LaneDrawing | undefined {
   parts.push(
     lines(L, nameOf(g), baseline, ` font-size="${n(L.size)}"${weight} fill="${g.labelColor}"`),
   );
-  return { frame, header: parts.join("") };
+  return { frame, ...(outline ? { outline } : {}), header: parts.join("") };
 }
 
 /**

@@ -28,11 +28,15 @@ export interface Frag {
   right: number;
 }
 
-/** A guard as UML writes it: in square brackets. */
+/** The stage skin sets guards in Geist Mono at 10px (render/stage/text.ts NOTE), 0.6em a glyph. */
+const monoWidth = (s: string) => 10 * ([...s].length * 0.6);
+
+/** A guard as UML writes it: in square brackets, as wide as either skin's face needs. */
 const guard = (s: string | undefined) => {
   const text = s?.trim();
   if (!text) return undefined;
-  return textBlock(text.startsWith("[") ? text : `[${text}]`, SIZES.edgeLabel, 260);
+  const b = textBlock(text.startsWith("[") ? text : `[${text}]`, SIZES.edgeLabel, 260);
+  return { ...b, width: Math.max(b.width, ...b.lines.map((l) => Math.ceil(monoWidth(l)))) };
 };
 
 /**

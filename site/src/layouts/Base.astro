@@ -13,7 +13,7 @@ interface Props {
 }
 const {
   title = "orrery: architecture diagrams with official cloud icons",
-  description = `Write a YAML spec; orrery lays it out with ELK and renders animated SVG, PNG, draw.io, React TSX and HTML with ${meta.icons.toLocaleString("en-US")} official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons.`,
+  description = `Write a YAML spec; orrery lays it out with ELK and renders animated SVG, PNG, draw.io, React TSX and HTML with official AWS, Azure, Google Cloud, Kubernetes, GitHub and IBM icons plus tech logos and generic symbols (${meta.icons.toLocaleString("en-US")} in all).`,
   image = "art/hero-dark.svg",
 } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -91,7 +91,7 @@ const nav = [
         <div class="space-y-4">
           <a href={url()} class="inline-flex items-center gap-2.5 font-semibold"><OrbitMark /> orrery</a>
           <p class="max-w-sm text-sm text-dim">
-            Architecture and system design diagrams from a YAML spec, with official icons, automatic layout and five
+            Architecture and system design diagrams from a YAML spec, with official icons, automatic layout and eight
             output formats. MIT licensed.
           </p>
           <p class="max-w-sm text-xs text-faint">

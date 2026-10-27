@@ -126,7 +126,11 @@ export function parseXml(text: string, bad: Bad): XNode {
 export const local = (name: string) => (name.split(":").pop() ?? name).toLowerCase();
 
 export const escAttr = (s: string) =>
-  s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
+  s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 const escText = (s: string) =>
   s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 

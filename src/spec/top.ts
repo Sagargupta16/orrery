@@ -94,7 +94,14 @@ function parseLayout(ctx: Ctx): LayoutSettings {
   unknownKeys(ctx, layout, LAYOUT_KEYS, {}, "layout");
   const routing = oneOf<Routing>(ctx, layout.routing, ROUTINGS, "orthogonal", "layout.routing");
   let spacing = 1;
-  if (typeof layout.spacing === "number") spacing = Math.max(0.5, Math.min(3, layout.spacing));
+  if (typeof layout.spacing === "number" && Number.isFinite(layout.spacing))
+    spacing = Math.max(0.5, Math.min(3, layout.spacing));
+  else if (typeof layout.spacing === "number")
+    // .nan and .inf would reach every gap ELK keeps; the default stays.
+    ctx.err("DG107", "layout.spacing must be compact, normal, loose or a number 0.5 to 3", {
+      subject: { where: "layout.spacing", value: String(layout.spacing) },
+      fixes: ["use layout: { spacing: loose }, or a number such as 1.2"],
+    });
   else {
     const s = oneOf(ctx, layout.spacing, SPACINGS, "normal", "layout.spacing");
     spacing = { compact: 0.75, normal: 1, loose: 1.35 }[s];

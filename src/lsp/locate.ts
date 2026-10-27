@@ -154,8 +154,16 @@ function edgeCount(item: unknown): number {
   return (Array.isArray(from) ? from.length : 1) * (Array.isArray(to) ? to.length : 1);
 }
 
-/** An edge by `edges[i]` (the parser's name) or `e<n>` (the model's id, numbered as parsed). */
+/** The parser's name for an edge an include brought: `include <file> edges[i]`. */
+const INCLUDED = /^include .+ edges\[\d+\](?: \S+)?$/;
+
+/**
+ * An edge by `edges[i]` (the parser's name, numbered in this file), `include <file> edges[i]`
+ * (the include: that brought it) or `e<n>` (the model's id: this file's edges as parsed, then
+ * those its includes brought, which point at the include:).
+ */
 function edgeHit(at: Located, name: string): Hit | undefined {
+  if (INCLUDED.test(name)) return pathHit(at, ["include"]);
   const index = /^edges\[(\d+)\]$/.exec(name)?.[1];
   if (index !== undefined) return at.edges[Number(index)];
   const n = /^e(\d+)$/.exec(name)?.[1];
@@ -171,7 +179,18 @@ function edgeHit(at: Located, name: string): Hit | undefined {
     seen += edgeCount(item);
     if (seen >= Number(n)) return at.edges[i];
   }
-  return undefined;
+  return at.data.include !== undefined ? pathHit(at, ["include"]) : undefined;
+}
+
+/** A field by name, or one item of a list field: `fields[0]` is the first of `fields:`. */
+function itemHit(container: PNode | null, name: string, kind: Kind): Hit | undefined {
+  const m = /^(.+)\[(\d+)\]$/.exec(name);
+  const field = fieldHit(container, m?.[1] ?? name, kind);
+  if (!m || !field) return field;
+  const item = isSeq(field.value)
+    ? (field.value.items[Number(m[2])] as PNode | undefined)
+    : undefined;
+  return item ? { value: item } : field;
 }
 
 /** The parser's `where`: "the top level", node "x" look, edges[2] line, layout.routing. */
@@ -181,13 +200,14 @@ function whereHit(at: Located, where: string): { hit?: Hit; kind: Kind } {
   if (entry) {
     const kind = entry[1] as "node" | "group";
     const hit = entryOf(at, kind === "node" ? "nodes" : "groups", entry[2] ?? "");
-    const field = entry[3] && hit ? fieldHit(hit.value, entry[3], kind) : undefined;
+    const field = entry[3] && hit ? itemHit(hit.value, entry[3], kind) : undefined;
     return { hit: field ?? hit, kind };
   }
+  if (INCLUDED.test(where)) return { hit: pathHit(at, ["include"]), kind: "path" };
   const edge = /^(edges\[\d+\])(?: (\S+))?$/.exec(where);
   if (edge) {
     const hit = edgeHit(at, edge[1] ?? "");
-    const field = edge[2] && hit ? fieldHit(edgeFields(hit), edge[2], "edge") : undefined;
+    const field = edge[2] && hit ? itemHit(edgeFields(hit), edge[2], "edge") : undefined;
     return { hit: field ?? hit, kind: "edge" };
   }
   const tag = /^tag "(.*)"$/.exec(where);
@@ -245,6 +265,41 @@ function tokenIn(text: string, within: Target, id: string): Target | undefined {
   return undefined;
 }
 
+/** `text` with the labels in [start, end) blanked: -[inline]-> labels and the `: label` tail. */
+function withoutLabels(text: string, start: number, end: number): string {
+  // Code units, not characters, so every offset after a blanked label stays where it was.
+  const chars = text.slice(start, end).split("");
+  let depth = 0;
+  for (const [i, c] of chars.entries()) {
+    if (c === "[") depth += 1;
+    else if (c === "]") {
+      depth = Math.max(0, depth - 1);
+      chars[i] = " ";
+      continue;
+    } else if (c === ":" && !depth && (i + 1 === chars.length || /\s/.test(chars[i + 1] ?? ""))) {
+      chars.fill(" ", i);
+      break;
+    }
+    if (depth) chars[i] = " ";
+  }
+  return text.slice(0, start) + chars.join("") + text.slice(end);
+}
+
+/** An edge's end as written: in from: or to:, else in the arrow expression outside its labels. */
+function endToken(at: Located, hit: Hit, id: string): Target | undefined {
+  const fields = edgeFields(hit);
+  for (const end of ["from", "to"]) {
+    const found = findScalar(fieldHit(fields, end, "edge")?.value, id);
+    if (found) return scalarTarget(found, "value");
+  }
+  // The expression: a list item's text, the key of { "a -> b": ... }, or a keyed edge's key.
+  const v = hit.value;
+  const expr = hit.key ?? (isMap(v) && v.items.length === 1 ? (v.items[0] as PPair).key : v);
+  if (!expr || !isScalar(expr)) return undefined;
+  const [start, end] = expr.range;
+  return tokenIn(withoutLabels(at.text, start, end), { start, end, kind: "entry" }, id);
+}
+
 /** A detail of the subject: the key a DG108 names, the field a value came from, an id in a list. */
 function detail(
   at: Located,
@@ -259,8 +314,12 @@ function detail(
     return p ? scalarTarget(p.key, "key") : undefined;
   }
   if (key === "value") return hit.value ? fieldTarget({ value: hit.value }) : undefined;
-  if (key === "id" && kind === "edge")
-    return tokenIn(at.text, entryTarget(hit, kind), String(value));
+  // One word of a scalar (an er field's flag), so a fix replaces only that word.
+  if (key === "token" && hit.value && typeof value === "string") {
+    const scalar = fieldTarget({ value: hit.value });
+    return scalar && tokenIn(at.text, scalar, value);
+  }
+  if (key === "id" && kind === "edge") return endToken(at, hit, String(value));
   if (key === "setting") {
     const field = fieldHit(container, String(value).split(".").at(-1) ?? "", kind);
     return field && fieldTarget(field);
@@ -344,9 +403,26 @@ function messageTarget(at: Located, d: Diagnostic): Target | undefined {
   return entry ? entryTarget(entry, "node") : undefined;
 }
 
+/** A finding that names its line and column (from 1): the word written there. */
+function positionTarget(at: Located, d: Diagnostic): Target | undefined {
+  const line = d.subject?.line;
+  const column = d.subject?.column;
+  if (typeof line !== "number" || typeof column !== "number") return undefined;
+  let start = 0;
+  for (let l = 1; l < line; l++) {
+    const next = at.text.indexOf("\n", start);
+    if (next < 0) return undefined;
+    start = next + 1;
+  }
+  start = Math.min(start + column - 1, at.text.length);
+  let end = start;
+  while (end < at.text.length && !/[\s,}\]]/.test(at.text[end] ?? "")) end++;
+  return { start, end, kind: "entry" };
+}
+
 /** The characters a diagnostic is about; the first line when nothing more precise is found. */
 export function locate(at: Located, d: Diagnostic): Target {
-  const syntax = syntaxTarget(at, d);
+  const syntax = syntaxTarget(at, d) ?? positionTarget(at, d);
   if (syntax) return syntax;
   const found = d.subject ? subjectHit(at, d.subject) : undefined;
   if (found?.hit) {

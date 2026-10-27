@@ -111,8 +111,36 @@ function cleanLabel(s: string): string {
     .trim();
 }
 
-/** Splits "A[Label] & B(Other)" into node references, registering shapes and labels. */
-function readNodes(chunk: string, nodes: Map<string, MNode>, parent: string | undefined): string[] {
+/**
+ * The line with node text (inside brackets and quotes) blanked to "x", same length, so an arrow
+ * written inside a label ("deploy --> prod") is not read as an edge. |edge text| stays.
+ */
+function maskNodeText(line: string): string {
+  let out = "";
+  let depth = 0;
+  let quoted = false;
+  let piped = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i] ?? "";
+    if (piped) {
+      piped = c !== "|";
+      out += c;
+      continue;
+    }
+    const bracket = !quoted && /[[\](){}]/.test(c);
+    if (c === '"') quoted = !quoted;
+    else if (!quoted && c === "|" && depth === 0) piped = true;
+    else if (bracket) depth = /[[({]/.test(c) ? depth + 1 : Math.max(0, depth - 1);
+    out += c === '"' || quoted || (depth > 0 && !bracket) ? "x" : c;
+  }
+  return out;
+}
+
+/**
+ * Splits "A[Label] & B(Other)" into node references, registering shapes and labels; `mentioned`
+ * collects them for the innermost open subgraph.
+ */
+function readNodes(chunk: string, nodes: Map<string, MNode>, mentioned?: Set<string>): string[] {
   const ids: string[] = [];
   for (const part of chunk.split(/\s+&\s+/)) {
     const text = part.trim();
@@ -138,15 +166,19 @@ function readNodes(chunk: string, nodes: Map<string, MNode>, parent: string | un
     if (existing) {
       if (label) existing.label = label;
       if (shape) existing.shape = shape;
-    } else nodes.set(id, { id, label: label ?? id, shape, parent });
+    } else nodes.set(id, { id, label: label ?? id, shape });
+    mentioned?.add(id);
     ids.push(id);
   }
   return ids;
 }
 
-// Edge operators: --> --- -.-> -.- ==> === <--> --o --x, with optional |label| or -- label -->.
+// Edge operators: --> --- -.-> -.- ==> === <--> --o --x, with optional |label|, or text inside
+// the link: -- text --> (or ---), == text ==> (or ===), -. text .-> (or .-), spaces around it
+// optional. Read on the line with its node text blanked (maskNodeText); `d` gives each part's
+// place, so the text itself comes from the line as written.
 const EDGE_RE =
-  /\s+--\s+([^-][^>]*?)\s+-->\s+|\s+==\s+([^=][^>]*?)\s+==>\s+|\s+-\.\s+([^.][^>]*?)\s+\.->\s+|\s*(<)?(-{2,}|={2,}|-\.+-|-\.+)(>|o|x)?(?:\|([^|]*)\|)?\s*/g;
+  /\s*--\s+(?<solid>[^-\s][^>]*?)\s+-{2,}(?<solidHead>>)?\s*|\s*==\s+(?<thick>[^=\s][^>]*?)\s+={2,}(?<thickHead>>)?\s*|\s*-\.\s+(?<dotted>[^.\s][^>]*?)\s+\.-(?<dottedHead>>)?\s*|\s*(?<back><)?(?<body>-{2,}|={2,}|-\.+-|-\.+)(?<head>>|o|x)?(?:\|(?<pipe>[^|]*)\|)?\s*/dg;
 
 export function importMermaid(source: string): MermaidResult {
   const warnings: string[] = [];
@@ -154,6 +186,19 @@ export function importMermaid(source: string): MermaidResult {
   const groups: MGroup[] = [];
   const edges: MEdge[] = [];
   const stack: string[] = [];
+  // The nodes each open subgraph's body mentions, edge ends included.
+  const mentions: Set<string>[] = [];
+  /**
+   * Closes the innermost subgraph: every node it mentions that no subgraph holds yet is its own,
+   * as Mermaid draws it (inner subgraphs close first, an earlier subgraph keeps what it holds).
+   */
+  const close = () => {
+    const id = stack.pop();
+    for (const n of mentions.pop() ?? []) {
+      const node = nodes.get(n);
+      if (id && node && !node.parent) node.parent = id;
+    }
+  };
   let direction = "right";
   let title: string | undefined;
 
@@ -198,24 +243,35 @@ export function importMermaid(source: string): MermaidResult {
       const label = cleanLabel(withLabel?.[2] ?? rest);
       groups.push({ id, label, parent: stack[stack.length - 1] });
       stack.push(id);
+      mentions.push(new Set());
       continue;
     }
     if (line === "end") {
-      stack.pop();
+      close();
       continue;
     }
-    const parent = stack[stack.length - 1];
+    const mentioned = mentions[mentions.length - 1];
     // Split the line into node chunks and operators.
     const parts: (string | MEdge)[] = [];
     let last = 0;
-    for (const m of line.matchAll(EDGE_RE)) {
+    for (const m of maskNodeText(line).matchAll(EDGE_RE)) {
       parts.push(line.slice(last, m.index));
-      const [, l1, l2, l3, lt, body = "", head2, pipeLabel] = m;
-      const text = pipeLabel ?? l1 ?? l2 ?? l3;
+      const at = (name: string) => {
+        const range = m.indices?.groups?.[name];
+        return range ? line.slice(range[0], range[1]) : undefined;
+      };
+      const [solid, thick, dotted] = [at("solid"), at("thick"), at("dotted")];
+      const body = at("body") ?? "";
+      const text = at("pipe") ?? solid ?? thick ?? dotted;
       let lineStyle: MEdge["line"] = "solid";
-      if (l2 !== undefined || body.startsWith("=")) lineStyle = "thick";
-      else if (l3 !== undefined || body.includes(".")) lineStyle = "dotted";
-      const hasHead = head2 === ">" || l1 !== undefined || l2 !== undefined || l3 !== undefined;
+      if (thick !== undefined || body.startsWith("=")) lineStyle = "thick";
+      else if (dotted !== undefined || body.includes(".")) lineStyle = "dotted";
+      const hasHead =
+        at("head") === ">" ||
+        at("solidHead") !== undefined ||
+        at("thickHead") !== undefined ||
+        at("dottedHead") !== undefined;
+      const lt = at("back");
       parts.push({
         from: "",
         to: "",
@@ -227,7 +283,7 @@ export function importMermaid(source: string): MermaidResult {
     }
     parts.push(line.slice(last));
     if (parts.length === 1) {
-      readNodes(line, nodes, parent);
+      readNodes(line, nodes, mentioned);
       continue;
     }
     for (let i = 0; i + 2 < parts.length; i += 2) {
@@ -235,13 +291,13 @@ export function importMermaid(source: string): MermaidResult {
       const op = parts[i + 1];
       const b = parts[i + 2];
       if (typeof a !== "string" || typeof b !== "string" || typeof op === "string" || !op) continue;
-      const froms = readNodes(a, nodes, parent);
-      const tos = readNodes(b, nodes, parent);
+      const froms = readNodes(a, nodes, mentioned);
+      const tos = readNodes(b, nodes, mentioned);
       for (const f of froms) for (const t of tos) edges.push({ ...op, from: f, to: t });
     }
   }
+  while (stack.length) close();
 
-  // Nodes first mentioned inside a subgraph belong to it.
   const groupIds = new Set(groups.map((g) => g.id));
   const guessed: Record<string, string> = {};
   const specNodes: Record<string, Record<string, unknown>> = {};

@@ -41,6 +41,8 @@ export interface CandidateRequest {
   skin?: Skin;
   /** Extra font files, as `orrery review --font`. */
   fonts?: string[];
+  /** Runs on each patched text before it is parsed: a reason drops the candidate unreviewed. */
+  check?: (source: string) => string | undefined;
 }
 
 export const HARD: Record<keyof HardCounts, string> = {
@@ -104,6 +106,8 @@ export async function tryCandidates(req: CandidateRequest): Promise<CandidateRun
       if (e instanceof PatchError) return { reason: e.message };
       throw e;
     }
+    const refused = req.check?.(source);
+    if (refused) return { reason: refused };
     const parsed = parseSpec(source, req.filename);
     if (!parsed.model)
       return { reason: `the patched spec has errors: ${errorsOf(parsed.diagnostics)}` };

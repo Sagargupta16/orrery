@@ -42,6 +42,12 @@ function header(req: IncomingMessage, name: string): string | undefined {
 const decoded = (v: string) =>
   /^=\?base64\?(.*)\?=$/.test(v) ? Buffer.from(v.slice(9, -2), "base64").toString("utf8") : v;
 
+/** The body field Mcp-Name mirrors, for the methods that carry one. */
+const NAMED = new Map([
+  ["tools/call", "name"],
+  ["resources/read", "uri"],
+]);
+
 /**
  * Headers a modern request mirrors from its body must match it (HeaderMismatch); a legacy request
  * may name its version in MCP-Protocol-Version (2025-06-18 on) and omits it before that.
@@ -65,11 +71,12 @@ function headerProblem(req: IncomingMessage, msg: unknown): Obj | undefined {
   const method = header(req, "mcp-method");
   if (method === undefined) return mismatch("the Mcp-Method header is missing");
   if (method !== msg.method) return mismatch(`Mcp-Method ${method} does not match ${msg.method}`);
-  if (msg.method === "tools/call") {
+  const field = NAMED.get(msg.method);
+  if (field !== undefined) {
     const name = header(req, "mcp-name");
     if (name === undefined) return mismatch("the Mcp-Name header is missing");
-    if (decoded(name) !== params.name)
-      return mismatch(`Mcp-Name ${name} does not match ${String(params.name)}`);
+    if (decoded(name) !== params[field])
+      return mismatch(`Mcp-Name ${name} does not match ${String(params[field])}`);
   }
   return undefined;
 }

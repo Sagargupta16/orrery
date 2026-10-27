@@ -1,6 +1,7 @@
 // The edge op: edge items read the way parseSpec reads them, matched by their ends, written back.
 import { isSeq, type ParsedNode } from "yaml";
-import { parseEdgeExpression } from "../spec/edges.ts";
+import { type EdgeHop, parseEdgeExpression } from "../spec/edges.ts";
+import type { ArrowMode, EdgeLine } from "../types.ts";
 import { editMap } from "./ops.ts";
 import {
   type Ctx,
@@ -11,6 +12,7 @@ import {
   insertItem,
   isNull,
   isRecord,
+  lineStart,
   type PMap,
   type PSeq,
   pairOf,
@@ -141,12 +143,138 @@ function edgeText(value: string | Record<string, unknown>, ctx: Ctx): string {
   return inline(value, ctx);
 }
 
-function matchEdge(v: View, seq: PSeq, list: unknown[], match: string): number {
+/** The operator that reads back as `op`: the OPS and LABELED tables in spec/edges.ts, reversed. */
+const OPERATORS: Record<EdgeLine, Record<ArrowMode, string>> = {
+  solid: { end: "->", start: "<-", both: "<->", none: "--" },
+  dashed: { end: "-->", start: "<--", both: "<-->", none: "---" },
+  thick: { end: "==>", start: "<==", both: "<==>", none: "===" },
+  dotted: { end: "..>", start: "<..", both: "<..>", none: "..." },
+};
+
+function opText(op: EdgeHop["op"]): string {
+  if (op.label === undefined) return OPERATORS[op.line][op.arrow];
+  return op.line === "dashed" ? `--[${op.label}]-->` : `-[${op.label}]->`;
+}
+
+/** A run of hops, each one's to list the next one's from list, as one line: "a, b -> c --> d". */
+const chainText = (run: EdgeHop[]) =>
+  run.reduce((s, h) => `${s} ${opText(h.op)} ${h.to.join(", ")}`, run[0]?.from.join(", ") ?? "");
+
+interface ItemHops {
+  hops: EdgeHop[];
+  /** A run of the hops as an item of the same form, with the item's label and options. */
+  write: (run: EdgeHop[]) => string | Record<string, unknown>;
+}
+
+/** An edge item's hops, read the way edgeShape reads the item. */
+function hopsOf(item: unknown): ItemHops | undefined {
+  let expr: string | undefined;
+  let value: unknown = null;
+  if (typeof item === "string") expr = item;
+  else if (isRecord(item)) {
+    const keys = Object.keys(item);
+    const only = keys.length === 1 ? (keys[0] as string) : undefined;
+    if (only !== undefined && typeof parseEdgeExpression(only) !== "string") {
+      expr = only;
+      value = item[only];
+    }
+  } else return undefined;
+  if (expr !== undefined) {
+    const parsed = parseEdgeExpression(expr);
+    if (typeof parsed === "string") return undefined;
+    const tail = parsed.label === undefined ? "" : `: ${parsed.label}`;
+    const line = (run: EdgeHop[]) => `${chainText(run)}${tail}`;
+    return {
+      hops: parsed.hops,
+      write: (run) => (value === null ? line(run) : { [line(run)]: value }),
+    };
+  }
+  const map = item as Record<string, unknown>;
+  const fromKey = map.from !== undefined ? "from" : "source";
+  const toKey = map.to !== undefined ? "to" : "target";
+  if (map[fromKey] === undefined || map[toKey] === undefined) return undefined;
+  const ids = (x: unknown) => (Array.isArray(x) ? x : [x]).map(String);
+  const one = (x: string[] = []) => (x.length === 1 ? x[0] : x);
+  return {
+    hops: [{ from: ids(map[fromKey]), to: ids(map[toKey]), op: { line: "solid", arrow: "end" } }],
+    write: (run) => ({ ...map, [fromKey]: one(run[0]?.from), [toKey]: one(run[0]?.to) }),
+  };
+}
+
+/** Where a pair sits in its item: [hop, index in the hop's from list, index in its to list]. */
+type PairAt = [number, number, number];
+
+/** The item a match names, and the pair of it when the match is one hop of a fan or chain. */
+interface Hit {
+  item: number;
+  pair?: PairAt;
+}
+
+/** Pairs of fan and chain items that a one-pair match names: as written or drawn, else by ends. */
+function pairHits(list: unknown[], want: EdgeShape, plain: boolean): Hit[] {
+  const exact: Hit[] = [];
+  const loose: Hit[] = [];
+  for (const [i, item] of list.entries()) {
+    const read = hopsOf(item);
+    if (!read) continue;
+    const pairs = read.hops.flatMap((hop, k) =>
+      hop.from.flatMap((from, f) =>
+        hop.to.map((to, t) => ({
+          at: [k, f, t] as PairAt,
+          have: edgeShape(read.write([{ from: [from], to: [to], op: hop.op }])),
+        })),
+      ),
+    );
+    // An item of one pair was matched whole.
+    if (pairs.length < 2) continue;
+    for (const { at, have } of pairs) {
+      if (typeof have === "string" || (want.label !== undefined && want.label !== have.label))
+        continue;
+      if (want.written === have.written || want.written === have.drawn)
+        exact.push({ item: i, pair: at });
+      else if (plain && have.ends[0] === want.ends[0]) loose.push({ item: i, pair: at });
+    }
+  }
+  return exact.length ? exact : loose;
+}
+
+/**
+ * The item without one pair, as the items left. A hop's from list is also the hop before's to
+ * list and its to list the next hop's from list, so the run ends on the side that lost an id.
+ */
+function withoutPair(
+  item: unknown,
+  [k, f, t]: PairAt,
+  match: string,
+  source: string,
+): ReturnType<ItemHops["write"]>[] {
+  const read = hopsOf(item) as ItemHops;
+  const hop = read.hops[k] as EdgeHop;
+  const shape = edgeShape(item);
+  if (read.hops.length > 1 && typeof shape !== "string" && shape.label !== undefined)
+    throw new PatchError(
+      `"${match}" is one hop of "${source}", whose label no hop draws; write its hops as their own lines first`,
+    );
+  const before = read.hops.slice(0, k);
+  const after = read.hops.slice(k + 1);
+  const drop = (ids: string[], at: number) => ids.filter((_, j) => j !== at);
+  let runs: EdgeHop[][];
+  if (hop.from.length === 1 && hop.to.length === 1) runs = [before, after];
+  else if (hop.to.length === 1) runs = [before, [{ ...hop, from: drop(hop.from, f) }, ...after]];
+  else if (hop.from.length === 1) runs = [[...before, { ...hop, to: drop(hop.to, t) }], after];
+  else
+    throw new PatchError(
+      `"${match}" is one pair of "${source}", which has lists at both ends; write one line per source first`,
+    );
+  return runs.filter((run) => run.length).map((run) => read.write(run));
+}
+
+function matchEdge(v: View, seq: PSeq, list: unknown[], match: string): Hit {
   const want = edgeShape(match);
   if (typeof want === "string") throw new PatchError(`cannot read match "${match}": ${want}`);
   const source = (i: number) => {
     const node = seq.items[i] as ParsedNode;
-    return v.text.slice(node.range[0], contentEnd(node));
+    return v.text.slice(node.range[0], contentEnd(node, v.text));
   };
   const hits: number[] = [];
   const near: number[] = [];
@@ -176,17 +304,21 @@ function matchEdge(v: View, seq: PSeq, list: unknown[], match: string): number {
         (want.label === undefined || want.label === have.label)
       );
     });
-    if (loose.length === 1) return loose[0] as number;
+    if (loose.length === 1) return { item: loose[0] as number };
   }
-  if (hits.length === 1) return hits[0] as number;
+  if (hits.length === 1) return { item: hits[0] as number };
+  // The same goes for one hop of a fan or chain: "api -> logs" in "api, fn -> logs".
+  const pairs: Hit[] = hits.length || want.ends.length !== 1 ? [] : pairHits(list, want, plain);
+  if (pairs.length === 1) return pairs[0] as Hit;
   const quote = (ids: number[]) =>
-    ids
+    [...new Set(ids)]
       .slice(0, 3)
       .map((i) => `"${source(i)}"`)
       .join(", ");
-  if (hits.length > 1)
+  const many = hits.length > 1 ? hits : pairs.map((p) => p.item);
+  if (many.length > 1)
     throw new PatchError(
-      `"${match}" matches ${hits.length} edges (${quote(hits)}); add the label to pick one`,
+      `"${match}" matches ${many.length} edges (${quote(many)}); add the label to pick one`,
     );
   throw new PatchError(
     `no edge matches "${match}"${near.length ? `; edges between the same nodes: ${quote(near)}` : ""}`,
@@ -224,8 +356,18 @@ export function edgeOp(
     return [{ start: end, end, text: `edges:${item}\n` }];
   }
   if (!isSeq(seq) || !Array.isArray(list)) throw new PatchError(`no edge matches "${match}"`);
-  const i = matchEdge(v, seq, list, match);
-  if (edge === null) return [removeItem(v, seq, i)];
-  const node = seq.items[i] as ParsedNode;
-  return [{ start: node.range[0], end: contentEnd(node), text: edgeText(edge, ctxOf(v, seq)) }];
+  const hit = matchEdge(v, seq, list, match);
+  const node = seq.items[hit.item] as ParsedNode;
+  const ctx = ctxOf(v, seq);
+  const start = node.range[0];
+  const end = contentEnd(node, v.text);
+  if (hit.pair) {
+    // The rest of the fan or chain keeps its place, and a new edge goes right after it.
+    const items = withoutPair(list[hit.item], hit.pair, match, v.text.slice(start, end));
+    if (edge !== null) items.push(edge);
+    const sep = ctx === "block" ? `\n${v.text.slice(lineStart(v.text, start), start)}` : ", ";
+    return [{ start, end, text: items.map((x) => edgeText(x, ctx)).join(sep) }];
+  }
+  if (edge === null) return [removeItem(v, seq, hit.item)];
+  return [{ start, end, text: edgeText(edge, ctx) }];
 }

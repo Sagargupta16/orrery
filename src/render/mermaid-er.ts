@@ -31,18 +31,32 @@ function word(s: string, fallback: string): string {
   return /^[A-Za-z]/.test(w) ? w : w ? `${fallback}_${w}` : fallback;
 }
 
-/** Entity ids: word characters, never repeated. */
+/** Words Mermaid's erDiagram grammar reads as keywords outside a block; ids never take them. */
+const RESERVED = new Set(
+  "accdescr acctitle class classdef end erdiagram many one only optionally style subgraph to".split(
+    " ",
+  ),
+);
+
+/** Entity ids: word characters, never a keyword, never repeated. */
 function ids(model: Model): Map<string, string> {
   const out = new Map<string, string>();
   const used = new Set<string>();
   for (const n of model.nodes) {
-    const base = word(n.id.replace(/-/g, "_"), "entity");
+    let base = word(n.id.replace(/-/g, "_"), "entity");
+    if (RESERVED.has(base.toLowerCase())) base = `e_${base}`;
     let id = base;
     for (let k = 2; used.has(id.toLowerCase()); k++) id = `${base}_${k}`;
     used.add(id.toLowerCase());
     out.set(n.id, id);
   }
   return out;
+}
+
+/** An attribute word the block would read as a PK, FK or UK key goes in backticks. */
+function attr(s: string, fallback: string): string {
+  const w = word(s, fallback);
+  return /^(?:pk|fk|uk)\b/i.test(w) ? `\`${w}\`` : w;
 }
 
 function attribute(f: ErField): string {
@@ -53,8 +67,8 @@ function attribute(f: ErField): string {
   ];
   const comment = [f.nullable ? "null" : "", f.note ?? ""].filter(Boolean).join(", ");
   return [
-    word(f.type ?? "", "any"),
-    word(f.name, "field"),
+    attr(f.type ?? "", "any"),
+    attr(f.name, "field"),
     ...(keys.length ? [keys.join(", ")] : []),
     ...(comment ? [`"${quoted(comment)}"`] : []),
   ].join(" ");

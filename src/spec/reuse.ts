@@ -2,34 +2,78 @@
 // merges shared specs' groups, nodes, edges, classes and tags into this one, and `classes:` are
 // key sets a node, group or edge takes with `class:` before its own keys. Every existing check
 // then runs on the merged items.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
-import { parse as parseYaml } from "yaml";
-import { EDGE_SYNONYMS, GROUP_SYNONYMS, NODE_SYNONYMS } from "./keys.ts";
+import { EDGE_SYNONYMS, GROUP_SYNONYMS, NODE_SYNONYMS, TOP_KEYS } from "./keys.ts";
 import { closest } from "./suggest.ts";
-import { isObj, type Obj, type Reporter } from "./values.ts";
+import { isObj, type Obj, parseText, type Reporter, readText, unknownKeys } from "./values.ts";
 
 const NAME = /^[a-z0-9][a-z0-9_-]*$/i;
 
 // ---------------------------------------------------------------- include
 
+/**
+ * How included files are read: the text of a path, undefined when there is no such file. False
+ * refuses every include before any file is opened (MCP over HTTP, where the caller may not share
+ * this machine's files).
+ */
+export type IncludeReader = false | ((path: string) => string | undefined);
+
+const fromDisk = (path: string): string | undefined =>
+  existsSync(path) && statSync(path).isFile() ? readText(path) : undefined;
+
+/** The merged spec, and the parser's name for each of its edge items. */
+export interface Included {
+  raw: Obj;
+  /**
+   * `edges[i]` for this spec's own items, numbered as written here, so a finding lands on the
+   * line it names; `include <file> edges[i]` for the items an include brought.
+   */
+  edgeNames: string[];
+}
+
 /** The spec with every `include:` merged in; the spec itself when it includes nothing. */
-export function applyIncludes(raw: Obj, filename: string, r: Reporter): Obj {
-  if (raw.include === undefined || raw.include === null) return raw;
+export function applyIncludes(
+  raw: Obj,
+  filename: string,
+  r: Reporter,
+  read: IncludeReader = fromDisk,
+): Included {
+  const own = edgeItems(raw.edges).map((_, i) => `edges[${i}]`);
+  if (raw.include === undefined || raw.include === null) return { raw, edgeNames: own };
+  if (read === false) {
+    r.err("DG122", "include is refused here: no file may be read", {
+      subject: { where: "include" },
+      fixes: ["paste the shared groups, nodes and edges into this spec"],
+    });
+    return { raw, edgeNames: own };
+  }
   const file = resolve(filename);
   const show = (p: string) => relative(dirname(file), p).replaceAll("\\", "/") || p;
-  return withIncludes(raw, file, [file], r, show);
+  // A file reached twice (two includes share a frame) is merged once.
+  const merged = new Set<string>();
+  const out = withIncludes(raw, file, [file], { r, show, read, merged }, own);
+  return { raw: out.raw, edgeNames: out.names };
+}
+
+interface Walk {
+  r: Reporter;
+  show: (p: string) => string;
+  read: (path: string) => string | undefined;
+  merged: Set<string>;
 }
 
 function withIncludes(
   raw: Obj,
   file: string,
   chain: string[],
-  r: Reporter,
-  show: (p: string) => string,
-): Obj {
+  w: Walk,
+  ownNames: string[],
+): { raw: Obj; names: string[] } {
+  const { r, show } = w;
   const list = includeList(raw.include, show(file), r);
   let merged: Obj = {};
+  let names: string[] = [];
   // Which include each merged id came from, for the clash warning.
   const origin = new Map<string, string>();
   for (const entry of list) {
@@ -42,12 +86,17 @@ function withIncludes(
       });
       continue;
     }
-    const sub = readIncluded(path, show(path), r);
+    if (w.merged.has(path)) continue;
+    w.merged.add(path);
+    const sub = readIncluded(path, show(path), w);
     if (!sub) continue;
-    const full = withIncludes(sub, path, [...chain, path], r, show);
-    merged = layer(merged, full, show(path), origin, r);
+    const subNames = edgeItems(sub.edges).map((_, i) => `include ${show(path)} edges[${i}]`);
+    const full = withIncludes(sub, path, [...chain, path], w, subNames);
+    merged = layer(merged, full.raw, show(path), origin, r);
+    names = [...names, ...full.names];
   }
-  return { ...raw, ...layer(merged, raw, "this spec", origin, r) };
+  const out = { ...raw, ...layer(merged, raw, "this spec", origin, r) };
+  return { raw: out, names: [...names, ...ownNames] };
 }
 
 /** `include: file` or a list of files; anything else is DG122 and includes nothing. */
@@ -63,9 +112,11 @@ function includeList(value: unknown, where: string, r: Reporter): string[] {
   return [];
 }
 
-function readIncluded(path: string, name: string, r: Reporter): Obj | undefined {
+function readIncluded(path: string, name: string, w: Walk): Obj | undefined {
+  const { r } = w;
   const subject = { where: "include", file: name };
-  if (!existsSync(path)) {
+  const text = w.read(path);
+  if (text === undefined) {
     r.err("DG122", `include ${name} not found`, {
       subject,
       fixes: ["check the path; it is read relative to the including spec's folder"],
@@ -74,8 +125,7 @@ function readIncluded(path: string, name: string, r: Reporter): Obj | undefined 
   }
   let raw: unknown;
   try {
-    const text = readFileSync(path, "utf8");
-    raw = /\.json$/i.test(path) ? JSON.parse(text) : parseYaml(text);
+    raw = parseText(text, path);
   } catch (e) {
     r.err("DG122", `cannot read include ${name}: ${(e as Error).message.split("\n")[0]}`, {
       subject,
@@ -83,7 +133,12 @@ function readIncluded(path: string, name: string, r: Reporter): Obj | undefined 
     });
     return undefined;
   }
-  if (isObj(raw)) return raw;
+  if (isObj(raw)) {
+    // Only groups, nodes, edges, classes and tags are merged, but a misspelled key would
+    // silently drop what it holds.
+    unknownKeys(r, raw, TOP_KEYS, {}, `include ${name}`);
+    return raw;
+  }
   r.err("DG122", `include ${name} must be a spec: a mapping with groups, nodes or edges`, {
     subject,
     fixes: [`start ${name} with groups: or nodes:`],
@@ -154,7 +209,7 @@ const edgeItems = (value: unknown): unknown[] =>
 // ---------------------------------------------------------------- classes
 
 /** Every node, group and edge with its `class:` keys merged under its own. */
-export function applyClasses(raw: Obj, r: Reporter): Obj {
+export function applyClasses(raw: Obj, r: Reporter, edgeNames: string[] = []): Obj {
   const used = (v: unknown) => JSON.stringify(v ?? null).includes('"class"');
   if (raw.classes === undefined && !used(raw.nodes) && !used(raw.groups) && !used(raw.edges))
     return raw;
@@ -172,7 +227,7 @@ export function applyClasses(raw: Obj, r: Reporter): Obj {
   if (edges.length)
     out.edges = edges.map((item, i) => {
       if (!isObj(item)) return item;
-      const where = `edges[${i}]`;
+      const where = edgeNames[i] ?? `edges[${i}]`;
       const at = (o: Obj) => withClass(o, where, { edge: where }, EDGE_SYNONYMS, classes, r);
       if ("class" in item) return at(item);
       const [key] = Object.keys(item);
@@ -251,7 +306,8 @@ function withClass(
     }
   };
   for (const name of names as string[]) {
-    const def = classes[name];
+    // Own keys only: class: toString names no class.
+    const def = Object.hasOwn(classes, name) ? classes[name] : undefined;
     if (def) {
       assign(def);
       continue;
@@ -280,8 +336,7 @@ export function includedFiles(raw: Obj, filename: string): string[] {
       if (seen.has(path) || !existsSync(path)) continue;
       seen.add(path);
       try {
-        const text = readFileSync(path, "utf8");
-        const sub: unknown = /\.json$/i.test(path) ? JSON.parse(text) : parseYaml(text);
+        const sub = parseText(readText(path), path);
         if (isObj(sub)) walk(sub, path);
       } catch {
         // An unreadable include is the parser's to report; the watcher still follows the file.

@@ -17,7 +17,9 @@ import { type ErField, ICON_SIZE, type ModelEdge, type ModelNode } from "../type
 import { at, displayPath, humanize, slug } from "./iac.ts";
 
 interface Column {
+  /** As written, without quotes; `key` is how SQL compares it (unquoted names fold to lower case). */
   name: string;
+  key: string;
   type?: string;
   pk: boolean;
   notNull: boolean;
@@ -26,33 +28,48 @@ interface Column {
 }
 
 interface ForeignKey {
+  /** Column keys, here and in the referenced table. */
   columns: string[];
-  /** The referenced table as written (last part of a qualified name) and its columns. */
+  /** The referenced table as written, its key (schema.table) and the key of its last part. */
   ref: string;
+  refKey: string;
+  refLast: string;
   refColumns: string[];
   /** Line of the REFERENCES clause. */
   line: number;
 }
 
 interface Table {
+  /** The last part of its name as written, and the whole name (auth.users). */
   name: string;
+  qualified: string;
+  /** How SQL tells tables apart: every part of the name, and the last part alone. */
+  key: string;
+  last: string;
   line: number;
   columns: Column[];
   fks: ForeignKey[];
-  /** The primary key's columns, inline or from a table constraint. */
+  /** The primary key's column keys, inline or from a table constraint. */
   pk: string[];
 }
 
 // ---------------------------------------------------------------- scanning
 
-/** The text with comments blanked (newlines kept, so offsets keep their lines). */
+/**
+ * The text with comments blanked (newlines kept, so offsets keep their lines): line and block
+ * comments, and a MySQL # comment that starts a line. Inside a string that takes backslash
+ * escapes (Postgres E'...', any '...' once the file reads as MySQL) an escaped quote is rewritten
+ * as a doubled one, the same length, so every later scan reads the string to its real end.
+ */
 function blankComments(src: string): string {
+  const mysql = /`|\bengine\s*=/i.test(src);
+  const lineStart = (i: number) => /^[ \t]*$/.test(src.slice(src.lastIndexOf("\n", i - 1) + 1, i));
   let out = "";
   let i = 0;
   while (i < src.length) {
     const c = src[i] ?? "";
     const two = src.slice(i, i + 2);
-    if (two === "--") {
+    if (two === "--" || (c === "#" && lineStart(i))) {
       const end = src.indexOf("\n", i);
       const stop = end < 0 ? src.length : end;
       out += " ".repeat(stop - i);
@@ -63,8 +80,11 @@ function blankComments(src: string): string {
       out += src.slice(i, stop).replace(/[^\n]/g, " ");
       i = stop;
     } else if (c === "'" || c === '"' || c === "`") {
-      const stop = closeQuote(src, i, c);
-      out += src.slice(i, stop);
+      const escapes =
+        c === "'" && (mysql || /(?:^|[^\w$])[Ee]$/.test(src.slice(Math.max(0, i - 2), i)));
+      const stop = closeQuote(src, i, c, escapes);
+      const text = src.slice(i, stop);
+      out += escapes ? text.replace(/\\(.)/gs, (m, ch: string) => (ch === c ? c + c : m)) : text;
       i = stop;
     } else if (c === "$") {
       const tag = src.slice(i).match(/^\$[A-Za-z_]*\$/)?.[0];
@@ -80,11 +100,12 @@ function blankComments(src: string): string {
   return out;
 }
 
-/** Where a quoted run that opens at `i` ends (a doubled quote stays inside it). */
-function closeQuote(src: string, i: number, q: string): number {
+/** Where a quoted run that opens at `i` ends (a doubled quote, or with `escapes` \', stays in it). */
+function closeQuote(src: string, i: number, q: string, escapes = false): number {
   let j = i + 1;
   while (j < src.length) {
-    if (src[j] === q) {
+    if (escapes && src[j] === "\\") j += 2;
+    else if (src[j] === q) {
       if (src[j + 1] === q) j += 2;
       else return j + 1;
     } else j++;
@@ -135,12 +156,24 @@ const unquote = (s: string) => {
   if (/^`.*`$/s.test(t) || /^\[.*\]$/s.test(t)) return t.slice(1, -1);
   return t;
 };
-/** The last part of a qualified name: public.orders is orders. */
-const lastPart = (chain: string) => unquote(chain.match(new RegExp(`${IDENT}\\s*$`))?.[0] ?? chain);
-/** Column names in a list: (a, "b" ASC) is a and b. */
+/** A name as SQL compares it: unquoted, it folds to lower case; quoted, it stays as written. */
+const ident = (s: string) => {
+  const t = s.trim();
+  return /^["`[]/.test(t) ? unquote(t) : t.toLowerCase();
+};
+/** The parts of a qualified name: public.orders is public and orders. */
+const partsOf = (chain: string) => chain.match(new RegExp(IDENT, "g")) ?? [chain];
+/** The last part of a qualified name, as written: public.orders is orders. */
+const lastPart = (chain: string) => unquote(partsOf(chain).at(-1) ?? chain);
+/** A table's name as SQL compares it: every part, then the last part alone. */
+const tableKeys = (chain: string) => {
+  const parts = partsOf(chain).map(ident);
+  return { key: parts.join("."), last: parts.at(-1) ?? "" };
+};
+/** Column names in a list, as SQL compares them: (a, "B" ASC) is a and B. */
 const names = (list: string) =>
   splitTop(list, ",")
-    .map(({ part }) => unquote(part.trim().split(/\s+/)[0] ?? ""))
+    .map(({ part }) => ident(part.trim().split(/\s+/)[0] ?? ""))
     .filter(Boolean);
 
 /** A type as a field writes it: lower case, no spaces where SQL spells it in words. */
@@ -164,13 +197,26 @@ function normType(raw: string): string {
 const CLAUSE =
   /\b(constraint|not\s+null|null|primary\s+key|references|unique|default|check|collate|generated|auto_increment|autoincrement|identity|on\s+update|comment)\b/i;
 
+/**
+ * Table elements that are not columns, in their own syntax: an index (KEY, INDEX, FULLTEXT,
+ * SPATIAL) and its column list, CHECK (...), EXCLUDE USING, LIKE t, PERIOD FOR. A column may be
+ * named key, period or exclude; `key varchar(20)` has a size in its parentheses, not columns.
+ */
+const ELEMENT = new RegExp(
+  String.raw`^(?:(?:(?:fulltext|spatial)\b\s*(?:(?:key|index)\b\s*)?|(?:key|index)\b\s*)(?:${IDENT}\s*)?\(\s*[A-Za-z_"\x60]|check\s*\(|exclude\s+(?:using\b|\()|like\s+${IDENT}|period\s+for\b)`,
+  "i",
+);
+
+/** String literals blanked, the same length, so a keyword inside one ('null', 'unique') is text. */
+const blankStrings = (s: string) => s.replace(/'(?:[^']|'')*'/g, (m) => " ".repeat(m.length));
+
 // ---------------------------------------------------------------- statements
 
 function readTable(
   body: string,
   offset: number,
   lineAt: (i: number) => number,
-): Omit<Table, "name" | "line"> {
+): Pick<Table, "columns" | "fks" | "pk"> {
   const columns: Column[] = [];
   const fks: ForeignKey[] = [];
   const pk: string[] = [];
@@ -187,16 +233,17 @@ function readTable(
       if (m.fk) fks.push(m.fk);
       continue;
     }
-    if (/^(check|exclude|key|index|fulltext|spatial|like|period)\b/i.test(item)) continue;
+    if (ELEMENT.test(item)) continue;
     const col = item.match(new RegExp(`^(${IDENT})\\s*(.*)$`, "s"));
     if (!col?.[1]) continue;
     const name = unquote(col[1]);
     const rest = col[2] ?? "";
-    const clause = rest.search(CLAUSE);
+    const clause = blankStrings(rest).search(CLAUSE);
     const type = normType(clause < 0 ? rest : rest.slice(0, clause));
-    const flags = clause < 0 ? "" : rest.slice(clause);
+    const flags = clause < 0 ? "" : blankStrings(rest).slice(clause);
     const c: Column = {
       name,
+      key: ident(col[1]),
       ...(type ? { type } : {}),
       pk: /\bprimary\s+key\b/i.test(flags),
       notNull: /\bnot\s+null\b/i.test(flags),
@@ -208,8 +255,8 @@ function readTable(
       c.fk = true;
       const refAt = start + item.length - rest.length + clause + (ref.index ?? 0);
       fks.push({
-        columns: [name],
-        ref: lastPart(ref[1]),
+        columns: [c.key],
+        ...refOf(ref[1]),
         refColumns: ref[2] ? names(ref[2]) : [],
         line: lineAt(refAt),
       });
@@ -217,12 +264,18 @@ function readTable(
     columns.push(c);
   }
   for (const c of columns) {
-    if (pk.includes(c.name)) c.pk = true;
-    if (uniques.some((u) => u.length === 1 && u[0] === c.name)) c.unique = true;
-    if (fks.some((f) => f.columns.includes(c.name))) c.fk = true;
+    if (pk.includes(c.key)) c.pk = true;
+    if (uniques.some((u) => u.length === 1 && u[0] === c.key)) c.unique = true;
+    if (fks.some((f) => f.columns.includes(c.key))) c.fk = true;
   }
-  return { columns, fks, pk: columns.filter((c) => c.pk).map((c) => c.name) };
+  return { columns, fks, pk: columns.filter((c) => c.pk).map((c) => c.key) };
 }
+
+/** A REFERENCES target: as written, and its keys. */
+const refOf = (chain: string) => {
+  const { key, last } = tableKeys(chain);
+  return { ref: lastPart(chain), refKey: key, refLast: last };
+};
 
 interface Constraint {
   pk?: string[];
@@ -253,14 +306,28 @@ function constraintOf(
     return {
       fk: {
         columns: names(fk[1]),
-        ref: lastPart(fk[2]),
+        ...refOf(fk[2]),
         refColumns: fk[3] ? names(fk[3]) : [],
         line: lineAt(refAt),
       },
     };
   }
-  if (new RegExp(`^${CONSTRAINT}(check|exclude)\\b`, "i").test(item)) return {};
+  if (new RegExp(`^${CONSTRAINT}(?:check\\s*\\(|exclude\\s+(?:using\\b|\\())`, "i").test(item))
+    return {};
   return undefined;
+}
+
+/**
+ * The table a name means: the one with every part the same, else the only one whose last part
+ * is (public.users for users), else the one in the default schema public. The last one created
+ * when several share the name.
+ */
+function tableNamed(tables: Table[], key: string, last: string): Table | undefined {
+  const exact = tables.filter((t) => t.key === key);
+  if (exact.length) return exact.at(-1);
+  const same = tables.filter((t) => t.last === last);
+  if (new Set(same.map((t) => t.key)).size === 1) return same.at(-1);
+  return same.filter((t) => t.key === `public.${last}`).at(-1);
 }
 
 function readTables(src: string): Table[] {
@@ -295,7 +362,13 @@ function readTables(src: string): Table[] {
       // The line the table's name is on, which its evidence names.
       const nameAt = off + lead + (create[0]?.lastIndexOf(create[1]) ?? 0);
       const read = readTable(body, off + lead + open + 1, lineAt);
-      tables.push({ name: lastPart(create[1]), line: lineAt(nameAt), ...read });
+      tables.push({
+        name: lastPart(create[1]),
+        qualified: partsOf(create[1]).map(unquote).join("."),
+        ...tableKeys(create[1]),
+        line: lineAt(nameAt),
+        ...read,
+      });
       continue;
     }
     const alter = stmt.match(
@@ -308,7 +381,7 @@ function readTables(src: string): Table[] {
         if (!add) continue;
         const aLead = a.length - a.trimStart().length;
         later.push({
-          table: lastPart(alter[1]),
+          table: alter[1],
           item: a.trim().slice(add[0].length),
           at: actionsAt + aOff + aLead + add[0].length,
         });
@@ -317,18 +390,37 @@ function readTables(src: string): Table[] {
   }
   // Constraints added after their table (pg_dump puts every key in an ALTER TABLE).
   for (const { table, item, at: start } of later) {
-    const t = tables.find((x) => x.name === table);
+    const { key, last } = tableKeys(table);
+    const t = tableNamed(tables, key, last);
     const m = t && constraintOf(item, start, lineAt);
     if (!t || !m) continue;
     for (const c of t.columns) {
-      if (m.pk?.includes(c.name)) c.pk = true;
-      if (m.unique?.length === 1 && m.unique[0] === c.name) c.unique = true;
-      if (m.fk?.columns.includes(c.name)) c.fk = true;
+      if (m.pk?.includes(c.key)) c.pk = true;
+      if (m.unique?.length === 1 && m.unique[0] === c.key) c.unique = true;
+      if (m.fk?.columns.includes(c.key)) c.fk = true;
     }
     if (m.fk) t.fks.push(m.fk);
-    t.pk = t.columns.filter((c) => c.pk).map((c) => c.name);
+    t.pk = t.columns.filter((c) => c.pk).map((c) => c.key);
   }
   return tables;
+}
+
+/**
+ * What the import could not read, for the CLI to print: CREATE TABLE statements that gave no
+ * table (a string or parenthesis that never closes swallows everything after it).
+ */
+export function sqlWarnings(text: string): string[] {
+  const written = (
+    blankComments(text).match(
+      /(?:^|;)\s*create\s+(?:or\s+replace\s+)?(?:(?:global|local)\s+)?(?:temp(?:orary)?\s+)?(?:unlogged\s+)?table\b/gi,
+    ) ?? []
+  ).length;
+  const read = readTables(text).length;
+  return read < written
+    ? [
+        `read ${read} of ${written} CREATE TABLE statements; look for a quote or parenthesis that does not close before the first table missing from the output`,
+      ]
+    : [];
 }
 
 /** The text between the parenthesis at `open` and the one that closes it. */
@@ -373,19 +465,27 @@ export function importSql(text: string, path: string): string {
   const stdin = path === "-";
   const shown = stdin ? "standard input" : displayPath(path);
   const tables = readTables(text);
-  const ids = new Map<string, string>();
+  // Two schemas with a table of one name (auth.users, public.users): each is labelled in full.
+  const labelOf = (t: Table) =>
+    new Set(tables.filter((x) => x.last === t.last).map((x) => x.key)).size > 1
+      ? t.qualified
+      : t.name;
+  // An id per table, so a name created twice or in two schemas still gives two entries.
+  const ids = new Map<Table, string>();
   const taken = new Set<string>();
   for (const t of tables) {
-    const base = ID.test(t.name) ? t.name : slug(t.name);
+    const label = labelOf(t);
+    const base = ID.test(label) ? label : slug(label);
     let id = base;
     for (let k = 2; taken.has(id.toLowerCase()); k++) id = `${base}-${k}`;
     taken.add(id.toLowerCase());
-    ids.set(t.name, id);
+    ids.set(t, id);
   }
-  const byName = new Map(tables.map((t) => [t.name, t]));
+  const idOf = (t: Table) => ids.get(t) ?? t.name;
+  const columnName = (t: Table, key: string) => t.columns.find((c) => c.key === key)?.name ?? key;
   const nodes: ModelNode[] = tables.map((t) => ({
-    id: ids.get(t.name) ?? t.name,
-    label: t.name,
+    id: idOf(t),
+    label: labelOf(t),
     look: "card",
     shape: "box",
     iconSize: ICON_SIZE,
@@ -404,8 +504,8 @@ export function importSql(text: string, path: string): string {
   const lines: string[] = [];
   for (const t of tables) {
     for (const fk of t.fks) {
-      const parent = byName.get(fk.ref);
-      const column = fk.columns[0] ?? "";
+      const parent = tableNamed(tables, fk.refKey, fk.refLast);
+      const column = columnName(t, fk.columns[0] ?? "");
       if (!parent) {
         left.push(`# left out: ${t.name}.${column} references ${fk.ref} (not in ${shown})`);
         continue;
@@ -416,9 +516,9 @@ export function importSql(text: string, path: string): string {
         );
         continue;
       }
-      const child = t.columns.find((c) => c.name === column);
-      const nullable = fk.columns.some((name) => {
-        const c = t.columns.find((x) => x.name === name);
+      const child = t.columns.find((c) => c.key === fk.columns[0]);
+      const nullable = fk.columns.some((key) => {
+        const c = t.columns.find((x) => x.key === key);
         return !!c && !c.notNull && !c.pk;
       });
       // One child at most: the key is unique, or it is the child's whole primary key.
@@ -428,9 +528,10 @@ export function importSql(text: string, path: string): string {
           t.pk.length === fk.columns.length &&
           t.pk.every((p) => fk.columns.includes(p)));
       const card = `${nullable ? "0..1" : "1"}:${single ? "0..1" : "0..n"}`;
-      const refColumn = fk.refColumns[0] ?? parent.pk[0] ?? "id";
-      const from = ids.get(parent.name) ?? parent.name;
-      const to = ids.get(t.name) ?? t.name;
+      const refKey = fk.refColumns[0] ?? parent.pk[0];
+      const refColumn = refKey === undefined ? "id" : columnName(parent, refKey);
+      const from = idOf(parent);
+      const to = idOf(t);
       // The rows layout would infer; name them only where it would pick others.
       const edge: ModelEdge = { id: "e", from, to, line: "solid", arrow: "none", constraint: true };
       const inferred = joinedRows({ nodes }, edge);
@@ -455,8 +556,8 @@ export function importSql(text: string, path: string): string {
   else {
     out.push("nodes:");
     for (const t of tables) {
-      out.push(`  ${ids.get(t.name) ?? t.name}:`);
-      if ((ids.get(t.name) ?? t.name) !== t.name) out.push(`    label: ${q(t.name)}`);
+      out.push(`  ${idOf(t)}:`);
+      if (idOf(t) !== labelOf(t)) out.push(`    label: ${q(labelOf(t))}`);
       if (t.columns.length) {
         out.push("    fields:");
         for (const c of t.columns) out.push(`      - ${fieldText(c)}`);

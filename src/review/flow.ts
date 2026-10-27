@@ -299,7 +299,11 @@ function faceEnds(c: Ctx): { off: number; gaps: number } {
   return counts;
 }
 
-/** Unrelated edges on one line (layout lane: collinear overlap, no shared endpoint). */
+/**
+ * Unrelated edges on one line (layout lane: collinear overlap, no shared endpoint). Edges that
+ * share an end fan out or in together by design, but two edges between the same two ends the
+ * other way round never do: on one line they read as one line with a head at each end.
+ */
 function sharedTrunks(c: Ctx): Set<string> {
   const { scene, add } = c;
   const trunks = new Set<string>();
@@ -309,7 +313,9 @@ function sharedTrunks(c: Ctx): Set<string> {
       const a = E[i];
       const b = E[j];
       if (!a || !b) continue;
-      if (a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to) continue;
+      const swapped = a.from !== a.to && a.from === b.to && a.to === b.from;
+      if (!swapped && (a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to))
+        continue;
       let olap = 0;
       for (const [p, q] of segments(a.points))
         for (const [u, v] of segments(b.points)) {
@@ -499,8 +505,9 @@ function arrowSemantics(c: Ctx): { both: SceneEdge[]; none: SceneEdge[] } {
   const both = scene.edges.filter((e) => e.arrow === "both");
   // A plain line is meant when the legend explains its style (the rule's own fix), when it is a
   // BPMN association, or when the notation draws no heads (tree and mind map connectors, and
-  // data model relationships, whose ends carry cardinality marks instead).
-  const keyed = new Set((model.legend ?? []).map((l) => l.line));
+  // data model relationships, whose ends carry cardinality marks instead). A tag's color chip
+  // explains a color, not a line.
+  const keyed = new Set((model.legend ?? []).filter((l) => !l.chip).map((l) => l.line));
   const plain = (e: SceneEdge) =>
     model.kind === "tree" ||
     model.kind === "mindmap" ||

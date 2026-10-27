@@ -7,7 +7,7 @@ import type { ElkNode } from "./elk.ts";
 import { round } from "./geometry.ts";
 import { type HeaderRoom, paintGroup } from "./groups.ts";
 import { sceneNodes } from "./nodes.ts";
-import { drawOverlays } from "./overlays.ts";
+import { drawOverlays, overlaysAround } from "./overlays.ts";
 import { seatNodes } from "./seats.ts";
 import { SIZES } from "./sizes.ts";
 import { stretchColumns, trimGroups } from "./trim.ts";
@@ -51,6 +51,10 @@ export function readBack(ctx: Laid): Placed {
   const nodes = sceneNodes(ctx, placed, groups, top);
   drawOverlays(paint, groups, nodes);
   const read = { ...ctx, top, shift, placed, headerRoom, groups, nodes };
+  // Seats are tried against the overlays drawn around ELK's spots; an overlay around a node that
+  // moved onto a border then follows it there.
   const { seats, grow } = seatNodes(read);
+  const moved = overlaysAround(model, new Set(seats.keys()));
+  if (moved.size) drawOverlays(paint, groups, nodes, moved);
   return { ...read, seats, seatGrow: grow };
 }

@@ -96,7 +96,7 @@ const TOOLS = new Set([
 const TARGETS = new Set(["last_message", "trace", "files", "mock_calls"]);
 const ORRERY = 'node "/plugins/orrery/skills/orrery/scripts/orrery.mjs"';
 const BAD_SPEC = join(evalsDir, "fixtures/bad-spec/repo/docs/architecture.yaml");
-const BAD_SPEC_SCORE = 74.1;
+const BAD_SPEC_SCORE = 70.9;
 const CONFIRM = [
   "Services: Orders HTTP API, Create order (Lambda), Orders table, Order events (SQS), Send receipt (Lambda), Receipts bucket",
   "Boundaries: AWS Cloud > us-east-1",

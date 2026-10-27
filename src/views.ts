@@ -108,7 +108,9 @@ function messagesOf(
 
 /**
  * Fragments renumbered to the messages the view keeps: each spans the kept messages inside its
- * old range, an else branch moves to its first kept message, and a fragment left with none goes.
+ * old range, and a fragment left with none goes. A branch (the fragment's own guard up to the
+ * first else, each else up to the next) moves to its own first kept message or goes when it
+ * keeps none; when the first branch goes, the next one's guard labels the fragment.
  */
 function fragmentsOf(model: Model, edges: ModelEdge[]): SeqFragment[] {
   const index = new Map(model.edges.map((e, i) => [e.id, i + 1]));
@@ -117,15 +119,16 @@ function fragmentsOf(model: Model, edges: ModelEdge[]): SeqFragment[] {
   const within = (from: number, to: number) =>
     [...renumber].filter(([old]) => old >= from && old <= to).map(([, now]) => now);
   return (model.fragments ?? []).flatMap((f): SeqFragment[] => {
-    const kept = within(f.from, f.to);
-    const first = kept[0];
-    const last = kept.at(-1);
-    if (first === undefined || last === undefined) return [];
-    const branches = (f.else ?? []).flatMap((b) => {
-      const at = within(b.at, f.to)[0];
-      return at !== undefined && at > first ? [{ ...b, at }] : [];
+    const last = within(f.from, f.to).at(-1);
+    const guards = [{ at: f.from, ...(f.label ? { label: f.label } : {}) }, ...(f.else ?? [])];
+    const branches = guards.flatMap((b, i) => {
+      const at = within(b.at, (guards[i + 1]?.at ?? f.to + 1) - 1)[0];
+      return at === undefined ? [] : [{ ...b, at }];
     });
-    return [{ ...f, from: first, to: last, ...(branches.length ? { else: branches } : {}) }];
+    const [head, ...rest] = branches;
+    if (!head || last === undefined) return [];
+    const { at: from, ...guard } = head;
+    return [{ type: f.type, ...guard, from, to: last, ...(rest.length ? { else: rest } : {}) }];
   });
 }
 

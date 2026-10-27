@@ -12,7 +12,7 @@ description: >-
   or a Mermaid flowchart into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.12.1"
+  version: "0.12.2"
   author: Sagar Gupta
 ---
 
@@ -30,7 +30,7 @@ Below, `orrery` means that command.
 
 Follow this order. Write the spec early and let the validator steer; do not plan coordinates, layout is automatic.
 
-1. **Pin the brief** in one line before drawing: what the diagram must show, for whom (README, design doc, slide), which cloud or vendor style, light/dark, which outputs. Default: SVG + PNG, the `stage` skin in the dark theme, `direction: right` (`down` for tiered stacks and long chains). A flow rather than an architecture gets a `kind:` (see [Kinds](references/spec.md#kinds)): `flowchart` (ISO 5807 symbols), `process` (BPMN 2.0 with `pool` and `lane` groups and `bpmn:` nodes), `state` (UML), `tree` (org charts), `mindmap`, `journey` (stages, lanes and scores), `er` (data models: tables from `fields:`, crow's foot ends from `card:`), `sequence` (participants left to right, messages top to bottom in spec order, `fragments:` for loops and branches), `timeline` (roadmaps: lanes from groups, `start:`/`end:` bars, `date:` milestones, `status:`).
+1. **Pin the brief** in one line before drawing: what the diagram must show, for whom (README, design doc, slide), which cloud or vendor style, light/dark, which outputs. Default: SVG + PNG, the `stage` skin in the dark theme, `direction: right` (`down` for tiered stacks and long chains). A flow rather than an architecture gets a `kind:` (see [Kinds](references/spec.md#kinds)): `flowchart` (ISO 5807 symbols), `process` (BPMN 2.0 with `pool` and `lane` groups and `bpmn:` nodes), `state` (UML), `tree` (org charts), `mindmap`, `journey` (stages, lanes and scores), `er` (data models: tables from `fields:`, crow's foot ends from `card:`), `sequence` (participants left to right, messages top to bottom in spec order, `fragments:` for loops and branches), `timeline` (roadmaps: lanes from groups, `start:`/`end:` bars, `date:` points, `milestone: true` diamonds, `status:`).
 2. **Find every icon id**, never guess one:
 
    ```bash

@@ -103,26 +103,35 @@ function fromCache(src: LibrarySource): Buffer | undefined {
 async function download(src: LibrarySource): Promise<Buffer> {
   const problems: string[] = [];
   for (const url of libraryUrls(src)) {
+    let buf: Buffer;
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
       if (!res.ok) {
         problems.push(`${url}: HTTP ${res.status}`);
         continue;
       }
-      const buf = Buffer.from(await res.arrayBuffer());
-      if (sha256(buf) !== src.sha256) {
-        problems.push(`${url}: checksum mismatch`);
-        continue;
-      }
-      const path = cachePath(src);
+      buf = Buffer.from(await res.arrayBuffer());
+    } catch (e) {
+      problems.push(`${url}: ${(e as Error).message}`);
+      continue;
+    }
+    if (sha256(buf) !== src.sha256) {
+      problems.push(`${url}: checksum mismatch`);
+      continue;
+    }
+    // A verified download is used even when the cache cannot be written (read-only home).
+    const path = cachePath(src);
+    try {
       mkdirSync(dirname(path), { recursive: true });
       const tmp = `${path}.${process.pid}.tmp`;
       writeFileSync(tmp, buf);
       renameSync(tmp, path);
-      return buf;
     } catch (e) {
-      problems.push(`${url}: ${(e as Error).message}`);
+      process.stderr.write(
+        `warn  icon library ${src.npm}@${src.version} was not cached (${(e as Error).message}); set ORRERY_CACHE to a writable folder\n`,
+      );
     }
+    return buf;
   }
   throw new LibraryError(
     `icon library ${src.npm}@${src.version} could not be downloaded (${problems.join("; ")})`,

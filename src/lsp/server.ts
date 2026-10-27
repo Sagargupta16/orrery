@@ -136,18 +136,29 @@ export function createServer(send: (msg: unknown) => void, exit: (code: number) 
     publish(doc);
   }
 
-  function analyze(doc: Doc) {
+  function analyze(doc: Doc, opened = false) {
     clearTimeout(doc.timer);
     doc.model = undefined;
     doc.parsed = [];
-    if (isSpec(doc.text)) {
-      try {
-        const result = parseSpec(doc.text, doc.path);
-        doc.parsed = result.diagnostics;
-        doc.model = result.model;
-      } catch (e) {
-        process.stderr.write(`orrery lsp: parse failed: ${(e as Error)?.stack ?? e}\n`);
+    if (!isSpec(doc.text)) {
+      // Other YAML is never parsed: an empty list on open, and once when a spec stops being one.
+      doc.layout = [];
+      if (opened || doc.placed.length) {
+        doc.placed = [];
+        notify("textDocument/publishDiagnostics", {
+          uri: doc.uri,
+          version: doc.version,
+          diagnostics: [],
+        });
       }
+      return;
+    }
+    try {
+      const result = parseSpec(doc.text, doc.path);
+      doc.parsed = result.diagnostics;
+      doc.model = result.model;
+    } catch (e) {
+      process.stderr.write(`orrery lsp: parse failed: ${(e as Error)?.stack ?? e}\n`);
     }
     if (!doc.model) doc.layout = [];
     publish(doc);
@@ -245,7 +256,7 @@ export function createServer(send: (msg: unknown) => void, exit: (code: number) 
         ids: { nodes: [], groups: [] },
       };
       docs.set(uri, doc);
-      analyze(doc);
+      analyze(doc, true);
     },
     "textDocument/didChange": (p) => {
       const doc = docs.get(p.textDocument?.uri ?? "");

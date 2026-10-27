@@ -7,10 +7,9 @@
 // and the routes out through NAT. A plan's unknown values are read from the configuration's
 // references instead, through module calls and outputs. `count` and `for_each` copies become one
 // node with a badge.
-import { readFileSync } from "node:fs";
 import { basename, dirname, extname } from "node:path";
 import { accessOf, Draft, displayPath, humanize, portLabel } from "./iac.ts";
-import { asList, isObj, type Obj, text } from "./source.ts";
+import { asList, isObj, type Obj, readText, text } from "./source.ts";
 import {
   AWS,
   awsBalancer,
@@ -36,7 +35,6 @@ interface Block {
   type: string;
   name: string;
   module: string;
-  provider: string;
   instances: Instance[];
   config?: Obj;
   scope?: Scope;
@@ -85,7 +83,7 @@ const ROLE = ["aws_iam_role"];
 const SUBNET = ["aws_subnet"];
 
 export async function importTerraform(path: string): Promise<Imported> {
-  const raw: unknown = JSON.parse(readFileSync(path, "utf8"));
+  const raw: unknown = JSON.parse(readText(path));
   if (!isObj(raw)) throw new Error(`${path} is not the JSON of terraform show -json`);
   return new Terraform(raw, path).run();
 }
@@ -139,7 +137,6 @@ class Terraform {
         type: text(r.type) ?? "",
         name: text(r.name) ?? "",
         module: scope.prefix.replace(/\.$/, ""),
-        provider: "",
         instances: [],
         config: r,
         scope,
@@ -191,7 +188,6 @@ class Terraform {
           type,
           name: text(r.name) ?? "",
           module,
-          provider: text(r.provider_name) ?? "",
           instances: [],
           ...(scope ? { scope } : {}),
           ...(config ? { config } : {}),
@@ -470,11 +466,6 @@ class Terraform {
     return this.account;
   }
 
-  private providerOf(b: Block): string {
-    const key = text(b.config?.provider_config_key)?.split(":").pop();
-    return `provider.${key ?? b.provider.split("/").pop() ?? "aws"}`;
-  }
-
   private awsBoundaries() {
     const aws = [...this.blocks.values()].filter(
       (b) => b.mode === "managed" && b.type.startsWith("aws_"),
@@ -482,11 +473,12 @@ class Terraform {
     const first = aws[0];
     if (!first) return;
     this.byAccount = new Set(aws.map((b) => this.accountOf(b)).filter(Boolean)).size > 1;
+    // Boundaries cite a resource inside them, an address `orrery verify` finds in the .tf files.
     this.draft.group("aws", {
       type: "aws:cloud",
       label: "AWS Cloud",
       hint: "cloud",
-      evidence: [this.providerOf(first)],
+      evidence: [first.key],
     });
     for (const b of aws) {
       if (b.type !== "aws_vpc") continue;
@@ -515,12 +507,13 @@ class Terraform {
         hint: `account-${account}`,
         evidence: [b.key],
       });
-    return this.draft.group(`region:${account ?? ""}:${region ?? ""}`, {
+    const key = `region:${account ?? ""}:${region ?? ""}`;
+    return this.draft.group(key, {
       type: "aws:region",
       label: region ?? "Region",
       parent,
       hint: region ?? "region",
-      evidence: [region ? this.providerOf(b) : b.key],
+      evidence: this.draft.groups.has(key) ? [] : [b.key],
     });
   }
 
@@ -1003,14 +996,13 @@ class Terraform {
           const targets = new Set(st.refs);
           for (const a of st.arns) if (a !== "*") for (const k of this.resolve(a)) targets.add(k);
           for (const action of st.actions)
-            for (const access of accessOf(action))
-              for (const t of targets)
+            for (const t of targets)
+              for (const access of accessOf(action, this.blocks.get(t)?.type))
                 for (const target of this.nodesFor(t))
                   for (const u of users) {
                     if (target === u) continue;
-                    const evidence = [`${policy} (${action})`];
-                    if (access.pull) this.draft.edge(target, u, access.verb, evidence);
-                    else this.draft.edge(u, target, access.verb, evidence);
+                    if (access.pull) this.draft.edge(target, u, access.verb, [policy]);
+                    else this.draft.edge(u, target, access.verb, [policy]);
                   }
         }
       }
@@ -1101,23 +1093,29 @@ class Terraform {
       return portLabel(from, to, text(v[proto]));
     };
     for (const b of this.ofType("aws_security_group")) {
-      const exprs = isObj(b.config?.expressions) ? b.config.expressions : {};
-      const configured = asList(exprs.ingress);
-      for (const inst of b.instances)
-        asList(inst.values.ingress).forEach((r, i) => {
-          if (!isObj(r)) return;
+      // A plan leaves out the groups a rule names until apply, and the configuration writes every
+      // inline rule as one expression: its groups go to the rules whose groups are unknown.
+      const named = refsAt(b, "ingress.security_groups").filter(
+        (k) => this.blocks.get(k)?.type === "aws_security_group",
+      );
+      for (const inst of b.instances) {
+        const rules = asList(inst.values.ingress).filter(isObj);
+        const unknown = rules.filter((r) => r.security_groups === undefined);
+        if (named.length && unknown.length > 1)
+          this.draft.warn(
+            `${b.key}: its ingress rules name their groups only at apply, so each rule is drawn from every group they name; import a state, or write the rules as aws_vpc_security_group_ingress_rule resources`,
+          );
+        for (const r of rules) {
           const sources = asList(r.security_groups)
             .map(text)
             .filter(isText)
             .flatMap((s) => this.resolve(s, SG));
-          const fromConfig = configured[i];
-          if (isObj(fromConfig) && b.scope)
-            sources.push(...refsOf(b.scope, referencesIn(fromConfig.security_groups)));
+          if (r.security_groups === undefined) sources.push(...named);
           if (r.self === true) sources.push(b.key);
-          const label = ports(r);
           const cidrs = [...asList(r.cidr_blocks), ...asList(r.ipv6_cidr_blocks)];
-          allow(b.key, sources, open(cidrs), label, [`${b.key} (ingress ${label})`]);
-        });
+          allow(b.key, sources, open(cidrs), ports(r), [b.key]);
+        }
+      }
     }
     for (const b of this.ofType("aws_security_group_rule")) {
       const v = b.instances[0]?.values ?? {};
@@ -1226,12 +1224,20 @@ function referencesIn(expr: unknown): string[] {
   return isObj(expr) ? asList(expr.references).map(text).filter(isText) : [];
 }
 
-/** The configuration's references at a dotted attribute path, as block keys. */
+/**
+ * The configuration's references at a dotted attribute path, as block keys. Blocks a provider
+ * keeps as an attribute (a route table's `route`, a security group's `ingress`) are one expression
+ * whose references cover every block, so the path stops there and callers filter by type.
+ */
 function refsAt(b: Block, path: string): string[] {
   if (!b.scope || !isObj(b.config?.expressions)) return [];
   let level: unknown[] = [b.config.expressions];
   for (const step of path.split("."))
-    level = level.flatMap((x) => asList(isObj(x) ? x[step] : undefined)).flat();
+    level = level
+      .flatMap((x) =>
+        asList(isObj(x) ? (x[step] ?? (Array.isArray(x.references) ? x : undefined)) : undefined),
+      )
+      .flat();
   return refsOf(b.scope, level.flatMap(referencesIn));
 }
 
@@ -1295,21 +1301,28 @@ function verbFor(type: string | undefined): string {
 
 /** A block's name: its Name tag, a name attribute, else the block name; copies lose their key. */
 function labelOf(b: Block): string {
-  const first = b.instances[0];
-  const v = first?.values ?? {};
-  const tags = isObj(v.tags) ? v.tags : {};
-  const name =
-    text(tags.Name) ??
+  const [first, second] = b.instances;
+  const nameOf = (v: Obj = {}) =>
+    text(isObj(v.tags) ? v.tags.Name : undefined) ??
     ["name", "function_name", "bucket", "cluster_identifier", "replication_group_id", "identifier"]
       .map((k) => text(v[k]))
       .find(Boolean);
+  const name = nameOf(first?.values);
   const block = humanize(GENERIC_NAME.test(b.name) ? shortType(b.type) : b.name);
   if (!name) return block;
-  if (b.instances.length < 2 || first?.index === undefined) return name;
+  if (!second || first?.index === undefined) return name;
   // for_each keys name each copy (orders, emails): the block's own name names the set.
   if (typeof first.index === "string") return block;
-  const index = String(first.index);
-  return name.replace(new RegExp(`[-_ .]?${index}$`), "") || name;
+  // count copies named apart (shop-nat-0, shop-nat-1) share what comes before the difference, a
+  // number cut whole; copies that all carry one name (app-node-v1.30) keep it.
+  const other = nameOf(second.values) ?? "";
+  if (other === name) return name;
+  let n = 0;
+  while (n < name.length && name[n] === other[n]) n++;
+  const shared = /^\d/.test(name.slice(n))
+    ? name.slice(0, n).replace(/\d+$/, "")
+    : name.slice(0, n);
+  return shared.replace(/[-_ .]+$/, "") || name;
 }
 
 /** The keys of for_each copies, for the note: "orders, emails". */

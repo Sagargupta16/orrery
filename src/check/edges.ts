@@ -1,5 +1,6 @@
 // Where edges run: through or close past a node, through a group's header or another edge's label,
 // and whether each arrowhead has a straight run to point along.
+import { stageHead } from "../layout/elbows.ts";
 import type { Point, Scene, SceneEdge } from "../types.ts";
 import type { CheckContext } from "./context.ts";
 import {
@@ -15,10 +16,6 @@ import {
 
 /** Closer than this (canvas px) an edge reads as touching a node it passes (DG221). */
 const SKIM_PX = 10;
-/** The stage skin draws its open chevrons at this length per hairline (render/stage/draw-edges.ts). */
-const STAGE_HEAD = 6;
-/** The display width the stage skin scales its hairline to (render/stage/index.ts). */
-const STAGE_DISPLAY = 880;
 
 /** DG201: an edge runs through a node it does not connect. */
 export function edgeThroughNode({ scene, nodeBoxes, warn }: CheckContext): void {
@@ -133,13 +130,9 @@ export function edgeSkimsNode({ scene, nodeBoxes, warn }: CheckContext): void {
   }
 }
 
-/** How long the skin draws this edge's arrowhead, in canvas px. */
+/** How long the skin draws this edge's arrowhead, in canvas px (layout keeps a run this long). */
 const headLength = (scene: Scene, e: SceneEdge) =>
-  scene.skin === "stage"
-    ? STAGE_HEAD * Math.max(1, scene.width / STAGE_DISPLAY)
-    : e.line === "thick"
-      ? 11
-      : 9;
+  scene.skin === "stage" ? stageHead(scene.width) : e.line === "thick" ? 11 : 9;
 
 /**
  * The run an arrowhead at pts[0] points along: the length of the last segment (`raw`, which the

@@ -4,7 +4,16 @@ import type { Args } from "./cli/args.ts";
 import { printDiagnostics, readSpec, renderFailure, usage } from "./cli/io.ts";
 import { renderModel } from "./render/index.ts";
 import { parseSpec } from "./spec/index.ts";
-import type { Box, Model, ModelEdge, Scene } from "./types.ts";
+import type {
+  Box,
+  EdgeLine,
+  ItemStatus,
+  Model,
+  ModelEdge,
+  Scene,
+  SeqFragment,
+  TimeScale,
+} from "./types.ts";
 
 /** One end of an edge as a node or group sees it: out, in, both ways, or a plain line. */
 export interface DescribedLink {
@@ -47,6 +56,28 @@ export interface DescribedStep {
   label?: string;
 }
 
+/** A sequence diagram's message, numbered from 1 in spec order, which is time. */
+export interface DescribedMessage {
+  n: number;
+  from: string;
+  to: string;
+  /** As the spec writes it, in travel order: `->` a call, `-->` a reply, `..>` a signal. */
+  arrow: string;
+  label?: string;
+  edge: string;
+}
+
+/** A timeline item with a date: ISO days, the first and (for a span) the last. */
+export interface DescribedDate {
+  id: string;
+  start: string;
+  end?: string;
+  /** What the spec wrote it to: 2026, 2026-Q3, 2026-09 or 2026-09-12. */
+  precision: TimeScale;
+  milestone?: true;
+  status?: ItemStatus;
+}
+
 export interface Description {
   title?: string;
   subtitle?: string;
@@ -58,6 +89,11 @@ export interface Description {
   nodes: DescribedNode[];
   /** The numbered steps in order, else the spec's story path as hops. */
   story: DescribedStep[];
+  /** Sequence diagrams: every message in time order, and the fragments over their numbers. */
+  messages?: DescribedMessage[];
+  fragments?: SeqFragment[];
+  /** Timelines: the dated items, earliest first. */
+  dates?: DescribedDate[];
 }
 
 const centre = (b: Box) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
@@ -80,6 +116,15 @@ function bands(values: number[], tol: number): number[] {
 /** Endpoints in travel order: an arrow only at the start runs to -> from. */
 const ends = (e: ModelEdge): [string, string] =>
   e.arrow === "start" ? [e.to, e.from] : [e.from, e.to];
+
+const HEADS: Record<EdgeLine, string> = { solid: "->", dashed: "-->", dotted: "..>", thick: "==>" };
+/** The spec's arrow for an edge in travel order: `-->`, `<-->`, or `---` with no head. */
+function arrowOf(e: ModelEdge): string {
+  const head = HEADS[e.line];
+  if (e.arrow === "both") return `<${head}`;
+  // Every head ends in its one ">": the line without a head repeats its first character there.
+  return e.arrow === "none" ? `${head.slice(0, -1)}${head.charAt(0)}` : head;
+}
 
 export function describeData(scene: Scene, model: Model): Description {
   const modelNodes = new Map(model.nodes.map((n) => [n.id, n]));
@@ -186,6 +231,35 @@ export function describeData(scene: Scene, model: Model): Description {
         return { from, to, ...(e?.label ? { label: e.label } : {}) };
       });
 
+  // A sequence's order is time, not place: its messages are the edges as listed, and the fragments
+  // count them from 1. A timeline's is its dates (an undated item has no place on the axis).
+  const sequence =
+    model.kind === "sequence"
+      ? {
+          messages: model.edges.map((e, i): DescribedMessage => {
+            const [from, to] = ends(e);
+            const label = e.label ? { label: e.label } : {};
+            return { n: i + 1, from, to, arrow: arrowOf(e), ...label, edge: e.id };
+          }),
+          fragments: model.fragments ?? [],
+        }
+      : {};
+  const dates: DescribedDate[] = [];
+  if (model.kind === "timeline")
+    for (const n of model.nodes)
+      if (n.when)
+        dates.push({
+          id: n.id,
+          start: n.when.start,
+          ...(n.when.end ? { end: n.when.end } : {}),
+          precision: n.when.precision,
+          ...(n.milestone ? { milestone: true as const } : {}),
+          ...(n.status ? { status: n.status } : {}),
+        });
+  dates.sort(
+    (a, b) => a.start.localeCompare(b.start) || (a.end ?? a.start).localeCompare(b.end ?? b.start),
+  );
+
   return {
     ...(model.title ? { title: model.title } : {}),
     ...(model.subtitle ? { subtitle: model.subtitle } : {}),
@@ -196,6 +270,8 @@ export function describeData(scene: Scene, model: Model): Description {
     groups,
     nodes: described,
     story,
+    ...sequence,
+    ...(model.kind === "timeline" ? { dates } : {}),
   };
 }
 
@@ -225,8 +301,50 @@ const named = (id: string, label: string) =>
     : `${id} "${label}"`;
 
 /**
+ * A sequence's messages, numbered in time order: each fragment opens (with its range) before its
+ * first message, a further branch where it starts, and the fragment closes after its last.
+ */
+function messagesText(messages: DescribedMessage[], fragments: SeqFragment[]): string[] {
+  const lines = ["Messages in time order (-> call, --> reply or asynchronous, ..> signal):"];
+  // Fragments nest or stay apart (DG125), so the outer of two that start together opens first.
+  const frags = [...fragments].sort((a, b) => a.from - b.from || b.to - a.to);
+  const open: SeqFragment[] = [];
+  const pad = (depth: number) => "  ".repeat(depth);
+  for (const m of messages) {
+    for (const [depth, f] of open.entries())
+      for (const b of f.else ?? [])
+        if (b.at === m.n)
+          lines.push(
+            `${pad(depth)}${f.type === "par" ? "and" : "else"}${b.label ? ` ${b.label}` : ""}:`,
+          );
+    for (const f of frags.filter((x) => x.from === m.n)) {
+      const range = f.from === f.to ? `message ${f.from}` : `messages ${f.from} to ${f.to}`;
+      lines.push(`${pad(open.length)}${f.type}${f.label ? ` ${f.label}` : ""} (${range}):`);
+      open.push(f);
+    }
+    lines.push(
+      `${pad(open.length)}${m.n}. ${m.from} ${m.arrow} ${m.to}${m.label ? `: ${m.label}` : ""}`,
+    );
+    for (let f = open.at(-1); f && f.to <= m.n; f = open.at(-1)) {
+      open.pop();
+      lines.push(`${pad(open.length)}end ${f.type}`);
+    }
+  }
+  return lines;
+}
+
+/** A timeline date as the spec wrote it: 2026, 2026-Q3, 2026-09 or 2026-09-12. */
+function written(iso: string, precision: TimeScale): string {
+  if (precision === "year") return iso.slice(0, 4);
+  if (precision === "quarter")
+    return `${iso.slice(0, 4)}-Q${Math.ceil(Number(iso.slice(5, 7)) / 3)}`;
+  return precision === "month" ? iso.slice(0, 7) : iso;
+}
+
+/**
  * The same account as text, as an outline: each group (where it sits, the groups it holds, its own
- * edges) followed by its nodes, each with its place in reading order and its edges.
+ * edges) followed by its nodes, each with its place in reading order and its edges; then a
+ * sequence's messages and a timeline's dates, whose order is not where things sit.
  */
 export function describeScene(scene: Scene, model: Model): string {
   const d = describeData(scene, model);
@@ -242,7 +360,8 @@ export function describeScene(scene: Scene, model: Model): string {
   const grouped = new Set(d.groups.map((g) => g.id));
   const told = new Set<string>();
   const node = (n: DescribedNode) => {
-    const links = linksText(n.links, told);
+    // A participant's messages are told once, in time order, below.
+    const links = d.messages ? "" : linksText(n.links, told);
     lines.push(`- r${n.row}c${n.col} ${named(n.id, n.label)}${links ? `: ${links}` : ""}`);
   };
   lines.push(
@@ -259,6 +378,15 @@ export function describeScene(scene: Scene, model: Model): string {
     const links = linksText(g.links, told);
     lines.push(`${named(g.id, g.label)}${where}${around}${links ? `; ${links}` : ""}:`);
     if (!g.overlay) d.nodes.filter((n) => n.group === g.id).forEach(node);
+  }
+  if (d.messages) lines.push(...messagesText(d.messages, d.fragments ?? []));
+  if (d.dates?.length) {
+    const date = (t: DescribedDate) => {
+      const span = `${written(t.start, t.precision)}${t.end ? ` to ${written(t.end, t.precision)}` : ""}`;
+      const marks = [t.milestone ? "milestone" : "", t.status ?? ""].filter(Boolean);
+      return `${t.id} ${span}${marks.length ? ` (${marks.join(", ")})` : ""}`;
+    };
+    lines.push(`By date: ${d.dates.map(date).join("; ")}`);
   }
   if (d.story.length) {
     lines.push(

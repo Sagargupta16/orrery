@@ -22,6 +22,8 @@ export function renderHtml(input: HtmlInput): string {
     input.lightStill && input.darkStill
       ? `{ light: "${b64(input.lightStill)}", dark: "${b64(input.darkStill)}" }`
       : "svgs";
+  // A JS literal for the script, where HTML entities are not decoded; "<" escaped so it cannot close it.
+  const name = JSON.stringify(input.name).replace(/</g, "\\u003c");
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -69,13 +71,14 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
 (() => {
   const svgs = { light: "${lightB64}", dark: "${darkB64}" };
   const stills = ${stills};
+  const name = ${name};
   const toUrl = (b64) => "data:image/svg+xml;base64," + b64;
   const body = document.body, stage = document.getElementById("stage"), canvas = document.getElementById("canvas"), img = document.getElementById("diagram");
   let theme = body.dataset.theme, scale = 1, x = 0, y = 0;
   const size = () => { const m = atob(svgs[theme].slice(0, 800)).match(/width="([\\d.]+)" height="([\\d.]+)"/); return m ? [Number(m[1]), Number(m[2])] : [1000, 600]; };
   const apply = () => { const [w, h] = size(); canvas.style.left = x + "px"; canvas.style.top = y + "px"; img.style.width = w * scale + "px"; img.style.height = h * scale + "px"; };
   const fit = () => { const [w, h] = size(); const r = stage.getBoundingClientRect(); scale = Math.min((r.width - 32) / w, (r.height - 32) / h, 2); x = (r.width - w * scale) / 2; y = Math.max(16, (r.height - h * scale) / 2); apply(); };
-  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; apply(); const a = document.querySelector('[data-act=svg]'); a.href = toUrl(svgs[theme]); a.download = "${esc(input.name)}-" + theme + ".svg"; };
+  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; apply(); const a = document.querySelector('[data-act=svg]'); a.href = toUrl(svgs[theme]); a.download = name + "-" + theme + ".svg"; };
   const zoomAt = (f, cx, cy) => { const ns = Math.max(0.1, Math.min(8, scale * f)); x = cx - (cx - x) * (ns / scale); y = cy - (cy - y) * (ns / scale); scale = ns; apply(); };
   const pointers = new Map(); let pinch = 0;
   stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.classList.add("dragging"); });
@@ -97,7 +100,7 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
   document.querySelector("[data-act=png]").onclick = () => {
     // 3x like the CLI, capped at 16.7M pixels, the largest canvas iOS Safari will export.
     const [w, h] = size(); const k = Math.min(3, Math.sqrt(16.7e6 / (w * h))); const c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
-    const im = new Image(); im.onload = () => { const g = c.getContext("2d"); g.scale(c.width / w, c.height / h); g.drawImage(im, 0, 0, w, h); const a = document.createElement("a"); a.download = "${esc(input.name)}-" + theme + ".png"; a.href = c.toDataURL("image/png"); a.click(); };
+    const im = new Image(); im.onload = () => { const g = c.getContext("2d"); g.scale(c.width / w, c.height / h); g.drawImage(im, 0, 0, w, h); const a = document.createElement("a"); a.download = name + "-" + theme + ".png"; a.href = c.toDataURL("image/png"); a.click(); };
     im.src = toUrl(stills[theme]);
   };
   addEventListener("resize", fit);

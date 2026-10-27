@@ -1,5 +1,5 @@
 // Groups, then the nesting checks that need every node and group: contains, around, in, cycles.
-import { resolveIcon, suggestIcons } from "../icons/index.ts";
+import { resolveCatalogIcon, suggestIcons } from "../icons/index.ts";
 import { groupStyleKeys, resolveGroupStyle } from "../styles.ts";
 import { type Ctx, claim, entries } from "./context.ts";
 import { GROUP_KEYS, GROUP_SYNONYMS } from "./keys.ts";
@@ -33,7 +33,7 @@ function parseGroup(ctx: Ctx, id: string, value: unknown) {
   let icon: string | null | undefined;
   if (iconValue === false || iconValue === null || iconValue === "none") icon = null;
   else if (typeof iconValue === "string") {
-    icon = localIcon(ctx, iconValue) ?? resolveIcon(iconValue);
+    icon = localIcon(ctx, iconValue) ?? resolveCatalogIcon(iconValue);
     if (!icon) {
       ctx.err("DG101", `group "${id}" uses unknown icon "${iconValue}"`, {
         subject: { group: id, icon: iconValue },
@@ -53,6 +53,11 @@ function parseGroup(ctx: Ctx, id: string, value: unknown) {
     ["none"],
   );
   const dashed = pick(g, "dashed", GROUP_SYNONYMS);
+  if (dashed !== undefined && typeof dashed !== "boolean")
+    ctx.err("DG107", `group "${id}" dashed must be true or false`, {
+      subject: { group: id, dashed },
+      fixes: ["write dashed: true (or false to keep the type's solid line)"],
+    });
   const colsRaw = pick(g, "cols", GROUP_SYNONYMS);
   const cols =
     typeof colsRaw === "number" && Number.isInteger(colsRaw) && colsRaw >= 1 && colsRaw <= 12
@@ -131,7 +136,7 @@ export function applyContains(ctx: Ctx) {
   }
 }
 
-/** Every `around` member must exist. */
+/** Every `around` member must exist, and overlays may not outline each other in a ring. */
 export function checkAround(ctx: Ctx) {
   for (const g of ctx.groups) {
     for (const member of g.around ?? []) {
@@ -141,6 +146,36 @@ export function checkAround(ctx: Ctx) {
         fixes: suggestIds(member, ctx.ids).map((x) => `use "${x}"`),
       });
     }
+  }
+  const around = new Map(ctx.groups.flatMap((g) => (g.around ? [[g.id, g.around] as const] : [])));
+  const reported = new Set<string>();
+  for (const start of around.keys()) {
+    // Walk the overlays this one outlines; meeting it again closes a ring no order can draw.
+    const path: string[] = [];
+    const ringFrom = (id: string): string[] | undefined => {
+      if (id === start && path.length) return [...path];
+      if (path.includes(id)) return undefined;
+      path.push(id);
+      for (const member of around.get(id) ?? []) {
+        const ring = around.has(member) ? ringFrom(member) : undefined;
+        if (ring) return ring;
+      }
+      path.pop();
+      return undefined;
+    };
+    const ring = ringFrom(start);
+    if (!ring || ring.some((x) => reported.has(x))) continue;
+    for (const x of ring) reported.add(x);
+    ctx.err(
+      "DG105",
+      ring.length > 1
+        ? `groups "${ring.join('", "')}" are drawn around each other`
+        : `group "${start}" is drawn around itself`,
+      {
+        subject: { group: start },
+        fixes: [`remove "${ring[1] ?? start}" from around: of "${start}"`],
+      },
+    );
   }
 }
 

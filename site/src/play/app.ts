@@ -525,11 +525,9 @@ document.addEventListener("click", (e) => {
 
 // Start ------------------------------------------------------------------------------------------
 
-async function start() {
-  setStatus("busy", "Loading the renderer");
-  setView(matchMedia("(min-width: 1024px)").matches ? "spec" : "diagram");
-  setChecks("problems");
-  const shared = await readFragment(location.hash);
+/** Applies a link's theme, skin and width, then its spec or example; false when it names nothing to draw. */
+async function openFragment(hash: string): Promise<boolean> {
+  const shared = await readFragment(hash);
   if (shared.theme) state.theme = shared.theme;
   if (shared.skin) state.skin = shared.skin;
   if (shared.width) setWidth(shared.width, false);
@@ -539,20 +537,26 @@ async function start() {
     state.edited = true;
     state.name = shared.name ?? "diagram";
     select.value = "";
-  } else if (!(shared.example && (await loadExample(shared.example)))) await loadExample(defaultExample);
+    return true;
+  }
+  if (!shared.example) return false;
+  // The example already on screen needs no fetch, unless it was edited: the link resets it.
+  if (shared.example === state.example && !state.edited) return true;
+  return loadExample(shared.example);
+}
+
+async function start() {
+  setStatus("busy", "Loading the renderer");
+  setView(matchMedia("(min-width: 1024px)").matches ? "spec" : "diagram");
+  setChecks("problems");
+  if (!(await openFragment(location.hash))) await loadExample(defaultExample);
   render();
 }
 
 window.addEventListener("hashchange", () => {
-  // A pasted link opened in the same tab: load what it carries.
-  void readFragment(location.hash).then(async (shared) => {
-    if (shared.spec !== undefined && shared.spec !== editor.value) {
-      editor.value = shared.spec;
-      state.edited = true;
-      state.name = shared.name ?? state.name;
-      select.value = "";
-      schedule(0);
-    } else if (shared.example && shared.example !== state.example && (await loadExample(shared.example))) schedule(0);
+  // A pasted link opened in the same tab: load what it carries, as a fresh load would.
+  void openFragment(location.hash).then((opened) => {
+    if (opened) schedule(0);
   });
 });
 

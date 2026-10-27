@@ -83,11 +83,13 @@ function zigZags(c: Ctx): { zigs: number; bends: number } {
     return undefined;
   };
   const horizontal = horizontalFlow(scene.direction);
+  const table = (id: string) => !!c.nodes.get(id)?.fields?.length;
   let zigs = 0;
   let bends = 0;
   for (const e of scene.edges) {
-    // Relationship ends sit on the field rows they join, so their steps are not the layout's.
-    if (e.card || !c.nodes.has(e.from) || !c.nodes.has(e.to)) continue;
+    // A line to a table is routed from row to row (layout/er/route.ts), card or none: its ends sit
+    // on the field rows it joins (else the header), so their steps are not the layout's.
+    if (table(e.from) || table(e.to) || !c.nodes.has(e.from) || !c.nodes.has(e.to)) continue;
     if (outs.get(e.from) !== 1 || ins.get(e.to) !== 1 || band(e.from) !== band(e.to)) continue;
     const runs = orthogonalRuns(e.points);
     if (!runs) continue;

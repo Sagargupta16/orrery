@@ -6,10 +6,17 @@ import type { TimeScale } from "../../types.ts";
 const DAY = 86_400_000;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/** Date.UTC without its rule that a year from 0 to 99 means 1900 to 1999. */
+function utcMs(y: number, m: number, d: number): number {
+  const t = new Date(0);
+  t.setUTCFullYear(y, m, d);
+  return t.getTime();
+}
+
 /** An ISO date (YYYY-MM-DD) as a day number. */
 export function dayOf(iso: string): number {
   const [y = 1970, m = 1, d = 1] = iso.split("-").map(Number);
-  return Math.round(Date.UTC(y, m - 1, d) / DAY);
+  return Math.round(utcMs(y, m - 1, d) / DAY);
 }
 
 /** A day number as an ISO date. */
@@ -34,7 +41,7 @@ function ymd(day: number): Ymd {
   };
 }
 
-const utc = (y: number, m: number, d = 1) => Math.round(Date.UTC(y, m, d) / DAY);
+const utc = (y: number, m: number, d = 1) => Math.round(utcMs(y, m, d) / DAY);
 
 /** The first day of the period at `scale` that `day` falls in (weeks start on Monday). */
 export function floorTo(day: number, scale: TimeScale): number {

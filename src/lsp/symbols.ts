@@ -62,7 +62,7 @@ export function documentSymbols(at: Located, starts: number[]): DocumentSymbol[]
     if (!pair) continue;
     const children = entries(pair.value).map(
       ({ id, value, start, end }): DocumentSymbol => ({
-        name: text(id) ?? "?",
+        name: text(id) || "?",
         ...(detailOf(value, coll) ? { detail: detailOf(value, coll) } : {}),
         kind: coll === "groups" ? KIND.namespace : KIND.object,
         range: rangeOf(starts, { start, end: Math.max(end, id.range[1]) }),

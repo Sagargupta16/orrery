@@ -77,6 +77,37 @@ export function planPlacement(model: Model, hidden: Set<string>): Plan {
   }
   const cell = (n: ModelNode) => (n.parent && plan.grids.has(n.parent) ? n.parent : undefined);
 
+  // on: ELK lays the node out beside its group, in the group's parent, and layout moves it onto
+  // the border once both are placed (layout/seats.ts). Decided first: a border node is in no layer.
+  const above = (id: string | undefined) => {
+    const out: string[] = [];
+    for (let p = id; p; p = groups.get(p)?.parent) out.push(p);
+    return out;
+  };
+  for (const n of model.nodes) {
+    const g = n.on === undefined ? undefined : groups.get(n.on);
+    if (!g) continue;
+    const grid = g.parent && plan.grids.has(g.parent) ? g.parent : undefined;
+    if (own) ignore(n.id, "on", own);
+    else if (g.around)
+      ignore(n.id, "on", `"${g.id}" is drawn around its members, so it has no border of its own`);
+    else if (above(g.id).some((id) => hidden.has(id)))
+      ignore(n.id, "on", `"${g.id}" is laid out as a pool or lane band`);
+    else if (above(n.parent).includes(g.id))
+      ignore(n.id, "on", `it is inside "${g.id}"; a node on the border sits in its parent`);
+    else if (n.parent !== g.parent)
+      ignore(
+        n.id,
+        "on",
+        g.parent
+          ? `it must be in "${g.parent}", the group "${g.id}" is in`
+          : `"${g.id}" is at the top level, so the node must be too`,
+      );
+    else if (grid)
+      ignore(n.id, "on", `group "${grid}" places its children in ${plan.grids.get(grid)} columns`);
+    else plan.seats.set(n.id, g.id);
+  }
+
   // align: union the nodes that share a layer; the block keeps spec order.
   const link = new Map<string, string>();
   const find = (id: string): string => {
@@ -95,6 +126,10 @@ export function planPlacement(model: Model, hidden: Set<string>): Plan {
         "align",
         `group "${grid}" places its children in ${plan.grids.get(grid)} columns`,
       );
+    else if (plan.seats.has(n.id))
+      ignore(n.id, "align", "a node on a border sits on its group's side, not in a layer");
+    else if (plan.seats.has(t.id))
+      ignore(n.id, "align", `"${t.id}" sits on its group's border, not in a layer`);
     else if (host(n.parent) !== host(t.parent))
       ignore(n.id, "align", `"${t.id}" is in another group, and layers only line up inside one`);
     else link.set(find(n.id), find(t.id));
@@ -140,19 +175,22 @@ export function planPlacement(model: Model, hidden: Set<string>): Plan {
     plan.ends.set(u, want);
     rankedBy.set(u, [...(rankedBy.get(u) ?? []), n.id]);
   }
-  // Two units in the first (or last) layer joined by an edge cannot both stay there: ELK rejects
-  // the graph. The later one in spec order gives way.
+  // Two units in the first (or last) layer of one graph joined by an edge cannot both stay there:
+  // ELK rejects the graph. The later one in spec order gives way. Units in different graphs keep
+  // their layers (runRanked strips any combination ELK still rejects).
   const overlay = new Set(model.groups.filter((g) => g.around?.length).map((g) => g.id));
   const laidOut = (e: ModelEdge) =>
     e.constraint && ![e.from, e.to].some((id) => overlay.has(id) || hidden.has(id));
   const order = new Map(model.nodes.map((n, i) => [n.id, i]));
   const at = (u: string) => order.get(rankedBy.get(u)?.[0] ?? "") ?? 0;
+  // The graph a unit is laid out in: a block's is its members'.
+  const graphOf = (u: string) => host(nodes.get(plan.blocks.get(u)?.[0] ?? u)?.parent);
   for (const e of model.edges) {
     if (!laidOut(e)) continue;
     const a = unit(e.from);
     const b = unit(e.to);
     const end = plan.ends.get(a);
-    if (a === b || !end || plan.ends.get(b) !== end) continue;
+    if (a === b || !end || plan.ends.get(b) !== end || graphOf(a) !== graphOf(b)) continue;
     const [first, second] = at(a) <= at(b) ? [a, b] : [b, a];
     plan.ends.delete(second);
     for (const id of rankedBy.get(second) ?? [])
@@ -161,37 +199,6 @@ export function planPlacement(model: Model, hidden: Set<string>): Plan {
         "rank",
         `it links to "${rankedBy.get(first)?.[0]}", also ranked ${end.toLowerCase()}`,
       );
-  }
-
-  // on: ELK lays the node out beside its group, in the group's parent, and layout moves it onto
-  // the border once both are placed (layout/seats.ts).
-  const above = (id: string | undefined) => {
-    const out: string[] = [];
-    for (let p = id; p; p = groups.get(p)?.parent) out.push(p);
-    return out;
-  };
-  for (const n of model.nodes) {
-    const g = n.on === undefined ? undefined : groups.get(n.on);
-    if (!g) continue;
-    const grid = g.parent && plan.grids.has(g.parent) ? g.parent : undefined;
-    if (own) ignore(n.id, "on", own);
-    else if (g.around)
-      ignore(n.id, "on", `"${g.id}" is drawn around its members, so it has no border of its own`);
-    else if (above(g.id).some((id) => hidden.has(id)))
-      ignore(n.id, "on", `"${g.id}" is laid out as a pool or lane band`);
-    else if (above(n.parent).includes(g.id))
-      ignore(n.id, "on", `it is inside "${g.id}"; a node on the border sits in its parent`);
-    else if (n.parent !== g.parent)
-      ignore(
-        n.id,
-        "on",
-        g.parent
-          ? `it must be in "${g.parent}", the group "${g.id}" is in`
-          : `"${g.id}" is at the top level, so the node must be too`,
-      );
-    else if (grid)
-      ignore(n.id, "on", `group "${grid}" places its children in ${plan.grids.get(grid)} columns`);
-    else plan.seats.set(n.id, g.id);
   }
   return plan;
 }

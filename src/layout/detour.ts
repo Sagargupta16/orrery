@@ -63,7 +63,7 @@ function simplify(points: Point[]): Point[] {
  * The last resort when no lane clears: the shortest orthogonal path with the fewest bends from a
  * face of `a` to a face of `b` on the grid of lines 12px off every obstacle (Dijkstra, a bend
  * costs 40px, a run along a group border 200px more). Both ends leave through a straight stub a
- * head room long. Undefined when the obstacles wall one end in.
+ * head room (`room`) long. Undefined when the obstacles wall one end in.
  */
 export function detour(
   a: RouteEnd,
@@ -71,12 +71,13 @@ export function detour(
   obstacles: Box[],
   borders: Box[] = [],
   used: Point[] = [],
+  room = HEAD_ROOM,
 ): Point[] | undefined {
   const walls = [...obstacles, ...(a.parts ?? [a.full]), ...(b.parts ?? [b.full])];
-  const starts = faces(a, HEAD_ROOM, used).filter(
+  const starts = faces(a, room, used).filter(
     (f) => !walls.some((w) => segmentHits(f.at, f.stub, w) || inside(f.stub, w)),
   );
-  const goals = faces(b, HEAD_ROOM, used).filter(
+  const goals = faces(b, room, used).filter(
     (f) => !walls.some((w) => segmentHits(f.stub, f.at, w) || inside(f.stub, w)),
   );
   if (!starts.length || !goals.length) return undefined;
@@ -180,6 +181,90 @@ function heapPop(heap: Entry[]): Entry | undefined {
 const headingOf = (f: Face) =>
   f.stub.x > f.at.x ? 0 : f.stub.x < f.at.x ? 1 : f.stub.y > f.at.y ? 2 : 3;
 
+/** One step along a route line per heading: +x, -x, +y, -y. */
+const MOVES = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+] as const;
+
+/** The first index whose value is at least `v` in an ascending list. */
+function lowerBound(vals: number[], v: number): number {
+  let lo = 0;
+  let hi = vals.length;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if ((vals[m] ?? 0) < v) lo = m + 1;
+    else hi = m;
+  }
+  return lo;
+}
+
+/** The index range [first, last] of the values within [lo, hi], one more on either side. */
+function near(vals: number[], lo: number, hi: number): [number, number] {
+  return [
+    Math.max(0, lowerBound(vals, lo) - 1),
+    Math.min(vals.length - 1, lowerBound(vals, hi) + 1),
+  ];
+}
+
+/**
+ * The obstacles on the route lines, measured once per search: `shut` marks the points inside a
+ * wall, `cut` the steps (point * 4 + heading) that run through one and `hug` the steps that run
+ * along a group border. Each wall and border only visits the points around it.
+ */
+function raster(
+  lines: RouteLines,
+  walls: Box[],
+  borders: Box[],
+): { shut: Uint8Array; cut: Uint8Array; hug: Uint8Array } {
+  const { xs, ys } = lines;
+  const W = xs.length;
+  const H = ys.length;
+  const shut = new Uint8Array(W * H);
+  const cut = new Uint8Array(W * H * 4);
+  const hug = new Uint8Array(W * H * 4);
+  const at = (i: number, j: number): Point => ({ x: xs[i] ?? 0, y: ys[j] ?? 0 });
+  /** Marks the steps out of the points in [i0, i1] x [j0, j1] with the headings in `ds`. */
+  const mark = (
+    out: Uint8Array,
+    [i0, i1]: [number, number],
+    [j0, j1]: [number, number],
+    ds: readonly number[],
+    hits: (p: Point, q: Point) => boolean,
+  ) => {
+    for (let j = j0; j <= j1; j++)
+      for (let i = i0; i <= i1; i++)
+        for (const d of ds) {
+          const s = (j * W + i) * 4 + d;
+          const [di, dj] = MOVES[d] ?? [0, 0];
+          const k = i + di;
+          const l = j + dj;
+          if (out[s] || k < 0 || l < 0 || k >= W || l >= H) continue;
+          if (hits(at(i, j), at(k, l))) out[s] = 1;
+        }
+  };
+  for (const w of walls) {
+    const ii = near(xs, w.x, w.x + w.w);
+    const jj = near(ys, w.y, w.y + w.h);
+    for (let j = jj[0]; j <= jj[1]; j++)
+      for (let i = ii[0]; i <= ii[1]; i++) if (inside(at(i, j), w)) shut[j * W + i] = 1;
+    mark(cut, ii, jj, [0, 1, 2, 3], (p, q) => segmentHits(p, q, w));
+  }
+  // alongBorder counts a run within 6px of a border line: one across x can lie along a top or
+  // bottom line, one down along a side line.
+  const B = 6;
+  for (const b of borders) {
+    const ii = near(xs, b.x, b.x + b.w);
+    const jj = near(ys, b.y, b.y + b.h);
+    const along = (p: Point, q: Point) => alongBorder([p, q], [b], 0.5);
+    for (const y of [b.y, b.y + b.h]) mark(hug, ii, near(ys, y - B, y + B), [0, 1], along);
+    for (const x of [b.x, b.x + b.w]) mark(hug, near(xs, x - B, x + B), jj, [2, 3], along);
+  }
+  return { shut, cut, hug };
+}
+
 /**
  * Dijkstra over (point, heading) states on the route lines: a run costs its length, a bend 40px
  * and a run along a group border 200px more. Returns the faces it leaves and enters by and the
@@ -195,18 +280,11 @@ function shortest(
   const { xs, ys } = lines;
   const W = xs.length;
   const key = (i: number, j: number) => j * W + i;
-  const free = (i: number, j: number) => {
-    const p = { x: xs[i] ?? 0, y: ys[j] ?? 0 };
-    return !walls.some((w) => inside(p, w));
-  };
-  const step = (i: number, j: number, k: number, l: number) =>
-    !walls.some((w) =>
-      segmentHits({ x: xs[i] ?? 0, y: ys[j] ?? 0 }, { x: xs[k] ?? 0, y: ys[l] ?? 0 }, w),
-    );
+  const { shut, cut, hug } = raster(lines, walls, borders);
   // States are (point, heading 0..3); a heap keyed by cost.
   const BEND = 40;
-  const dist = new Map<number, number>();
-  const from = new Map<number, number>();
+  const dist = new Float64Array(W * ys.length * 4).fill(Infinity);
+  const from = new Int32Array(W * ys.length * 4).fill(-1);
   const heap: Entry[] = [];
   const index = (p: Point) => [xs.indexOf(round(p.x)), ys.indexOf(round(p.y))] as const;
   const startAt = new Map<number, Face>();
@@ -214,8 +292,8 @@ function shortest(
     const [i, j] = index(f.stub);
     if (i < 0 || j < 0) continue;
     const s = key(i, j) * 4 + headingOf(f);
-    if (f.cost >= (dist.get(s) ?? Infinity)) continue;
-    dist.set(s, f.cost);
+    if (f.cost >= (dist[s] ?? Infinity)) continue;
+    dist[s] = f.cost;
     startAt.set(s, f);
     heapPush(heap, f.cost, s);
   }
@@ -224,16 +302,10 @@ function shortest(
     const [i, j] = index(f.stub);
     if (i >= 0 && j >= 0) goalAt.set(key(i, j), f);
   }
-  const moves = [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1],
-  ] as const;
   let best: { state: number; cost: number } | undefined;
   for (let next = heapPop(heap); next; next = heapPop(heap)) {
     const [cost, state] = next;
-    if (cost > (dist.get(state) ?? Infinity)) continue;
+    if (cost > (dist[state] ?? Infinity)) continue;
     if (best && cost >= best.cost) break;
     const cellKey = state >> 2;
     const dirNow = state & 3;
@@ -246,20 +318,17 @@ function shortest(
     }
     const i = cellKey % W;
     const j = Math.floor(cellKey / W);
-    moves.forEach(([di, dj], d) => {
+    MOVES.forEach(([di, dj], d) => {
       const k = i + di;
       const l = j + dj;
-      if (k < 0 || l < 0 || k >= W || l >= ys.length || !free(k, l) || !step(i, j, k, l)) return;
+      const out = cellKey * 4 + d;
+      if (k < 0 || l < 0 || k >= W || l >= ys.length || shut[key(k, l)] || cut[out]) return;
       const len = Math.abs((xs[k] ?? 0) - (xs[i] ?? 0)) + Math.abs((ys[l] ?? 0) - (ys[j] ?? 0));
-      const run = [
-        { x: xs[i] ?? 0, y: ys[j] ?? 0 },
-        { x: xs[k] ?? 0, y: ys[l] ?? 0 },
-      ];
-      const c = cost + len + (d === dirNow ? 0 : BEND) + (alongBorder(run, borders, 0.5) ? 200 : 0);
+      const c = cost + len + (d === dirNow ? 0 : BEND) + (hug[out] ? 200 : 0);
       const s = key(k, l) * 4 + d;
-      if (c < (dist.get(s) ?? Infinity)) {
-        dist.set(s, c);
-        from.set(s, state);
+      if (c < (dist[s] ?? Infinity)) {
+        dist[s] = c;
+        from[s] = state;
         heapPush(heap, c, s);
       }
     });
@@ -275,14 +344,14 @@ function shortest(
 /** Walks the search back from its last state: the points in order, and the state it began at. */
 function trace(
   lines: RouteLines,
-  from: Map<number, number>,
+  from: Int32Array,
   last: number,
 ): { path: Point[]; origin: number } {
   const { xs, ys } = lines;
   const W = xs.length;
   const path: Point[] = [];
   let origin = last;
-  for (let s: number | undefined = last; s !== undefined; s = from.get(s)) {
+  for (let s = last; s >= 0; s = from[s] ?? -1) {
     const c = s >> 2;
     path.push({ x: xs[c % W] ?? 0, y: ys[Math.floor(c / W)] ?? 0 });
     origin = s;

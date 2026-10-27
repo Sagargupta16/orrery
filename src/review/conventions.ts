@@ -143,7 +143,9 @@ function legendAndTitle(c: Ctx, c4: boolean): number {
       !(sequence && (e.line === "dashed" || e.line === "dotted")),
   );
   const used = [...new Set(styled.map((e) => e.line))].filter((l) => l !== "solid");
-  const keyed = new Set((model.legend ?? []).map((l) => l.line));
+  // A tag's color chip explains a color, not a line.
+  const lines = (model.legend ?? []).filter((l) => !l.chip);
+  const keyed = new Set(lines.map((l) => l.line));
   const missing = used.filter((l) => !keyed.has(l));
   if (missing.length || (c4 && !model.legend?.length)) {
     const styles = missing.length ? missing : ["solid"];
@@ -160,7 +162,7 @@ function legendAndTitle(c: Ctx, c4: boolean): number {
       15 * styles.length,
     );
   }
-  const unusedKey = (model.legend ?? []).filter((l) => !model.edges.some((e) => e.line === l.line));
+  const unusedKey = lines.filter((l) => !model.edges.some((e) => e.line === l.line));
   if (unusedKey.length)
     add(
       "conventions.legend-unused",
@@ -337,10 +339,10 @@ function awsBoundaryLabels(c: Ctx): number {
   return boundaries;
 }
 
-/** The rubric rule each vendor's form of a naming finding restates: FLOW-12 where none has one. */
+/** The rubric rule each vendor's form of a naming finding restates: FLOW-11 where none has one. */
 const VENDOR_RULES = {
-  boundary: { azure: "AZ-12", gcp: "GCP-06", k8s: "FLOW-12" },
-  serviceGroup: { aws: "AWS-18", azure: "FLOW-12", gcp: "FLOW-12" },
+  boundary: { azure: "AZ-12", gcp: "GCP-06", k8s: "FLOW-11" },
+  serviceGroup: { aws: "AWS-18", azure: "FLOW-11", gcp: "FLOW-11" },
   serviceLabel: { aws: "AWS-19", azure: "AZ-07", gcp: "GCP-04" },
 } as const;
 
@@ -474,7 +476,7 @@ const sameService = (a: IconInfo, b: IconInfo) =>
 
 /**
  * AWS-18: a group with a service's icon in its corner is that one service and holds only its
- * parts; Azure and Google Cloud frames work the same way (FLOW-12: one service's own frame).
+ * parts; Azure and Google Cloud frames work the same way (FLOW-11: one service's own frame).
  * Measured on an icon: override; the presets (Step Functions workflow, EC2 instance contents, a
  * GKE cluster) hold other services by the vendors' own design.
  */

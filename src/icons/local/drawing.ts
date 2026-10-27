@@ -166,6 +166,9 @@ interface Style {
   opacity: number;
   fillOpacity?: string;
   strokeOpacity?: string;
+  /** stroke-dasharray and stroke-dashoffset as written ("none" leaves the line solid). */
+  dash?: string;
+  dashOffset?: string;
   hidden: boolean;
 }
 
@@ -181,6 +184,9 @@ export interface Part {
   join: string;
   miter?: string;
   rule?: string;
+  /** Dash and gap lengths, and where the dashes start, in viewBox units; unset for a solid line. */
+  dash?: number[];
+  dashOffset?: number;
   opacity: number;
   fillOpacity?: string;
   strokeOpacity?: string;
@@ -208,8 +214,40 @@ const SKIP = new Set([
   "filter",
 ]);
 
+/** A length: a number, or a percentage of `whole` (the viewBox side); undefined when unset. */
+function length(v: string | undefined, whole: number): number | undefined {
+  if (v === undefined || !v.trim()) return undefined;
+  const n = numbers(v)[0];
+  if (n === undefined) return undefined;
+  return v.trim().endsWith("%") ? (whole * n) / 100 : n;
+}
+
+/**
+ * What a viewport adds to the drawing's transform (a <use> of a <symbol>, a nested <svg>): its
+ * x and y, then its viewBox fitted into its width and height by preserveAspectRatio (xMidYMid
+ * meet unless it says otherwise). Without a viewBox it only moves.
+ */
+function viewport(el: XNode, x: number, y: number, w: number, h: number): Mat {
+  const at: Mat = [1, 0, 0, 1, x, y];
+  const vb = numbers(el.attrs.get("viewBox"));
+  const [vx = 0, vy = 0, vw = 0, vh = 0] = vb;
+  if (vb.length !== 4 || !(vw > 0 && vh > 0) || !(w > 0 && h > 0)) return at;
+  const words = (el.attrs.get("preserveAspectRatio") ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words[0] === "defer") words.shift();
+  const [align = "xMidYMid", fit = "meet"] = words;
+  const uniform = fit === "slice" ? Math.max(w / vw, h / vh) : Math.min(w / vw, h / vh);
+  const [sx, sy] = align === "none" ? [w / vw, h / vh] : [uniform, uniform];
+  // The room the scaled viewBox leaves, split by xMin/xMid/xMax and yMin/yMid/yMax.
+  const share = (pos: string) => (pos === "Min" ? 0 : pos === "Max" ? 1 : 0.5);
+  const ax = align === "none" ? 0 : (w - vw * sx) * share(align.slice(1, 4));
+  const ay = align === "none" ? 0 : (h - vh * sy) * share(align.slice(5, 8));
+  return mul(at, [sx, 0, 0, sy, ax - vx * sx, ay - vy * sy]);
+}
+
 export function drawingOf(root: XNode, bad: Bad): Drawing {
   const viewBox = viewBoxOf(root, bad);
+  // 100% of a width or height is the root viewBox's side.
+  const [, , rootW, rootH] = viewBox;
   const byId = new Map<string, XNode>();
   const index = (n: XNode) => {
     const id = n.attrs.get("id");
@@ -240,16 +278,30 @@ export function drawingOf(root: XNode, bad: Bad): Drawing {
       rule: a("fill-rule") ?? inherited.rule,
       fillOpacity: a("fill-opacity") ?? inherited.fillOpacity,
       strokeOpacity: a("stroke-opacity") ?? inherited.strokeOpacity,
+      dash: a("stroke-dasharray") ?? inherited.dash,
+      dashOffset: a("stroke-dashoffset") ?? inherited.dashOffset,
       opacity: inherited.opacity * (numbers(a("opacity"))[0] ?? 1),
       hidden: a("visibility") ? a("visibility") === "hidden" : inherited.hidden,
     };
     const effects = ["clip-path", "mask", "filter"].filter((k) => a(k) && a(k) !== "none");
+    const [x, y] = [numbers(a("x"))[0] ?? 0, numbers(a("y"))[0] ?? 0];
     if (tag === "use") {
       const ref = byId.get((n.attrs.get("href") ?? "").slice(1));
       if (!ref) return;
-      const placed = mul(m, [1, 0, 0, 1, numbers(a("x"))[0] ?? 0, numbers(a("y"))[0] ?? 0]);
-      if (local(ref.name) === "symbol") for (const c of ref.children) walk(c, placed, s, depth + 1);
-      else walk(ref, placed, s, depth + 1);
+      if (local(ref.name) === "symbol") {
+        // A symbol is a viewport the size the <use> gives it (else its own, else 100%).
+        const w = length(a("width"), rootW) ?? length(ref.attrs.get("width"), rootW) ?? rootW;
+        const h = length(a("height"), rootH) ?? length(ref.attrs.get("height"), rootH) ?? rootH;
+        const placed = mul(m, viewport(ref, x, y, w, h));
+        for (const c of ref.children) walk(c, placed, s, depth + 1);
+      } else walk(ref, mul(m, [1, 0, 0, 1, x, y]), s, depth + 1);
+      return;
+    }
+    if (tag === "svg") {
+      const w = length(a("width"), rootW) ?? rootW;
+      const h = length(a("height"), rootH) ?? rootH;
+      const placed = mul(m, viewport(n, x, y, w, h));
+      for (const c of n.children) walk(c, placed, s, depth);
       return;
     }
     if (tag === "text" || tag === "textpath") {
@@ -261,6 +313,9 @@ export function drawingOf(root: XNode, bad: Bad): Drawing {
       const filled = tag !== "line" && normalizeColor(s.fill ?? "#000000") !== undefined;
       const stroked =
         s.stroke !== undefined && normalizeColor(s.stroke) !== undefined && s.width > 0;
+      // Dashes scale with the drawing, as the stroke width does; all zero draws a solid line.
+      const dash = numbers(s.dash === "none" ? undefined : s.dash).map((d) => d * scaleOf(m));
+      const dashed = dash.length > 0 && dash.some((d) => d > 0);
       if (!s.hidden && s.opacity > 0 && (filled || stroked))
         parts.push({
           tag,
@@ -272,6 +327,10 @@ export function drawingOf(root: XNode, bad: Bad): Drawing {
           join: s.join,
           miter: s.miter,
           rule: s.rule,
+          ...(dashed ? { dash } : {}),
+          ...(dashed && s.dashOffset !== undefined
+            ? { dashOffset: (numbers(s.dashOffset)[0] ?? 0) * scaleOf(m) }
+            : {}),
           opacity: s.opacity,
           fillOpacity: s.fillOpacity,
           strokeOpacity: s.strokeOpacity,
@@ -303,6 +362,8 @@ function rootStyle(root: XNode, base: Style): Partial<Style> {
     rule: a("fill-rule"),
     fillOpacity: a("fill-opacity"),
     strokeOpacity: a("stroke-opacity"),
+    dash: a("stroke-dasharray"),
+    dashOffset: a("stroke-dashoffset"),
     opacity: numbers(a("opacity"))[0] ?? 1,
   };
 }

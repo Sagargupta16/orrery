@@ -55,7 +55,7 @@ const LINE_END = /[#;:%&<>"\\]/g;
 /** Characters a title or description line would read as syntax; colons are its own text there. */
 const PROSE = /[#;%&<>\\]/g;
 
-/** Mermaid's entity codes (`#35;` for `#`), which every diagram type decodes after parsing. */
+/** Mermaid's entity codes (`#35;` for `#`), which every diagram type but architecture decodes. */
 const code = (s: string, chars: RegExp) => s.replace(chars, (c) => `#${c.codePointAt(0)};`);
 const flat = (s: string) => s.replace(/\s+/g, " ").trim();
 
@@ -67,8 +67,19 @@ const label = (s: string) =>
     .filter(Boolean)
     .join("<br/>") || " ";
 
-/** A title in an architecture `[...]`: quoted, on one line. */
-const title = (s: string) => `["${code(flat(s), QUOTED) || " "}"]`;
+/**
+ * A title in an architecture `[...]`: quoted, on one line, and written as it reads (architecture
+ * shows entity codes as typed), with its quotes escaped. Mermaid reads it as Markdown, so a
+ * backtick (a pair would be code) is a lookalike, and a backslash before punctuation (an escape)
+ * or the closing quote gets a zero-width space after it.
+ */
+const title = (s: string) => {
+  // Backslashes and quotes in one pass, each looked at in the text as written.
+  const text = flat(s)
+    .replace(/`/g, "\u02cb")
+    .replace(/\\(?=[!-/:-@[-`{-~]|$)|"/g, (m) => (m === '"' ? '\\"' : "\\\u200b"));
+  return `["${text || " "}"]`;
+};
 
 const lineEnd = (s: string) => code(flat(s), LINE_END);
 
@@ -680,6 +691,9 @@ function mindmap(model: Model): string[] | undefined {
 
 // ---------------------------------------------------------------- journey
 
+/** The first character of a step that would start a journey statement: a keyword. */
+const STATEMENT = /^(?=(?:accdescr|acctitle|journey|section|title)\b)./i;
+
 /**
  * One section per stage and one task per scored step (orrery's -2..2 is Mermaid's 1..5), done by
  * its lane; the unscored rows (touchpoints, pains, ideas) stay in the text as comments. Without
@@ -706,7 +720,7 @@ function journey(model: Model): string[] {
       }
       const score = Math.min(5, Math.max(1, Math.round((nd.score ?? 0) + 3)));
       const who = lane ? `: ${code(lineEnd(lane), /,/g)}` : "";
-      out.push(`    ${lineEnd(nd.label) || nd.id}: ${score}${who}`);
+      out.push(`    ${code(lineEnd(nd.label) || nd.id, STATEMENT)}: ${score}${who}`);
     }
   }
   return out;
