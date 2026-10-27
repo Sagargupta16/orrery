@@ -74,10 +74,10 @@ const label = (s: string) =>
  * or the closing quote gets a zero-width space after it.
  */
 const title = (s: string) => {
+  // Backslashes and quotes in one pass, each looked at in the text as written.
   const text = flat(s)
     .replace(/`/g, "\u02cb")
-    .replace(/\\(?=[!-/:-@[-`{-~]|$)/g, "\\\u200b")
-    .replace(/"/g, '\\"');
+    .replace(/\\(?=[!-/:-@[-`{-~]|$)|"/g, (m) => (m === '"' ? '\\"' : "\\\u200b"));
   return `["${text || " "}"]`;
 };
 

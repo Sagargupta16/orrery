@@ -122,7 +122,8 @@ const HEADS: Record<EdgeLine, string> = { solid: "->", dashed: "-->", dotted: ".
 function arrowOf(e: ModelEdge): string {
   const head = HEADS[e.line];
   if (e.arrow === "both") return `<${head}`;
-  return e.arrow === "none" ? head.replace(">", head.charAt(0)) : head;
+  // Every head ends in its one ">": the line without a head repeats its first character there.
+  return e.arrow === "none" ? `${head.slice(0, -1)}${head.charAt(0)}` : head;
 }
 
 export function describeData(scene: Scene, model: Model): Description {

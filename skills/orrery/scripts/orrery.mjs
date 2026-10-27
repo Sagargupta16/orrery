@@ -26530,7 +26530,7 @@ var code2 = (s, chars2) => s.replace(chars2, (c) => `#${c.codePointAt(0)};`);
 var flat3 = (s) => s.replace(/\s+/g, " ").trim();
 var label = (s) => s.split(/\r?\n/).map((line2) => code2(flat3(line2), QUOTED)).filter(Boolean).join("<br/>") || " ";
 var title = (s) => {
-  const text6 = flat3(s).replace(/`/g, "\u02CB").replace(/\\(?=[!-/:-@[-`{-~]|$)/g, "\\\u200B").replace(/"/g, '\\"');
+  const text6 = flat3(s).replace(/`/g, "\u02CB").replace(/\\(?=[!-/:-@[-`{-~]|$)|"/g, (m) => m === '"' ? '\\"' : "\\\u200B");
   return `["${text6 || " "}"]`;
 };
 var lineEnd = (s) => code2(flat3(s), LINE_END);
@@ -29367,7 +29367,7 @@ var HEADS = { solid: "->", dashed: "-->", dotted: "..>", thick: "==>" };
 function arrowOf(e) {
   const head2 = HEADS[e.line];
   if (e.arrow === "both") return `<${head2}`;
-  return e.arrow === "none" ? head2.replace(">", head2.charAt(0)) : head2;
+  return e.arrow === "none" ? `${head2.slice(0, -1)}${head2.charAt(0)}` : head2;
 }
 function describeData(scene, model) {
   const modelNodes = new Map(model.nodes.map((n4) => [n4.id, n4]));
