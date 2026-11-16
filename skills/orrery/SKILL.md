@@ -18,7 +18,7 @@ metadata:
 
 # orrery
 
-Write a small YAML spec (nodes with official icons, nested groups, labelled edges); the bundled CLI lays it out with ELK and renders it. No install: the CLI, the layout engine, the PNG renderer, the fonts and the official AWS, Azure, Google Cloud and Kubernetes packs ship in this folder; the logo and glyph sets (18,300 icons in all) load from their npm libraries the first time a diagram uses them and are cached. Node.js 22 or newer is the only requirement.
+Write a small YAML spec (nodes with official icons, nested groups, labelled edges); the bundled CLI lays it out with ELK and renders it. No install: the CLI, the layout engine, the PNG renderer, the fonts and the official AWS, Azure, Google Cloud and Kubernetes packs ship in this folder; the logo and glyph sets (18,307 icons in all) load from their npm libraries the first time a diagram uses them and are cached. Node.js 22 or newer is the only requirement.
 
 ```bash
 node <this-skill-folder>/scripts/orrery.mjs <command>

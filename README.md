@@ -14,7 +14,7 @@ One YAML spec in; SVG, PNG, editable draw.io, a React component and an HTML view
 
 [![CI](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/orrery/actions/workflows/ci.yml)
 ![Version](https://img.shields.io/badge/version-0.12.2-2563eb)
-![Icons](https://img.shields.io/badge/official_icons-18%2C300-2563eb)
+![Icons](https://img.shields.io/badge/official_icons-18%2C307-2563eb)
 ![License](https://img.shields.io/badge/license-MIT-2563eb)
 
 </div>
@@ -23,7 +23,7 @@ The diagram above is [docs/hero.yaml](docs/hero.yaml): 40 lines of YAML, laid ou
 
 ## What you get
 
-- **Official, current icons only.** 18,300 icons: AWS (810), Azure (636), Google Cloud (233), Kubernetes (40), GitHub Octicons (408) and IBM Carbon (2,783), plus 5,558 tech logos, 6,305 neutral symbols and Phosphor (1,527) in six weights for system design and business flows; your own SVGs work too, as `local:` icons drawn and checked with `orrery icons new` and `icons check`. The cloud packs are rebuilt from each vendor's own download, pinned by checksum. Google Cloud products get the icon Google's 2026 guide assigns them; deprecated sets and unofficial redraws of cloud icons are left out.
+- **Official, current icons only.** 18,307 icons: AWS (810), Azure (643), Google Cloud (233), Kubernetes (40), GitHub Octicons (408) and IBM Carbon (2,783), plus 5,558 tech logos, 6,305 neutral symbols and Phosphor (1,527) in six weights for system design and business flows; your own SVGs work too, as `local:` icons drawn and checked with `orrery icons new` and `icons check`. The cloud packs are rebuilt from each vendor's own download, pinned by checksum. Google Cloud products get the icon Google's 2026 guide assigns them; deprecated sets and unofficial redraws of cloud icons are left out.
 - **Official conventions.** AWS groups follow the AWS Architecture Icons deck (borders, dashes, corner tiles, label placement, open arrowheads, numbered callouts); Google Cloud and Azure groups are measured from their own reference diagrams. Every value cites its source in [styles.md](skills/orrery/references/styles.md).
 - **Business flows too.** `kind:` turns the same spec into an ISO 5807 flowchart, a BPMN 2.0 process with pools, lanes and message flows, a UML state machine, an org chart, a two-sided mind map or a customer journey map with an emotion curve. In the stage skin a process plays as a BPMN token: it splits at parallel gateways, waits at the join and follows the yes branch.
 - **Data models, sequences and roadmaps.** `kind: er` draws tables with typed, keyed rows and crow's foot relationships that meet the rows they join, and `orrery import sql` starts one from your `CREATE TABLE` statements. `kind: sequence` draws a call flow message by message, with replies dashed, activation bars and loop or alt fragments, played in order. `kind: timeline` draws a roadmap by month, quarter or year: lanes, status-styled bars, milestones, dependency arrows and a today marker.
@@ -212,7 +212,7 @@ jobs:
 | Pack | Icons | Source | Ships |
 | --- | ---: | --- | --- |
 | `aws` | 810 | [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/), 2026-07-31 package | bundled |
-| `azure` | 636 | [Azure Architecture Icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) V24 | bundled |
+| `azure` | 643 | [Azure Architecture Icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) V25 | bundled |
 | `gcp` | 233 | [Google Cloud icons](https://cloud.google.com/icons), core and category icons mapped to products as in Google's May 2026 guide | bundled |
 | `k8s` | 40 | [Kubernetes community icons](https://github.com/kubernetes/community/tree/master/icons) | bundled |
 | `github` | 408 | [GitHub Octicons](https://primer.style/octicons) | npm `@primer/octicons` |
