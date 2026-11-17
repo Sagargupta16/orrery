@@ -56,8 +56,7 @@ A second sweep of every subsystem, with new features where the audit found gaps.
   - `architecture-beta` names each edge it cannot hold in a `%% not drawn:` comment, a gantt writes `after` only when the item starts where its predecessors end, and BPMN `arrow: start` gets its marker.
   - Reading the spec out of an SVG is linear on a file full of unclosed tags.
 - **Icons.**
-  - Azure Architecture Icons V25 (636 to 643 icons, 18,307 in all): aca-sandboxes, ai-manager, app-service-builder, azure-confidential-clean-rooms, azure-device-registry, azure-encrypted-transport and azure-horizondb.
-  - Icon sync drops `href` and `url(#id)` references to ids an icon does not have, and warns when it refreshes a pin.
+  - Icon sync drops `href` and `url(#id)` references to ids an icon does not have (the V25 `azure:app-service-builder` gradient that 0.12.3 shipped dangling), and warns when it refreshes a pin.
   - `icons search` takes 368 ms instead of 1056 ms with the same results.
   - A library download names the network error, a proxy hint is in the fix (`NODE_USE_ENV_PROXY=1` with `HTTPS_PROXY`), an unreadable cache entry is downloaded again, and overlapping renders fetch a pack once.
   - Percent lengths in a local icon are read against the viewBox, and `<s:path>` bound to the SVG namespace is a path.
@@ -103,6 +102,16 @@ A second sweep of every subsystem, with new features where the audit found gaps.
 - Timeline and journey edges to a group or to the same item, and a journey stage listed twice, are now errors.
 - `include:` refuses files that are not `.yaml`, `.yml` or `.json`.
 - Renovate branches run `sync-icons` without `--latest`: vendor packs move only by hand or with the Refresh icons workflow's `latest` input.
+
+## [0.12.3] - 2026-11-17
+
+### Changed
+
+- The Azure pack is rebuilt from Microsoft's Azure Architecture Icons V25 (was V24): 643 icons, up from 636, pinned by the V25 download's SHA-256. The total is 18,307 official icons, and the six Azure examples are re-rendered with it. One new icon, `azure:app-service-builder`, ships as Microsoft drew it: its SVG references a gradient id it never defines, so that one shape draws without it.
+
+### Security
+
+- The docs site's `astro` dependency moves to 7.4.7, which fixes GHSA-mh32-jxcr-mh9f, GHSA-r3h5-4585-7x3w, CVE-2026-126361 and CVE-2026-126364. The site is only the docs build; the plugin and CLI do not use astro.
 
 ## [0.12.2] - 2026-10-27
 

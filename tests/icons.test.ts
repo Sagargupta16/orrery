@@ -203,6 +203,8 @@ describe("renderIcon", () => {
 
   it("keeps every internal reference pointing at an id of the same icon", () => {
     // Upstream gilbarbara/logos waffle-icon.svg already references ids it never defines.
+    // The Azure V25 App Service Builder reference to an id it never defines is dropped by
+    // sync-icons (dropDanglingRefs), so only the library icon is left here.
     const brokenUpstream = new Set(["logos:waffle-icon"]);
     const dangling = allIcons()
       .filter((i) => !brokenUpstream.has(i.id))
