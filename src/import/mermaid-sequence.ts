@@ -15,7 +15,19 @@ import {
 } from "./mermaid-text.ts";
 
 /** Mermaid's arrows, longest first where one starts another. */
-const ARROW = /<<-->>|<<->>|-->>|->>|--x|-x|--\)|-\)|-->|->/;
+const ARROWS = ["<<-->>", "<<->>", "-->>", "->>", "--x", "-x", "--)", "-)", "-->", "->"];
+
+/** The leftmost arrow in a message head, the longest at that place. A scan, not a regex. */
+function arrowOf(head: string): { index: number; text: string } | undefined {
+  for (let i = head.indexOf("-"); i >= 0; i = head.indexOf("-", i + 1)) {
+    // A two-way arrow starts two characters before its first dash.
+    for (const at of i >= 2 && head.startsWith("<<", i - 2) ? [i - 2, i] : [i]) {
+      const text = ARROWS.find((a) => head.startsWith(a, at));
+      if (text) return { index: at, text };
+    }
+  }
+  return undefined;
+}
 
 /** orrery's edge for each arrow: calls solid, replies dashed, async signals dotted. */
 const EDGE: Record<string, string> = {
@@ -165,11 +177,11 @@ export function importSequence(body: string, frontTitle?: string): MermaidResult
       continue;
     const colon = line.indexOf(":");
     const head = colon < 0 ? line : line.slice(0, colon);
-    const arrow = head.match(ARROW);
+    const arrow = arrowOf(head);
     const from = arrow ? head.slice(0, arrow.index).trim() : "";
     const to = arrow
       ? head
-          .slice((arrow.index ?? 0) + arrow[0].length)
+          .slice(arrow.index + arrow.text.length)
           .replace(/^ ?[+-]/, "")
           .trim()
       : "";
@@ -179,11 +191,12 @@ export function importSequence(body: string, frontTitle?: string): MermaidResult
     }
     participant(from);
     participant(to);
-    if (arrow[0].endsWith("x")) warnings.add("lost messages (-x) are drawn with a plain arrowhead");
+    if (arrow.text.endsWith("x"))
+      warnings.add("lost messages (-x) are drawn with a plain arrowhead");
     messages.push({
       from,
       to,
-      op: EDGE[arrow[0]] ?? "->",
+      op: EDGE[arrow.text] ?? "->",
       label: colon < 0 ? "" : cleanLabel(line.slice(colon + 1)),
       step: numbered ? next : undefined,
     });

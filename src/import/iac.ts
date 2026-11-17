@@ -84,7 +84,7 @@ export function slug(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   if (id || !text.trim()) return id || "item";
-  return `item-${createHash("sha1").update(text).digest("hex").slice(0, 6)}`;
+  return `item-${createHash("sha256").update(text).digest("hex").slice(0, 6)}`;
 }
 
 /** "orders_api" and "OrdersApi" read as "Orders api". */

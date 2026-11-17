@@ -41171,7 +41171,7 @@ import { relative as relative8, resolve as resolve14, sep as sep3 } from "node:p
 function slug2(text6) {
   const id = text6.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   if (id || !text6.trim()) return id || "item";
-  return `item-${createHash4("sha1").update(text6).digest("hex").slice(0, 6)}`;
+  return `item-${createHash4("sha256").update(text6).digest("hex").slice(0, 6)}`;
 }
 function humanize(text6) {
   const words2 = text6.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").replace(/[_\-./]+/g, " ").split(/\s+/).filter(Boolean).map((w) => /^[A-Z0-9]{2,}$/.test(w) && /[A-Z]/.test(w) ? w : w.toLowerCase()).join(" ");
@@ -44071,7 +44071,16 @@ function scaleOf3(tick, axis, spans2) {
 }
 
 // src/import/mermaid-sequence.ts
-var ARROW3 = /<<-->>|<<->>|-->>|->>|--x|-x|--\)|-\)|-->|->/;
+var ARROWS2 = ["<<-->>", "<<->>", "-->>", "->>", "--x", "-x", "--)", "-)", "-->", "->"];
+function arrowOf2(head2) {
+  for (let i = head2.indexOf("-"); i >= 0; i = head2.indexOf("-", i + 1)) {
+    for (const at2 of i >= 2 && head2.startsWith("<<", i - 2) ? [i - 2, i] : [i]) {
+      const text6 = ARROWS2.find((a) => head2.startsWith(a, at2));
+      if (text6) return { index: at2, text: text6 };
+    }
+  }
+  return void 0;
+}
 var EDGE3 = {
   "->>": "->",
   "-->>": "-->",
@@ -44185,20 +44194,21 @@ function importSequence(body, frontTitle) {
       continue;
     const colon = line2.indexOf(":");
     const head2 = colon < 0 ? line2 : line2.slice(0, colon);
-    const arrow2 = head2.match(ARROW3);
+    const arrow2 = arrowOf2(head2);
     const from2 = arrow2 ? head2.slice(0, arrow2.index).trim() : "";
-    const to = arrow2 ? head2.slice((arrow2.index ?? 0) + arrow2[0].length).replace(/^ ?[+-]/, "").trim() : "";
+    const to = arrow2 ? head2.slice(arrow2.index + arrow2.text.length).replace(/^ ?[+-]/, "").trim() : "";
     if (!arrow2 || !from2 || !to) {
       skipped.push(line2);
       continue;
     }
     participant(from2);
     participant(to);
-    if (arrow2[0].endsWith("x")) warnings.add("lost messages (-x) are drawn with a plain arrowhead");
+    if (arrow2.text.endsWith("x"))
+      warnings.add("lost messages (-x) are drawn with a plain arrowhead");
     messages2.push({
       from: from2,
       to,
-      op: EDGE3[arrow2[0]] ?? "->",
+      op: EDGE3[arrow2.text] ?? "->",
       label: colon < 0 ? "" : cleanLabel(line2.slice(colon + 1)),
       step: numbered ? next : void 0
     });
