@@ -1,11 +1,11 @@
 # Icons
 
-18,300 icons in 10 packs, all current official artwork. The four cloud packs are built from each vendor's own download by `scripts/sync-icons.mjs` (pinned by URL and SHA-256 in `scripts/icon-sources.json`; a monthly workflow re-pins newer releases) and ship inside the skill. The six sets that are published as npm libraries are not copied into the skill: they load from the library itself at render time (see [Where icons load from](#where-icons-load-from)). Every icon is drawn the same way either way: ids made unique per use, monochrome glyphs colored for the theme.
+18,307 icons in 10 packs, all current official artwork. The four cloud packs are built from each vendor's own download by `scripts/sync-icons.mjs` (pinned by URL and SHA-256 in `scripts/icon-sources.json`; a monthly workflow re-pins newer releases) and ship inside the skill. The six sets that are published as npm libraries are not copied into the skill: they load from the library itself at render time (see [Where icons load from](#where-icons-load-from)). Every icon is drawn the same way either way: ids made unique per use, monochrome glyphs colored for the theme.
 
 | Pack | Icons | Source | Version | What it covers | Ships |
 | --- | ---: | --- | --- | --- | --- |
 | `aws` | 810 | [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/) | 2026-07-31 package | 305 services, 466 resources (light and dark variants), 13 group tiles, 26 categories | bundled |
-| `azure` | 636 | [Azure Architecture Icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) | V24 | Azure services and resources | bundled |
+| `azure` | 643 | [Azure Architecture Icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) | V25 | Azure services and resources | bundled |
 | `gcp` | 233 | [Google Cloud icons](https://cloud.google.com/icons) | May 2026 icon guide | 19 core product icons, 26 category icons, 188 products mapped to the icon Google assigns them | bundled |
 | `k8s` | 40 | [Kubernetes icons](https://github.com/kubernetes/community/tree/master/icons) | kubernetes/community@70a4bb2 | resource kinds, control plane, infrastructure, the Kubernetes logo | bundled |
 | `github` | 408 | [GitHub Octicons](https://primer.style/octicons) | @primer/octicons 19.42.0 | GitHub's own icon set | npm `@primer/octicons` |

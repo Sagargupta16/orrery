@@ -16,7 +16,7 @@ nodes:
   spec: { icon: si:yaml, label: diagram.yaml, note: "nodes, groups, edges", in: author }
   validate: { icon: tabler:list-check, label: Validate, note: DG1xx codes with fixes, in: engine }
   aws: { icon: aws:category-compute, label: AWS, note: 810 icons, in: catalog }
-  azure: { icon: azure:virtual-machine, label: Azure, note: 636 icons, in: catalog }
+  azure: { icon: azure:virtual-machine, label: Azure, note: 643 icons, in: catalog }
   gcp: { icon: gcp:cloud-run, label: Google Cloud, note: 233 icons, in: catalog }
   k8s: { icon: k8s:kubernetes, label: Kubernetes, note: 40 icons, in: catalog }
   more: { icon: tabler:library, label: "Octicons, Carbon, logos, Tabler, Phosphor", note: "16,581 icons", in: libs }

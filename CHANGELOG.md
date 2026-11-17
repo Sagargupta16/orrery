@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.12.3] - 2026-11-17
+
+### Changed
+
+- The Azure pack is rebuilt from Microsoft's Azure Architecture Icons V25 (was V24): 643 icons, up from 636, pinned by the V25 download's SHA-256. The total is 18,307 official icons, and the six Azure examples are re-rendered with it. One new icon, `azure:app-service-builder`, ships as Microsoft drew it: its SVG references a gradient id it never defines, so that one shape draws without it.
+
+### Security
+
+- The docs site's `astro` dependency moves to 7.4.7, which fixes GHSA-mh32-jxcr-mh9f, GHSA-r3h5-4585-7x3w, CVE-2026-126361 and CVE-2026-126364. The site is only the docs build; the plugin and CLI do not use astro.
+
 ## [0.12.2] - 2026-10-27
 
 ### Fixed
