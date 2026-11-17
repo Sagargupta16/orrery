@@ -115,6 +115,11 @@ export interface GroupGeom {
   label: TextBlock;
   header: number;
   minWidth: number;
+  /**
+   * minWidth with the label as wide as the wider skin draws it: the stage skin's 11px Geist Mono
+   * caps (0.1em tracking, 0.6em a glyph) often run past the classic text (groups.ts headerText).
+   */
+  wide: number;
   icon?: string;
   iconStyle: "tile" | "tile-center" | "inline";
   center: boolean;
@@ -139,10 +144,12 @@ export function groupGeometry(g: ModelGroup): GroupGeom {
     header = Math.max(34, label.height + 17);
     minWidth = 12 + (icon ? SIZES.inlineIcon + 8 : 0) + label.width + 16;
   }
+  const mono = Math.max(0, ...label.lines.map((l) => [...l].length * 11 * 0.7 - 11 * 0.1));
   return {
     label,
     header: Math.ceil(header),
     minWidth: Math.ceil(minWidth),
+    wide: Math.ceil(minWidth + Math.max(0, mono - label.width)),
     icon,
     iconStyle,
     center,
@@ -151,8 +158,7 @@ export function groupGeometry(g: ModelGroup): GroupGeom {
 
 // A group whose header no edge could avoid (second pass) is wide enough for its corner label to
 // end left of the top center, where edges enter in a vertical flow, as in AWS reference
-// diagrams (the label ends minWidth - 16 from the left border).
+// diagrams (the label ends minWidth - 16 from the left border), in either skin.
+export const widenedOf = (gg: GroupGeom) => Math.max(gg.minWidth, 2 * (gg.wide - 10));
 export const minWidthOf = (ctx: Setup, id: string, gg: GroupGeom) =>
-  !ctx.horizontal && ctx.opts.widen?.has(id)
-    ? Math.max(gg.minWidth, 2 * (gg.minWidth - 10))
-    : gg.minWidth;
+  !ctx.horizontal && ctx.opts.widen?.has(id) ? widenedOf(gg) : gg.minWidth;

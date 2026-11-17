@@ -24,6 +24,7 @@ export const iconsSearchTool: Tool = {
     additionalProperties: false,
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
+  concurrent: true,
   async run(input) {
     const words = str(input, "words")?.trim();
     if (!words) throw new ToolError("words is required, for example 'load balancer'");

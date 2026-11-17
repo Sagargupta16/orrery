@@ -129,14 +129,17 @@ describe("SVG", () => {
 
   it("carries an accessible title and description", () => {
     const svg = text(rich, "svg", "light");
-    // Artifact ids carry the diagram name and theme (renderModel's idPrefix).
+    // Artifact ids carry the diagram name, theme and a hash of its model (renderModel's idPrefix).
     expect(svg).toMatch(
-      /<svg [^>]*role="img"[^>]*aria-labelledby="rich-light-sdw-title rich-light-sdw-desc"/,
+      /<svg [^>]*role="img"[^>]*aria-labelledby="rich-light-[0-9a-f]{6}-sdw-title rich-light-[0-9a-f]{6}-sdw-desc"/,
     );
-    expect(svg).toContain(
-      '<title id="rich-light-sdw-title">Orders &lt;v2&gt; &amp; &quot;friends&quot; &#39;quoted&#39; {braces}</title>',
+    expect(svg).toMatch(
+      /<title id="rich-light-[0-9a-f]{6}-sdw-title">Orders &lt;v2&gt; &amp; &quot;friends&quot; &#39;quoted&#39; \{braces\}<\/title>/,
     );
-    const desc = must(svg.match(/<desc id="rich-light-sdw-desc">([^<]*)<\/desc>/), "desc")[1];
+    const desc = must(
+      svg.match(/<desc id="rich-light-[0-9a-f]{6}-sdw-desc">([^<]*)<\/desc>/),
+      "desc",
+    )[1];
     expect(desc).toContain("5 components in 2 groups");
     expect(desc).toContain("VM &lt;1&gt; to VM 2 (a &amp; b)");
   });
@@ -468,15 +471,15 @@ describe("stage skin", () => {
 
   it("draws the portfolio kit: grid, one wash, ink tiles, mono caps, no raw vendor hues", () => {
     const svg = text(stage, "svg", "dark");
-    expect(svg).toContain('<pattern id="rich-dark-grid"');
-    expect(svg).toContain('<radialGradient id="rich-dark-wash"');
+    expect(svg).toMatch(/<pattern id="rich-dark-[0-9a-f]{6}-grid"/);
+    expect(svg).toMatch(/<radialGradient id="rich-dark-[0-9a-f]{6}-wash"/);
     expect(svg).toContain('font-family="&#39;Geist Mono&#39;');
     expect(svg).toContain(">SPOKE &amp; HUB</tspan>");
     // Frames are the structure color at an alpha; raw vendor colors never reach a stroke.
     expect(svg).toContain('stroke="#ffffff" stroke-opacity="0.16"');
     expect(svg).not.toMatch(/stroke="#(?:ed7100|0078d4|1490df)"/i);
     // Vendor artwork goes one color through tone filters.
-    expect(svg).toMatch(/<filter id="rich-dark-f\d+"[^>]*><feColorMatrix/);
+    expect(svg).toMatch(/<filter id="rich-dark-[0-9a-f]{6}-f\d+"[^>]*><feColorMatrix/);
     expect(xmlProblems(svg)).toEqual([]);
   });
 

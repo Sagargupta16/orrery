@@ -4,10 +4,10 @@
 import type { Box, SceneNode } from "../../types.ts";
 import { erTableStage } from "../er.ts";
 import { notationMarks, notationShape } from "../notation.ts";
-import { esc, shapePath } from "../svg.ts";
+import { safeHref, shapePath } from "../svg.ts";
 import { type Ctx, fill, rect, stroke } from "./ctx.ts";
 import { glyph, iconInk } from "./filters.ts";
-import { block, KEY, LABEL, mono, monoWidth, NOTE, sizeFor } from "./text.ts";
+import { block, KEY, keepCase, LABEL, mono, monoWidth, NOTE, sizeFor } from "./text.ts";
 import { lit, TILES_ON } from "./timing.ts";
 
 /** Alpha of a tile frame drawn in its icon's own color; the lit tint covers it. */
@@ -46,11 +46,12 @@ function badge(ctx: Ctx, label: string, anchor: Box, placed?: Box): string {
 
 function labels(ctx: Ctx, nd: SceneNode, anchor: "start" | "middle", room: number): string {
   const own = sizeFor(nd.label.lines, LABEL, room, 8);
+  const face = keepCase(LABEL, nd.label.lines, ctx.scene.kind === "er");
   const parts = [
     block(
       nd.label,
       nd.labelBox,
-      LABEL,
+      face,
       Math.min(ctx.sizes.label, own),
       nd.ink ?? ctx.t.text,
       anchor,
@@ -113,8 +114,8 @@ export function node(ctx: Ctx, nd: SceneNode): string {
     if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box, nd.badgeBox));
   }
   const inner = parts.join("");
-  const body = nd.url
-    ? `<a href="${esc(nd.url)}" xlink:href="${esc(nd.url)}" target="_blank">${inner}</a>`
-    : inner;
+  // The same allow-list as the classic node link: only http(s), mailto and relative targets.
+  const href = nd.url ? safeHref(nd.url) : undefined;
+  const body = href ? `<a href="${href}" xlink:href="${href}" target="_blank">${inner}</a>` : inner;
   return `<g id="${ctx.prefix}n-${nd.id}">${body}</g>`;
 }

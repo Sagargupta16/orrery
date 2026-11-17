@@ -9,9 +9,10 @@
 // package (its release download URL and sha256), which publish.yml sends with mcp-publisher.
 //
 //   node scripts/pack-mcpb.mjs    then: npx -y @anthropic-ai/mcpb validate out/mcpb
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { cpSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { zipSync } from "fflate";
 
@@ -22,6 +23,27 @@ const read = (f) => JSON.parse(readFileSync(join(root, f), "utf8"));
 const pkg = read("package.json");
 const manifest = read("mcpb/manifest.json");
 const server = read("server.json");
+
+// Only what git tracks (or would track) ships: the review and contact-sheet outputs that a local
+// run leaves in the skill folder are git-ignored. Outside a git checkout they are skipped by name.
+function shipped() {
+  try {
+    const listed = execFileSync(
+      "git",
+      ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "skills/orrery"],
+      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    );
+    const files = new Set(
+      listed
+        .split("\0")
+        .filter(Boolean)
+        .map((f) => resolve(root, f)),
+    );
+    return (path) => statSync(path).isDirectory() || files.has(resolve(path));
+  } catch {
+    return (path) => !/\.review\.|\.sheet\.png$/.test(basename(path));
+  }
+}
 
 const stale = [
   ["mcpb/manifest.json", manifest.version],
@@ -34,7 +56,7 @@ if (stale.length) {
 }
 
 rmSync(stage, { recursive: true, force: true });
-cpSync(join(root, "skills/orrery"), stage, { recursive: true });
+cpSync(join(root, "skills/orrery"), stage, { recursive: true, filter: shipped() });
 for (const f of ["LICENSE", "THIRD_PARTY_NOTICES.md"]) cpSync(join(root, f), join(stage, f));
 writeFileSync(join(stage, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 

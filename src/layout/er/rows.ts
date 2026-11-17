@@ -19,10 +19,16 @@ export function singular(word: string): string {
 /** The reading singular() leaves out so houses stays house: statuses -> status, quizzes -> quiz. */
 const otherSingular = (word: string) => word.replace(/([so])es$/, "$1").replace(/zzes$/, "z");
 
+/** A warehouse table's kind prefix: dim_date and DimDate are the date table to a column name. */
+const unprefixed = (raw: string) =>
+  raw
+    .replace(/^(?:dim|fact|fct|stg|tbl)[_\s-]+/i, "")
+    .replace(/^(?:Dim|Fact|Fct|Stg|Tbl)(?=[A-Z])/, "");
+
 /** The names an entity goes by in a column name: its id and label, plural and singular. */
 function namesOf(n: ModelNode): Set<string> {
   const out = new Set<string>();
-  for (const raw of [n.id, n.label]) {
+  for (const raw of [n.id, n.label].flatMap((s) => [s, unprefixed(s)])) {
     const base = norm(raw);
     if (!base) continue;
     out.add(base);
@@ -45,7 +51,8 @@ export const primaryKey = (n: ModelNode | undefined): ErField | undefined =>
 
 /**
  * The field of `n` that refers to `other` by name: `<other>_id`, `<other>Id`, or `<other>_<its
- * key>`. A field marked fk wins over one that only has the name.
+ * key>`, or a foreign key named as the other's own key when that is not a bare id (a warehouse's
+ * date_key on both tables). A field marked fk wins over one that only has the name.
  */
 export function fieldNaming(
   n: ModelNode | undefined,
@@ -58,7 +65,9 @@ export function fieldNaming(
     wanted.add(`${name}id`);
     if (key && key !== "id") wanted.add(`${name}${key}`);
   }
-  const named = n.fields.filter((f) => wanted.has(norm(f.name)));
+  const named = n.fields.filter(
+    (f) => wanted.has(norm(f.name)) || (f.fk && key && key !== "id" && norm(f.name) === key),
+  );
   return named.find((f) => f.fk) ?? named[0];
 }
 

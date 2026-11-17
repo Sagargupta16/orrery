@@ -2,8 +2,19 @@
 // theme, and the size of the story (node count, long labels, mid-word breaks).
 import { turnFix } from "../check/canvas.ts";
 import { contrast, isHex, mixHex } from "../color.ts";
+import { litLabelInk, litStepInk } from "../render/stage/draw-labels.ts";
+import { labelRoom } from "../render/stage/draw-nodes.ts";
+import { common, DIGIT, EDGE, LABEL, NOTE, sizeFor } from "../render/stage/text.ts";
 import { tokensFor } from "../themes.ts";
-import type { Box, Scene, SceneGroup, ThemeName } from "../types.ts";
+import {
+  type Box,
+  OWN_LAYOUT,
+  type Scene,
+  type SceneEdge,
+  type SceneGroup,
+  type SceneNode,
+  type ThemeName,
+} from "../types.ts";
 import { inBox, r1, r2 } from "./geometry.ts";
 import type { Ctx } from "./types.ts";
 
@@ -90,8 +101,9 @@ function textItems(scene: Scene): TextItem[] {
   }
   const chipFill =
     scene.background === "transparent" ? t.background : (scene.background ?? t.background);
+  const k = t.stage;
   for (const e of scene.edges) {
-    if (e.label && e.labelBox)
+    if (e.label && e.labelBox) {
       push(
         e.id,
         "edge label",
@@ -100,7 +112,16 @@ function textItems(scene: Scene): TextItem[] {
         e.label.size,
         e.label.weight,
       );
-    if (e.step !== undefined && e.stepBox) push(e.id, "step", t.stepText, [t.stepFill], 14, 600);
+      // The stage skin relights the label in the edge's own color, held to 4.5:1, on its chip.
+      if (k)
+        push(e.id, "lit edge label", litLabelInk({ k }, e), [k.tile], e.label.size, e.label.weight);
+    }
+    if (e.step !== undefined && e.stepBox) {
+      push(e.id, "step", t.stepText, [t.stepFill], 14, 600);
+      // The stage badge pops as a disc in the edge's color with the digit held to 4.5:1 on it.
+      const pop = k && (e.color ?? k.tint);
+      if (k && pop) push(e.id, "lit step", litStepInk({ k }, pop), [pop], 14, 600);
+    }
   }
   for (const item of scene.legend?.items ?? [])
     push("legend", `legend ${item.line}`, t.text, [t.surface], item.label.size, item.label.weight);
@@ -115,6 +136,25 @@ export function measureQuality(c: Ctx, scenes: Scene[]): void {
   c.hard.contrastFailures = failures;
   const n = storySize(c);
 
+  // The stage skin draws smaller mono faces than the layout's sizes. They are reported, not scored:
+  // the findings and thresholds above were set on the layout's sizes.
+  const stage = scenes[0]?.skin === "stage" && !OWN_LAYOUT.has(scenes[0].kind);
+  if (stage) {
+    const drawn = drawnSizes(c.scene);
+    const labels = c.scene.nodes.filter((nd) => nd.label.lines.length).map(drawn.label);
+    const rest = [
+      ...c.scene.nodes.flatMap((nd) => (nd.note ? [drawn.note(nd)] : [])),
+      ...c.scene.edges.flatMap((e) => [
+        ...(e.label ? [drawn.edge(e)] : []),
+        ...(e.step !== undefined ? [drawn.step(e)] : []),
+      ]),
+    ];
+    Object.assign(m, {
+      stageNodeLabelPx: labels.length ? r2(Math.min(...labels) * c.s) : "none",
+      stageSmallestTextPx: rest.length ? r2(Math.min(...rest) * c.s) : "none",
+    });
+  }
+
   Object.assign(m, {
     nodeLabelPx: r2(nodeLabelPx),
     smallestTextPx: others ? r2(textPx) : "none",
@@ -126,6 +166,43 @@ export function measureQuality(c: Ctx, scenes: Scene[]): void {
     edges: c.model.edges.length,
     groups: c.model.groups.length,
   });
+}
+
+/**
+ * The font sizes a scene is drawn at. Classic draws the layout's own sizes; the stage skin
+ * redraws node labels, notes, edge labels and step digits in mono faces that shrink to fit
+ * (render/stage/index.ts labelSizes, draw-nodes.ts, draw-labels.ts), so the measure repeats
+ * that fit. Kinds that place their own nodes keep the layout sizes.
+ */
+function drawnSizes(scene: Scene) {
+  const own = {
+    label: (n: SceneNode) => n.label.size,
+    note: (n: SceneNode) => n.note?.size ?? 0,
+    edge: (e: SceneEdge) => e.label?.size ?? 0,
+    step: (_e: SceneEdge) => 14,
+  };
+  if (scene.skin !== "stage" || OWN_LAYOUT.has(scene.kind)) return own;
+  const labels = common(
+    scene.nodes.map((n) => sizeFor(n.label.lines, LABEL, labelRoom(n))),
+    LABEL.size,
+  );
+  const notes = common(
+    scene.nodes.flatMap((n) => (n.note ? [sizeFor(n.note.lines, NOTE, labelRoom(n))] : [])),
+    NOTE.size,
+  );
+  const edgeFit = (e: SceneEdge) =>
+    e.label && e.labelBox ? sizeFor(e.label.lines, EDGE, e.labelBox.w - 8, 7) : EDGE.size;
+  const edges = common(
+    scene.edges.flatMap((e) => (e.label && e.labelBox ? [edgeFit(e)] : [])),
+    EDGE.size,
+  );
+  return {
+    label: (n: SceneNode) => Math.min(labels, sizeFor(n.label.lines, LABEL, labelRoom(n), 8)),
+    note: (n: SceneNode) =>
+      n.note ? Math.min(notes, sizeFor(n.note.lines, NOTE, labelRoom(n), 8)) : 0,
+    edge: (e: SceneEdge) => Math.min(edges, edgeFit(e)),
+    step: (e: SceneEdge) => (e.stepBox ? Math.min(DIGIT.size, e.stepBox.w / 2) : DIGIT.size),
+  };
 }
 
 /** Legibility at the display width. `others` counts the texts besides node labels. */

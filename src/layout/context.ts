@@ -25,7 +25,7 @@ import { notationHooks } from "./notation.ts";
 import { type Plan, planPlacement } from "./plan.ts";
 import type { Relations } from "./relations.ts";
 import type { Seat, SeatGrowth } from "./seats.ts";
-import { ENDS } from "./sizes.ts";
+import { ELK_BUDGET, ENDS } from "./sizes.ts";
 
 export interface LayoutOptions {
   theme?: ThemeName;
@@ -154,6 +154,13 @@ export function prepare(model: Model, opts: LayoutOptions, theme: ThemeName): Se
       model.layering === "simplex" ? "NETWORK_SIMPLEX" : "LONGEST_PATH_SOURCE",
     "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
     "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+    // ELK's greedy cycle breaker reverses whichever edge balances in- and out-links best, often
+    // one on the main path; a depth-first walk in spec order keeps the edges the author wrote
+    // later (a retry, a loop back) as the back edges. The model-order breakers crash elkjs 0.12
+    // inside groups. Past ELK_BUDGET edges the greedy one stays: on a dense web of cycles the
+    // walk's layering takes ELK two to three times as long.
+    "elk.layered.cycleBreaking.strategy":
+      model.edges.length <= ELK_BUDGET ? "DEPTH_FIRST" : "GREEDY",
     // Orders each layer by the elk.position hints below, so siblings keep spec order (AZ A left
     // of AZ B). considerModelOrder would do the same but crashes elkjs 0.12 on nested graphs.
     "elk.layered.crossingMinimization.semiInteractive": "true",

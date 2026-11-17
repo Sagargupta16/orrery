@@ -17,7 +17,7 @@ import { isObj, readText } from "../spec/values.ts";
 import { GROUP_STYLES } from "../styles.ts";
 import { SHAPES } from "../types.ts";
 import type { Args } from "./args.ts";
-import { usage, writeAtomic } from "./io.ts";
+import { inFolder, usage, writeAtomic } from "./io.ts";
 
 export function cmdStyles(args: Args) {
   if (args.flags.json === true) {
@@ -51,7 +51,8 @@ export function cmdInit(args: Args) {
   const name = args._[0] ?? "starter";
   const file = join(examplesDir, `${name}.yaml`);
   if (!existsSync(file)) usage(`no template "${name}" (templates: ${list.join(", ")})`);
-  const out = resolve(typeof args.flags.out === "string" ? args.flags.out : "diagram.yaml");
+  const outFlag = typeof args.flags.out === "string" ? args.flags.out : "diagram.yaml";
+  const out = inFolder(outFlag, `${name}.yaml`) ?? resolve(outFlag);
   if (existsSync(out) && args.flags.force !== true) {
     process.stderr.write(`${out} exists; pass --force to overwrite\n`);
     process.exitCode = 1;
@@ -68,7 +69,9 @@ export function cmdInit(args: Args) {
     writeAtomic(dest, readFileSync(icon.path));
     process.stdout.write(`wrote ${dest}\n`);
   }
-  process.stdout.write(`next: orrery render ${basename(out)}\n`);
+  process.stdout.write(
+    `next: orrery render ${relative(process.cwd(), out).replaceAll("\\", "/")}\n`,
+  );
 }
 
 /** The text an importer reads: stdin for -, else the file, by its byte order mark. */
@@ -116,7 +119,9 @@ export async function cmdImport(args: Args) {
     process.exitCode = 1;
     return;
   }
-  const out = typeof args.flags.out === "string" ? resolve(args.flags.out) : undefined;
+  const outFlag = typeof args.flags.out === "string" ? args.flags.out : undefined;
+  const stem = file === "-" ? "diagram" : basename(resolve(file)).replace(/\.[^.]+$/, "");
+  const out = outFlag ? (inFolder(outFlag, `${stem}.yaml`) ?? resolve(outFlag)) : undefined;
   if (!out) return void process.stdout.write(result.yaml);
   if (existsSync(out) && args.flags.force !== true) {
     process.stderr.write(`${out} exists; pass --force to overwrite\n`);

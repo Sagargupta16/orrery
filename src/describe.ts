@@ -127,6 +127,13 @@ function arrowOf(e: ModelEdge): string {
 }
 
 export function describeData(scene: Scene, model: Model): Description {
+  // A timeline and a journey place every node themselves and draw only the edges between two
+  // different items: an edge to a lane or a journey stage, or to itself, is not in the picture.
+  const drawnIds = new Set(scene.edges.map((e) => e.id));
+  const edges =
+    model.kind === "timeline" || model.kind === "journey"
+      ? model.edges.filter((e) => drawnIds.has(e.id))
+      : model.edges;
   const modelNodes = new Map(model.nodes.map((n) => [n.id, n]));
   const modelGroups = new Map(model.groups.map((g) => [g.id, g]));
   const nodes = scene.nodes.filter((n) => modelNodes.has(n.id));
@@ -159,7 +166,7 @@ export function describeData(scene: Scene, model: Model): Description {
 
   const links = new Map<string, DescribedLink[]>();
   const add = (id: string, link: DescribedLink) => links.set(id, [...(links.get(id) ?? []), link]);
-  for (const e of model.edges) {
+  for (const e of edges) {
     const label = { ...(e.label ? { label: e.label } : {}), edge: e.id };
     if (e.arrow === "both" || e.arrow === "none") {
       add(e.from, { dir: e.arrow, with: e.to, ...label });
@@ -215,7 +222,7 @@ export function describeData(scene: Scene, model: Model): Description {
     })
     .sort((a, b) => a.row - b.row || a.col - b.col);
 
-  const stepped = model.edges
+  const stepped = edges
     .filter((e) => e.step !== undefined)
     .sort((a, b) => (a.step ?? 0) - (b.step ?? 0));
   const story: DescribedStep[] = stepped.length
@@ -225,7 +232,7 @@ export function describeData(scene: Scene, model: Model): Description {
       })
     : (model.story ?? []).slice(1).map((to, i) => {
         const from = model.story?.[i] ?? "";
-        const e = model.edges.find(
+        const e = edges.find(
           (x) => (x.from === from && x.to === to) || (x.from === to && x.to === from),
         );
         return { from, to, ...(e?.label ? { label: e.label } : {}) };
@@ -266,7 +273,7 @@ export function describeData(scene: Scene, model: Model): Description {
     kind: model.kind,
     direction: model.direction,
     size: { width: Math.round(scene.width), height: Math.round(scene.height) },
-    counts: { nodes: model.nodes.length, groups: model.groups.length, edges: model.edges.length },
+    counts: { nodes: model.nodes.length, groups: model.groups.length, edges: edges.length },
     groups,
     nodes: described,
     story,
@@ -406,6 +413,11 @@ export async function cmdDescribe(args: Args): Promise<void> {
   const model = parsed.model;
   if (!model || parsed.diagnostics.some((x) => x.severity === "error")) {
     printDiagnostics(parsed.diagnostics, false);
+    if (args.flags.json === true)
+      process.stdout.write(
+        `${JSON.stringify({ ok: false, diagnostics: parsed.diagnostics }, null, 2)}
+`,
+      );
     process.exitCode = 1;
     return;
   }

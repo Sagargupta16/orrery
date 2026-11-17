@@ -44,19 +44,53 @@ function fontBuffers(extra: string[]): Uint8Array[] {
   return [...fonts, ...extra.map((f) => new Uint8Array(readFileSync(f)))];
 }
 
+/** The most pixels one PNG may have: resvg takes minutes and gigabytes beyond it. */
+export const PNG_PIXEL_BUDGET = 40e6;
+
 export interface PngOptions {
   /** Pixel density; the default 3 stays sharp when zoomed or projected. */
   scale?: number;
+  /** Lower a scale that is over the pixel budget to fit it (the default scale always does); otherwise it is an error. */
+  shrink?: boolean;
   /** Extra .ttf/.otf files for scripts Inter lacks (CJK, Devanagari...). */
   fonts?: string[];
   background?: string;
 }
 
+/**
+ * The scale a canvas of this size is drawn at. The default scale (and any scale with `shrink`) is
+ * lowered to stay inside the pixel budget; a scale that was asked for and does not fit is an error
+ * naming the size and a scale that does.
+ */
+export function pngScale(width: number, height: number, scale?: number, shrink = false): number {
+  const wanted = scale ?? 3;
+  const area = width * height;
+  if (!(area > 0) || area * wanted * wanted <= PNG_PIXEL_BUDGET) return wanted;
+  const fits = Math.floor(Math.sqrt(PNG_PIXEL_BUDGET / area) * 100) / 100;
+  // Never below 1: a smaller PNG is a choice for the user to make, not something to do silently.
+  if ((scale === undefined || shrink) && fits >= 1) return fits;
+  // A scale that was not asked for is reported at 1, the smallest it would have tried.
+  const at = scale === undefined || shrink ? 1 : wanted;
+  const w = Math.round(width * at);
+  const h = Math.round(height * at);
+  const smaller = fits >= 0.1 ? `use --scale ${fits} or less` : "export the SVG instead";
+  throw new Error(
+    `the PNG would be ${w}x${h} px (${Math.round((w * h) / 1e6)} MP at scale ${at}, over the ${PNG_PIXEL_BUDGET / 1e6} MP limit); ${smaller}`,
+  );
+}
+
+/** The size the SVG's root element declares, which is the canvas resvg draws. */
+function sizeOf(svg: string): [number, number] {
+  const m = /<svg\b[^>]*?\swidth="([\d.]+)"[^>]*?\sheight="([\d.]+)"/.exec(svg.slice(0, 2000));
+  return m ? [Number(m[1]), Number(m[2])] : [0, 0];
+}
+
 export async function renderPng(svg: string, opts: PngOptions = {}): Promise<Uint8Array> {
+  const scale = pngScale(...sizeOf(svg), opts.scale, opts.shrink);
   resvg ??= load();
   const { Resvg } = await resvg;
   const r = new Resvg(svg, {
-    fitTo: { mode: "zoom", value: opts.scale ?? 3 },
+    fitTo: { mode: "zoom", value: scale },
     background: opts.background,
     font: {
       fontBuffers: fontBuffers(opts.fonts ?? []),

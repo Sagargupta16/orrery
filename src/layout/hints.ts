@@ -1,11 +1,12 @@
 // The placement hints around the core: rank: <n> becomes an align on a node already in that
 // layer, and an align or a cols grid whose edges cannot be drawn clear is dropped and reported.
 
-import type { IgnoredSetting, Model, Scene } from "../types.ts";
+import type { Box, IgnoredSetting, Model, Scene } from "../types.ts";
 import { hiddenOf, type LayoutOptions, withIgnored } from "./context.ts";
 import { layoutCore } from "./core.ts";
 import { sceneDefects } from "./defects.ts";
 import { layersOf, planPlacement, selfPlaced } from "./plan.ts";
+import { loopedEdges } from "./relations.ts";
 
 /**
  * rank: <n> puts a node in the nth layer of its group. ELK 0.12 has no layer number constraint
@@ -192,12 +193,15 @@ export async function layoutGridded(model: Model, opts: LayoutOptions): Promise<
 }
 
 /**
- * An align whose edges cannot be drawn clear goes rather than an overlap (dropCovering). Each
- * dropped align is reported.
+ * An align that turns an edge in no loop against the flow goes (dropTurning), and so does one
+ * whose edges cannot be drawn clear, rather than an overlap (dropCovering). Each dropped align is
+ * reported.
  */
 async function layoutAligned(model: Model, opts: LayoutOptions): Promise<Scene> {
   const scene = await layoutCore(model, opts);
-  const plan = sceneDefects(scene) ? planPlacement(model, hiddenOf(model)) : undefined;
+  // Kinds that place every node themselves have no flow for an edge to turn against.
+  const turns = !selfPlaced(model.kind) && turnedBack(scene, model).length > 0;
+  const plan = turns || sceneDefects(scene) ? planPlacement(model, hiddenOf(model)) : undefined;
   if (!plan?.blocks.size) return scene;
   const without = (m: Model, ids: Set<string>): Model => ({
     ...m,
@@ -209,14 +213,92 @@ async function layoutAligned(model: Model, opts: LayoutOptions): Promise<Scene> 
   });
   const hinted = (m: Model) =>
     m.nodes.filter((n) => n.align !== undefined && plan.blockOf.has(n.id)).map((n) => n.id);
-  const kept = await dropCovering(model, scene, hinted, without, (m) => layoutCore(m, opts));
+  const run = (m: Model) => layoutCore(m, opts);
+  const turned = turns
+    ? await dropTurning(model, scene, hinted, without, run)
+    : { scene, model, dropped: [] };
+  const kept = sceneDefects(turned.scene)
+    ? await dropCovering(turned.model, turned.scene, hinted, without, run)
+    : { scene: turned.scene, dropped: [] };
   const order = new Map(model.nodes.map((n, i) => [n.id, i]));
+  const byOrder = (a: IgnoredSetting, b: IgnoredSetting) =>
+    (order.get(a.subject) ?? 0) - (order.get(b.subject) ?? 0);
   return withIgnored(
     kept.scene,
-    kept.dropped
-      .sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0))
-      .map((id) => ({ subject: id, setting: "align", reason: COVERED })),
+    [
+      ...turned.dropped,
+      ...kept.dropped.map((id) => ({ subject: id, setting: "align", reason: COVERED })),
+    ].sort(byOrder),
   );
+}
+
+/**
+ * Edges between two nodes, in no loop of the model's edges, whose target lies before its source
+ * along the flow: only a block's summed links (the align it stands for) can turn one around, since
+ * ELK reverses only edges it needs to break a cycle.
+ */
+function turnedBack(scene: Scene, model: Model): Model["edges"] {
+  const looped = loopedEdges(model);
+  const at = new Map(scene.nodes.map((n) => [n.id, n.box]));
+  // Where a box starts and ends along the flow: a target that ends before its source starts lies
+  // wholly behind it, while two nodes in one layer (an align beside its anchor) overlap.
+  const span = (b: Box): [number, number] => {
+    const d = scene.direction;
+    const [lo, hi] = d === "right" || d === "left" ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+    return d === "right" || d === "down" ? [lo, hi] : [-hi, -lo];
+  };
+  return model.edges.filter((e) => {
+    const a = at.get(e.from);
+    const b = at.get(e.to);
+    if (!a || !b || !e.constraint || looped.has(e.id)) return false;
+    return span(b)[1] < span(a)[0];
+  });
+}
+
+/**
+ * While the layout turns an edge in no loop against the flow, it is laid out again without each
+ * align in turn and the one whose loss turns the fewest goes (the later in spec order on a tie);
+ * when no single one helps, all of them go if that turns fewer.
+ */
+async function dropTurning(
+  model: Model,
+  first: Scene,
+  hinted: (m: Model) => string[],
+  without: (m: Model, ids: Set<string>) => Model,
+  run: (m: Model) => Promise<Scene>,
+): Promise<{ scene: Scene; model: Model; dropped: IgnoredSetting[] }> {
+  const why = (s: Scene, m: Model) => {
+    const [e] = turnedBack(s, m);
+    return e ? `it turns ${e.from} -> ${e.to}, which is in no loop, against the flow` : "";
+  };
+  let scene = first;
+  let current = model;
+  let turned = turnedBack(scene, current).length;
+  const dropped: IgnoredSetting[] = [];
+  while (turned) {
+    let pick: { id: string; scene: Scene; turned: number; model: Model } | undefined;
+    for (const id of hinted(current)) {
+      const m = without(current, new Set([id]));
+      const s = await run(m);
+      const t = turnedBack(s, m).length;
+      if (t <= (pick ? pick.turned : turned - 1)) pick = { id, scene: s, turned: t, model: m };
+    }
+    if (!pick) break;
+    dropped.push({ subject: pick.id, setting: "align", reason: why(scene, current) });
+    ({ scene, turned, model: current } = pick);
+  }
+  const rest = hinted(current);
+  if (turned && rest.length) {
+    const m = without(current, new Set(rest));
+    const s = await run(m);
+    if (turnedBack(s, m).length < turned) {
+      const reason = why(scene, current);
+      dropped.push(...rest.map((id) => ({ subject: id, setting: "align", reason })));
+      scene = s;
+      current = m;
+    }
+  }
+  return { scene, model: current, dropped };
 }
 
 /**

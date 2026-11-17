@@ -68,9 +68,10 @@ export function createEditor(area: HTMLTextAreaElement, gutter: HTMLElement): Ed
       e.preventDefault();
       const { value, selectionStart: start, selectionEnd: end } = area;
       const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-      if (value.slice(start, end).includes("\n")) {
-        // A selection over several lines indents or outdents each of them and stays selected; a
-        // line the selection only reaches the start of is left alone.
+      if (start !== end) {
+        // A selection indents or outdents every line it touches and stays selected (a selection
+        // inside one line keeps its text instead of being replaced); a line the selection only
+        // reaches the start of is left alone.
         const last = value[end - 1] === "\n" ? end - 1 : end;
         const stop = value.indexOf("\n", last);
         const block = value.slice(lineStart, stop < 0 ? value.length : stop);
@@ -81,7 +82,11 @@ export function createEditor(area: HTMLTextAreaElement, gutter: HTMLElement): Ed
         if (next === block) return;
         area.setSelectionRange(lineStart, lineStart + block.length);
         insert(area, next);
-        area.setSelectionRange(lineStart, lineStart + next.length);
+        if (block.includes("\n")) area.setSelectionRange(lineStart, lineStart + next.length);
+        else {
+          const delta = next.length - block.length;
+          area.setSelectionRange(Math.max(lineStart, start + delta), Math.max(lineStart, end + delta));
+        }
         return;
       }
       if (e.shiftKey) {

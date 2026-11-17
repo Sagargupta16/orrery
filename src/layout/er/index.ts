@@ -7,8 +7,9 @@
 // small move across the flow allows it (align.ts) and routes every relationship again, from row to
 // row (route.ts), on the rows the spec names or rows.ts infers.
 
-import type { Box, ModelNode } from "../../types.ts";
+import type { Box, ModelEdge, ModelNode } from "../../types.ts";
 import type { AfterLayout, LayoutHooks, NodeGeom } from "../hooks.ts";
+import { labelSize } from "../kinds/shared.ts";
 import { alignTables } from "./align.ts";
 import { routeRelationships, STUB } from "./route.ts";
 import { joinedRows } from "./rows.ts";
@@ -34,6 +35,9 @@ export function erGeometry(n: ModelNode, _horizontal: boolean): NodeGeom | undef
 }
 
 const r = (v: number) => Math.round(v * 100) / 100;
+
+/** The widest edge label, 0 when none. */
+const widest = (edges: ModelEdge[]) => Math.max(0, ...edges.map((e) => labelSize(e)?.w ?? 0));
 
 /** Each table's header text and icon, and its rows. */
 function seatTables(ctx: AfterLayout): void {
@@ -89,7 +93,10 @@ export const erHook: LayoutHooks = {
       "elk.layered.spacing.nodeNodeBetweenLayers": String(
         Math.round(labelled ? Math.max(24, layers / 2 + 8) : layers),
       ),
-      ...(vertical ? { "elk.spacing.nodeNode": String(Math.round(channel)) } : {}),
+      // Within a layer a label sits in the gap between two tables, beside the risers that pass it.
+      ...(vertical
+        ? { "elk.spacing.nodeNode": String(Math.round(channel + widest(model.edges))) }
+        : {}),
     };
   },
   after(ctx) {

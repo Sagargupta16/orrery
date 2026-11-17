@@ -38,7 +38,8 @@
         "orrery.server.path": {
           "type": "string",
           "default": "",
-          "markdownDescription": "The orrery CLI to run as the language server: a `.mjs` or `.js` file run with `node` (such as `skills/orrery/scripts/orrery.mjs` in a checkout, relative to the first workspace folder) or an `orrery` executable. Empty runs `npx -y @sagargupta1610/orrery lsp`. Reload the window after changing it."
+          "scope": "machine",
+          "markdownDescription": "The orrery CLI to run as the language server: a `.mjs` or `.js` file run with `node` (such as `skills/orrery/scripts/orrery.mjs` in a checkout) or an `orrery` executable. A value with a folder in it or starting with `.` is read from the first workspace folder; a bare name such as `orrery` is looked up on PATH. Empty runs `npx -y @sagargupta1610/orrery lsp`. Set in user settings only, so a repository cannot choose what runs. Reload the window after changing it."
         },
         "orrery.trace.server": {
           "type": "string",

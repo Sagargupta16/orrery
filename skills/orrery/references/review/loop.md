@@ -7,6 +7,7 @@ How a rendered diagram gets reviewed and improved: **measure, critique, patch, r
 | Role | Who | Writes | Reads |
 | --- | --- | --- | --- |
 | Orchestrator | the main session | the spec, and nothing else | everything below |
+| Author | `orrery:diagram-author`, before the loop ([Best of K](#best-of-k)) | its own draft spec, its review files and `<base>.candidates.json` | the figure, the brief and its framing |
 | Measurer | `orrery review` (`src/review/`) | `<base>.review.json`, `<base>.review.png` | the spec |
 | Conventions reviewer | `orrery:conventions-reviewer`, or an inline pass | one JSON findings array | the rubric files named in `rubrics` of the review JSON |
 | Flow reviewer | `orrery:flow-reviewer`, or an inline pass | one JSON findings array | [flow.md](flow.md) |
@@ -43,6 +44,13 @@ A process drawn with AWS icons gets both `conventions-aws.md` and `conventions-b
 - **Few edits per round, revert when nothing improves, three rounds** ([See it. Say it. Sorted](https://arxiv.org/html/2508.15222); [MatPlotAgent](https://arxiv.org/html/2402.11453) and [PaperBanana](https://arxiv.org/html/2601.23265) both stop at 3 rounds; PaperBanana's critics miss connectivity, so the flow reviewer checks it from the spec, not the image).
 - **Progress ledger with a stall threshold of 2** ([Magentic-One](https://arxiv.org/html/2411.04468)).
 - **Reduce before nudging, then try candidates in one batch**: an overlap is often a symptom of too many arrows, and one batch of candidates replaces several fix, render and look cycles.
+- **Several framings before any polishing, ranked by measurement**: going from one plan to three gave the largest single gain in [Crafter](https://arxiv.org/html/2605.30611) (+7.19 points), and [VisPath](https://arxiv.org/html/2502.11140) finds three reasoning paths best, with diminishing returns and even losses past four. Each author writes only its own draft, so drafts never conflict, and the measured score, not a model, picks the winner.
+
+## Best of K
+
+Before the loop starts on a figure, `/orrery:draw` decides how many drafts to make. A figure with at most 8 nodes gets one draft (K = 1). A larger one gets K = 3 drafts, never more than 4, written by `orrery:diagram-author` agents launched in one message, each with a framing that differs from the others in one real choice: the abstraction level, the grouping boundary, the direction or the kind (`orrery:kind-router` proposes them). Each draft has its own spec path (`<name>.k1.yaml`, `<name>.k2.yaml`, ...).
+
+The winner is picked by measurement alone, never by a model's vote: review every draft at the same width and theme, keep the drafts whose overlaps (`hard.overlaps`), crossings (`dimensions.layout.metrics.crossings`) and edges through nodes (`hard.edgesThroughNodes`) are each at the lowest count any draft has (when no draft is lowest on all three, the drafts with the lowest sum of the three), and of those take the highest `score`. Only the winner goes on to step 1; the other drafts are deleted.
 
 ## Steps
 
@@ -200,7 +208,7 @@ The composition findings (zig-zag, avoidable bend, beside a group, uneven siblin
 | `flow.bidirectional` | AZ-04 | 12 | a two-headed arrow hides who initiates |
 | `flow.undirected` | AZ-03 | 12 | a line without an arrowhead leaves the relationship unclear |
 | `flow.unlabelled-boundary` |  | 10 | an unlabelled edge crosses a group boundary |
-| `flow.head-on-bend` |  | 15 | the last straight run is shorter than the arrowhead, so the head sits on the bend |
+| `flow.head-on-bend` | DG222 | 15 | an arrowhead ends a zero-length segment (it points nowhere) or a straight run shorter than itself, so the head sits on the bend |
 | `flow.arrow-short` |  | 10 | an edge stops short of what it points at (the icon glyph or tile, a card, shape or group border) or runs into it; major when an end lands outside an icon's tile, out where its label is |
 | `flow.unconnected` | DG208 | 12 | a node nothing connects to |
 | `flow.edge-budget` |  | 6 | an architecture diagram with more edges than nodes, which reads as a call sequence |

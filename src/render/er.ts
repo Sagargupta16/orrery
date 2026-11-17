@@ -27,7 +27,7 @@ import {
 import type { Box, ErEnd, Point, SceneEdge, SceneNode } from "../types.ts";
 import { fill, rect, type Ctx as StageCtx, stroke } from "./stage/ctx.ts";
 import { glyph, iconInk } from "./stage/filters.ts";
-import { block, type Face, KEY, LABEL, mono, NOTE, sizeFor } from "./stage/text.ts";
+import { block, type Face, KEY, keepCase, LABEL, mono, NOTE, sizeFor } from "./stage/text.ts";
 import { lit, TILES_ON } from "./stage/timing.ts";
 import { type Ctx, esc, icon, n, text } from "./svg.ts";
 
@@ -273,12 +273,14 @@ export function erTableStage(ctx: StageCtx, nd: SceneNode): string | undefined {
   ];
   if (nd.icon && nd.iconBox) parts.push(glyph(ctx, nd.icon, nd.iconBox, iconInk(ctx, nd.icon)));
   const room = b.x + b.w - nd.labelBox.x - 10;
+  // Every label of an entity-relationship diagram keeps its case: a table is named, not shouted.
+  const face = keepCase(LABEL, nd.label.lines, true);
   parts.push(
     block(
       nd.label,
       nd.labelBox,
-      LABEL,
-      Math.min(ctx.sizes.label, sizeFor(nd.label.lines, LABEL, room, 8)),
+      face,
+      Math.min(ctx.sizes.label, sizeFor(nd.label.lines, face, room, 8)),
       nd.ink ?? t.text,
       "start",
     ),

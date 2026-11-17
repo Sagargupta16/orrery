@@ -3,12 +3,27 @@
 // key sets a node, group or edge takes with `class:` before its own keys. Every existing check
 // then runs on the merged items.
 import { existsSync, statSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { dirname, extname, relative, resolve } from "node:path";
 import { EDGE_SYNONYMS, GROUP_SYNONYMS, NODE_SYNONYMS, TOP_KEYS } from "./keys.ts";
 import { closest } from "./suggest.ts";
-import { isObj, type Obj, parseText, type Reporter, readText, unknownKeys } from "./values.ts";
+import {
+  isObj,
+  itemId,
+  type Obj,
+  parseText,
+  type Reporter,
+  readText,
+  unknownKeys,
+} from "./values.ts";
 
 const NAME = /^[a-z0-9][a-z0-9_-]*$/i;
+
+/** Includes are specs, so only spec files are read: no other file's contents reach a message. */
+const INCLUDE_EXT = /^\.(ya?ml|json)$/i;
+/** The keys an include is read for; a mapping with none of them is not a spec. */
+const SPEC_ITEMS = ["groups", "nodes", "edges", "classes", "tags", "include"];
+
+const isFile = (path: string) => existsSync(path) && statSync(path).isFile();
 
 // ---------------------------------------------------------------- include
 
@@ -19,8 +34,7 @@ const NAME = /^[a-z0-9][a-z0-9_-]*$/i;
  */
 export type IncludeReader = false | ((path: string) => string | undefined);
 
-const fromDisk = (path: string): string | undefined =>
-  existsSync(path) && statSync(path).isFile() ? readText(path) : undefined;
+const fromDisk = (path: string): string | undefined => (isFile(path) ? readText(path) : undefined);
 
 /** The merged spec, and the parser's name for each of its edge items. */
 export interface Included {
@@ -115,6 +129,14 @@ function includeList(value: unknown, where: string, r: Reporter): string[] {
 function readIncluded(path: string, name: string, w: Walk): Obj | undefined {
   const { r } = w;
   const subject = { where: "include", file: name };
+  // Checked before the file is opened, so an include cannot even tell whether another file exists.
+  if (!INCLUDE_EXT.test(extname(path))) {
+    r.err("DG122", `include ${name} must be a .yaml, .yml or .json spec file`, {
+      subject,
+      fixes: ["include only orrery specs, such as shared/aws-frame.yaml"],
+    });
+    return undefined;
+  }
   const text = w.read(path);
   if (text === undefined) {
     r.err("DG122", `include ${name} not found`, {
@@ -133,13 +155,15 @@ function readIncluded(path: string, name: string, w: Walk): Obj | undefined {
     });
     return undefined;
   }
-  if (isObj(raw)) {
+  // A mapping with none of the keys an include brings is some other YAML or JSON file; its key
+  // names stay out of the messages.
+  if (isObj(raw) && SPEC_ITEMS.some((k) => Object.hasOwn(raw, k))) {
     // Only groups, nodes, edges, classes and tags are merged, but a misspelled key would
     // silently drop what it holds.
     unknownKeys(r, raw, TOP_KEYS, {}, `include ${name}`);
     return raw;
   }
-  r.err("DG122", `include ${name} must be a spec: a mapping with groups, nodes or edges`, {
+  r.err("DG122", `include ${name} is not a spec: it needs groups, nodes, edges, classes or tags`, {
     subject,
     fixes: [`start ${name} with groups: or nodes:`],
   });
@@ -191,7 +215,8 @@ function layer(base: Obj, top: Obj, name: string, origin: Map<string, string>, r
 function idEntries(value: unknown): [string | undefined, unknown][] {
   if (Array.isArray(value))
     return value.map((item): [string | undefined, unknown] => {
-      if (isObj(item) && typeof item.id === "string") return [item.id, item];
+      const id = isObj(item) ? itemId(item) : undefined;
+      if (id !== undefined) return [id, item];
       if (isObj(item) && Object.keys(item).length === 1) return [Object.keys(item)[0], item];
       return [undefined, item];
     });
@@ -270,7 +295,8 @@ function mapItems(value: unknown, fn: (item: Obj, id: string) => Obj): unknown {
   if (!Array.isArray(value)) return undefined;
   return value.map((item) => {
     if (!isObj(item)) return item;
-    if (typeof item.id === "string") return fn(item, item.id);
+    const own = itemId(item);
+    if (own !== undefined) return fn(item, own);
     const keys = Object.keys(item);
     const [id] = keys;
     const v = id === undefined ? undefined : item[id];
@@ -333,7 +359,9 @@ export function includedFiles(raw: Obj, filename: string): string[] {
     for (const entry of list) {
       if (typeof entry !== "string") continue;
       const path = resolve(dirname(file), entry.trim());
-      if (seen.has(path) || !existsSync(path)) continue;
+      // Only what the parser would read: a spec file, never a folder or a device or FIFO, whose
+      // read would fail or block the watcher.
+      if (seen.has(path) || !INCLUDE_EXT.test(extname(path)) || !isFile(path)) continue;
       seen.add(path);
       try {
         const sub = parseText(readText(path), path);

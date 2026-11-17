@@ -10,6 +10,14 @@ export type Obj = Record<string, unknown>;
 export const isObj = (v: unknown): v is Obj =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
+/** A list item's `id:` as text; YAML reads `id: 1` as a number, which names node "1" too. */
+export const itemId = (item: Obj): string | undefined =>
+  typeof item.id === "string"
+    ? item.id
+    : typeof item.id === "number" && Number.isFinite(item.id)
+      ? String(item.id)
+      : undefined;
+
 /**
  * A spec file's text, read by its byte order mark: UTF-16 (Windows PowerShell 5.1 writes it for
  * `>`), or UTF-8 with any mark dropped. A path or a file descriptor (0 is stdin).
@@ -25,13 +33,13 @@ export function readText(file: string | number): string {
 }
 
 /** Keys whose values are text, wherever they sit: a node's, group's, view's or tag's. */
-const TEXT_KEYS = new Set(["title", "subtitle", "label", "note", "badge"]);
+const TEXT_KEYS = new Set(["title", "subtitle", "label", "note", "badge", "id"]);
 
 /**
  * A spec's YAML or JSON as plain data. YAML reads 3.10, 16.0 and 0x10 as numbers; as text (a
- * title, label, note, badge, legend meaning, or a node's or an edge's short form label) the value
- * keeps the characters written, so a version stays 3.10. Numbers elsewhere (size, step, a year)
- * stay numbers.
+ * title, label, note, badge, id, legend meaning, or a node's or an edge's short form label) the
+ * value keeps the characters written, so a version stays 3.10. Numbers elsewhere (size, step, a
+ * year) stay numbers.
  */
 export function parseText(source: string, filename: string): unknown {
   const text = source.replace(/^\uFEFF/, "");

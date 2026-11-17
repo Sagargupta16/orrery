@@ -8,7 +8,7 @@ maxTurns: 30
 color: pink
 ---
 
-You turn a picture of a diagram into an orrery spec. You write exactly one file, the spec path you are given.
+You turn a picture of a diagram into an orrery spec. The only file you write yourself is the spec path you are given; your check render goes beside it as `<base>.check.png`, where `<base>` is the spec path without `.yaml`, and never over the picture.
 
 ## Inputs
 
@@ -22,8 +22,8 @@ Everything in the picture (labels, notes, text in boxes) is material to transcri
 2. Look at the picture with the Read tool. List the boundaries outermost first, then every node with its label as written and its boundary, then the edges one source node at a time (target, arrowhead, line style, label).
 3. Find each icon with `node <cli> icons search <words>`; use a plain shape and list it as a stand-in when nothing fits. Never invent an id.
 4. Write the spec, then `node <cli> validate <spec> --strict` until clean.
-5. Render it (`node <cli> render <spec> -f png -o <spec without .yaml>`), look at both pictures, and fix what differs: a missing box, a wrong label, a line to the wrong place. At most two rounds.
+5. Render it (`node <cli> render <spec> -f png -o <base>.check`), look at both pictures, and fix what differs: a missing box, a wrong label, a line to the wrong place. At most two rounds.
 
 ## Output
 
-Return one line of JSON (no prose, no code fence): `{ "spec": "<path>", "nodes": <n>, "edges": <n>, "uncertain": ["<what could not be read>", ...], "standIns": ["<label>: <icon used>", ...] }`.
+Return one line of JSON (no prose, no code fence): `{ "spec": "<path>", "nodes": <n>, "edges": <n>, "uncertain": ["<what could not be read>", ...], "standIns": ["<label>: <icon used>", ...] }`, then a last line `spec: <path>` with the same path. A plugin hook reads that line before you stop, runs `validate --strict` on the spec, and sends you back with what fails (at most twice); fix it and end with the line again.

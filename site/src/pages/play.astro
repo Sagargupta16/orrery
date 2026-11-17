@@ -27,7 +27,7 @@ const kb = (n: number) => `${Math.round(n / 1024)} KB`;
   <Fragment set:html={`<style>${faceCss(fonts)}</style>`} />
   <div
     id="play"
-    class="mx-auto max-w-[96rem] px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8"
+    class="mx-auto max-w-[96rem] px-5 pt-6 sm:px-6 sm:pt-8 lg:px-8"
     data-worker={url(play.worker)}
     data-base={url("")}
     data-fonts={fonts}
@@ -36,7 +36,7 @@ const kb = (n: number) => `${Math.round(n / 1024)} KB`;
     <div class="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
       <div class="min-w-0">
         <p class="eyebrow">Playground</p>
-        <h1 class="display mt-2 text-[clamp(1.75rem,3.6vw,2.5rem)]">Try orrery before you install it.</h1>
+        <h1 class="display mt-2 text-[clamp(1.75rem,3.6vw,2.5rem)] [text-wrap:balance]">Try orrery before you install it.</h1>
         <p class="mt-2 max-w-4xl text-[0.95rem] text-dim">
           The CLI's own parser, layout, renderers and review, running in your browser. The diagram redraws as you type,
           every problem carries its fix, and a share link keeps the spec in its #fragment, which never reaches a server.
@@ -186,7 +186,7 @@ const kb = (n: number) => `${Math.round(n / 1024)} KB`;
                   <button type="button" data-width="1280" aria-pressed="false">1280 slide</button>
                 </div>
                 <label class="sr-only" for="width">Review width in px</label>
-                <input id="width" class="field !min-h-9 w-24 font-mono text-xs" type="number" inputmode="numeric" min="200" max="4000" step="10" value="880" />
+                <input id="width" class="field !min-h-11 w-24 font-mono text-xs" type="number" inputmode="numeric" min="200" max="4000" step="10" value="880" />
               </div>
               <div class="mt-5 flex flex-wrap items-end gap-x-4 gap-y-2">
                 <p class="flex items-baseline gap-1.5">
@@ -389,6 +389,21 @@ const kb = (n: number) => `${Math.round(n / 1024)} KB`;
       }
       .workspace .pane {
         animation: pane-in 320ms var(--ease-out-quint);
+      }
+      /* The preview follows the diagram's shape, so the drawing fills the width instead of
+         floating in a tall dark panel with tiny text. Very wide or very tall diagrams are clamped
+         and letterboxed inside. */
+      .pane-diagram {
+        height: auto;
+      }
+      .pane-diagram .preview {
+        flex: none;
+      }
+      .pane-diagram .stage[data-fit="1"] {
+        height: auto;
+        aspect-ratio: var(--aspect, 1.4);
+        min-height: 14rem;
+        max-height: max(420px, calc(100dvh - 15rem));
       }
     }
     @media (min-width: 1024px) {

@@ -83,12 +83,16 @@ export function routeEdges(r: Routing): SceneEdge[] {
   };
 
   const out: SceneEdge[] = [];
+  const bandOf = new Map(r.all.flatMap((band) => band.items.map((it) => [it.id, band] as const)));
   const order = model.edges.map((me, i) => {
     const a = endOf(r, me.from);
     const b = endOf(r, me.to);
     const msg = me.flow === "message";
     const span = a && b ? Math.abs(ports.mMid(b.box) - ports.mMid(a.box)) : 0;
-    const rank = msg ? 2 : a?.band || b?.band ? 3 : 0;
+    // An edge inside one band goes first, whatever its line: it takes the facing sides, so a
+    // chain in a lane stays one straight line and the edges across bands use the other sides.
+    const within = !!bandOf.get(me.from) && bandOf.get(me.from) === bandOf.get(me.to);
+    const rank = msg ? 2 : a?.band || b?.band ? 3 : within ? 0 : 1;
     return { me, i, a, b, rank, span };
   });
   order.sort((p, q) => p.rank - q.rank || p.span - q.span || p.i - q.i);

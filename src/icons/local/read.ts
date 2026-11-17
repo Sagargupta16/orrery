@@ -2,7 +2,7 @@
 
 import { readFileSync, statSync } from "node:fs";
 import type { Model } from "../../types.ts";
-import { type LocalArt, registerLocalIcon } from "../index.ts";
+import { clearLocalIcons, type LocalArt, registerLocalIcon } from "../index.ts";
 import { allDark } from "../libraries.ts";
 import { badFor, LocalIconError, shownPath } from "./errors.ts";
 import { NOT_PAINT, normalizeColor, paintsOf } from "./paint.ts";
@@ -16,8 +16,13 @@ function readIcon(path: string): string {
   const shown = shownPath(path);
   let size: number;
   try {
-    size = statSync(path).size;
-  } catch {
+    // statSync follows links: a link to a folder or a device is refused like the target itself.
+    const stat = statSync(path);
+    if (!stat.isFile())
+      throw new LocalIconError(shown, "is not a file", "point icons: at an .svg file");
+    size = stat.size;
+  } catch (e) {
+    if (e instanceof LocalIconError) throw e;
     throw new LocalIconError(shown, "cannot be read", "check the path in icons:");
   }
   if (size > MAX_BYTES)
@@ -29,8 +34,12 @@ function readIcon(path: string): string {
   return readFileSync(path, "utf8");
 }
 
-/** Reads and registers every icon the model declares. */
+/**
+ * Reads and registers every icon the model declares, after forgetting the last model's: one
+ * process (doc, MCP, LSP) renders many specs, and a spec must not draw an icon it never declared.
+ */
 export async function loadLocalIcons(model: Model): Promise<void> {
+  clearLocalIcons();
   for (const icon of model.icons ?? []) {
     const art = localArt(readIcon(icon.path), shownPath(icon.path));
     registerLocalIcon(icon.name, art, icon.path);

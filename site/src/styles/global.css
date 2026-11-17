@@ -169,3 +169,27 @@
   line-height: 1.7;
   tab-size: 2;
 }
+
+/* Touch targets: on phones and any coarse pointer every control is at least 44 px tall, while
+   desktop keeps its compact look. Unlayered and !important so it beats the utility classes. */
+@media (max-width: 639.98px), (pointer: coarse) {
+  .copy,
+  .diagram-skin,
+  .diagram-theme,
+  .filter,
+  a.chip,
+  button.chip,
+  .seg button,
+  .subtab,
+  .tabs button,
+  .field,
+  header nav a.btn,
+  .hit {
+    min-height: 44px !important;
+    min-width: 44px;
+  }
+  .hit {
+    display: inline-flex;
+    align-items: center;
+  }
+}

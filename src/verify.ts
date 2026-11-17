@@ -54,6 +54,8 @@ export interface VerifyReport {
   /** --link: the commit the links pin, every node url, and whether the spec was rewritten. */
   commit?: string;
   links?: NodeLink[];
+  /** --link: nodes left without a link, and why. */
+  skipped?: { node: string; evidence?: string; why: string }[];
   wrote?: boolean;
 }
 
@@ -185,16 +187,46 @@ function display(repo: Repo, file: string): string {
   return rel && !rel.startsWith("..") && !isAbsolute(rel) ? rel.split(sep).join("/") : file;
 }
 
-/** Where a written path points: the spec's folder first, then the repo root. */
-function locate(repo: Repo, path: string): { file: string; dir: boolean } | undefined {
+const within = (base: string, file: string): boolean => {
+  const rel = relative(base, file);
+  return rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+};
+
+/**
+ * Where a written path points: the spec's folder first, then the repo root. A path outside the
+ * repo (or the spec's folder when there is no repo), by its name or after symlinks, is never
+ * touched: evidence in a shared spec must not read, or tell by its message, what else is on disk.
+ */
+function locate(
+  repo: Repo,
+  path: string,
+): { file: string; dir: boolean } | { outside: true } | undefined {
+  const bound = repo.root ?? repo.specDir;
   const candidates = isAbsolute(path)
     ? [path]
     : [resolve(repo.specDir, path), ...(repo.root ? [resolve(repo.root, path)] : [])];
+  let outside = false;
   for (const file of candidates) {
+    if (!within(bound, resolve(file))) {
+      outside = true;
+      continue;
+    }
     if (!existsSync(file)) continue;
+    if (!within(bound, real(file))) {
+      outside = true;
+      continue;
+    }
     return { file, dir: statSync(file).isDirectory() };
   }
-  return undefined;
+  return outside ? { outside: true } : undefined;
+}
+
+function outsideRepo(repo: Repo, path: string): Outcome {
+  return {
+    ok: false,
+    problem: `${path} is outside ${repo.root ? "the repo" : "the spec's folder"}, so it is not read`,
+    fix: `point at a file inside ${repo.root ? "the repo" : "the spec's folder"}, or remove this evidence`,
+  };
 }
 
 /** A pattern for `id` as a whole word when its ends are word characters. */
@@ -244,6 +276,7 @@ function checkLines(repo: Repo, ref: Extract<Ref, { form: "lines" }>, raw: strin
   const rest = raw.slice(path.length);
   const at = locate(repo, path);
   if (!at) return missingFile(repo, path, rest);
+  if ("outside" in at) return outsideRepo(repo, path);
   if (at.dir)
     return { ok: false, problem: `${path} is a folder`, fix: `point at a file inside ${path}` };
   const lines = linesOf(repo, at.file) ?? [];
@@ -287,6 +320,7 @@ function checkName(repo: Repo, ref: Extract<Ref, { form: "name" }>): Outcome {
   const { path, id } = ref;
   const at = locate(repo, path);
   if (!at) return missingFile(repo, path, `#${id}`);
+  if ("outside" in at) return outsideRepo(repo, path);
   if (at.dir)
     return { ok: false, problem: `${path} is a folder`, fix: `point at a file inside ${path}` };
   if (!id) return { ok: false, problem: "nothing follows the #", fix: `write ${path}#<name>` };
@@ -426,6 +460,7 @@ function checkKubernetes(repo: Repo, kind: string, name: string): Outcome {
 
 function checkBare(repo: Repo, text: string): Outcome {
   const at = locate(repo, text);
+  if (at && "outside" in at) return outsideRepo(repo, text);
   if (at) return { ok: true, file: display(repo, at.file) };
   if (TF_MODULE.test(text) || TF_RESOURCE.test(text)) return checkTerraform(repo, text);
   const k8s = K8S.exec(text);
@@ -493,7 +528,29 @@ export function parseRemote(url: string): Remote | undefined {
   const m =
     /^[\w.-]+@([^:/]+):([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(url) ??
     /^(?:https?|ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(url);
-  return m?.[1] && m[2] && m[3] ? { host: m[1], owner: m[2], repo: m[3] } : undefined;
+  if (!m?.[1] || !m[2] || !m[3]) return undefined;
+  return { host: realHost(m[1], /^(?:https?):/.test(url)), owner: m[2], repo: m[3] };
+}
+
+/**
+ * The web host behind a remote's host: GitHub's SSH endpoint is ssh.github.com, and an ssh config
+ * alias (`Host gh`) is whatever its HostName says, which `ssh -G` prints without connecting.
+ */
+function realHost(host: string, web: boolean): string {
+  let name = host;
+  if (!web && !host.includes(".")) {
+    try {
+      const out = execFileSync("ssh", ["-G", host], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: 3000,
+      });
+      name = /^hostname\s+(\S+)/im.exec(out)?.[1] ?? host;
+    } catch {
+      name = host;
+    }
+  }
+  return name === "ssh.github.com" ? "github.com" : name;
 }
 
 export function permalink(remote: Remote, commit: string, result: EvidenceResult): string {
@@ -589,12 +646,28 @@ export function verifyModel(
   const base = `https://${remote.host}/${remote.owner}/${remote.repo}/blob/`;
   report.commit = commit;
   report.links = [];
+  report.skipped = [];
   for (const n of model.nodes) {
-    const first = results.find(
+    const found = results.filter(
       (r) =>
         r.subject.kind === "node" && r.subject.id === n.id && r.ok && r.file && !isAbsolute(r.file),
     );
-    if (!first) continue;
+    if (!found.length) continue;
+    // A permalink must show what the evidence checked: the working-tree file as the commit has it.
+    let why = "";
+    const first = found.find((r) => {
+      const file = r.file ?? "";
+      if (git(root, ["cat-file", "-e", `${commit}:${file}`]) === undefined)
+        why = `${file} is not in commit ${commit.slice(0, 12)}`;
+      else if (git(root, ["diff", "--quiet", commit, "--", file]) === undefined)
+        why = `${file} differs from commit ${commit.slice(0, 12)}; commit it or pass --commit`;
+      else return true;
+      return false;
+    });
+    if (!first) {
+      report.skipped.push({ node: n.id, evidence: found[0]?.evidence, why });
+      continue;
+    }
     const url = permalink(remote, commit, first);
     // A url of the node's own (docs, a dashboard) stays; an older permalink is replaced.
     const kept = !!n.url && !n.url.startsWith(base);
@@ -629,6 +702,7 @@ function formatReport(report: VerifyReport, name: string): string {
     );
     for (const l of set) lines.push(`  ${l.node}: ${l.url}`);
     for (const l of kept) lines.push(`  ${l.node}: kept its own url ${l.url}`);
+    for (const s of report.skipped ?? []) lines.push(`  ${s.node}: skipped, ${s.why}`);
   }
   return lines.join("\n");
 }
@@ -645,6 +719,11 @@ export async function cmdVerify(args: Args): Promise<void> {
   const json = args.flags.json === true;
   if (!parsed.model) {
     printDiagnostics(parsed.diagnostics, false);
+    if (json) {
+      const failed = { ok: false, diagnostics: parsed.diagnostics };
+      process.stdout.write(`${JSON.stringify(failed, null, 2)}
+`);
+    }
     process.exitCode = 1;
     return;
   }
@@ -654,7 +733,27 @@ export async function cmdVerify(args: Args): Promise<void> {
     ...(typeof args.flags.commit === "string" ? { commit: args.flags.commit } : {}),
   });
   if (report.links?.some((l) => !l.kept)) {
-    const next = linkText(spec.text, report.links);
+    // One link at a time: a node that comes from an include has no text here to set a url on.
+    let next = spec.text;
+    const own: NodeLink[] = [];
+    for (const l of report.links) {
+      if (l.kept) {
+        own.push(l);
+        continue;
+      }
+      try {
+        next = linkText(next, [l]);
+        own.push(l);
+      } catch (e) {
+        const why = (e as Error).message.split("\n")[0] ?? "";
+        report.skipped?.push({
+          node: l.node,
+          evidence: l.evidence,
+          why: `${l.node} is not defined in this spec's own text (${why})`,
+        });
+      }
+    }
+    report.links = own;
     if (next !== spec.text) {
       writeAtomic(spec.path, next);
       report.wrote = true;

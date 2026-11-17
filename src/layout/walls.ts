@@ -6,6 +6,7 @@ import type { Box, ModelEdge } from "../types.ts";
 import type { Placed } from "./context.ts";
 import { findEdge } from "./elk.ts";
 import { round, union } from "./geometry.ts";
+import { headerText } from "./groups.ts";
 
 export interface Walls {
   /** Group headers (label and icon) with a margin. */
@@ -37,7 +38,7 @@ export function wallsOf(ctx: Placed): Walls {
         ];
   });
   const headers = groups.flatMap((g) => {
-    const parts = [g.label.lines.length ? g.labelBox : undefined, g.iconBox].filter(
+    const parts = [g.label.lines.length ? headerText(g) : undefined, g.iconBox].filter(
       (b): b is Box => !!b && b.w > 0 && b.h > 0,
     );
     if (!parts.length) return [];
@@ -72,6 +73,6 @@ export function wallsOf(ctx: Placed): Walls {
     ...own(e),
   ];
   const borders = groups.filter((g) => !g.overlay).map((g) => g.box);
-  const titles = groups.filter((g) => !g.overlay && g.label.lines.length).map((g) => g.labelBox);
+  const titles = groups.filter((g) => !g.overlay && g.label.lines.length).map(headerText);
   return { headers, borders, titles, walls, roomyWalls };
 }

@@ -425,20 +425,20 @@ function stepOrder(c: Ctx): { steps: number; inversions: number } {
     })
     .sort((a, b) => a.step - b.step);
   let inversions = 0;
+  const nums = [...new Set(stepped.map((x) => x.step))];
+  // One numbered edge counts: a lone step 3 has no steps 1 and 2 to follow.
+  if (nums.some((n, i) => n !== i + 1)) {
+    add(
+      "flow.step-numbering",
+      "minor",
+      stepped.map((x) => x.e.id),
+      { steps: nums.join(",") },
+      `step numbers ${nums.join(", ")} do not run 1 to ${nums.length}`,
+      ["renumber the steps from 1 without gaps"],
+      4,
+    );
+  }
   if (stepped.length >= 2) {
-    const nums = [...new Set(stepped.map((x) => x.step))];
-    const gaps = nums.filter((n, i) => n !== i + 1);
-    if (gaps.length) {
-      add(
-        "flow.step-numbering",
-        "minor",
-        stepped.map((x) => x.e.id),
-        { steps: nums.join(",") },
-        `step numbers ${nums.join(", ")} do not run 1 to ${nums.length}`,
-        ["renumber the steps from 1 without gaps"],
-        4,
-      );
-    }
     // Same-numbered steps are parallel; compare one representative per number.
     const reps = nums.map((n) => {
       const same = stepped.filter((x) => x.step === n);
@@ -523,8 +523,8 @@ function arrowSemantics(c: Ctx): { both: SceneEdge[]; none: SceneEdge[] } {
       { edge: edgeName(e) },
       `${edgeName(e)} has two heads, so it does not say who initiates`,
       [
-        `split it into ${edgeName(e)} and ${e.to} -> ${e.from} with their own labels`,
-        `keep one direction (${edgeName(e)}) from the caller to the dependency`,
+        `split it into ${e.from} -> ${e.to} and ${e.to} -> ${e.from} with their own labels`,
+        `keep one direction (${e.from} -> ${e.to}) from the caller to the dependency`,
       ],
       3,
     );
@@ -535,7 +535,7 @@ function arrowSemantics(c: Ctx): { both: SceneEdge[]; none: SceneEdge[] } {
       [e.id],
       { edge: edgeName(e) },
       `${edgeName(e)} has no arrowhead`,
-      [`give it a direction (${edgeName(e)}) or explain the plain line in the legend`],
+      [`give it a direction (${e.from} -> ${e.to}) or explain the plain line in the legend`],
       3,
     );
   return { both, none };

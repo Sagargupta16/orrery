@@ -1,18 +1,20 @@
 ---
 name: orrery
 description: >-
-  Draws professional architecture and system design diagrams with official icons (AWS, Azure,
-  Google Cloud, Kubernetes, GitHub Octicons, 5,500 tech logos and 6,000 generic symbols) and
-  renders them to SVG and PNG for docs and READMEs, plus an editable draw.io file, a React TSX
-  component and a standalone HTML viewer. Use when the user asks for an architecture diagram, a
-  cloud, infrastructure or network diagram, a system design diagram, a data, ML or CI/CD pipeline,
-  a Kubernetes layout, a C4 container view, a data model or entity-relationship diagram, a
-  sequence diagram, a roadmap or timeline, "diagram this repo", "draw the architecture for the
-  README", or to turn a description, Terraform, Kubernetes manifests, docker-compose, a SQL schema
-  or a Mermaid flowchart into a clean diagram with real vendor icons.
+  Draws professional diagrams with official icons (AWS, Azure, Google Cloud, Kubernetes, GitHub,
+  IBM, 5,558 tech logos and 7,832 generic symbols) for architecture and system design,
+  flowcharts, BPMN processes and swimlanes, sequence, ER and state machine diagrams, timelines
+  and roadmaps, org charts and trees, mind maps and customer journeys, rendered to SVG and PNG for
+  docs and READMEs plus draw.io, React TSX, HTML and Mermaid. Use when the user asks for an
+  architecture, cloud, infrastructure or network diagram, a data, ML or CI/CD pipeline, a
+  Kubernetes layout, a C4 view, a flowchart, a business process, a sequence or
+  entity-relationship diagram, a state machine, a roadmap or timeline, an org chart, a mind map,
+  a customer journey map, "diagram this repo", "draw the architecture for the README", or to
+  turn Terraform, Kubernetes manifests, docker-compose, a SQL schema or a Mermaid flowchart,
+  sequence, ER, state or gantt diagram into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.12.3"
+  version: "0.13.0"
   author: Sagar Gupta
 ---
 
@@ -117,7 +119,7 @@ Details, the JSON receipt and per-format notes: [references/outputs.md](referenc
 - **Kubernetes**: `k8s:` icons for kinds, `k8s:namespace` groups, Ingress -> Service -> Deployment -> Pods edges.
 - **Infrastructure, a picture, Mermaid**: [references/importing.md](references/importing.md). `orrery import terraform|cloudformation|cdk|kubernetes|compose <file>` draws a deterministic first draft with `evidence:` on every item; `orrery import picture <svg|png>` gives back the spec an orrery picture carries; `/orrery:import-image` reads any other picture.
 - **A database schema**: `orrery import sql schema.sql -o docs/data-model.yaml` reads `CREATE TABLE` statements (Postgres and SQLite, `pg_dump` output included) into a `kind: er` data model: a table per statement, a relationship per foreign key with its cardinality from `NOT NULL` and `UNIQUE`, and `evidence:` on each. Split a large schema into one figure per subject area.
-- **Mermaid flowchart**: `orrery import mermaid flow.mmd -o docs/architecture.yaml` converts nodes, subgraphs, edge styles and shapes, and sets an official icon where a label is exactly a product name (listed in a comment to check). Then swap the remaining shapes for icons, turn the `zone` groups into vendor groups and validate. Mermaid styling (`classDef`, `style`) is dropped on purpose.
+- **Mermaid**: `orrery import mermaid flow.mmd -o docs/architecture.yaml` converts a flowchart's nodes, subgraphs, edge styles and shapes, and sets an official icon where a label is exactly a product name (listed in a comment to check); also sequenceDiagram, erDiagram, stateDiagram and gantt, each to its kind. Then swap the remaining shapes for icons, turn the `zone` groups into vendor groups and validate. Styling and notes are dropped with a warning.
 
 Patterns with spec fragments (three-tier, serverless, event-driven, data lake, streaming, RAG, CI/CD, hybrid network, Kubernetes, system design primitives): [references/patterns.md](references/patterns.md).
 
@@ -125,12 +127,12 @@ Patterns with spec fragments (three-tier, serverless, event-driven, data lake, s
 
 | Command | Does |
 | --- | --- |
-| `render <spec> [-o base] [-f svg,png,drawio,drawio.svg,tsx,html,mmd,sequence.svg\|all] [--theme light\|dark\|both] [--scale 3] [--skin classic\|stage] [--animate packets\|flow\|relay\|none] [--static] [--font extra.ttf] [--view <name>\|all] [--strict] [--json]` | Validate, lay out, render, write atomically; `--json` prints a receipt with sha256 and size per file. `--view` draws one of the spec's `views:`, `all` the whole diagram and every view. |
-| `validate <spec> [--strict] [--json]` | Spec errors plus layout warnings (edge through a node, label collisions, too wide). |
-| `review <spec> [--width 880] [--theme light\|dark] [--skin classic\|stage] [--json] [-o base]` | Scores the diagram at a display width on six dimensions, writes `<base>.review.json` and a PNG at that width, plus `<base>.review.look.png` scaled to fit 1568 px when that PNG is larger (view that one). `/orrery:review` in Claude Code runs the whole loop. |
+| `render <spec...> [-o base] [-f svg,png,drawio,drawio.svg,tsx,html,mmd,sequence.svg\|all] [--theme light\|dark\|both] [--scale 3] [--skin classic\|stage] [--animate packets\|flow\|relay\|none] [--static] [--font extra.ttf] [--view <name>\|all] [--strict] [--force] [--json]` | Validate, lay out, render, write atomically; `--json` prints a receipt with sha256 and size per file. `--view` draws one of the spec's `views:`, `all` the whole diagram and every view. |
+| `validate <spec...> [--strict] [--json]` | Spec errors plus layout warnings (edge through a node, label collisions, too wide). |
+| `review <spec> [--width 880] [--theme light\|dark] [--skin classic\|stage] [--view <name>\|all] [--json] [-o base]` | Scores the diagram at a display width on six dimensions, writes `<base>.review.json` and a PNG at that width, plus `<base>.review.look.png` scaled to fit 1568 px when that PNG is larger (view that one). `/orrery:review` in Claude Code runs the whole loop. |
 | `patch <spec> <candidates.json\|-> [-o best.yaml] [--width 880] [--json]` | Applies each candidate patch set (an array of arrays of loop.md ops) to its own copy, reviews them all, prints the table and writes the best kept one; exit 1 when none improves. Comments and formatting are kept. |
 | `watch <spec> [-o base] [-f svg,png] [--review]` | Renders on every save of the spec or its local icons; keeps watching through errors. |
-| `doc <design.md> [-o out] [-f html,md,docx] [--theme light]` | Builds a design document with numbered figures from `<!-- orrery: spec.yaml \| Caption -->` lines. |
+| `doc <design.md> [-o out] [-f html,md,docx] [--theme light]` | Builds a design document with numbered figures from `<!-- orrery: spec.yaml \| Caption -->` lines and ` ```orrery ` fences. |
 | `mcp [--port 8765]` | The commands as MCP tools over stdio (or HTTP on 127.0.0.1) for clients without skills. |
 | `mcp install <client> [project\|user] [--force]`, `mcp install --list` | Writes the server entry into Claude Code, Claude Desktop, Cursor, VS Code, Gemini CLI, Codex or Kiro config, keeping the rest. |
 | `diff <before> <after> [-o changes.svg] [--json]` | Nodes, groups and edges added, removed, renamed or changed (`git:<ref>:<path>` reads a side from git); the SVG is the new diagram with the changes colored. |
@@ -144,7 +146,7 @@ Patterns with spec fragments (three-tier, serverless, event-driven, data lake, s
 | `icons new <name> [--dir icons]`, `icons check <file.svg> [-o sheet]`, `icons adopt <file.svg> --name <name>` | Start a 24-grid icon, check one against rules IC01 to IC10 with a contact sheet in both skins and themes (exit 1 on a failure), or turn someone's SVG into a clean `local:` icon. |
 | `styles` | Group types and node shapes. |
 | `init [template] [-o file] [--list]` | Copy an example spec as a starting point. |
-| `import <mermaid\|terraform\|cloudformation\|cdk\|compose\|kubernetes\|sql\|picture> <file> [-o file]` | A first draft from a Mermaid flowchart, infrastructure or a SQL schema (`CREATE TABLE` statements to a `kind: er` data model), with `evidence:` on every item, or the spec an orrery SVG or PNG carries. |
+| `import <mermaid\|terraform\|cloudformation\|cdk\|compose\|kubernetes\|sql\|picture> <file> [-o file]` | A first draft from a Mermaid flowchart, sequence, ER, state or gantt diagram, infrastructure or a SQL schema (`CREATE TABLE` statements to a `kind: er` data model), with `evidence:` on every item, or the spec an orrery SVG or PNG carries. |
 | `doctor` | Checks Node, the catalogs, the icon libraries, the layout engine and the PNG renderer. |
 | `demo [dir]` | Renders every bundled example. |
 

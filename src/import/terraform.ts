@@ -8,7 +8,7 @@
 // references instead, through module calls and outputs. `count` and `for_each` copies become one
 // node with a badge.
 import { basename, dirname, extname } from "node:path";
-import { accessOf, Draft, displayPath, humanize, portLabel } from "./iac.ts";
+import { accessOf, Draft, displayPath, humanize, portLabel, wildcardMatch } from "./iac.ts";
 import { asList, isObj, type Obj, readText, text } from "./source.ts";
 import {
   AWS,
@@ -115,9 +115,12 @@ class Terraform {
     this.shown = displayPath(path);
     this.plan = isObj(json.planned_values);
     const config = isObj(json.configuration) ? json.configuration : {};
-    this.root = scopeOf(isObj(config.root_module) ? config.root_module : {}, "");
     const values = this.plan ? json.planned_values : json.values;
     const rootModule = isObj(values) && isObj(values.root_module) ? values.root_module : undefined;
+    // The module walks below recurse, so a plan nested past any real layout stops here.
+    assertShallow(rootModule, path);
+    assertShallow(config.root_module, path);
+    this.root = scopeOf(isObj(config.root_module) ? config.root_module : {}, "");
     if (!rootModule)
       throw new Error(
         `${path} has no resources: pass the output of terraform show -json for a plan or a state`,
@@ -283,12 +286,12 @@ class Terraform {
     }
     if (value.startsWith("arn:")) {
       const bare = value.replace(/(\/index|\/stream)?(\/\*|:\*)$/, "");
-      const glob = /[*?]/.test(bare) ? globOf(bare) : undefined;
+      const wild = /[*?]/.test(bare);
       const hits = new Set<string>();
       for (const [v, keys] of this.values) {
         if (!v.startsWith("arn:")) continue;
-        const match = glob
-          ? glob.test(v)
+        const match = wild
+          ? wildcardMatch(bare, v)
           : bare === v || bare.startsWith(`${v}/`) || bare.startsWith(`${v}:`);
         if (match) for (const k of keys) hits.add(k);
       }
@@ -1169,6 +1172,25 @@ class Terraform {
   }
 }
 
+const MAX_MODULE_DEPTH = 64;
+
+/** Fails on module nesting deeper than MAX_MODULE_DEPTH, measured without recursion. */
+function assertShallow(root: unknown, path: string) {
+  let level: unknown[] = [root];
+  for (let depth = 0; level.length; depth++) {
+    if (depth > MAX_MODULE_DEPTH)
+      throw new Error(`${path} nests modules more than ${MAX_MODULE_DEPTH} levels deep`);
+    const next: unknown[] = [];
+    for (const m of level) {
+      if (!isObj(m)) continue;
+      next.push(...asList(m.child_modules));
+      if (isObj(m.module_calls))
+        for (const c of Object.values(m.module_calls)) if (isObj(c)) next.push(c.module);
+    }
+    level = next;
+  }
+}
+
 // ------------------------------------------------------------------ configuration references
 
 function scopeOf(mod: Obj, prefix: string, parent?: Scope, call?: string): Scope {
@@ -1274,11 +1296,6 @@ function allowed(doc: unknown): Statement[] {
       arns: asList(s.Resource).map(text).filter(isText),
       refs: [],
     }));
-}
-
-function globOf(pattern: string): RegExp {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^${escaped.replace(/\*/g, ".*").replace(/\?/g, ".")}$`);
 }
 
 function mostOf(counts: Map<string, number>): string | undefined {

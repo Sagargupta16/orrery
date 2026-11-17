@@ -1,15 +1,17 @@
 # Outputs
 
-`orrery render <spec> -o <base> -f <formats>` writes `<base>.<format>`. With `--theme both` every format except HTML gets `-light` and `-dark` files; the HTML file holds both. Without `-o` the files land next to the spec; `-o some/dir/` uses the spec's name inside that folder; `-o docs/arch.png` infers the format from the extension.
+`orrery render <spec> -o <base> -f <formats>` writes `<base>.<format>`. With `--theme both` every format except HTML gets `-light` and `-dark` files; the HTML file holds both. Without `-o` the files land next to the spec; `-o some/dir/` uses the spec's name inside that folder; `-o docs/arch.png` infers the format from the extension. An `-o` that names an existing folder without the trailing slash is treated as the folder too (the same rule holds for `review`, `init` and `import`), and a file target that is a folder is a usage error.
 
-Files are written atomically (temporary file, then rename), so a failed render never leaves a half-written diagram, and an error in the spec writes nothing.
+`validate` and `render` take several specs at once (`orrery render a.yaml b.yaml -o docs/`): every spec is read and every target settled before the first is drawn, so a bad path, or two specs that would write one file, stops the run before anything is written. With more than one spec `-o` must be a folder.
+
+Files are written atomically (a randomly named temporary file created exclusively, then a rename), so a failed render never leaves a half-written diagram, and an error in the spec writes nothing. Writing over a symlink writes through it, and the replaced file keeps its mode on POSIX (on Windows only the read-only bit is kept: the new file takes its folder's ACL).
 
 A `legend:` in the spec appears in every format: a box at the bottom right with one sample line per line style, in the edge color with that style's dash and width.
 
 ## SVG
 
 - Self-contained: icons are inlined vector paths, no external fonts, images or scripts.
-- Ids are unique within the file and prefixed with the diagram name and theme (`<name>-<theme>-`), so several diagrams, or a light and a dark copy, can be inlined in one page without clashes. Gradients and clip paths inside icons are prefixed too.
+- Ids are unique within the file and prefixed with the diagram name, theme and a 6-hex hash of the model (`<name>-<theme>-<hash>-`; `-f sequence.svg` adds `-seq`), so several diagrams, a light and a dark copy, or two specs that share a name, can be inlined in one page without clashes. Absolute local icon paths stay out of the hash, so a picture is the same on every machine. Gradients and clip paths inside icons are prefixed too.
 - An icon that appears more than once is written once as a `<symbol>` in `<defs>` and reused with `<use>`, so a diagram with six Lambdas carries one copy of the artwork.
 - Accessible: `role="img"` with `<title>` (the diagram title) and `<desc>` (a generated summary of components and connections).
 - Text uses Inter when the viewer has it and falls back to Segoe UI, the system UI font, Roboto, Helvetica or Arial. Layout measures with Inter's metrics; those fallbacks are slightly narrower than Inter, so text still fits its space.
@@ -37,6 +39,7 @@ Plain Markdown works too: `![Architecture](docs/architecture-light.svg)`.
 
 - Rendered by resvg (WebAssembly) with the bundled Inter Regular and SemiBold (and Geist Mono Regular and Bold for the stage skin), so the picture is identical on every machine.
 - `--scale` sets the pixel density (default 3, so a 1200 x 600 diagram becomes a 3600 x 1800 PNG that stays sharp when zoomed or projected). Use 1 or 2 for small chat previews, 4 or more for print. For pictures people will zoom into, prefer the SVG: it is vector and sharp at any zoom.
+- A PNG has at most 40 megapixels. The default scale is lowered to fit (never below 1); a `--scale` that was asked for and does not fit fails that PNG with DG302, which names a scale that would. PNGs are drawn last, so the other formats of the run are still written.
 - Animation is dropped; the PNG shows the static diagram.
 - Inter covers Latin, Greek and Cyrillic. For other scripts pass a font: `--font NotoSansJP-Regular.ttf` (repeatable).
 
@@ -47,6 +50,8 @@ Plain Markdown works too: `![Architecture](docs/architecture-light.svg)`.
 - Card nodes use draw.io's label shape (icon plus text in one cell); shape nodes map to draw.io's own shapes (cylinder, document, note, actor, hexagon, cloud...).
 - Icon labels keep the line breaks the layout chose and are not wrapped again to the icon's width, so a long service name (in a left-to-right flow, say) does not stack three lines deep or run into the next icon.
 - A `legend:` becomes one group cell with a line cell and a text cell per style.
+- A node `badge` goes after the name (`Web service (x3)`): draw.io has no corner badge. Mermaid text does the same.
+- Links are written only for `http`, `https`, `mailto` and relative URLs, here and in every other format.
 - Works offline: nothing in the file points to the network.
 
 ### drawio.svg
@@ -67,9 +72,10 @@ import Architecture from "./architecture-light";
 
 ## HTML
 
-A single file with no network requests: header with the title, Theme (light/dark), zoom out, zoom in, Fit, SVG download and PNG download. Drag to pan, wheel or pinch to zoom. Works from `file://` and on phones, where the buttons are 44 px tap targets. It opens in the spec's theme: dark, unless the spec sets `theme: light`.
+A single file with no network requests: header with the title, Theme (light/dark), zoom out, zoom in, Fit, SVG download and PNG download. Drag to pan, wheel or pinch to zoom. Works from `file://` and on phones, where the buttons are 44 px tap targets. It opens in the theme `--theme light` or `--theme dark` asks for, else the spec's theme: dark, unless the spec sets `theme: light`.
 
-- The SVG download is named for the theme on screen (`<name>-light.svg`, `<name>-dark.svg`) and follows the Theme button.
+- The SVG download is named for the theme on screen (`<name>-light.svg`, `<name>-dark.svg`), follows the Theme button and carries the spec like the files written beside the page.
+- When a node has a `url:`, the page holds the SVG itself instead of an image, so the links work (a tap opens one in a new tab; a drag still pans). The markup is cleaned first: script, `foreignObject`, event handlers, and links and sources other than `http`, `https`, `mailto`, `#` and `data:` images are removed.
 - The PNG download is drawn by the browser from a still copy of the diagram at 3x, so it never shows a packet frozen mid-edge, as the animated view would.
 
 ## Mermaid
@@ -79,7 +85,7 @@ A single file with no network requests: header with the title, Theme (light/dark
 - An architecture becomes `architecture-beta`: groups and services, each with a `logos:` icon when Mermaid's logo pack has one for the product (otherwise a built-in icon by category or shape), edges on the sides the layout drew them, labels as `-["..."]-`.
 - `kind: er` becomes `erDiagram` (attributes with PK, FK and UK, crow's foot cardinality), `kind: sequence` a `sequenceDiagram` (participants, `->>` and `-->>`, loop, alt, opt, par, break and critical blocks) and `kind: timeline` a `gantt` (a section per lane, done, active and crit tags, milestones, `after` dependencies).
 - `kind: state` becomes `stateDiagram-v2` (with `[*]`, composite states and `<<choice>>`), `mindmap` a `mindmap`, `journey` a `journey` (scores -2 to 2 become 1 to 5), and flowcharts, processes and trees a `flowchart` with subgraphs, the shapes mapped and dashed, dotted and thick lines kept.
-- Mermaid lays it out again with its own engine, so the picture differs from orrery's; dashed styles on architecture edges and state notes do not carry over.
+- Mermaid lays it out again with its own engine, so the picture differs from orrery's; dashed styles on architecture edges and state notes do not carry over. An edge `architecture-beta` cannot hold is named in a `%% not drawn: a -> b (why)` comment. In a `gantt`, a dependency becomes `after` only when the item starts exactly where its predecessors end; an item that starts at another date keeps its date.
 
 ## Sequence
 
@@ -93,10 +99,26 @@ Every SVG and PNG carries the spec that drew it: the SVG in `<metadata>` as esca
 
 `orrery doc <design.md> [-o out] [-f html,md,docx] [--theme light|dark] [--skin classic|stage]` builds a document from Markdown. A line `<!-- orrery: diagrams/overview.yaml | The request path from the browser to the database -->` (path relative to the document) becomes Figure N with that caption, numbered in document order; the caption is also the alt text, and the spec's title stands in when there is none. Documents default to the light theme.
 
+A figure can also be written in the document itself, as a fenced block whose language is `orrery`:
+
+````markdown
+```orrery name=checkout caption="The checkout path" theme=both
+nodes:
+  web: { icon: logos:react, label: Web app }
+  api: { icon: aws:lambda, label: Orders API }
+edges:
+  - web -> api: POST /orders
+```
+````
+
+The fence's info string takes `name=` (the figure's file name, default `figure-<n>`), `caption=` and `theme=` (`light`, `dark` or `both`; `both` puts a light and a dark picture in a `<picture>` the reader's color scheme picks from). Another key or theme fails with DG405. The fence's relative paths (`icons:`, `include:`) start in the document's folder. A figure without a caption takes the diagram's own description as its alt text.
+
+Specs named by markers and local images the Markdown embeds are read only from inside the git repository that holds the document (else the document's folder), so `docs/design.md` can show `../diagrams/x.yaml` but not a file above the repository: a spec outside is DG401, an image outside is not embedded (DG403 warning) and a missing image is DG404.
+
 - `html`: one self-contained page, the Markdown (headings, lists, tables, code, quotes, links) converted with every text escaped, figures as inline SVG in `<figure>` with unique ids, and a print stylesheet.
 - `md`: the Markdown with each marker replaced by the figure image and an italic caption line; the SVGs and 2x PNGs go to a `figures/` folder next to it. It never overwrites its own source.
 - `docx`: a Word file with real headings, lists, tables, code paragraphs and the figures as inline pictures with alt text and numbered captions.
-- Nothing is written unless every output is complete: a missing spec (DG401), a spec with errors, or a marker that is not on its own line (DG402) fails with exit 1.
+- Nothing is written unless every output is complete: a missing spec or one outside the repository (DG401), a spec with errors, a bad `orrery` fence key (DG405), or a marker that is not on its own line (DG402) fails with exit 1.
 
 ## Receipt
 
@@ -115,4 +137,12 @@ Every SVG and PNG carries the spec that drew it: the SVG in `<metadata>` as esca
 }
 ```
 
-Exit status: 0 when the files were written, 1 when the spec has errors (or warnings with `--strict`; add `--force` to write anyway), 2 for a bad command line.
+With several specs (`render a.yaml b.yaml --json`) it prints an array of these receipts, one per spec. `review`, `diff`, `verify` and `describe` take `--json` too; when a spec does not parse, each prints a JSON object with `"ok": false` and the `diagnostics` instead of nothing.
+
+Exit status: 0 when the files were written, 1 when the spec has errors (or warnings with `--strict`, which then writes nothing for any view), 2 for a bad command line. `--strict --force` writes anyway, keeps the warnings in the receipt and exits 0. A flag that needs a value and is followed by another flag (`--out --json`) is a usage error.
+
+## MCP
+
+`orrery mcp` returns what the CLI writes. Without `out_dir`, a render carries its outputs in the result: a PNG as an image, every other format as text for older clients, and for clients on protocol `2026-07-28` the SVG, HTML, draw.io, TSX and Mermaid outputs as embedded resources (`orrery://render/<file>`) annotated for the user, so the markup reaches the person without filling the model's context. A result carries at most 8 MB of outputs; past that the render asks for `out_dir` (stdio only), fewer formats, one theme or a lower scale. On `2026-07-28`, the tool and resource lists and resource reads carry `ttlMs: 3600000` and `cacheScope: "public"`, since they do not change while the server runs. A spec over 1 MB, or with more than 2000 nodes and edges, is refused.
+
+Over HTTP (`orrery mcp --port 8765`, 127.0.0.1 only) a request body over 16 MB gets 413, and once 4 calls are waiting the next gets 503 (the authoring guide, icon search and templates do not wait in that line).

@@ -181,6 +181,19 @@ function table(p: Parts, b: Extract<Block, { t: "table" }>): string {
   return `<w:tbl><w:tblPr><w:tblStyle w:val="DocTable"/><w:tblW w:w="5000" w:type="pct"/></w:tblPr><w:tblGrid>${b.head.map(() => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${row(b.head, true, !b.rows.length)}${rows}</w:tbl>${para("", "")}`;
 }
 
+/** A code block, one Code paragraph per line; `pPr` adds to each paragraph's properties. */
+function code(s: string, pPr = ""): string {
+  const lines = s.split("\n");
+  return lines
+    .map((l, k) =>
+      para(
+        `${style("Code")}${k === lines.length - 1 ? '<w:spacing w:after="160"/>' : ""}${pPr}`,
+        l ? run(l.replaceAll("\t", "    ")) : "",
+      ),
+    )
+    .join("");
+}
+
 function block(p: Parts, b: Block, quote: boolean): string {
   switch (b.t) {
     case "heading":
@@ -193,23 +206,25 @@ function block(p: Parts, b: Block, quote: boolean): string {
           const left = 720 + it.depth * 360 + (quote ? 288 : 0);
           const mark = it.ordered ? `${it.num}.` : (BULLETS[it.depth % BULLETS.length] ?? "");
           const end = k === b.items.length - 1 ? '<w:spacing w:after="160"/>' : "";
-          return para(
-            `${style("ListParagraph")}${end}<w:ind w:left="${left}" w:hanging="360"/>`,
+          const more = it.more ?? [];
+          const item = para(
+            `${style("ListParagraph")}${more.length ? "" : end}<w:ind w:left="${left}" w:hanging="360"/>`,
             `${run(mark)}<w:r><w:tab/></w:r>${runs(p, it.c)}`,
           );
+          // Paragraphs and code under the item line up with its text.
+          const ind = `<w:ind w:left="${left}"/>`;
+          const under = more.map((m, j) => {
+            const last = j === more.length - 1 ? end : "";
+            if (m.t === "code") return code(m.s, ind);
+            return m.t === "para"
+              ? para(`${style("ListParagraph")}${last}${ind}`, runs(p, m.c))
+              : "";
+          });
+          return item + under.join("");
         })
         .join("");
-    case "code": {
-      const lines = b.s.split("\n");
-      return lines
-        .map((l, k) =>
-          para(
-            `${style("Code")}${k === lines.length - 1 ? '<w:spacing w:after="160"/>' : ""}`,
-            l ? run(l.replaceAll("\t", "    ")) : "",
-          ),
-        )
-        .join("");
-    }
+    case "code":
+      return code(b.s);
     case "table":
       return table(p, b);
     case "quote":

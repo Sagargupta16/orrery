@@ -12,19 +12,27 @@
 // GH_TOKEN. ORRERY_CLI swaps the npx package for a local command (a JSON array or a plain
 // command line) and ORRERY_DRY_RUN=1 prints the comment instead of posting it.
 import { spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const MARKER = "<!-- orrery-action -->";
 const DEFAULT_SPECS = "**/*.orrery.yaml\ndocs/**/*.yaml";
 const FAIL_ON = ["error", "warning", "review"];
 const env = process.env;
-const out = env.ORRERY_OUT || join(tmpdir(), "orrery-action");
+// Absolute, so outputs land in the same place when orrery runs from another folder.
+const out = resolve(env.ORRERY_OUT || join(tmpdir(), "orrery-action"));
 const resultsFile = join(out, "results.json");
 
-function run(cmd, args) {
+function run(cmd, args, options = {}) {
   // npx is a .cmd shim on Windows runners, and cmd.exe would split a spec path on spaces and run
   // what follows a `&`, so run npm's own npx script on this node instead.
   const [file, argv] =
@@ -37,6 +45,7 @@ function run(cmd, args) {
   const r = spawnSync(file, argv, {
     encoding: "utf8",
     maxBuffer: 256 * 1024 * 1024,
+    ...options,
   });
   return {
     code: r.status ?? 1,
@@ -65,7 +74,28 @@ function cli() {
 }
 
 const [cliCmd, ...cliArgs] = cli();
-const orrery = (...args) => run(cliCmd, [...cliArgs, ...args]);
+
+// npx run in the pull request's checkout would prefer a node_modules/@sagargupta1610/orrery or an
+// .npmrc the pull request commits, so the package runs from an empty folder instead, with absolute
+// spec paths. GIT_DIR and GIT_WORK_TREE keep `orrery diff git:<base>:<spec>` reading this
+// repository from there. ORRERY_CLI is the caller's own command, so it keeps the checkout as cwd
+// (its paths may be relative to it).
+function orreryRunOptions() {
+  if (cliCmd !== "npx") return {};
+  const gitDir = git("rev-parse", "--absolute-git-dir");
+  const top = git("rev-parse", "--show-toplevel");
+  if (gitDir.code || top.code)
+    throw new Error(`not a git checkout: ${firstLine(gitDir.stderr || top.stderr)}`);
+  return {
+    cwd: mkdtempSync(join(env.RUNNER_TEMP || tmpdir(), "orrery-npx-")),
+    env: { ...env, GIT_DIR: gitDir.stdout.trim(), GIT_WORK_TREE: top.stdout.trim() },
+  };
+}
+let orreryOptions;
+function orrery(...args) {
+  orreryOptions ??= orreryRunOptions();
+  return run(cliCmd, [...cliArgs, ...args], orreryOptions);
+}
 const firstLine = (s) =>
   s
     .split(/\r?\n/)
@@ -123,7 +153,9 @@ function checkSpec(spec, { width, base, changed }) {
   const slug = slugOf(spec);
   const at = join(out, slug);
   const r = { spec, slug, errors: 0, warnings: 0, files: [] };
-  const v = orrery("validate", spec, "--json");
+  // Absolute, because the npx package runs from an empty folder (see orreryRunOptions).
+  const file = resolve(spec);
+  const v = orrery("validate", file, "--json");
   const receipt = parse(v.stdout);
   if (!receipt) {
     r.errors = 1;
@@ -135,9 +167,9 @@ function checkSpec(spec, { width, base, changed }) {
   r.warnings = diags.length - r.errors;
   r.diagnostics = diags.slice(0, 20).map((d) => `${d.severity} ${d.code} ${d.message}`);
   if (r.errors) return r;
-  const rendered = parse(orrery("render", spec, "-o", at, "-f", "svg,png", "--json").stdout);
+  const rendered = parse(orrery("render", file, "-o", at, "-f", "svg,png", "--json").stdout);
   r.files.push(...(rendered?.outputs ?? []).map((o) => basename(o.path)));
-  const reviewed = orrery("review", spec, "-o", at, "--width", width, "--json");
+  const reviewed = orrery("review", file, "-o", at, "--width", width, "--json");
   const report = parse(reviewed.stdout);
   if (report) {
     r.score = report.score;
@@ -149,7 +181,7 @@ function checkSpec(spec, { width, base, changed }) {
     if (git("cat-file", "-e", `${base}:${spec}`).code) r.diff = "new";
     else {
       const d = parse(
-        orrery("diff", `git:${base}:${spec}`, spec, "-o", `${at}.diff.svg`, "--json").stdout,
+        orrery("diff", `git:${base}:${spec}`, file, "-o", `${at}.diff.svg`, "--json").stdout,
       );
       r.diff = d?.counts ?? "failed";
       if (d) r.files.push(`${slug}.diff.svg`);
@@ -169,8 +201,9 @@ function check() {
   const results = [];
   for (const spec of specs) {
     const r = checkSpec(spec, { width, base, changed });
+    // Quoted, so a file name cannot start a line that the runner reads as a workflow command.
     console.log(
-      `${spec}: ${r.errors} error(s), ${r.warnings} warning(s)${r.score !== undefined ? `, score ${r.score}, ${r.pass ? "pass" : "fail"}` : ""}${r.problem ? `, ${r.problem}` : ""}`,
+      `${JSON.stringify(spec)}: ${r.errors} error(s), ${r.warnings} warning(s)${r.score !== undefined ? `, score ${r.score}, ${r.pass ? "pass" : "fail"}` : ""}${r.problem ? `, ${r.problem}` : ""}`,
     );
     results.push(r);
   }
@@ -190,8 +223,19 @@ function failure(r, failOn) {
   return undefined;
 }
 
-// Backslashes first, so the escape added for a pipe cannot be read as an escape of its own.
-const cell = (s) => String(s).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+// Text the pull request controls (file names, and messages that quote them or the spec) shown as
+// code. A backtick code span ends at the first backtick in the name, and Markdown inside an HTML
+// <code> element is still parsed, so every character but letters, digits, `/`, `-` and spaces
+// becomes a numeric entity: no emphasis, link, autolink, table pipe, line break or tag survives,
+// and GitHub does not turn an @name inside <code> into a mention.
+const code = (s) =>
+  `<code>${String(s).replace(/[^A-Za-z0-9/ -]/gu, (c) => `&#${c.codePointAt(0)};`)}</code>`;
+
+// Workflow command escapes, as @actions/core writes them: a property (file=...) also escapes the
+// `:` and `,` that would end it, and the message escapes what would end the command.
+const commandData = (s) =>
+  String(s).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+const commandProperty = (s) => commandData(s).replace(/:/g, "%3A").replace(/,/g, "%2C");
 
 function changes(d) {
   if (d === undefined) return "-";
@@ -215,10 +259,10 @@ function commentBody({ width, results }, failOn, artifactUrl) {
   ];
   for (const r of results) {
     const checks = r.problem
-      ? cell(r.problem)
+      ? code(r.problem)
       : `${r.errors} error${r.errors === 1 ? "" : "s"}, ${r.warnings} warning${r.warnings === 1 ? "" : "s"}`;
     lines.push(
-      `| \`${cell(r.spec)}\` | ${r.score ?? "-"} | ${r.pass === undefined ? "-" : r.pass ? "yes" : "no"} | ${r.findings ?? "-"} | ${checks} | ${changes(r.diff)} |`,
+      `| ${code(r.spec)} | ${r.score ?? "-"} | ${r.pass === undefined ? "-" : r.pass ? "yes" : "no"} | ${r.findings ?? "-"} | ${checks} | ${changes(r.diff)} |`,
     );
   }
   lines.push("");
@@ -286,10 +330,15 @@ function report() {
       console.log(`comment: ${upsertComment(repo, number, body)} on ${repo}#${number}`);
     } catch (e) {
       // Pull requests from forks get a read-only token; the summary still has the table.
-      console.log(`::warning::could not post the pull request comment: ${e.message}`);
+      console.log(
+        `::warning::${commandData(`could not post the pull request comment: ${e.message}`)}`,
+      );
     }
   }
-  for (const r of failing) console.log(`::error file=${r.spec}::orrery: ${failure(r, failOn)}`);
+  for (const r of failing)
+    console.log(
+      `::error file=${commandProperty(r.spec)}::${commandData(`orrery: ${failure(r, failOn)}`)}`,
+    );
   if (failing.length) process.exitCode = 1;
 }
 
@@ -299,6 +348,6 @@ try {
   else if (phase === "report") report();
   else throw new Error(`usage: run.mjs check|report (got "${phase ?? ""}")`);
 } catch (e) {
-  console.log(`::error::orrery action: ${e.message}`);
+  console.log(`::error::${commandData(`orrery action: ${e.message}`)}`);
   process.exitCode = 1;
 }

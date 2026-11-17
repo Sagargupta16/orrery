@@ -65,12 +65,51 @@ export function boundsOf(
   spans: { t0: number; t1: number }[],
 ): { from: number; to: number } {
   const today = tl.today ? dayOf(tl.today) : undefined;
-  const lows = [...spans.map((s) => s.t0), ...(today !== undefined ? [today] : [])];
-  const highs = [...spans.map((s) => s.t1), ...(today !== undefined ? [today + 1] : [])];
+  // Loops, not Math.min(...): a spread passes one argument per item and overflows the stack.
+  let low = today ?? Number.POSITIVE_INFINITY;
+  let high = today !== undefined ? today + 1 : Number.NEGATIVE_INFINITY;
+  for (const s of spans) {
+    low = Math.min(low, s.t0);
+    high = Math.max(high, s.t1);
+  }
   const fallback = today ?? dayOf("2026-01-01");
-  const lo = tl.start ? dayOf(tl.start) : lows.length ? Math.min(...lows) : fallback;
-  const hi = tl.end ? dayOf(tl.end) + 1 : highs.length ? Math.max(...highs) : lo + 1;
+  const lo = tl.start ? dayOf(tl.start) : Number.isFinite(low) ? low : fallback;
+  const hi = tl.end ? dayOf(tl.end) + 1 : Number.isFinite(high) ? high : lo + 1;
   return { from: lo, to: Math.max(hi, lo + 1) };
+}
+
+/** The most columns an axis may have; past it the layout would build a tick per day for ages. */
+export const MAX_COLUMNS = 20_000;
+/** A period's mean length in days, to count the columns before building them. */
+const PERIOD_DAYS: Record<TimeScale, number> = {
+  day: 1,
+  week: 7,
+  month: 30.44,
+  quarter: 91.31,
+  year: 365.25,
+};
+
+/** An axis too long to lay out; the CLI reports it as DG126 with its fixes. */
+export class SpanError extends Error {
+  fixes: string[];
+  constructor(message: string, fixes: string[]) {
+    super(message);
+    this.fixes = fixes;
+  }
+}
+
+/** Refuses an axis too long to lay out, naming the scales that would fit. */
+export function checkSpan(from: number, to: number, scale: TimeScale): void {
+  const count = (s: TimeScale) => Math.ceil((to - from) / PERIOD_DAYS[s]);
+  if (count(scale) <= MAX_COLUMNS) return;
+  const fits = (Object.keys(PERIOD_DAYS) as TimeScale[]).filter((s) => count(s) <= MAX_COLUMNS);
+  throw new SpanError(
+    `the timeline axis from ${isoOf(from)} needs about ${count(scale)} ${scale} columns, over the ${MAX_COLUMNS} an axis can have`,
+    [
+      "set timeline start and end to narrow it",
+      ...(fits.length ? [`use a coarser scale: timeline: { scale: ${fits[0]} }`] : []),
+    ],
+  );
 }
 
 /** Period starts covering from..to, whole periods at both ends. */
@@ -85,10 +124,9 @@ export const endOf = (starts: number[], scale: TimeScale) =>
 
 /** The column pitch: the README width shared out, never so narrow a tick label does not fit. */
 export function pitchOf(scale: TimeScale, starts: number[], room: number): number {
-  const widest = Math.max(
-    0,
-    ...starts.map((d) => textBlock(tickText(d, scale), TICK_SIZE, 400, 600).width),
-  );
+  let widest = 0;
+  for (const d of starts)
+    widest = Math.max(widest, textBlock(tickText(d, scale), TICK_SIZE, 400, 600).width);
   const min = Math.max(MIN_PITCH[scale], Math.ceil(widest + 16));
   // Rounded down, so the columns never push the canvas past the room.
   const fit = Math.floor((room / Math.max(1, starts.length)) * 100) / 100;

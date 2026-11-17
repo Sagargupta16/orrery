@@ -2,21 +2,39 @@ name: Refresh icons and build output
 
 # Runs on every Renovate branch, so the one monthly dependency pull request (the shared preset in
 # renovate.json groups every update on the 1st) also carries what is generated from those
-# dependencies: the newest official AWS, Azure, Google Cloud and Kubernetes packs re-pinned, the
-# icon catalogs with the library pins and the counts the docs quote, the bundled CLI and vendored
-# engines, and the gallery. Renovate cannot run build scripts, so without this its pull requests
-# fail `build.mjs --check` or the checksum test and never auto-merge.
+# dependencies: the icon catalogs with the library pins (read from the versions the lockfile
+# installs) and the counts the docs quote, the bundled CLI and vendored engines, and the gallery.
+# Renovate cannot run build scripts, so without this its pull requests fail `build.mjs --check` or
+# the checksum test and never auto-merge.
 #
-# A push made with GITHUB_TOKEN starts no workflow run, so this job dispatches ci.yml on the branch
-# itself; those check runs land on the new head, which is what Renovate's automerge waits for.
-# renovate.json lists github-actions[bot] in gitIgnoredAuthors, so Renovate keeps managing (and
-# rebasing) a branch this job committed to. For an off-cycle refresh, run it on any branch but main.
+# The official AWS, Azure, Google Cloud and Kubernetes packs stay on the versions pinned in
+# scripts/icon-sources.json: a dependency bump never re-pins them as a side effect (a new vendor
+# pack can break the icon tests and would ride along with an unrelated security fix). To move them
+# on purpose, run this workflow by hand on a branch with `latest` checked.
+#
+# Two jobs, so the code that the dependencies bring never holds a token that can write:
+# - refresh installs the dependencies and runs the generators with a read-only token that is not
+#   left on disk, and uploads the changes to the paths it regenerates as a patch;
+# - push runs nothing from the repository or its dependencies. It applies that patch, refuses any
+#   path outside the same list (and symlinks or submodules), commits and pushes to this branch,
+#   never to main.
+#
+# A push made with GITHUB_TOKEN starts no workflow run, so the push job dispatches ci.yml on the
+# branch itself; those check runs land on the new head, which is what Renovate's automerge waits
+# for. renovate.json lists github-actions[bot] in gitIgnoredAuthors, so Renovate keeps managing
+# (and rebasing) a branch this workflow committed to. For an off-cycle refresh, run it on any branch
+# but main.
 on:
   push:
     branches: ["renovate/**"]
   workflow_dispatch:
+    inputs:
+      latest:
+        description: Re-pin the official vendor packs to their newest releases (sync-icons --latest)
+        type: boolean
+        default: false
 
-# Nothing by default; the job asks for exactly what it writes.
+# Nothing by default; each job asks for exactly what it needs.
 permissions: {}
 
 concurrency:
@@ -25,17 +43,21 @@ concurrency:
 
 jobs:
   refresh:
+    name: Regenerate the icon catalogs, the bundle and the gallery
     if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: write # push the regenerated files to the branch
-      actions: write # dispatch ci.yml on the branch
+      contents: read
+    outputs:
+      changed: ${{ steps.patch.outputs.changed }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: pnpm
@@ -43,11 +65,18 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # Exits 1 when an alias in scripts/icon-aliases.json points nowhere or hides a real icon,
-      # so a vendor rename fails this run loudly and the pull request stays red.
-      - name: Fetch the newest official packs, rebuild the catalogs and the counts in the docs
+      # so a vendor rename fails this run loudly and the pull request stays red. Without --latest
+      # the vendor downloads must match their pinned checksums.
+      - name: Rebuild the catalogs, the library pins and the counts in the docs
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/sync-icons.mjs --latest
+          LATEST: ${{ inputs.latest }}
+          GITHUB_TOKEN: ${{ inputs.latest && github.token || '' }}
+        run: |
+          if [ "$LATEST" = "true" ]; then
+            node scripts/sync-icons.mjs --latest
+          else
+            node scripts/sync-icons.mjs
+          fi
 
       - name: Rebuild the bundled CLI
         run: node scripts/build.mjs
@@ -55,23 +84,89 @@ jobs:
       - name: Re-render the gallery
         run: node scripts/gallery.mjs
 
-      - name: Commit and push
-        id: push
+      # The same paths the push job accepts; anything else this job changed is left behind.
+      - name: Collect the changes as a patch
+        id: patch
         run: |
+          git add -- README.md THIRD_PARTY_NOTICES.md docs examples scripts/icon-sources.json skills
           git status --short
-          if [ -z "$(git status --porcelain)" ]; then
-            echo "pushed=false" >> "$GITHUB_OUTPUT"
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          git diff --cached --binary --no-renames --no-ext-diff > "$RUNNER_TEMP/refresh.patch"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.patch.outputs.changed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: refresh-patch
+          path: ${{ runner.temp }}/refresh.patch
+          if-no-files-found: error
+          retention-days: 1
+
+  push:
+    name: Commit the regenerated files to the branch
+    needs: refresh
+    if: needs.refresh.outputs.changed == 'true' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the regenerated files to the branch
+      actions: write # dispatch ci.yml on the branch
+    steps:
+      # The token stays in the checkout because this job pushes; it runs no code from the
+      # repository or its dependencies and uploads nothing.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked]
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: refresh-patch
+          path: ${{ runner.temp }}/refresh
+
+      - name: Apply the patch, check its paths, commit and push
+        run: |
+          case "$GITHUB_REF" in
+            refs/heads/main)
+              echo "::error::refusing to push regenerated files to $GITHUB_REF"
+              exit 1
+              ;;
+            refs/heads/*) ;;
+            *)
+              echo "::error::$GITHUB_REF is not a branch"
+              exit 1
+              ;;
+          esac
+          git apply --index --binary "$RUNNER_TEMP/refresh/refresh.patch"
+          # Only the files the refresh job regenerates, as plain files: no symlink or submodule.
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              README.md | THIRD_PARTY_NOTICES.md | scripts/icon-sources.json) ;;
+              docs/* | examples/* | skills/*) ;;
+              *)
+                echo "::error::the patch changes $path, which the refresh job does not generate"
+                exit 1
+                ;;
+            esac
+          done < <(git diff --cached --name-only -z --no-renames)
+          modes=$(git diff --cached --raw --no-renames | awk '{ print $2 }' | sort -u)
+          for mode in $modes; do
+            case "$mode" in
+              100644 | 100755 | 000000) ;;
+              *)
+                echo "::error::the patch adds an entry with mode $mode (only plain files are allowed)"
+                exit 1
+                ;;
+            esac
+          done
+          git diff --cached --stat
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- README.md THIRD_PARTY_NOTICES.md docs examples scripts/icon-sources.json skills
           git commit -m "chore: refresh icons and build output"
-          git push
-          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          git push origin "HEAD:$GITHUB_REF"
 
       - name: Start the checks on the new head
-        if: steps.push.outputs.pushed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run ci.yml --ref "$GITHUB_REF_NAME"

@@ -225,6 +225,35 @@ const keyPath = (key: string) =>
 const startsKey = (key: string) => new RegExp(`^\\s*(?:${key}|"${key}"|'${key}')\\s*[.=]`);
 
 /**
+ * The multi-line string (triple double quotes or triple single quotes) still open at the end of
+ * the line, if any. A line inside one that looks like a table header is text, so mergeToml must
+ * not read it as one.
+ */
+function openString(line: string, open: string | undefined): string | undefined {
+  let ml = open;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i] as string;
+    if (ml) {
+      if (ml === '"""' && ch === "\\") i++;
+      else if (line.startsWith(ml, i)) {
+        // Up to two more quotes may sit right before the closing three and belong to the string.
+        while (line[i + ml.length] === ml[0]) i++;
+        i += ml.length - 1;
+        ml = undefined;
+      }
+    } else if (ch === "#") break;
+    else if (line.startsWith('"""', i) || line.startsWith("'''", i)) {
+      ml = line.slice(i, i + 3);
+      i += 2;
+    } else if (ch === '"' || ch === "'") {
+      // A one-line string: skip to its closing quote ("..." honors backslash escapes).
+      for (i++; i < line.length && line[i] !== ch; i++) if (ch === '"' && line[i] === "\\") i++;
+    }
+  }
+  return ml;
+}
+
+/**
  * No TOML library ships with the CLI, so the edit is by lines: the orrery table and its
  * sub-tables are found by their headers, and the new table goes at the end. A config that sets
  * the servers inline or with dotted keys is left for the user to edit.
@@ -235,10 +264,25 @@ function mergeToml(c: Client, raw: string, path: string, force: boolean): Merged
   const keep: string[] = [];
   const found: string[] = [];
   let table: string[] = [];
+  let string: string | undefined;
   for (const line of raw.split(/\r?\n/)) {
+    const inString = string !== undefined;
+    string = openString(line, string);
+    if (inString) {
+      (table[0] === c.key && table[1] === SERVER ? found : keep).push(line);
+      continue;
+    }
     const header = line.match(HEADER)?.[1];
-    if (header !== undefined) table = keyPath(header);
-    else if (!table.length && startsKey(c.key).test(line))
+    if (header !== undefined) {
+      const was = table[0] === c.key && table[1] === SERVER;
+      table = keyPath(header);
+      if (was && !(table[0] === c.key && table[1] === SERVER)) {
+        // Blank and comment lines just above the next table describe that table, not ours.
+        let at = found.length;
+        while (at > 0 && (!found[at - 1]?.trim() || found[at - 1]?.trim().startsWith("#"))) at--;
+        keep.push(...found.splice(at));
+      }
+    } else if (!table.length && startsKey(c.key).test(line))
       throw new InstallError(`${path} sets ${c.key} with an inline or dotted key${byHand}`);
     else if (table.length === 1 && table[0] === c.key && startsKey(SERVER).test(line))
       throw new InstallError(`${path} sets ${ours} with an inline or dotted key${byHand}`);

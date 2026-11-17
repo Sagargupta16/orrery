@@ -63,10 +63,22 @@ function logCall(tool: string, started: number, error?: "refused" | "crashed") {
   );
 }
 
-// Calls run one at a time: a render is CPU-bound, and two would only slow each other down.
+// Calls run one at a time: a render is CPU-bound, and two would only slow each other down. They
+// also share the icon registry that loadLocalIcons fills per spec, so a validate would otherwise see
+// a render's local icons. Tools marked concurrent touch neither and skip the line.
 let queue: Promise<unknown> = Promise.resolve();
-function serial<T>(job: () => Promise<T>): Promise<T> {
-  const run = queue.then(job, job);
+let waiting = 0;
+/** Over HTTP anyone on the machine can queue calls: past this many waiting, the next gets a 503. */
+const MAX_WAITING = 4;
+function serial<T>(job: () => Promise<T>, http: boolean): Promise<T> {
+  if (http && waiting >= MAX_WAITING)
+    throw new RpcError(-32000, "Server busy: too many calls are waiting, retry shortly", 503);
+  waiting++;
+  const start = () => {
+    waiting--;
+    return job();
+  };
+  const run = queue.then(start, start);
   queue = run.catch(() => undefined);
   return run;
 }
@@ -81,7 +93,7 @@ async function callTool(params: Obj, ctx: Context): Promise<Obj> {
   if (!isObj(args)) throw new RpcError(-32602, "tools/call arguments must be an object");
   const started = performance.now();
   try {
-    const unknown = Object.keys(args).filter((k) => !(k in tool.inputSchema.properties));
+    const unknown = Object.keys(args).filter((k) => !Object.hasOwn(tool.inputSchema.properties, k));
     if (unknown.length)
       throw new ToolError(
         `unknown argument ${unknown.join(", ")}; ${tool.name} takes ${Object.keys(tool.inputSchema.properties).join(", ") || "none"}`,
@@ -124,12 +136,16 @@ async function result(
   }
   // A modern request carries the client's capabilities itself; a legacy one had them at initialize.
   const call: Context = modern
-    ? { ...ctx, ui: supportsUi((params._meta as Obj)[`${META}clientCapabilities`]) }
+    ? { ...ctx, ui: supportsUi((params._meta as Obj)[`${META}clientCapabilities`]), modern: true }
     : ctx;
-  const done = (r: Obj): Obj =>
+  // List and read results carry how long a client may reuse them (2026-07-28); the content here is
+  // fixed for the life of the server, so any client or proxy may keep it for an hour.
+  const cacheable = { ttlMs: 3_600_000, cacheScope: "public" };
+  const done = (r: Obj, cache = false): Obj =>
     modern
       ? {
           resultType: "complete",
+          ...(cache ? cacheable : {}),
           ...r,
           _meta: { ...(isObj(r._meta) ? r._meta : {}), ...SERVER_META },
         }
@@ -158,16 +174,17 @@ async function result(
     case "ping":
       return done({});
     case "tools/list":
-      return done({ tools: TOOLS.map(({ run, ...t }) => t) });
+      return done({ tools: TOOLS.map(({ run, concurrent, ...t }) => t) }, true);
     case "tools/call": {
       // A call cancelled while it waits never starts; dispatch drops its reply either way.
       const job = async (): Promise<Obj> => (cancelled() ? {} : callTool(params, call));
-      return done(await serial(job));
+      const tool = TOOLS.find((t) => t.name === params.name);
+      return done(await (tool?.concurrent ? job() : serial(job, call.http)));
     }
     case "resources/list":
-      return done({ resources: [VIEWER_RESOURCE] });
+      return done({ resources: [VIEWER_RESOURCE] }, true);
     case "resources/templates/list":
-      return done({ resourceTemplates: [] });
+      return done({ resourceTemplates: [] }, true);
     case "resources/read": {
       const contents = readViewer(params.uri);
       // -32602 from 2026-07-28 on; earlier revisions said -32002.
@@ -175,7 +192,7 @@ async function result(
         throw new RpcError(modern ? -32602 : -32002, "Resource not found", 200, {
           uri: params.uri,
         });
-      return done({ contents });
+      return done({ contents }, true);
     }
     default:
       throw new RpcError(-32601, `Method not found: ${method}`, modern ? 404 : 200);

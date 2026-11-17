@@ -63,8 +63,15 @@ function directionAgreement(c: Ctx): { forward: number; against: SceneEdge[] } {
     if (e.arrow === "end" && p < -8) against.push(e);
   }
   // A state machine returns to earlier states and a mind map grows both ways: heads point back by
-  // design there, so the count stays a metric only.
-  if (against.length && model.kind !== "state" && model.kind !== "mindmap") {
+  // design there, so the count stays a metric only. A sequence and a timeline place every item
+  // themselves and ignore `direction:`, so there is no direction for an arrow to disagree with.
+  if (
+    against.length &&
+    model.kind !== "state" &&
+    model.kind !== "mindmap" &&
+    model.kind !== "sequence" &&
+    model.kind !== "timeline"
+  ) {
     const share = against.length / Math.max(1, edges.length);
     add(
       "layout.against-flow",
@@ -153,17 +160,33 @@ function edgeLengths(c: Ctx): { lens: EdgeLength[]; median: number; long: EdgeLe
       ? (sorted[mid] ?? 0)
       : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2
     : 0;
-  // A timeline's dependency is as long as the dates between its ends, not a layout choice.
+  // Spec order does not set edge length in a tree or mind map (the tree layout places every child),
+  // and a timeline's dependency is as long as the dates between its ends. A dependency can still
+  // detour: a route over 3x the Manhattan distance between its ends loops around other items.
+  const span = (l: EdgeLength) => {
+    const a = l.e.points[0];
+    const z = l.e.points[l.e.points.length - 1];
+    return a && z ? Math.abs(z.x - a.x) + Math.abs(z.y - a.y) : l.len;
+  };
+  const detour = (l: EdgeLength) => l.len > 100 && l.len > 3 * span(l);
   const long =
-    scene.kind === "timeline" ? [] : lens.filter((l) => l.len > 2.5 * median && l.len > 300);
+    scene.kind === "timeline"
+      ? lens.filter(detour)
+      : scene.kind === "tree" || scene.kind === "mindmap"
+        ? []
+        : lens.filter((l) => l.len > 2.5 * median && l.len > 300);
   for (const l of long)
     add(
       "layout.long-edge",
       "minor",
       [l.e.id],
       { edge: edgeName(l.e), lengthPx: Math.round(l.len), medianPx: Math.round(median) },
-      `${edgeName(l.e)} is ${Math.round(l.len)}px, ${r1(l.len / (median || 1))}x the median edge`,
-      [`move "${l.e.from}" or "${l.e.to}" next to the other in the nodes list`],
+      scene.kind === "timeline"
+        ? `${edgeName(l.e)} detours: its route is ${Math.round(l.len)}px for ends ${Math.round(span(l))}px apart`
+        : `${edgeName(l.e)} is ${Math.round(l.len)}px, ${r1(l.len / (median || 1))}x the median edge`,
+      scene.kind === "timeline"
+        ? [`give "${l.e.from}" and "${l.e.to}" lanes next to each other, or drop the dependency`]
+        : [`move "${l.e.from}" or "${l.e.to}" next to the other in the nodes list`],
       3,
     );
   return { lens, median, long };

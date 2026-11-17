@@ -187,11 +187,14 @@ function besideGroups(c: Ctx, frames: SceneGroup[]): number {
  */
 function unevenSiblings(c: Ctx, frames: SceneGroup[]): number {
   const { add } = c;
+  // Numbers and lone letters tell siblings apart, not roles apart: Zone A, AZ1 and AZ2, us-east-1a
+  // and us-east-1b are one role each.
   const role = (g: SceneGroup) =>
     g.label.lines
       .join(" ")
-      .replace(/\b[A-Za-z0-9]\b/g, "")
-      .replace(/\s+/g, " ")
+      .replace(/\d+/g, "")
+      .replace(/\b[A-Za-z]\b/g, "")
+      .replace(/[\s-]+/g, " ")
       .trim()
       .toLowerCase();
   let siblings = 0;

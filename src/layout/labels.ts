@@ -14,6 +14,7 @@ import {
   segmentsOf,
   union,
 } from "./geometry.ts";
+import { headerText } from "./groups.ts";
 import { SIZES } from "./sizes.ts";
 
 // Free-edge labels and steps go beside a vertical run, clear of nodes and other labels.
@@ -39,7 +40,7 @@ export function placeFreeLabels(ctx: Routed): void {
     const avoid = [
       ...footprints,
       ...edges.flatMap((x) => [x.labelBox, x.stepBox]),
-      ...groups.map((g) => g.labelBox),
+      ...groups.map(headerText),
       ...(fresh ? nodes.map((n) => n.badgeBox) : []),
       ...(fresh
         ? groups.flatMap((g) => [

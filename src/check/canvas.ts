@@ -1,4 +1,5 @@
 // How big things are and whether they fit: long labels, picture shape and size, the canvas edge.
+import { ELK_BUDGET } from "../layout/sizes.ts";
 import { type Box, type Model, OWN_LAYOUT, TIME_SCALES } from "../types.ts";
 import type { CheckContext } from "./context.ts";
 import { badgeRect, boxOf, EPS, hull, pathBox, tenth } from "./geometry.ts";
@@ -39,9 +40,12 @@ export function longLabels({ scene, warn }: CheckContext): void {
   }
 }
 
+/** The widest a diagram should be before DG205 warns (px); layout.aspect keeps under it too. */
+export const MAX_WIDTH = 2400;
+
 /** DG205: shape of the whole picture. */
 export function canvasShape({ scene, model, opts, warn }: CheckContext): void {
-  const maxWidth = opts.maxWidth ?? 2400;
+  const maxWidth = opts.maxWidth ?? MAX_WIDTH;
   // A journey, a sequence or a timeline places every node itself: no direction or zones to change.
   const own = OWN_LAYOUT.has(model.kind);
   if (scene.width > maxWidth) {
@@ -52,13 +56,14 @@ export function canvasShape({ scene, model, opts, warn }: CheckContext): void {
         : [...turnFix(model), "group related nodes", "split into two diagrams"],
     });
   }
+  // Its shape is the kind's own (stages in a row, a date axis, participants across): the strip
+  // tests, whose fixes turn or zone the flow, apply to flows only.
+  if (own) return;
   const ratio = scene.width / Math.max(1, scene.height);
   if (ratio > 4.5 && scene.nodes.length > 6) {
     warn("DG205", `diagram is a ${ratio.toFixed(1)}:1 strip, hard to read in docs`, {
       evidence: { width: scene.width, height: scene.height },
-      fixes: own
-        ? [...ownNarrower(model), "split into two diagrams"]
-        : [...turnFix(model, " for long chains"), "group stages into zones"],
+      fixes: [...turnFix(model, " for long chains"), "group stages into zones"],
     });
   }
   // Tall diagrams are not scaled down in a page column, so only flag ones taller than two screens.
@@ -66,18 +71,16 @@ export function canvasShape({ scene, model, opts, warn }: CheckContext): void {
   if (tall > 4.5 && scene.height > 1800 && scene.nodes.length > 6) {
     warn("DG205", `diagram is a ${tall.toFixed(1)}:1 tall strip, hard to read in docs`, {
       evidence: { width: scene.width, height: scene.height },
-      fixes: own
-        ? ["split into two diagrams"]
-        : [
-            ...turnFix(model, " for long chains"),
-            "arrange stages in side-by-side zones",
-            "split into two diagrams",
-          ],
+      fixes: [
+        ...turnFix(model, " for long chains"),
+        "arrange stages in side-by-side zones",
+        "split into two diagrams",
+      ],
     });
   }
 }
 
-/** DG206: size. */
+/** DG206: size; past ELK_BUDGET edges layout also stops searching for fewer crossings. */
 export function nodeCount({ model, warn }: CheckContext): void {
   if (model.nodes.length > 40) {
     warn("DG206", `${model.nodes.length} nodes in one diagram`, {
@@ -86,6 +89,19 @@ export function nodeCount({ model, warn }: CheckContext): void {
         "collapse repeated nodes and use badge: x3",
       ],
     });
+  }
+  if (model.edges.length > ELK_BUDGET && !OWN_LAYOUT.has(model.kind)) {
+    warn(
+      "DG206",
+      `${model.edges.length} edges in one diagram: past ${ELK_BUDGET}, layout keeps its first order and does not try one with fewer crossings`,
+      {
+        evidence: { edges: model.edges.length, budget: ELK_BUDGET },
+        fixes: [
+          "split into an overview and detail diagrams",
+          "draw one edge to a group instead of one to each of its members",
+        ],
+      },
+    );
   }
 }
 

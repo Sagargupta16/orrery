@@ -293,12 +293,14 @@ describe("sequence drawing", () => {
     expect(svg).toContain("[card declined]");
     // The layer sits after the group frames and before the first message.
     const layer = svg.indexOf('stroke-dasharray="5 4"');
-    expect(layer).toBeGreaterThan(svg.indexOf('id="seq-dark-g-backend"'));
-    expect(layer).toBeLessThan(svg.indexOf('id="seq-dark-e-e1"'));
+    // Ids carry the name, theme and a hash of the model (renderModel's idPrefix).
+    const prefix = must(svg.match(/id="(seq-dark-[0-9a-f]{6})-/), "prefix")[1];
+    expect(layer).toBeGreaterThan(svg.indexOf(`id="${prefix}-g-backend"`));
+    expect(layer).toBeLessThan(svg.indexOf(`id="${prefix}-e-e1"`));
     // A packet plays the messages one after another: each starts later than the one before.
-    const starts = [...svg.matchAll(/<g id="seq-dark-e-(e\d+)">.*?keyTimes="0;([\d.]+);/gs)].map(
-      (m) => Number(m[2]),
-    );
+    const starts = [
+      ...svg.matchAll(/<g id="seq-dark-[0-9a-f]{6}-e-(e\d+)">.*?keyTimes="0;([\d.]+);/gs),
+    ].map((m) => Number(m[2]));
     expect(starts.length).toBe(8);
     for (let i = 1; i < starts.length; i++)
       expect(starts[i]).toBeGreaterThan(must(starts[i - 1], "start"));
@@ -311,7 +313,7 @@ describe("sequence drawing", () => {
     for (const id of attributeValues(svg, "id")) expect(id.startsWith("seq-dark-")).toBe(true);
     expect(svg).toContain("[card ok]");
     // The relay story rides every message in order.
-    expect(svg).toContain('id="seq-dark-story"');
+    expect(svg).toMatch(/id="seq-dark-[0-9a-f]{6}-story"/);
   });
 
   it("keeps the PNG's still frame free of motion", async () => {

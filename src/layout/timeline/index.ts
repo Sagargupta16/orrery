@@ -16,7 +16,17 @@ import type {
   TimeScale,
 } from "../../types.ts";
 import { animateOf, SIZES } from "../sizes.ts";
-import { axisOf, boundsOf, columnsOf, DISPLAY, endOf, pitchOf, round, scaleOf } from "./axis.ts";
+import {
+  axisOf,
+  boundsOf,
+  checkSpan,
+  columnsOf,
+  DISPLAY,
+  endOf,
+  pitchOf,
+  round,
+  scaleOf,
+} from "./axis.ts";
 import { describe, keyOf, placeLegend, TODAY_STRIP, titleOf, todayOf } from "./canvas.ts";
 import { dayOf, floorTo, nextOf } from "./dates.ts";
 import {
@@ -162,6 +172,7 @@ export async function timelineLayout(model: Model, theme: ThemeName): Promise<Sc
   const room = DISPLAY - plotX - P;
 
   const { from, to } = boundsOf(tl, items);
+  checkSpan(from, to, scale);
   let starts = columnsOf(from, to, scale);
   let end = endOf(starts, scale);
   let sc = scaleOf(starts, end, plotX, pitchOf(scale, starts, room));
@@ -188,9 +199,9 @@ export async function timelineLayout(model: Model, theme: ThemeName): Promise<Sc
   const lanesTop = round(axisBottom + 6);
   const plotRight = sc.x0 + starts.length * sc.pitch;
   // Labels outside the last bars may run past the last column; the bands run on under them.
-  const bandRight = round(
-    Math.max(plotRight, ...items.map((it) => (it.fx1 > it.bx1 ? it.fx1 + 8 : it.fx1))),
-  );
+  let labelRight = plotRight;
+  for (const it of items) labelRight = Math.max(labelRight, it.fx1 > it.bx1 ? it.fx1 + 8 : it.fx1);
+  const bandRight = round(labelRight);
   const placed = placeLanes(
     rows,
     lanes,

@@ -174,8 +174,14 @@ export function replaceValue(
   const text = inline(value, ctxOf(v, map));
   const node = pair.value;
   if (!node) return { start: pair.key.range[1], end: pair.key.range[1], text: `: ${text}` };
-  if (isScalar(node) && node.range[0] === node.range[1])
-    return { start: node.range[0], end: node.range[0], text: ` ${text}` };
+  if (isScalar(node) && node.range[0] === node.range[1]) {
+    // An empty value followed by a comment (`title: # later`) sits after the comment in the
+    // parse; the value goes right after the colon so the comment stays a comment.
+    const colon = v.text.indexOf(":", pair.key.range[1]);
+    const rest = v.text.slice(colon + 1, v.text.indexOf("\n", colon));
+    const at = colon >= 0 && rest.includes("#") ? colon + 1 : node.range[0];
+    return { start: at, end: at, text: ` ${text}` };
+  }
   if ((isMap(node) || isSeq(node)) && !node.flow) {
     const colon = v.text.indexOf(":", pair.key.range[1]);
     return { start: colon, end: contentEnd(node, v.text), text: `: ${text}` };

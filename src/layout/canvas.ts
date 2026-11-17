@@ -69,8 +69,8 @@ export function sizeCanvas(ctx: Routed): Canvas {
   const grew = round(
     (title?.height ?? 0) -
       (titleBlock?.height ?? 0) +
-      ((title && subtitle?.height) || 0) -
-      ((titleBlock && subtitleBlock?.height) || 0),
+      (subtitle?.height ?? 0) -
+      (subtitleBlock?.height ?? 0),
   );
   if (grew > 0) {
     shiftAll(ctx, 0, grew);
@@ -78,23 +78,16 @@ export function sizeCanvas(ctx: Routed): Canvas {
   }
   let titleBox: Box | undefined;
   let subtitleBox: Box | undefined;
+  // A subtitle with no title takes the title's slot (readBack left room for it).
+  let y = SIZES.pad - 4;
   if (title) {
-    titleBox = {
-      x: SIZES.pad,
-      y: SIZES.pad - 4,
-      w: round(title.width),
-      h: round(title.height),
-    };
+    titleBox = { x: SIZES.pad, y, w: round(title.width), h: round(title.height) };
     width = Math.max(width, round(title.width + SIZES.pad * 2));
-    if (subtitle) {
-      subtitleBox = {
-        x: SIZES.pad,
-        y: round(titleBox.y + title.height + 4),
-        w: round(subtitle.width),
-        h: round(subtitle.height),
-      };
-      width = Math.max(width, round(subtitle.width + SIZES.pad * 2));
-    }
+    y = round(y + title.height + 4);
+  }
+  if (subtitle) {
+    subtitleBox = { x: SIZES.pad, y, w: round(subtitle.width), h: round(subtitle.height) };
+    width = Math.max(width, round(subtitle.width + SIZES.pad * 2));
   }
   width = Math.ceil(width);
   height = Math.ceil(height);

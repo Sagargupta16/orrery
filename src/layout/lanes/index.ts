@@ -18,10 +18,14 @@ import { bandLayout } from "./bands.ts";
 const isBandType = (g: ModelGroup | undefined): g is ModelGroup =>
   !!g && !g.around && (g.type === "pool" || g.type === "lane");
 
-/** Pools and lanes drawn as bands: at the top level, or nested only in each other. */
+/**
+ * Pools and lanes drawn as bands: at the top level, or nested only in each other. A tree or a mind
+ * map places every node itself after ELK, so there they stay plain frames that follow their nodes.
+ */
 function bandIds(model: Model): Set<string> {
   const byId = new Map(model.groups.map((g) => [g.id, g]));
   const out = new Set<string>();
+  if (model.kind === "tree" || model.kind === "mindmap") return out;
   for (const g of model.groups) {
     let ok = isBandType(g);
     for (let p = g.parent; ok && p; p = byId.get(p)?.parent) ok = isBandType(byId.get(p));

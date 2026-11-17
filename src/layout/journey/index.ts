@@ -101,7 +101,7 @@ export async function journeyLayout(model: Model, theme: ThemeName): Promise<Sce
     groups: [],
     edges,
     legend,
-    description: describe(model, grid.rowText, curve),
+    description: describe(model, grid.rowText, curve, grid.scored),
     kind: model.kind,
     ...(model.story ? { story: model.story } : {}),
     journey: { stages: journeyStages, rows, ...(curve ? { curve } : {}) },

@@ -253,17 +253,7 @@ function placeChildren(
     }
     const block = elkNodes.get(plan.blockOf.get(item.id) ?? "");
     const parent = host(item.parent);
-    if (block && !block.children?.length) {
-      const into = parent ?? root;
-      into.children?.push(block);
-      // A block sums its members' links, which misleads ELK's greedy cycle breaker into turning
-      // the main flow around; a depth-first walk in spec order keeps the back edges the author
-      // wrote as back edges (the model-order breakers crash elkjs 0.12 inside groups).
-      into.layoutOptions = {
-        ...into.layoutOptions,
-        "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
-      };
-    }
+    if (block && !block.children?.length) (parent ?? root).children?.push(block);
     (block?.children ?? parent?.children ?? root.children)?.push(el);
   }
   return cells;

@@ -145,7 +145,8 @@ function splitTop(text: string, sep: string): { part: string; at: number }[] {
   return out;
 }
 
-const IDENT = String.raw`(?:"(?:[^"]|"")+"|\x60[^\x60]+\x60|\[[^\]]+\]|[A-Za-z_][\w$]*)`;
+/** A bare name may hold any non-ASCII character (a table named 用户 is a table). */
+const IDENT = String.raw`(?:"(?:[^"]|"")+"|\x60[^\x60]+\x60|\[[^\]]+\]|[A-Za-z_\u0080-\uFFFF][\w$\u0080-\uFFFF]*)`;
 const CHAIN = String.raw`${IDENT}(?:\s*\.\s*${IDENT})*`;
 const CONSTRAINT = String.raw`(?:constraint\s+${IDENT}\s+)?`;
 
@@ -330,7 +331,10 @@ function tableNamed(tables: Table[], key: string, last: string): Table | undefin
   return same.filter((t) => t.key === `public.${last}`).at(-1);
 }
 
-function readTables(src: string): Table[] {
+const CREATE_TABLE =
+  /^create\s+(?:or\s+replace\s+)?(?:(?:global|local)\s+)?(?:temp(?:orary)?\s+)?(?:unlogged\s+)?table\b/i;
+
+function readTables(src: string, skipped?: string[]): Table[] {
   const text = blankComments(src);
   const starts = [0];
   for (let i = 0; i < text.length; i++) if (text[i] === "\n") starts.push(i + 1);
@@ -358,7 +362,10 @@ function readTables(src: string): Table[] {
     if (create?.[1]) {
       const open = (create[0]?.length ?? 1) - 1;
       const body = inside(stmt, open);
-      if (body === undefined) continue;
+      if (body === undefined) {
+        skipped?.push(describe(stmt, off + lead, lineAt));
+        continue;
+      }
       // The line the table's name is on, which its evidence names.
       const nameAt = off + lead + (create[0]?.lastIndexOf(create[1]) ?? 0);
       const read = readTable(body, off + lead + open + 1, lineAt);
@@ -371,6 +378,8 @@ function readTables(src: string): Table[] {
       });
       continue;
     }
+    // PARTITION OF, AS SELECT and the like give no column list to read.
+    if (CREATE_TABLE.test(stmt)) skipped?.push(describe(stmt, off + lead, lineAt));
     const alter = stmt.match(
       new RegExp(`^alter\\s+table\\s+(?:if\\s+exists\\s+)?(?:only\\s+)?(${CHAIN})\\s+(.*)$`, "is"),
     );
@@ -405,9 +414,16 @@ function readTables(src: string): Table[] {
   return tables;
 }
 
+/** A statement named for a warning: its line and first words. */
+function describe(stmt: string, at: number, lineAt: (i: number) => number): string {
+  const words = stmt.replace(/\s+/g, " ").slice(0, 60);
+  return `line ${lineAt(at)}: ${words}${stmt.length > words.length ? " ..." : ""}`;
+}
+
 /**
- * What the import could not read, for the CLI to print: CREATE TABLE statements that gave no
- * table (a string or parenthesis that never closes swallows everything after it).
+ * What the import could not read, for the CLI to print: each CREATE TABLE statement that gave no
+ * table, named by line (PARTITION OF, AS SELECT), and a count when a string or parenthesis that
+ * never closes swallowed the statements after it.
  */
 export function sqlWarnings(text: string): string[] {
   const written = (
@@ -415,12 +431,15 @@ export function sqlWarnings(text: string): string[] {
       /(?:^|;)\s*create\s+(?:or\s+replace\s+)?(?:(?:global|local)\s+)?(?:temp(?:orary)?\s+)?(?:unlogged\s+)?table\b/gi,
     ) ?? []
   ).length;
-  const read = readTables(text).length;
-  return read < written
+  const skipped: string[] = [];
+  const read = readTables(text, skipped).length;
+  const named = skipped.map((s) => `CREATE TABLE statement not read, so it is left out (${s})`);
+  return read + skipped.length < written
     ? [
+        ...named,
         `read ${read} of ${written} CREATE TABLE statements; look for a quote or parenthesis that does not close before the first table missing from the output`,
       ]
-    : [];
+    : named;
 }
 
 /** The text between the parenthesis at `open` and the one that closes it. */
@@ -447,7 +466,10 @@ const RESERVED = /^(true|false|null|yes|no|on|off|y|n|~)$/i;
 const q = (s: string) =>
   PLAIN.test(s) && !RESERVED.test(s) && !/\s$/.test(s) ? s : JSON.stringify(s);
 
-/** A column as a field: "name type pk fk unique null", or the mapping when the type has spaces. */
+/**
+ * A column as a field: "name type pk fk unique null", or the mapping when the name or the type
+ * has spaces (the string form splits on them) or the name holds ": ".
+ */
 function fieldText(c: Column): string {
   const flags = [
     ...(c.pk ? ["pk"] : []),
@@ -455,8 +477,8 @@ function fieldText(c: Column): string {
     ...(c.unique && !c.pk ? ["unique"] : []),
     ...(!c.notNull && !c.pk ? ["null"] : []),
   ];
-  if (c.type && /\s/.test(c.type))
-    return `{ name: ${q(c.name)}, type: ${q(c.type)}${flags.map((f) => `, ${f === "null" ? "nullable" : f}: true`).join("")} }`;
+  if (/\s|: /.test(c.name) || (c.type && /\s/.test(c.type)))
+    return `{ name: ${q(c.name)}${c.type ? `, type: ${q(c.type)}` : ""}${flags.map((f) => `, ${f === "null" ? "nullable" : f}: true`).join("")} }`;
   return q([c.name, ...(c.type ? [c.type] : []), ...flags].join(" "));
 }
 

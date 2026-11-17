@@ -20,11 +20,18 @@ export interface Context {
   http: boolean;
   /** The client renders MCP Apps views, so render and review add the viewer's data (mcp/viewer.ts). */
   ui?: boolean;
+  /** The request names a 2026-07-28 protocol version: results may use content the older ones lack. */
+  modern?: boolean;
 }
 
 export type Content =
   | { type: "text"; text: string }
-  | { type: "image"; data: string; mimeType: string };
+  | { type: "image"; data: string; mimeType: string }
+  | {
+      type: "resource";
+      resource: { uri: string; mimeType: string; text: string };
+      annotations?: { audience?: ("user" | "assistant")[] };
+    };
 
 /** A result with _meta for the client (never the model) next to its content. */
 export interface ToolOutput {
@@ -45,6 +52,11 @@ export interface Tool {
   annotations?: { readOnlyHint?: boolean; idempotentHint?: boolean };
   /** Listed as is: render and review name the viewer here (`_meta.ui.resourceUri`). */
   _meta?: Obj;
+  /**
+   * Touches no shared state (the icon registry, the layout engine), so it need not wait for a
+   * render. Everything else runs one at a time, see serial() in protocol.ts.
+   */
+  concurrent?: boolean;
   run(input: Obj, ctx: Context): Promise<Content[] | ToolOutput>;
 }
 
@@ -90,6 +102,11 @@ export function num(
   return v;
 }
 
+/** A pasted spec or a spec file past this many bytes is refused: no real diagram comes close. */
+export const MAX_SPEC_BYTES = 1024 * 1024;
+/** Nodes plus edges past this many are refused before layout, which grows faster than linearly. */
+export const MAX_ELEMENTS = 2000;
+
 interface Spec {
   text: string;
   name: string;
@@ -115,13 +132,18 @@ export function specInput(input: Obj, ctx: Context): Spec {
     if (!isAbsolute(path)) throw new ToolError(`spec_path must be an absolute path (got ${path})`);
     if (!existsSync(path) || !statSync(path).isFile())
       throw new ToolError(`spec_path not found: ${path}`);
+    if (statSync(path).size > MAX_SPEC_BYTES)
+      throw new ToolError(`spec_path is over ${MAX_SPEC_BYTES / 1024 / 1024} MB: ${path}`);
     const spec = readSpec(path);
     return { text: spec.text, name: name ?? spec.name, path: spec.path };
   }
   if (!source?.trim()) throw new ToolError("spec is empty");
+  if (Buffer.byteLength(source) > MAX_SPEC_BYTES)
+    throw new ToolError(`spec is over ${MAX_SPEC_BYTES / 1024 / 1024} MB`);
   const stem = name ?? "diagram";
-  // Relative icons: paths in a pasted spec resolve against the server's folder, as a file there would.
-  return { text: source, name: stem, path: resolve(`${stem}.yaml`) };
+  // Over HTTP the path stays a bare name: diagnostics quote it, and the server's folder is not the caller's business.
+  // Over stdio relative icons: paths in a pasted spec resolve against the server's folder, as a file there would.
+  return { text: source, name: stem, path: ctx.http ? `${stem}.yaml` : resolve(`${stem}.yaml`) };
 }
 
 export function parse(spec: Spec, ctx: Context) {
@@ -137,6 +159,11 @@ export function parse(spec: Spec, ctx: Context) {
   if (ctx.http && parsed.diagnostics.some((d) => d.subject?.where === "include"))
     throw new ToolError(
       "include: names spec files on the server's disk, which is refused over HTTP: paste the shared groups, nodes and edges into the spec, or run the server over stdio",
+    );
+  const size = (parsed.model?.nodes.length ?? 0) + (parsed.model?.edges.length ?? 0);
+  if (size > MAX_ELEMENTS)
+    throw new ToolError(
+      `the spec has ${size} nodes and edges, over the limit of ${MAX_ELEMENTS}: split it into several diagrams`,
     );
   return parsed;
 }

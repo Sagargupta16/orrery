@@ -33,7 +33,7 @@ A join table's key is usually the pair of its foreign keys (`order_id uuid pk fk
 
 > "A foreign key constraint specifies that the values in a column (or a group of columns) must match the values appearing in some row of another table." (PostgreSQL 5.5.5)
 
-The measurement finds an `fk` row no relationship lands on. When the table it references belongs to another figure (ER-11), say so in the table's `note` (`customer_id: see Accounts`) instead of drawing a line to nothing. Judge that each line lands on the right rows: the key on one end, the foreign key on the other; a line from `orders.customer_id` to `customers.email` joins on a column no constraint names.
+The measurement finds an `fk` row no relationship lands on. When the table it references belongs to another figure (ER-11), say so in the table's `note` (`customer_id: see Accounts`) instead of drawing a line to nothing. A foreign key also matches when it has the other table's own key name (`date_key` on both), and the table prefixes `dim_`, `fact_`, `fct_`, `stg_`, `tbl_` (or `Dim`, `Fact`...) are ignored when matching names. Judge that each line lands on the right rows: the key on one end, the foreign key on the other; a line from `orders.customer_id` to `customers.email` joins on a column no constraint names.
 
 ## Relationships
 
@@ -47,7 +47,7 @@ The measurement finds a relationship with no `card:`. Judge that the ends agree 
 
 ### ER-06 Lines meet the rows they join [renderer]
 
-orrery seats each end on the side of its table at the center line of the row it joins (the foreign key that names the other table, the key on the other end, or the rows `from_field` and `to_field` name), straight out for the marks, and lines tables up so the joined rows share a line where a small move allows it. A line on a table's header means neither end names a row: that is ER-04's or ER-02's finding (a missing `fk` flag, a column named for something else), not a drawing defect.
+orrery seats each end on the side of its table at the center line of the row it joins (the foreign key that names the other table, the key on the other end, or the rows `from_field` and `to_field` name), straight out for the marks, and lines tables up so the joined rows share a line where a small move allows it. Each end leaves at the center line of the row it joins; ends that would meet one face at one point (several relationships on one row, or unresolved ones on the header) part 14 px apart, each with its own marks. A line on a table's header means neither end names a row: that is ER-04's or ER-02's finding (a missing `fk` flag, a column named for something else), not a drawing defect.
 
 ### ER-07 Every entity takes part [measured: `conventions.er-orphan`]
 

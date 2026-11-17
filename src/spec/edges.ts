@@ -2,6 +2,7 @@
 import {
   ARROWS,
   type ArrowMode,
+  type DiagramKind,
   EDGE_FLOWS,
   EDGE_LINES,
   type EdgeFlow,
@@ -250,20 +251,43 @@ function expand(ctx: Ctx, expr: string, label: string | undefined, extra: Obj, w
   }
 }
 
+/**
+ * Timelines and journeys draw an edge from one item (step) to another and have no way to draw
+ * one that ends on a lane or on its own start, so those are errors rather than lines left out.
+ */
+const ITEM_EDGES: Partial<Record<DiagramKind, { code: string; item: string }>> = {
+  timeline: { code: "DG126", item: "item" },
+  journey: { code: "DG112", item: "step" },
+};
+
+/** False after an error when `id` cannot end an edge; a fan or a chain reports an end once. */
 const endpoint = (ctx: Ctx, id: string, where: string): boolean => {
+  const own = ITEM_EDGES[ctx.kind];
+  const group = ctx.ids.get(id) === "group";
+  if (ctx.ids.has(id) && !(group && (ctx.kind === "sequence" || own))) return true;
+  const key = `${where}\0${id}`;
+  if (ctx.badEnds.has(key)) return false;
+  ctx.badEnds.add(key);
   // A sequence draws messages between lifelines, and only participants have one.
-  if (ctx.kind === "sequence" && ctx.ids.get(id) === "group") {
+  if (group && ctx.kind === "sequence")
     ctx.err("DG125", `${where} sends a message to group "${id}", which has no lifeline`, {
       subject: { edge: where, id },
       fixes: ["send it to one of the participants in the group"],
     });
-    return false;
-  }
-  if (ctx.ids.has(id)) return true;
-  ctx.err("DG106", `${where} connects unknown id "${id}"`, {
-    subject: { edge: where, id },
-    fixes: suggestIds(id, ctx.ids).map((s) => `use "${s}"`),
-  });
+  else if (group && own)
+    ctx.err(
+      own.code,
+      `${where} connects lane "${id}"; a ${ctx.kind} links one ${own.item} to another`,
+      {
+        subject: { edge: where, id },
+        fixes: [`connect one of the ${own.item}s in "${id}" instead`],
+      },
+    );
+  else
+    ctx.err("DG106", `${where} connects unknown id "${id}"`, {
+      subject: { edge: where, id },
+      fixes: suggestIds(id, ctx.ids).map((s) => `use "${s}"`),
+    });
   return false;
 };
 
@@ -277,7 +301,20 @@ function push(
   where: string,
 ) {
   const { edges } = ctx;
-  if (!endpoint(ctx, from, where) || !endpoint(ctx, to, where)) return;
+  // Both ends are checked, so "ghost -> ghost2" names both unknown ids.
+  const fromOk = endpoint(ctx, from, where);
+  if (!endpoint(ctx, to, where) || !fromOk) return;
+  const own = ITEM_EDGES[ctx.kind];
+  if (own && from === to) {
+    const key = `${where}\0${from}\0self`;
+    if (!ctx.badEnds.has(key))
+      ctx.err(own.code, `${where} connects "${from}" to itself; a ${ctx.kind} cannot draw that`, {
+        subject: { edge: where, id: from },
+        fixes: [`connect "${from}" to another ${own.item}, or remove the edge`],
+      });
+    ctx.badEnds.add(key);
+    return;
+  }
   // "a <- b" is drawn as b -> a so layout flows the way the data does.
   const reverse = op.arrow === "start";
   const lineRaw = pick(extra, "line", EDGE_SYNONYMS);

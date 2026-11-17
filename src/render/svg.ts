@@ -43,6 +43,18 @@ export function esc(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * A link target as it may be written into a file: the escaped text, or undefined when the text a
+ * browser would act on (control characters and spaces dropped, as it does) names a scheme other
+ * than http, https or mailto. A relative link and a #fragment pass.
+ */
+export function safeHref(url: string): string | undefined {
+  const text = url.replace(NOT_XML, "");
+  const bare = text.replace(/[\s\p{Cc}]/gu, "");
+  if (/^[a-z][a-z0-9+.-]*:/i.test(bare) && !/^(https?|mailto):/i.test(bare)) return undefined;
+  return esc(text);
+}
+
 export const n = (v: number) => {
   const r = Math.round(v * 100) / 100;
   return Object.is(r, -0) ? "0" : String(r);
@@ -769,9 +781,8 @@ function node(ctx: Ctx, nd: SceneNode): string {
     if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box, nd.badgeBox));
   }
   const inner = parts.join("");
-  const body = nd.url
-    ? `<a href="${esc(nd.url)}" xlink:href="${esc(nd.url)}" target="_blank">${inner}</a>`
-    : inner;
+  const href = nd.url ? safeHref(nd.url) : undefined;
+  const body = href ? `<a href="${href}" xlink:href="${href}" target="_blank">${inner}</a>` : inner;
   return `<g id="${ctx.prefix}n-${nd.id}">${body}</g>`;
 }
 

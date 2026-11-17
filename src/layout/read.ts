@@ -14,9 +14,11 @@ import { stretchColumns, trimGroups } from "./trim.ts";
 
 export function readBack(ctx: Laid): Placed {
   const { model, titleBlock, subtitleBlock, result } = ctx;
-  // Whole pixels, so the drawing under a title keeps ELK's integer grid.
-  const top = titleBlock
-    ? Math.ceil(SIZES.pad + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6)
+  // Whole pixels, so the drawing under a title keeps ELK's integer grid. A subtitle with no title
+  // takes the title's slot.
+  const heading = [titleBlock, subtitleBlock].flatMap((b) => (b ? [b.height] : []));
+  const top = heading.length
+    ? Math.ceil(SIZES.pad + heading.reduce((t, h) => t + h, 0) + 4 * (heading.length - 1) - 6)
     : 0;
   const shift = (p: Point): Point => ({ x: round(p.x), y: round(p.y + top) });
   const placed = new Map<string, ElkNode>();

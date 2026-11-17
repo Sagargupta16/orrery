@@ -5,7 +5,8 @@
 import type { Box, SceneGroup } from "../types.ts";
 import type { LayoutOptions, Routed } from "./context.ts";
 import { union } from "./geometry.ts";
-import { clearHeader } from "./groups.ts";
+import { clearHeader, headerText } from "./groups.ts";
+import { widenedOf } from "./measure.ts";
 import { attachBox } from "./steer.ts";
 
 /** Slides every header clear, and returns the second pass's options when it needs one. */
@@ -30,7 +31,7 @@ export function secondPass(ctx: Routed): LayoutOptions | undefined {
     const box = groups.find((g) => g.id === id)?.box;
     if (!gg || !box || gg.center || gg.iconStyle === "tile-center") return false;
     if (model.groups.find((g) => g.id === id)?.around) return false;
-    return box.w + 0.5 < Math.max(gg.minWidth, 2 * (gg.minWidth - 10));
+    return box.w + 0.5 < widenedOf(gg);
   });
   const room = overlayRoom(ctx);
   const wider = !horizontal && widen.length > 0;
@@ -72,7 +73,7 @@ function overlayRoom(ctx: Routed): Map<string, number> {
   const { model, groups, rel } = ctx;
   const room = new Map<string, number>();
   const headOf = (g: SceneGroup): Box | undefined => {
-    const parts = [g.label.lines.length ? g.labelBox : undefined, g.iconBox].filter(
+    const parts = [g.label.lines.length ? headerText(g) : undefined, g.iconBox].filter(
       (b): b is Box => !!b && b.w > 0 && b.h > 0,
     );
     return parts.length ? union(parts) : undefined;

@@ -175,6 +175,8 @@ function applyFit() {
   svg.style.width = fit ? "100%" : `${last.width}px`;
   svg.style.height = fit ? "100%" : `${last.height}px`;
   stage.dataset.fit = fit ? "1" : "";
+  // On narrow screens the stage takes the diagram's own shape (see .stage in play.astro).
+  stage.style.setProperty("--aspect", `${last.width} / ${last.height}`);
 }
 
 function showRender(reply: RenderReply) {
@@ -434,6 +436,8 @@ async function loadExample(name: string): Promise<boolean> {
     select.value = name;
     return true;
   } catch {
+    // The editor still holds the old spec, so the dropdown must say so too.
+    select.value = state.edited ? "" : (state.example ?? "");
     toast(`Could not load the example ${name}`, "bad");
     return false;
   }
@@ -465,7 +469,7 @@ async function share() {
   }
   try {
     await navigator.clipboard.writeText(link);
-    toast("Link copied. The spec rides in its #fragment, which never reaches a server.", "ok");
+    toast("Link copied. The spec rides in its #fragment and never reaches a server.", "ok");
   } catch {
     toast("The link is in the address bar: copy it from there.", "info");
   }

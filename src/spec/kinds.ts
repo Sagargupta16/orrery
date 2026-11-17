@@ -276,6 +276,26 @@ export function parseFragments(ctx: Ctx): SeqFragment[] {
           },
         );
     }
+  // An else line divides its whole box, so a fragment inside it may start at a branch but not
+  // straddle one: its own box would be cut in two.
+  for (const a of out)
+    for (const branch of a.else ?? [])
+      for (const b of out) {
+        const inside = b !== a && a.from <= b.from && b.to <= a.to;
+        if (!inside || branch.at <= b.from || branch.at > b.to) continue;
+        const held = b.from + 1 < b.to ? `messages ${b.from + 1} to ${b.to}` : `message ${b.to}`;
+        ctx.err(
+          "DG125",
+          `the ${a.type} (messages ${a.from}-${a.to}) has an else at message ${branch.at}, inside the ${b.type} it holds (messages ${b.from}-${b.to})`,
+          {
+            subject: { where: "fragments" },
+            fixes: [
+              `end the ${b.type} before message ${branch.at}, or start it there: from: ${branch.at}`,
+              `move the else off ${held}`,
+            ],
+          },
+        );
+      }
   return out;
 }
 
@@ -541,5 +561,22 @@ export function parseTimeline(ctx: Ctx): ModelTimeline | undefined {
     if (end) out.end = end.last;
   }
   if (today) out.today = today.first;
+  // The marker is drawn only on the axis, so a today past either bound would vanish unremarked.
+  const before = today && out.start && today.first < out.start;
+  const after = today && out.end && today.first > out.end;
+  if (today && (before || after))
+    ctx.warn(
+      "DG126",
+      `timeline.today ${today.first} lies outside the axis (${out.start ?? "the first item"} to ${out.end ?? "the last item"}), so no today marker is drawn`,
+      {
+        subject: { where: "timeline.today", value: String(raw.today) },
+        fixes: [
+          before
+            ? `start the axis earlier: start: ${String(raw.today)}`
+            : `end the axis later: end: ${String(raw.today)}`,
+          "remove today",
+        ],
+      },
+    );
   return out;
 }

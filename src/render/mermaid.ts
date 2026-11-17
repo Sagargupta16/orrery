@@ -395,7 +395,7 @@ function architecture(model: Model, scene: Scene): string[] {
   }
   for (const nd of model.nodes)
     out.push(
-      `  service ${id(nd.id)}(${mermaidLogo(nd.icon) ?? builtin(nd)})${title(nd.label)}${inside(nd.parent)}`,
+      `  service ${id(nd.id)}(${mermaidLogo(nd.icon) ?? builtin(nd)})${title(labelOf(nd))}${inside(nd.parent)}`,
     );
   // Mermaid edges end on services and junctions only: an edge drawn to a group leaves from the
   // boundary of the group around its first service (its own, or the innermost one below it),
@@ -431,17 +431,24 @@ function architecture(model: Model, scene: Scene): string[] {
   // Mermaid names an edge's element after its two ends, so a pair of services carries one edge
   // each way: an edge drawn backwards is written the way it points, a second one the other way.
   const written = new Set<string>();
+  // Edges architecture-beta cannot hold are named in comments, so a missing arrow is explained.
+  const dropped: string[] = [];
+  const drop = (e: ModelEdge, why: string): [] => {
+    dropped.push(`  %% not drawn: ${flat(e.from)} -> ${flat(e.to)} (${why})`);
+    return [];
+  };
   const planned = model.edges.flatMap((e) => {
     const from = end(e.from);
     const to = end(e.to);
-    if (!from || !to || from.ref === to.ref) return [];
+    if (!from || !to) return drop(e, "an end is not a service or group");
+    if (from.ref === to.ref) return drop(e, "an edge from a service to itself");
     let [a, b] = e.arrow === "start" ? [to, from] : [from, to];
     let arrow: ArrowMode = e.arrow === "start" ? "end" : e.arrow;
     if (written.has(`${a.ref}-${b.ref}`)) {
       [a, b] = [b, a];
       arrow = arrow === "end" ? "start" : arrow;
     }
-    if (written.has(`${a.ref}-${b.ref}`)) return [];
+    if (written.has(`${a.ref}-${b.ref}`)) return drop(e, "a third edge between the same pair");
     written.add(`${a.ref}-${b.ref}`);
     return [{ e, a, b, arrow, sides: ["R", "L"] as Sides, ...sideChoices(a.box, b.box) }];
   });
@@ -470,6 +477,7 @@ function architecture(model: Model, scene: Scene): string[] {
       `  ${left}:${sides[0]} ${into("start") ? "<" : ""}${line}${into("end") ? ">" : ""} ${sides[1]}:${right}`,
     );
   }
+  out.push(...dropped);
   return out;
 }
 
@@ -511,8 +519,11 @@ const GATEWAY_MARK: Record<string, string> = {
   complex: "*",
 };
 
+/** A node's name with its badge after it: Mermaid has no corner badge. */
+const labelOf = (nd: ModelNode) => (nd.badge ? `${nd.label} (${nd.badge})`.trim() : nd.label);
+
 function nodeText(nd: ModelNode): string {
-  const text = nd.note && !nd.bpmn ? `${nd.label}\n${nd.note}` : nd.label;
+  const text = nd.note && !nd.bpmn ? `${labelOf(nd)}\n${nd.note}` : labelOf(nd);
   return label(text || (nd.bpmn ? (GATEWAY_MARK[nd.bpmn] ?? "") : ""));
 }
 
@@ -641,7 +652,7 @@ function stateDiagram(model: Model): string[] {
     }
     for (const nd of model.nodes.filter((x) => parentOf(x.id) === parent && !pseudo(x.id))) {
       if (nd.shape === "diamond") out.push(`${pad}state ${id(nd.id)} <<choice>>`);
-      else out.push(`${pad}state "${label(nd.label || nd.id)}" as ${id(nd.id)}`);
+      else out.push(`${pad}state "${label(labelOf(nd) || nd.id)}" as ${id(nd.id)}`);
     }
     for (const t of transitions.filter((x) => x.scope === parent))
       out.push(`${pad}${ref(t.from)} --> ${ref(t.to)}${t.label ? ` : ${lineEnd(t.label)}` : ""}`);
@@ -681,7 +692,7 @@ function mindmap(model: Model): string[] | undefined {
     if (!nd || seen.has(x)) return;
     seen.add(x);
     const [open, close] = depth === 1 ? ["((", "))"] : (MIND_SHAPES[nd.shape] ?? ["(", ")"]);
-    out.push(`${"  ".repeat(depth)}${ids.get(x)}${open}"${label(nd.label || x)}"${close}`);
+    out.push(`${"  ".repeat(depth)}${ids.get(x)}${open}"${label(labelOf(nd) || x)}"${close}`);
     for (const c of children.get(x) ?? []) visit(c, depth + 1);
   };
   visit(root.id, 1);

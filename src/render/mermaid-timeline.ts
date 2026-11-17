@@ -2,7 +2,8 @@
 //
 // Called from: src/render/mermaid.ts renderMermaid for kind timeline; a missing final newline is
 // added. Dates are written as the spec normalized them, with inclusive end dates as orrery reads
-// them; a dependency becomes `after`, so the task starts when its predecessors end.
+// them; a dependency becomes `after` when the task starts exactly where its predecessors end,
+// and an item that starts at some other date keeps that date.
 
 import type { Model, ModelNode } from "../types.ts";
 
@@ -38,6 +39,13 @@ function ids(nodes: ModelNode[]): Map<string, string> {
   return out;
 }
 
+/** The date a day after `day` (YYYY-MM-DD), or undefined when it is not one. */
+function nextDay(day: string): string | undefined {
+  if (!/^\d{4}-\d\d-\d\d$/.test(day)) return undefined;
+  const t = Date.parse(`${day}T00:00:00Z`);
+  return Number.isNaN(t) ? undefined : new Date(t + 86_400_000).toISOString().slice(0, 10);
+}
+
 const TAG: Record<string, string> = { done: "done", active: "active", "at-risk": "crit" };
 
 /** How the axis prints: d3 formats, and the tick spacing Mermaid accepts. */
@@ -67,10 +75,22 @@ export function timelineMermaid(model: Model): string {
     for (let i = 0; g?.parent && i < 64; i++) g = groups.get(g.parent) ?? g;
     return g?.id ?? "";
   };
+  // Where Mermaid starts a task that comes `after` this one: a milestone's date, else the day
+  // after the inclusive end (inclusiveEndDates makes every bar's end exclusive).
+  const endOf = new Map<string, string | undefined>();
+  for (const n of dated) {
+    const w = n.when;
+    if (!w) continue;
+    if (w.end === undefined || n.milestone) endOf.set(n.id, n.milestone && w.end ? w.end : w.start);
+    else endOf.set(n.id, nextDay(w.end));
+  }
   const before = new Map<string, string[]>();
+  const afterOf = new Map<string, string[]>();
   for (const e of model.edges)
-    if (tid.has(e.from) && tid.has(e.to) && e.from !== e.to)
+    if (tid.has(e.from) && tid.has(e.to) && e.from !== e.to) {
       before.set(e.to, [...(before.get(e.to) ?? []), tid.get(e.from) ?? ""]);
+      afterOf.set(e.to, [...(afterOf.get(e.to) ?? []), e.from]);
+    }
 
   // Sections in lane order: the items in no group first, then each top-level group.
   const lanes = ["", ...model.groups.filter((g) => !g.parent).map((g) => g.id)].filter((id) =>
@@ -90,6 +110,10 @@ export function timelineMermaid(model: Model): string {
       const tag = n.status ? TAG[n.status] : undefined;
       const tags = tag ? [tag] : [];
       const deps = before.get(n.id) ?? [];
+      // The latest end among the predecessors; an `after` is true to the spec only when the item
+      // starts there, otherwise its own start is written.
+      const ends = (afterOf.get(n.id) ?? []).map((p) => endOf.get(p));
+      const latest = ends.every((d) => d) ? ends.sort().at(-1) : undefined;
       const point = w.end === undefined || n.milestone;
       const at = n.milestone && w.end !== undefined ? w.end : w.start;
       let data: string[];
@@ -98,7 +122,7 @@ export function timelineMermaid(model: Model): string {
         data = [
           ...tags,
           tid.get(n.id) ?? "",
-          deps.length ? `after ${deps.join(" ")}` : w.start,
+          deps.length && latest === w.start ? `after ${deps.join(" ")}` : w.start,
           w.end ?? w.start,
         ];
       out.push(`    ${name(n.label) || name(n.id)} :${data.join(", ")}`);

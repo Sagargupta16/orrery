@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.12.3 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.13.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -22,11 +22,11 @@ var __commonJS = (cb, mod) => function __require2() {
     throw mod = 0, e;
   }
 };
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
+var __copyProps = (to, from2, except, desc) => {
+  if (from2 && typeof from2 === "object" || typeof from2 === "function") {
+    for (let key of __getOwnPropNames(from2))
       if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+        __defProp(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc(from2, key)) || desc.enumerable });
   }
   return to;
 };
@@ -1186,8 +1186,8 @@ var require_stringifyString = __commonJS({
             case "u":
               {
                 str4 += json2.slice(start, i);
-                const code3 = json2.substr(i + 2, 4);
-                switch (code3) {
+                const code4 = json2.substr(i + 2, 4);
+                switch (code4) {
                   case "0000":
                     str4 += "\\0";
                     break;
@@ -1213,8 +1213,8 @@ var require_stringifyString = __commonJS({
                     str4 += "\\P";
                     break;
                   default:
-                    if (code3.substr(0, 2) === "00")
-                      str4 += "\\x" + code3.substr(2);
+                    if (code4.substr(0, 2) === "00")
+                      str4 += "\\x" + code4.substr(2);
                     else
                       str4 += json2.substr(i, 6);
                 }
@@ -1282,9 +1282,9 @@ ${indent}`) + "'";
         return quotedString(value2, ctx);
       }
       const indent = ctx.indent || (ctx.forceBlockIndent || containsDocumentMarker(value2) ? "  " : "");
-      const literal = blockQuote === "literal" ? true : blockQuote === "folded" || type === Scalar.Scalar.BLOCK_FOLDED ? false : type === Scalar.Scalar.BLOCK_LITERAL ? true : !lineLengthOverLimit(value2, lineWidth, indent.length);
+      const literal2 = blockQuote === "literal" ? true : blockQuote === "folded" || type === Scalar.Scalar.BLOCK_FOLDED ? false : type === Scalar.Scalar.BLOCK_LITERAL ? true : !lineLengthOverLimit(value2, lineWidth, indent.length);
       if (!value2)
-        return literal ? "|\n" : ">\n";
+        return literal2 ? "|\n" : ">\n";
       let chomp;
       let endStart;
       for (endStart = value2.length; endStart > 0; --endStart) {
@@ -1333,7 +1333,7 @@ ${indent}`) + "'";
         if (onComment)
           onComment();
       }
-      if (!literal) {
+      if (!literal2) {
         const foldedValue = value2.replace(/\n+/g, "\n$&").replace(/(?:^|\n)([\t ].*)(?:([\n\t ]*)\n(?![\n\t ]))?/g, "$1$2").replace(/\n+/g, `$&${indent}`);
         let literalFallback = false;
         const foldOptions = getFoldOptions(ctx, true);
@@ -1684,7 +1684,7 @@ var require_log = __commonJS({
       if (logLevel === "debug")
         console.log(...messages2);
     }
-    function warn(logLevel, warning) {
+    function warn2(logLevel, warning) {
       if (logLevel === "debug" || logLevel === "warn") {
         if (typeof node_process.emitWarning === "function")
           node_process.emitWarning(warning);
@@ -1693,7 +1693,7 @@ var require_log = __commonJS({
       }
     }
     exports.debug = debug;
-    exports.warn = warn;
+    exports.warn = warn2;
   }
 });
 
@@ -3713,22 +3713,22 @@ var require_errors = __commonJS({
   "node_modules/.pnpm/yaml@2.9.1/node_modules/yaml/dist/errors.js"(exports) {
     "use strict";
     var YAMLError = class extends Error {
-      constructor(name2, pos, code3, message) {
+      constructor(name2, pos, code4, message) {
         super();
         this.name = name2;
-        this.code = code3;
+        this.code = code4;
         this.message = message;
         this.pos = pos;
       }
     };
     var YAMLParseError2 = class extends YAMLError {
-      constructor(pos, code3, message) {
-        super("YAMLParseError", pos, code3, message);
+      constructor(pos, code4, message) {
+        super("YAMLParseError", pos, code4, message);
       }
     };
     var YAMLWarning = class extends YAMLError {
-      constructor(pos, code3, message) {
-        super("YAMLWarning", pos, code3, message);
+      constructor(pos, code4, message) {
+        super("YAMLWarning", pos, code4, message);
       }
     };
     var prettifyError = (src2, lc) => (error) => {
@@ -4002,10 +4002,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep: sep3, value: value2 } = collItem;
+        const { start, key, sep: sep4, value: value2 } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep3?.[0],
+          next: key ?? sep4?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -4019,7 +4019,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep3) {
+          if (!keyProps.anchor && !keyProps.tag && !sep4) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -4043,7 +4043,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep3 ?? [], {
+        const valueProps = resolveProps.resolveProps(sep4 ?? [], {
           indicator: "map-value-ind",
           next: value2,
           offset: keyNode.range[2],
@@ -4059,7 +4059,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value2 ? composeNode(ctx, value2, valueProps, onError) : composeEmptyNode(ctx, offset, sep3, null, valueProps, onError);
+          const valueNode = value2 ? composeNode(ctx, value2, valueProps, onError) : composeEmptyNode(ctx, offset, sep4, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value2, onError);
           offset = valueNode.range[2];
@@ -4150,7 +4150,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep3 = "";
+        let sep4 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -4164,13 +4164,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep3 + cb;
-              sep3 = "";
+                comment += sep4 + cb;
+              sep4 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep3 += source;
+                sep4 += source;
               hasSpace = true;
               break;
             default:
@@ -4213,18 +4213,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep: sep3, value: value2 } = collItem;
+        const { start, key, sep: sep4, value: value2 } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep3?.[0],
+          next: key ?? sep4?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep3 && !value2) {
+          if (!props.anchor && !props.tag && !sep4 && !value2) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -4278,8 +4278,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap9 && !sep3 && !props.found) {
-          const valueNode = value2 ? composeNode(ctx, value2, props, onError) : composeEmptyNode(ctx, props.end, sep3, null, props, onError);
+        if (!isMap9 && !sep4 && !props.found) {
+          const valueNode = value2 ? composeNode(ctx, value2, props, onError) : composeEmptyNode(ctx, props.end, sep4, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value2))
@@ -4291,7 +4291,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep3 ?? [], {
+          const valueProps = resolveProps.resolveProps(sep4 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value2,
@@ -4302,8 +4302,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap9 && !props.found && ctx.options.strict) {
-              if (sep3)
-                for (const st of sep3) {
+              if (sep4)
+                for (const st of sep4) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -4320,7 +4320,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value2 ? composeNode(ctx, value2, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep3, null, valueProps, onError) : null;
+          const valueNode = value2 ? composeNode(ctx, value2, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep4, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value2))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -4500,7 +4500,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value2 = "";
-      let sep3 = "";
+      let sep4 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart2; ++i)
         value2 += lines2[i][0].slice(trimIndent) + "\n";
@@ -4517,24 +4517,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value2 += sep3 + indent.slice(trimIndent) + content;
-          sep3 = "\n";
+          value2 += sep4 + indent.slice(trimIndent) + content;
+          sep4 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep3 === " ")
-            sep3 = "\n";
-          else if (!prevMoreIndented && sep3 === "\n")
-            sep3 = "\n\n";
-          value2 += sep3 + indent.slice(trimIndent) + content;
-          sep3 = "\n";
+          if (sep4 === " ")
+            sep4 = "\n";
+          else if (!prevMoreIndented && sep4 === "\n")
+            sep4 = "\n\n";
+          value2 += sep4 + indent.slice(trimIndent) + content;
+          sep4 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep3 === "\n")
+          if (sep4 === "\n")
             value2 += "\n";
           else
-            sep3 = "\n";
+            sep4 = "\n";
         } else {
-          value2 += sep3 + content;
-          sep3 = " ";
+          value2 += sep4 + content;
+          sep4 = " ";
           prevMoreIndented = false;
         }
       }
@@ -4637,7 +4637,7 @@ var require_resolve_flow_scalar = __commonJS({
       const { offset, type, source, end } = scalar;
       let _type;
       let value2;
-      const _onError = (rel2, code3, msg) => onError(offset + rel2, code3, msg);
+      const _onError = (rel2, code4, msg) => onError(offset + rel2, code4, msg);
       switch (type) {
         case "scalar":
           _type = Scalar.Scalar.PLAIN;
@@ -4717,25 +4717,25 @@ var require_resolve_flow_scalar = __commonJS({
         trimBoth = /^[ \t]+|[ \t]+$/g;
       }
       let res = match[1].replace(trimEnd, "");
-      let sep3 = " ";
+      let sep4 = " ";
       let pos = line2.lastIndex;
       while (match = line2.exec(source)) {
         const lm = match[1].replace(trimBoth, "");
         if (lm === "") {
-          if (sep3 === "\n")
-            res += sep3;
+          if (sep4 === "\n")
+            res += sep4;
           else
-            sep3 = "\n";
+            sep4 = "\n";
         } else {
-          res += sep3 + lm;
-          sep3 = " ";
+          res += sep4 + lm;
+          sep4 = " ";
         }
         pos = line2.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep3 + (match?.[1] ?? "");
+      return res + sep4 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -4835,9 +4835,9 @@ var require_resolve_flow_scalar = __commonJS({
     function parseCharCode(source, offset, length4, onError) {
       const cc = source.substr(offset, length4);
       const ok = cc.length === length4 && /^[0-9a-fA-F]+$/.test(cc);
-      const code3 = ok ? parseInt(cc, 16) : NaN;
+      const code4 = ok ? parseInt(cc, 16) : NaN;
       try {
-        return String.fromCodePoint(code3);
+        return String.fromCodePoint(code4);
       } catch {
         const raw = source.substr(offset - 2, length4 + 2);
         onError(offset - 2, "BAD_DQ_ESCAPE", `Invalid escape sequence ${raw}`);
@@ -5159,12 +5159,12 @@ var require_composer = __commonJS({
         this.prelude = [];
         this.errors = [];
         this.warnings = [];
-        this.onError = (source, code3, message, warning) => {
+        this.onError = (source, code4, message, warning) => {
           const pos = getErrorPos(source);
           if (warning)
-            this.warnings.push(new errors2.YAMLWarning(pos, code3, message));
+            this.warnings.push(new errors2.YAMLWarning(pos, code4, message));
           else
-            this.errors.push(new errors2.YAMLParseError(pos, code3, message));
+            this.errors.push(new errors2.YAMLParseError(pos, code4, message));
         };
         this.directives = new directives.Directives({ version: options.version || "1.2" });
         this.options = options;
@@ -5326,12 +5326,12 @@ var require_cst_scalar = __commonJS({
     var stringifyString = require_stringifyString();
     function resolveAsScalar(token, strict = true, onError) {
       if (token) {
-        const _onError = (pos, code3, message) => {
+        const _onError = (pos, code4, message) => {
           const offset = typeof pos === "number" ? pos : Array.isArray(pos) ? pos[0] : pos.offset;
           if (onError)
-            onError(offset, code3, message);
+            onError(offset, code4, message);
           else
-            throw new errors2.YAMLParseError([offset, offset + 1], code3, message);
+            throw new errors2.YAMLParseError([offset, offset + 1], code4, message);
         };
         switch (token.type) {
           case "scalar":
@@ -5545,14 +5545,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep: sep3, value: value2 }) {
+    function stringifyItem({ start, key, sep: sep4, value: value2 }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep3)
-        for (const st of sep3)
+      if (sep4)
+        for (const st of sep4)
           res += st.source;
       if (value2)
         res += stringifyToken(value2);
@@ -6719,18 +6719,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep3;
+          let sep4;
           if (scalar.end) {
-            sep3 = scalar.end;
-            sep3.push(this.sourceToken);
+            sep4 = scalar.end;
+            sep4.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep3 = [this.sourceToken];
+            sep4 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep: sep3 }]
+            items: [{ start, key: scalar, sep: sep4 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -6883,15 +6883,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep3 = it.sep;
-                  sep3.push(this.sourceToken);
+                  const sep4 = it.sep;
+                  sep4.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep: sep3 }]
+                    items: [{ start: start2, key, sep: sep4 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -7085,13 +7085,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep3 = fc.end.splice(1, fc.end.length);
-            sep3.push(this.sourceToken);
+            const sep4 = fc.end.splice(1, fc.end.length);
+            sep4.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep: sep3 }]
+              items: [{ start, key: fc, sep: sep4 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -7269,7 +7269,7 @@ var require_public_api = __commonJS({
       }
       return doc;
     }
-    function parse3(src2, reviver, options) {
+    function parse4(src2, reviver, options) {
       let _reviver = void 0;
       if (typeof reviver === "function") {
         _reviver = reviver;
@@ -7310,7 +7310,7 @@ var require_public_api = __commonJS({
         return value2.toString(options);
       return new Document.Document(value2, _replacer, options).toString(options);
     }
-    exports.parse = parse3;
+    exports.parse = parse4;
     exports.parseAllDocuments = parseAllDocuments3;
     exports.parseDocument = parseDocument5;
     exports.stringify = stringify4;
@@ -7370,9 +7370,18 @@ var require_dist = __commonJS({
 });
 
 // src/cli/io.ts
-import { createHash as createHash2 } from "node:crypto";
-import { existsSync as existsSync3, mkdirSync as mkdirSync2, renameSync as renameSync2, rmSync, statSync as statSync2, writeFileSync as writeFileSync2 } from "node:fs";
-import { basename as basename2, dirname as dirname3, resolve } from "node:path";
+import { createHash as createHash2, randomBytes } from "node:crypto";
+import {
+  chmodSync,
+  existsSync as existsSync3,
+  mkdirSync as mkdirSync2,
+  realpathSync,
+  renameSync as renameSync2,
+  rmSync,
+  statSync as statSync2,
+  writeFileSync as writeFileSync2
+} from "node:fs";
+import { basename as basename2, dirname as dirname3, join as join5, resolve } from "node:path";
 
 // src/icons/libraries.ts
 import { createHash } from "node:crypto";
@@ -7469,8 +7478,12 @@ function fromNodeModules(src2) {
 function fromCache(src2) {
   const path = cachePath(src2);
   if (!existsSync(path)) return void 0;
-  const buf = readFileSync(path);
-  return sha256(buf) === src2.sha256 ? buf : void 0;
+  try {
+    const buf = readFileSync(path);
+    return sha256(buf) === src2.sha256 ? buf : void 0;
+  } catch {
+    return void 0;
+  }
 }
 async function download(src2) {
   const problems = [];
@@ -7484,7 +7497,9 @@ async function download(src2) {
       }
       buf = Buffer.from(await res.arrayBuffer());
     } catch (e) {
-      problems.push(`${url}: ${e.message}`);
+      const cause = e.cause;
+      const why = cause?.code ?? cause?.message;
+      problems.push(`${url}: ${e.message}${why ? ` (${why})` : ""}`);
       continue;
     }
     if (sha256(buf) !== src2.sha256) {
@@ -7509,6 +7524,7 @@ async function download(src2) {
     `icon library ${src2.npm}@${src2.version} could not be downloaded (${problems.join("; ")})`,
     [
       "connect to the internet once; the library is cached after the first download",
+      "behind a proxy: set NODE_USE_ENV_PROXY=1 with HTTPS_PROXY so fetch uses it",
       `prefetch where there is network: orrery icons fetch, then copy ${cacheDir()} (or set ORRERY_CACHE)`,
       "use icons from the bundled official packs (aws, azure, gcp, k8s) instead"
     ]
@@ -7519,9 +7535,18 @@ function librarySource(src2) {
   if (fromCache(src2)) return "cache";
   return void 0;
 }
-async function loadLibrary(pack, src2) {
+var pending = /* @__PURE__ */ new Map();
+function loadLibrary(pack, src2) {
   const done = loaded.get(pack);
-  if (done) return done;
+  if (done) return Promise.resolve(done);
+  let load3 = pending.get(pack);
+  if (!load3) {
+    load3 = readLibrary(pack, src2).finally(() => pending.delete(pack));
+    pending.set(pack, load3);
+  }
+  return load3;
+}
+async function readLibrary(pack, src2) {
   const buf = fromNodeModules(src2) ?? fromCache(src2) ?? await download(src2);
   const json2 = JSON.parse(buf.toString("utf8"));
   const set = src2.format === "octicons" ? fromOcticons(json2) : json2;
@@ -8047,12 +8072,15 @@ var ALLOWED = /* @__PURE__ */ new Set([
   ...FILTERS.split(" ")
 ]);
 var DROP = /* @__PURE__ */ new Set(["metadata", "title", "desc", "sodipodi:namedview"]);
+var SVG_NS = "http://www.w3.org/2000/svg";
+var EDITOR_NS = /inkscape|sodipodi|sketch|adobe|illustrator|serif\.com|creativecommons|purl\.org|rdf-syntax|figma|affinity/i;
+var EDITOR_PREFIX = /^(?:inkscape|sodipodi|sketch|adobe|i|x|xap|rdf|cc|dc|serif|figma)$/i;
 var PRESENTATION = new Set(
   "fill fill-opacity fill-rule stroke stroke-width stroke-linecap stroke-linejoin stroke-miterlimit stroke-dasharray stroke-dashoffset stroke-opacity opacity color display visibility clip-path clip-rule mask mask-type filter stop-color stop-opacity flood-color flood-opacity lighting-color color-interpolation color-interpolation-filters mix-blend-mode isolation transform-origin transform-box font-family font-size font-weight font-style text-anchor dominant-baseline letter-spacing paint-order vector-effect shape-rendering marker-start marker-mid marker-end".split(
     " "
   )
 );
-var hidesUrl = (value2) => value2.includes("\\") || /\b(?:image-set|image|cross-fade|element)\s*\(/i.test(value2);
+var hidesUrl = (value2) => value2.includes("\\") || /\b(?:image-set|image|cross-fade|element|src)\s*\(/i.test(value2);
 var LOCAL_URL = /url\(\s*(["']?)\s*#([^)"'\s]+)\s*\1\s*\)/gi;
 var MAX_DEPTH = 64;
 var MAX_ELEMENTS = 2e4;
@@ -8098,9 +8126,9 @@ function sanitize(root, bad, adopt = false) {
   }
   const hidden = (key, el) => bad(
     `points outside the file in ${key} on <${el}>`,
-    "an icon may only reference its own ids, url(#id); write the value without a backslash escape, image-set(), image(), cross-fade() or element()"
+    "an icon may only reference its own ids, url(#id); write the value without a backslash escape, image-set(), image(), cross-fade(), element() or src()"
   );
-  const visit2 = (n4, depth) => {
+  const visit2 = (n4, depth, scope2) => {
     if (n4.name === "#text") return n4;
     if (n4.name === "#style") return void 0;
     if (depth > MAX_DEPTH)
@@ -8111,7 +8139,20 @@ function sanitize(root, bad, adopt = false) {
     const tag = local(n4.name);
     const unsafe = UNSAFE[tag];
     if (unsafe) throw bad(unsafe[0], unsafe[1]);
-    if (DROP.has(n4.name.toLowerCase()) || DROP.has(tag) || n4.name.includes(":")) return void 0;
+    const declared2 = new Map(scope2);
+    for (const [k, v] of n4.attrs) if (k.startsWith("xmlns:")) declared2.set(k.slice(6), v);
+    const colon = n4.name.indexOf(":");
+    const prefix = colon < 0 ? "" : n4.name.slice(0, colon);
+    const space2 = prefix ? declared2.get(prefix) : void 0;
+    if (prefix && space2 !== SVG_NS) {
+      if (space2 ? EDITOR_NS.test(space2) : EDITOR_PREFIX.test(prefix)) return void 0;
+      throw bad(
+        `contains <${n4.name}>, an element in ${space2 ? `the namespace ${space2}` : `the undeclared namespace prefix "${prefix}"`}`,
+        "delete it, or write the shapes as plain SVG elements"
+      );
+    }
+    const name2 = prefix ? n4.name.slice(colon + 1) : n4.name;
+    if (DROP.has(name2.toLowerCase())) return void 0;
     if (!ALLOWED.has(tag))
       throw bad(
         `contains an unsupported <${n4.name}> element`,
@@ -8143,6 +8184,7 @@ function sanitize(root, bad, adopt = false) {
         attrs.set("href", value2.trim());
         continue;
       }
+      if (key === "id" && rawKey !== "id") continue;
       if (key === "style") {
         styled.push(...declarations(value2));
         continue;
@@ -8158,15 +8200,15 @@ function sanitize(root, bad, adopt = false) {
         throw hidden(k, n4.name);
       attrs.set(k, v);
     }
-    const children = n4.children.map((c) => visit2(c, depth + 1)).filter((c) => !!c);
+    const children = n4.children.map((c) => visit2(c, depth + 1, declared2)).filter((c) => !!c);
     const keepText = tag === "text" || tag === "tspan" || tag === "textpath";
     return {
-      name: n4.name,
+      name: name2,
       attrs,
       children: keepText ? children : children.filter((c) => c.name !== "#text")
     };
   };
-  const clean2 = visit2(root, 0);
+  const clean2 = visit2(root, 0, /* @__PURE__ */ new Map());
   if (!clean2) throw bad("draws nothing", "draw two to six shapes on a 24 grid (IC06)");
   checkUses(clean2, bad);
   return clean2;
@@ -8329,9 +8371,10 @@ function rectSubs(n4, v) {
     }
   ];
 }
-function shapeSubs(n4, bad) {
+function shapeSubs(n4, bad, [rootW, rootH]) {
   const tag = local(n4.name);
-  const v = (k) => numbers(n4.attrs.get(k))[0] ?? 0;
+  const whole = (k) => /^(?:x|cx|x1|x2|width|rx)$/.test(k) ? rootW : /^(?:y|cy|y1|y2|height|ry)$/.test(k) ? rootH : Math.hypot(rootW, rootH) / Math.SQRT2;
+  const v = (k) => length(n4.attrs.get(k), whole(k)) ?? 0;
   if (tag === "path") return pathSubs(n4.attrs.get("d") ?? "", bad);
   if (tag === "circle") {
     const r6 = v("r");
@@ -8451,7 +8494,7 @@ function drawingOf(root, bad) {
       texts += 1;
       return;
     }
-    const subs = shapeSubs(n4, bad);
+    const subs = shapeSubs(n4, bad, [rootW, rootH]);
     if (subs) {
       const filled = tag !== "line" && normalizeColor(s.fill ?? "#000000") !== void 0;
       const stroked2 = s.stroke !== void 0 && normalizeColor(s.stroke) !== void 0 && s.width > 0;
@@ -8623,25 +8666,25 @@ function pathRows(d, k, fit, mono3) {
   });
 }
 function sharedAttrs(rows) {
-  const shared = {};
+  const shared2 = {};
   const keys = new Set(rows.flatMap((r6) => Object.keys(r6.a)));
   for (const key of keys) {
     const strokeOnly = key.startsWith("stroke-");
     const carriers = rows.filter((r6) => !strokeOnly || r6.a.stroke !== "none");
     const values = new Set(carriers.map((r6) => r6.a[key]));
     if (carriers.length && values.size === 1 && !values.has(void 0))
-      shared[key] = [...values][0] ?? "";
+      shared2[key] = [...values][0] ?? "";
   }
-  if (shared.stroke === "none") delete shared.stroke;
-  return shared;
+  if (shared2.stroke === "none") delete shared2.stroke;
+  return shared2;
 }
-function svgOf(rows, shared) {
+function svgOf(rows, shared2) {
   const attrs = (a) => Object.entries(a).map(([k, v]) => ` ${k}="${escAttr(v)}"`).join("");
-  const rootAttrs = attrs(shared);
+  const rootAttrs = attrs(shared2);
   const body = rows.filter((r6) => r6.d).map((r6) => {
     const own = Object.fromEntries(
       Object.entries(r6.a).filter(
-        ([k, v]) => shared[k] !== v && !(k === "stroke" && v === "none" && shared.stroke === void 0) && !(k.startsWith("stroke-") && r6.a.stroke === "none")
+        ([k, v]) => shared2[k] !== v && !(k === "stroke" && v === "none" && shared2.stroke === void 0) && !(k.startsWith("stroke-") && r6.a.stroke === "none")
       )
     );
     return `  <path d="${r6.d}"${attrs(own)}/>`;
@@ -8676,6 +8719,7 @@ function adoptIcon(text6, file) {
 import { readFileSync as readFileSync3, statSync } from "node:fs";
 
 // src/icons/index.ts
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFileSync as readFileSync2 } from "node:fs";
 import { basename, extname, join as join3 } from "node:path";
 
@@ -8716,7 +8760,16 @@ var LOCAL_PACK = "local";
 var index;
 var infoById;
 var packs = /* @__PURE__ */ new Map();
-var locals = /* @__PURE__ */ new Map();
+var shared = /* @__PURE__ */ new Map();
+var scope;
+try {
+  scope = new AsyncLocalStorage();
+} catch {
+}
+var locals = () => scope?.getStore() ?? shared;
+function withLocalIcons(fn) {
+  return scope ? scope.run(/* @__PURE__ */ new Map(), fn) : fn();
+}
 var weights = /* @__PURE__ */ new Map();
 function loadIndex() {
   if (!index) index = JSON.parse(readFileSync2(join3(iconsDir, "index.json"), "utf8"));
@@ -8749,13 +8802,13 @@ var PACK_PREFIX = new RegExp(`^(${[...PACK_ORDER, "generic", LOCAL_PACK].join("|
 function clean(id) {
   return id.trim().toLowerCase().replace(/\s+/g, "-").replace(PACK_PREFIX, "$1:");
 }
-var known = (id, withLocals = true) => infos().get(id) ?? (withLocals ? locals.get(id)?.info : void 0) ?? weights.get(id);
+var known = (id, withLocals = true) => infos().get(id) ?? (withLocals ? locals().get(id)?.info : void 0) ?? weights.get(id);
 function weightOf(id) {
   const [pack = "", slug3 = ""] = id.split(":");
   const weight = loadIndex().packs[pack]?.lib?.variants?.find((w) => slug3.endsWith(`-${w}`));
   const base = weight && infos().get(`${pack}:${slug3.slice(0, -weight.length - 1)}`);
   if (!weight || !base) return void 0;
-  weights.set(id, { ...base, id, slug: slug3, name: `${base.name} (${weight})` });
+  weights.set(id, { ...base, id, slug: slug3, name: base.name });
   return id;
 }
 function resolveIcon(id, withLocals = true) {
@@ -8770,14 +8823,23 @@ function resolveIcon(id, withLocals = true) {
   return void 0;
 }
 var resolveCatalogIcon = (id) => resolveIcon(id, false);
+var titleOf = (slug3) => slug3.split("-").filter(Boolean).map((w) => (w[0] ?? "").toUpperCase() + w.slice(1)).join(" ");
 function iconInfo(id) {
   const resolved = resolveIcon(id);
-  return resolved ? known(resolved) : void 0;
+  const info = resolved ? known(resolved) : void 0;
+  const asked = clean(id);
+  if (info && asked.startsWith("generic:") && asked !== resolved)
+    return { ...info, name: titleOf(asked.slice("generic:".length)) };
+  return info;
+}
+function clearLocalIcons() {
+  locals().clear();
+  shared.clear();
 }
 function registerLocalIcon(name2, art, file = "") {
   const id = `${LOCAL_PACK}:${name2}`;
-  const title2 = name2.split("-").filter(Boolean).map((w) => (w[0] ?? "").toUpperCase() + w.slice(1)).join(" ");
-  locals.set(id, {
+  const title2 = titleOf(name2);
+  const entry = {
     info: {
       id,
       pack: LOCAL_PACK,
@@ -8789,7 +8851,9 @@ function registerLocalIcon(name2, art, file = "") {
       keywords: basename(file, extname(file)).replace(/[^a-z0-9]+/gi, " ").toLowerCase()
     },
     entry: { ...art }
-  });
+  };
+  locals().set(id, entry);
+  if (locals() !== shared) shared.set(id, entry);
 }
 function levenshtein(a, b) {
   if (a === b) return 0;
@@ -8853,6 +8917,32 @@ function aliasesByTarget() {
   }
   return aliasTargets;
 }
+var haystacks = /* @__PURE__ */ new WeakMap();
+function haystackOf(info) {
+  let h = haystacks.get(info);
+  if (!h) {
+    const alias = aliasesByTarget().get(info.id) ?? [];
+    const keywordList = info.keywords.split(/\s+/).filter(Boolean);
+    const set = /* @__PURE__ */ new Set([
+      ...tokens(info.slug),
+      ...tokens(info.name),
+      ...tokens(info.keywords),
+      ...alias.flatMap(tokens)
+    ]);
+    h = {
+      alias,
+      tokens: set,
+      tokenList: [...set],
+      names: [info.slug, info.name, info.name.replace(VENDOR_PREFIX, ""), ...keywordList].map(
+        collapse
+      ),
+      plainName: tokens(info.name.replace(VENDOR_PREFIX, "")).join("-"),
+      fullName: tokens(info.name).join("-")
+    };
+    haystacks.set(info, h);
+  }
+  return h;
+}
 function searchIcons(query, opts = {}) {
   const q2 = clean(query);
   const [maybePack, rest] = q2.includes(":") ? q2.split(":", 2) : [void 0, q2];
@@ -8865,37 +8955,27 @@ function searchIcons(query, opts = {}) {
   const productNamed = brandNames().some((b) => b.startsWith(collapsedQ));
   const officialHit = [...infos().values()].some((i) => {
     if (!OFFICIAL.has(i.pack)) return false;
-    if (collapse(i.slug) === collapsedQ || collapse(i.name.replace(VENDOR_PREFIX, "")) === collapsedQ)
-      return true;
-    return !productNamed && (aliasesByTarget().get(i.id) ?? []).includes(joined);
+    const h = haystackOf(i);
+    if (h.names[0] === collapsedQ || h.names[2] === collapsedQ) return true;
+    return !productNamed && h.alias.includes(joined);
   });
   const brandish = !pack && collapsedQ.length >= 3 && productNamed && !officialHit;
   const scored = [];
-  for (const info of [...infos().values(), ...[...locals.values()].map((l) => l.info)]) {
+  for (const info of [...infos().values(), ...[...locals().values()].map((l) => l.info)]) {
     if (pack && info.pack !== pack) continue;
     if (opts.type && info.type !== opts.type) continue;
-    const alias = aliasesByTarget().get(info.id) ?? [];
-    const keywordList = info.keywords.split(/\s+/).filter(Boolean);
-    const hayTokens = /* @__PURE__ */ new Set([
-      ...tokens(info.slug),
-      ...tokens(info.name),
-      ...tokens(info.keywords),
-      ...alias.flatMap(tokens)
-    ]);
+    const { alias, tokens: hayTokens, tokenList, names: names2, plainName, fullName } = haystackOf(info);
     let score = 0;
     let matched = 0;
     for (const t of qTokens) {
       if (hayTokens.has(t) || t === info.pack) {
         matched += 1;
         score += 10;
-      } else if (t.length >= 2 && [...hayTokens].some((h) => h.startsWith(t))) {
+      } else if (t.length >= 2 && tokenList.some((h) => h.startsWith(t))) {
         matched += 1;
         score += 6;
       }
     }
-    const names2 = [info.slug, info.name, info.name.replace(VENDOR_PREFIX, ""), ...keywordList].map(
-      collapse
-    );
     const isLogo = info.pack === "logos" || info.pack === "si";
     if (collapsedQ.length >= 3) {
       if (names2.includes(collapsedQ)) {
@@ -8911,8 +8991,7 @@ function searchIcons(query, opts = {}) {
     const slugBase = info.pack === "logos" ? info.slug.replace(/-icon$/, "") : info.slug;
     if (slugBase === joined) score += 40;
     if (alias.includes(joined)) score += brandish ? 8 : 40;
-    const plainName = tokens(info.name.replace(VENDOR_PREFIX, "")).join("-");
-    if (plainName === joined || tokens(info.name).join("-") === joined) score += 30;
+    if (plainName === joined || fullName === joined) score += 30;
     if (slugBase.startsWith(joined)) score += 6;
     score -= Math.min(10, hayTokens.size * 0.3);
     score += (TYPE_WEIGHT[info.type] ?? 0) + (PACK_WEIGHT[info.pack] ?? 0);
@@ -8975,7 +9054,7 @@ function libraryEntry(info, lib) {
 }
 function packEntry(info) {
   if (info.pack === LOCAL_PACK) {
-    const local3 = locals.get(info.id);
+    const local3 = locals().get(info.id);
     if (!local3) throw new Error(`icon ${info.id} is not loaded; call loadLocalIcons first`);
     return local3.entry;
   }
@@ -9046,8 +9125,12 @@ function readIcon(path) {
   const shown = shownPath(path);
   let size;
   try {
-    size = statSync(path).size;
-  } catch {
+    const stat = statSync(path);
+    if (!stat.isFile())
+      throw new LocalIconError(shown, "is not a file", "point icons: at an .svg file");
+    size = stat.size;
+  } catch (e) {
+    if (e instanceof LocalIconError) throw e;
     throw new LocalIconError(shown, "cannot be read", "check the path in icons:");
   }
   if (size > MAX_BYTES)
@@ -9059,6 +9142,7 @@ function readIcon(path) {
   return readFileSync3(path, "utf8");
 }
 async function loadLocalIcons(model) {
+  clearLocalIcons();
   for (const icon2 of model.icons ?? []) {
     const art = localArt(readIcon(icon2.path), shownPath(icon2.path));
     registerLocalIcon(icon2.name, art, icon2.path);
@@ -9354,9 +9438,352 @@ function starterIcon(name2) {
 `;
 }
 
+// src/text.ts
+import { readFileSync as readFileSync4 } from "node:fs";
+import { join as join4 } from "node:path";
+var tables;
+var unitsPerEm = 2048;
+function load() {
+  if (tables) return tables;
+  const metrics = JSON.parse(readFileSync4(join4(fontsDir, "metrics.json"), "utf8"));
+  unitsPerEm = metrics.unitsPerEm;
+  tables = {};
+  for (const [weight, packed] of Object.entries(metrics.weights)) {
+    const widths = /* @__PURE__ */ new Map();
+    let cp = -1;
+    for (const part of packed.split(",")) {
+      const colon = part.indexOf(":");
+      if (colon >= 0) {
+        cp = Number(part.slice(0, colon));
+        widths.set(cp, Number(part.slice(colon + 1)));
+      } else {
+        cp += 1;
+        widths.set(cp, Number(part));
+      }
+    }
+    tables[Number(weight)] = { widths, fallback: unitsPerEm };
+  }
+  return tables;
+}
+function measure2(text6, size, weight = 400) {
+  const table2 = load()[weight] ?? load()[400];
+  if (!table2) return text6.length * size * 0.6;
+  let units = 0;
+  for (const ch of text6) units += table2.widths.get(ch.codePointAt(0) ?? 32) ?? table2.fallback;
+  return units / unitsPerEm * size;
+}
+function wrap(text6, size, maxWidth, weight = 400) {
+  const lines2 = [];
+  for (const paragraph of text6.split(/\r?\n/)) {
+    const words2 = paragraph.split(/[^\S\u00a0\u2007\u202f]+/).filter(Boolean);
+    let line2 = "";
+    for (const word2 of words2) {
+      const candidate = line2 ? `${line2} ${word2}` : word2;
+      if (measure2(candidate, size, weight) <= maxWidth) {
+        line2 = candidate;
+        continue;
+      }
+      if (line2) lines2.push(line2);
+      if (measure2(word2, size, weight) <= maxWidth) {
+        line2 = word2;
+        continue;
+      }
+      const pieces = word2.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=-)/);
+      if (pieces.length > 1 && pieces.every((x2) => measure2(x2, size, weight) <= maxWidth)) {
+        let part = "";
+        for (const piece of pieces) {
+          if (part && measure2(part + piece, size, weight) > maxWidth) {
+            lines2.push(part);
+            part = piece;
+          } else part += piece;
+        }
+        line2 = part;
+        continue;
+      }
+      let chunk2 = "";
+      for (const ch of word2) {
+        if (measure2(chunk2 + ch, size, weight) > maxWidth && chunk2) {
+          lines2.push(chunk2);
+          chunk2 = ch;
+        } else chunk2 += ch;
+      }
+      line2 = chunk2;
+    }
+    if (line2 || !words2.length) lines2.push(line2);
+  }
+  return lines2;
+}
+function textBlock(text6, size, maxWidth, weight = 400, lineHeight = 1.3) {
+  const lines2 = text6 ? wrap(text6, size, maxWidth, weight) : [];
+  const lead = Math.round(size * lineHeight * 10) / 10;
+  const width2 = Math.max(0, ...lines2.map((l) => measure2(l, size, weight)));
+  return { lines: lines2, size, weight, lead, width: width2, height: lines2.length ? lines2.length * lead : 0 };
+}
+
+// src/layout/timeline/dates.ts
+var DAY = 864e5;
+var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function utcMs(y, m, d) {
+  const t = /* @__PURE__ */ new Date(0);
+  t.setUTCFullYear(y, m, d);
+  return t.getTime();
+}
+function dayOf(iso3) {
+  const [y = 1970, m = 1, d = 1] = iso3.split("-").map(Number);
+  return Math.round(utcMs(y, m - 1, d) / DAY);
+}
+var isoOf = (day) => new Date(day * DAY).toISOString().slice(0, 10);
+function ymd(day) {
+  const t = new Date(day * DAY);
+  return {
+    y: t.getUTCFullYear(),
+    m: t.getUTCMonth(),
+    d: t.getUTCDate(),
+    dow: (t.getUTCDay() + 6) % 7
+  };
+}
+var utc = (y, m, d = 1) => Math.round(utcMs(y, m, d) / DAY);
+function floorTo(day, scale) {
+  const { y, m, dow } = ymd(day);
+  switch (scale) {
+    case "day":
+      return day;
+    case "week":
+      return day - dow;
+    case "month":
+      return utc(y, m);
+    case "quarter":
+      return utc(y, m - m % 3);
+    case "year":
+      return utc(y, 0);
+  }
+}
+function nextOf(start, scale) {
+  const { y, m } = ymd(start);
+  switch (scale) {
+    case "day":
+      return start + 1;
+    case "week":
+      return start + 7;
+    case "month":
+      return utc(y, m + 1);
+    case "quarter":
+      return utc(y, m + 3);
+    case "year":
+      return utc(y + 1, 0);
+  }
+}
+function periods(from2, to, scale) {
+  const out = [];
+  for (let d = floorTo(from2, scale); d < to; d = nextOf(d, scale)) out.push(d);
+  return out;
+}
+var FINER = {
+  year: "quarter",
+  quarter: "month",
+  month: void 0,
+  week: "day",
+  day: void 0
+};
+var COARSER = {
+  year: void 0,
+  quarter: "year",
+  month: "year",
+  week: "month",
+  day: "month"
+};
+function tickText(day, scale) {
+  const { y, m, d } = ymd(day);
+  switch (scale) {
+    case "year":
+      return String(y);
+    case "quarter":
+      return `Q${Math.floor(m / 3) + 1}`;
+    case "month":
+      return MONTHS[m] ?? "";
+    case "week":
+    case "day":
+      return String(d);
+  }
+}
+function periodName(day, scale) {
+  const { y, m, d } = ymd(day);
+  switch (scale) {
+    case "year":
+      return String(y);
+    case "quarter":
+      return `Q${Math.floor(m / 3) + 1} ${y}`;
+    case "month":
+      return `${MONTHS[m]} ${y}`;
+    case "week":
+      return `Week of ${MONTHS[m]} ${d} ${y}`;
+    case "day":
+      return `${MONTHS[m]} ${d} ${y}`;
+  }
+}
+function dayName(day) {
+  const { y, m, d } = ymd(day);
+  return `${MONTHS[m]} ${d} ${y}`;
+}
+function shortName(day, scale) {
+  const { y, m } = ymd(day);
+  return scale === "year" ? `'${String(y).slice(2)}` : MONTHS[m] ?? "";
+}
+function spanOf(when) {
+  const s = dayOf(when.start);
+  if (when.end !== void 0) return { t0: s, t1: dayOf(when.end) + 1, point: false };
+  const e = nextOf(floorTo(s, when.precision), when.precision);
+  const mid = when.precision === "day" ? s + 0.5 : (s + e) / 2;
+  return { t0: mid, t1: mid, point: true };
+}
+
+// src/layout/timeline/axis.ts
+var round = (v) => Math.round(v * 100) / 100;
+var DISPLAY = 880;
+var TICK_SIZE = 11.5;
+var PERIOD_SIZE = 12;
+var UPPER_H = 22;
+var LOWER_H = 24;
+var MIN_PITCH = {
+  day: 22,
+  week: 30,
+  month: 40,
+  quarter: 56,
+  year: 64
+};
+var MAX_PITCH = 260;
+function scaleOf2(starts, end, x0, pitch) {
+  const x2 = (day) => {
+    const first = starts[0] ?? end;
+    if (day <= first) return x0;
+    if (day >= end) return x0 + starts.length * pitch;
+    let i = starts.length - 1;
+    while (i > 0 && (starts[i] ?? end) > day) i--;
+    const a = starts[i] ?? first;
+    const b = starts[i + 1] ?? end;
+    return x0 + (i + (day - a) / Math.max(1e-9, b - a)) * pitch;
+  };
+  return { starts, end, x0, pitch, x: x2 };
+}
+function boundsOf(tl, spans2) {
+  const today = tl.today ? dayOf(tl.today) : void 0;
+  let low = today ?? Number.POSITIVE_INFINITY;
+  let high = today !== void 0 ? today + 1 : Number.NEGATIVE_INFINITY;
+  for (const s of spans2) {
+    low = Math.min(low, s.t0);
+    high = Math.max(high, s.t1);
+  }
+  const fallback = today ?? dayOf("2026-01-01");
+  const lo = tl.start ? dayOf(tl.start) : Number.isFinite(low) ? low : fallback;
+  const hi = tl.end ? dayOf(tl.end) + 1 : Number.isFinite(high) ? high : lo + 1;
+  return { from: lo, to: Math.max(hi, lo + 1) };
+}
+var MAX_COLUMNS = 2e4;
+var PERIOD_DAYS = {
+  day: 1,
+  week: 7,
+  month: 30.44,
+  quarter: 91.31,
+  year: 365.25
+};
+var SpanError = class extends Error {
+  fixes;
+  constructor(message, fixes) {
+    super(message);
+    this.fixes = fixes;
+  }
+};
+function checkSpan(from2, to, scale) {
+  const count = (s) => Math.ceil((to - from2) / PERIOD_DAYS[s]);
+  if (count(scale) <= MAX_COLUMNS) return;
+  const fits3 = Object.keys(PERIOD_DAYS).filter((s) => count(s) <= MAX_COLUMNS);
+  throw new SpanError(
+    `the timeline axis from ${isoOf(from2)} needs about ${count(scale)} ${scale} columns, over the ${MAX_COLUMNS} an axis can have`,
+    [
+      "set timeline start and end to narrow it",
+      ...fits3.length ? [`use a coarser scale: timeline: { scale: ${fits3[0]} }`] : []
+    ]
+  );
+}
+function columnsOf(from2, to, scale) {
+  const starts = periods(from2, to, scale);
+  return starts.length ? starts : [floorTo(from2, scale)];
+}
+var endOf = (starts, scale) => nextOf(starts[starts.length - 1] ?? 0, scale);
+function pitchOf(scale, starts, room2) {
+  let widest2 = 0;
+  for (const d of starts)
+    widest2 = Math.max(widest2, textBlock(tickText(d, scale), TICK_SIZE, 400, 600).width);
+  const min = Math.max(MIN_PITCH[scale], Math.ceil(widest2 + 16));
+  const fit = Math.floor(room2 / Math.max(1, starts.length) * 100) / 100;
+  return Math.max(min, Math.min(MAX_PITCH, fit));
+}
+function axisOf(scale, sc, top) {
+  const coarser = COARSER[scale];
+  const upperH = coarser ? UPPER_H : 0;
+  const x1 = sc.x0 + sc.starts.length * sc.pitch;
+  const box2 = { x: sc.x0, y: top, w: round(x1 - sc.x0), h: upperH + LOWER_H };
+  const lower = { x: sc.x0, y: top + upperH, w: box2.w, h: LOWER_H };
+  const ticks = sc.starts.map((d, i) => {
+    const label2 = textBlock(tickText(d, scale), TICK_SIZE, 400, 600);
+    const x2 = round(sc.x0 + i * sc.pitch);
+    return {
+      x: x2,
+      w: sc.pitch,
+      date: isoOf(d),
+      name: periodName(d, scale),
+      label: label2,
+      labelBox: {
+        x: round(x2 + (sc.pitch - label2.width) / 2),
+        y: round(lower.y + (LOWER_H - label2.height) / 2),
+        w: round(label2.width),
+        h: round(label2.height)
+      }
+    };
+  });
+  const tiers = [];
+  if (coarser) {
+    const first = sc.starts[0] ?? sc.end;
+    for (const d of periods(first, sc.end, coarser)) {
+      const px0 = sc.x(Math.max(d, first));
+      const px1 = sc.x(Math.min(nextOf(d, coarser), sc.end));
+      const w = round(px1 - px0);
+      const name2 = periodName(d, coarser);
+      const label2 = [name2, shortName(d, coarser)].map((s) => textBlock(s, PERIOD_SIZE, 400, 600)).find((b) => b.width + 16 <= w);
+      const cell = { x: round(px0), w, name: name2, date: isoOf(d) };
+      if (label2) {
+        cell.label = label2;
+        cell.labelBox = {
+          x: round(px0 + 8),
+          y: round(top + (UPPER_H - label2.height) / 2),
+          w: round(label2.width),
+          h: round(label2.height)
+        };
+      }
+      tiers.push(cell);
+    }
+  }
+  const finer = FINER[scale];
+  const majors = new Set(sc.starts);
+  const minor = finer ? periods(sc.starts[0] ?? sc.end, sc.end, finer).filter((d) => !majors.has(d) && d > (sc.starts[0] ?? 0)).map((d) => round(sc.x(d))) : [];
+  const axis = {
+    scale,
+    start: isoOf(sc.starts[0] ?? sc.end),
+    end: isoOf(sc.end - 1),
+    box: box2,
+    ...coarser ? { upper: { x: box2.x, y: top, w: box2.w, h: upperH } } : {},
+    lower,
+    periods: tiers,
+    ticks,
+    minor,
+    pitch: sc.pitch
+  };
+  return { axis, bottom: top + box2.h };
+}
+
 // src/spec/values.ts
 var import_yaml = __toESM(require_dist(), 1);
-import { readFileSync as readFileSync4 } from "node:fs";
+import { readFileSync as readFileSync5 } from "node:fs";
 
 // src/spec/suggest.ts
 function closest(word2, options) {
@@ -9394,14 +9821,15 @@ function suggestIds(id, ids3, kind) {
 
 // src/spec/values.ts
 var isObj = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+var itemId = (item) => typeof item.id === "string" ? item.id : typeof item.id === "number" && Number.isFinite(item.id) ? String(item.id) : void 0;
 function readText(file) {
-  const bytes = readFileSync4(file);
+  const bytes = readFileSync5(file);
   if (bytes[0] === 255 && bytes[1] === 254) return bytes.toString("utf16le", 2);
   if (bytes[0] === 254 && bytes[1] === 255)
     return Buffer.from(bytes.subarray(2, bytes.length - bytes.length % 2)).swap16().toString("utf16le");
   return bytes.toString("utf8").replace(/^\uFEFF/, "");
 }
-var TEXT_KEYS = /* @__PURE__ */ new Set(["title", "subtitle", "label", "note", "badge"]);
+var TEXT_KEYS = /* @__PURE__ */ new Set(["title", "subtitle", "label", "note", "badge", "id"]);
 function parseText(source, filename) {
   const text6 = source.replace(/^\uFEFF/, "");
   if (/\.json$/i.test(filename)) return JSON.parse(text6);
@@ -9425,8 +9853,8 @@ function parseText(source, filename) {
 }
 function reporter(diagnostics) {
   return {
-    err: (code3, message, extra = {}) => diagnostics.push({ code: code3, severity: "error", message, ...extra }),
-    warn: (code3, message, extra = {}) => diagnostics.push({ code: code3, severity: "warning", message, ...extra })
+    err: (code4, message, extra = {}) => diagnostics.push({ code: code4, severity: "error", message, ...extra }),
+    warn: (code4, message, extra = {}) => diagnostics.push({ code: code4, severity: "warning", message, ...extra })
   };
 }
 function unknownKeys(r6, obj, allowed2, synonyms, where) {
@@ -9480,7 +9908,7 @@ function hexColor(r6, value2, key, where, subject, extra = []) {
 }
 
 // src/cli/help.ts
-var VERSION = true ? "0.12.3" : "dev";
+var VERSION = true ? "0.13.0" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
@@ -9514,7 +9942,7 @@ Usage:
   orrery describe <spec.yaml> [--json]
   orrery lsp
   orrery styles [--json]
-  orrery import <mermaid|terraform|cloudformation|compose|kubernetes|picture|sql> <file> [-o diagram.yaml]
+  orrery import <mermaid|terraform|cloudformation|cdk|compose|kubernetes|picture|sql> <file> [-o diagram.yaml]
   orrery init [template] [-o diagram.yaml] [--list]
   orrery doctor
   orrery demo [out-dir]
@@ -9533,23 +9961,53 @@ ${HELP}
 var sha = (data) => createHash2("sha256").update(data).digest("hex");
 var BUSY = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
 var pause = new Int32Array(new SharedArrayBuffer(4));
+var FolderTargetError = class extends Error {
+};
 function writeAtomic(path, data) {
-  mkdirSync2(dirname3(path), { recursive: true });
-  const tmp = `${path}.${process.pid}.tmp`;
-  writeFileSync2(tmp, data);
+  let target = path;
+  let mode;
+  try {
+    target = realpathSync(path);
+    const st = statSync2(target);
+    if (st.isDirectory()) throw new FolderTargetError(`${path} is a folder, not a file`);
+    mode = st.mode & 4095;
+  } catch (e) {
+    if (e instanceof FolderTargetError) throw e;
+  }
+  mkdirSync2(dirname3(target), { recursive: true });
+  let tmp = "";
+  for (let attempt = 0; ; attempt++) {
+    tmp = `${target}.${randomBytes(6).toString("hex")}.tmp`;
+    try {
+      writeFileSync2(tmp, data, { flag: "wx", mode: mode ?? 438 });
+      break;
+    } catch (e) {
+      if (e.code !== "EEXIST" || attempt >= 5) throw e;
+    }
+  }
+  try {
+    if (mode !== void 0) chmodSync(tmp, mode);
+  } catch (e) {
+    rmSync(tmp, { force: true });
+    throw e;
+  }
   for (let attempt = 0; ; attempt++) {
     try {
-      renameSync2(tmp, path);
+      renameSync2(tmp, target);
       return;
     } catch (e) {
-      const code3 = e.code ?? "";
-      if (process.platform !== "win32" || !BUSY.has(code3) || attempt >= 40) {
+      const code4 = e.code ?? "";
+      if (process.platform !== "win32" || !BUSY.has(code4) || attempt >= 40) {
         rmSync(tmp, { force: true });
         throw e;
       }
       Atomics.wait(pause, 0, 0, 50);
     }
   }
+}
+function inFolder(out, name2) {
+  const folder = /[\\/]$/.test(out) || existsSync3(out) && statSync2(out).isDirectory();
+  return folder ? join5(resolve(out), name2) : void 0;
 }
 function printDiagnostics(list, json2) {
   if (json2) return;
@@ -9566,6 +10024,14 @@ function printDiagnostics(list, json2) {
 function renderFailure(e) {
   if (e instanceof LibraryError)
     return { severity: "error", code: "DG301", message: e.message, fixes: e.fixes };
+  if (e instanceof SpanError)
+    return {
+      severity: "error",
+      code: "DG126",
+      message: e.message,
+      subject: { where: "timeline" },
+      fixes: e.fixes
+    };
   if (e instanceof LocalIconError)
     return {
       severity: "error",
@@ -9595,6 +10061,32 @@ function fontFiles(args) {
     if (!isFile(f)) usage(`${existsSync3(f) ? "not a file" : "no such file"}: ${f} (from --font)`);
   return fonts2;
 }
+
+// src/render/index.ts
+import { createHash as createHash3 } from "node:crypto";
+
+// src/layout/sizes.ts
+var SIZES = {
+  pad: 28,
+  nodeLabel: 13,
+  note: 11.5,
+  groupLabel: 13,
+  edgeLabel: 11.5,
+  title: 20,
+  subtitle: 13,
+  iconLabelMax: 132,
+  // Step badges: official AWS, Azure and Google badges are 0.54 to 0.75 of the icon size.
+  step: 28,
+  cardLabelMax: 168,
+  shapeLabelMax: 156,
+  edgeLabelMax: 150,
+  // AWS group tiles are 40x40 next to 48px service icons in the deck ("DON'T: Resize group icons").
+  tile: 40,
+  inlineIcon: 20
+};
+var ENDS = { pitch: 14, inset: 8, gap: 0 };
+var ELK_BUDGET = 150;
+var animateOf = (model) => model.animate ?? (model.skin === "stage" ? "relay" : "packets");
 
 // src/types.ts
 var DIRECTIONS = ["right", "down", "left", "up"];
@@ -9726,9 +10218,20 @@ function circleHitsBox(c, b) {
   const ny = Math.min(Math.max(cy, b.y), b.y + b.h);
   return Math.hypot(cx - nx, cy - ny) < r6 - EPS;
 }
-function headerChip(g) {
-  if (!g.label.lines.length) return void 0;
+function titleBox(scene, g) {
   const b = g.labelBox;
+  if (scene.skin !== "stage" || !g.label.lines.length) return b;
+  const h = 1 / Math.min(1, 880 / Math.max(1, scene.width));
+  const room2 = Math.max(b.w, g.box.x + g.box.w - b.x - 10 * h);
+  const chars2 = g.label.lines.map((l) => [...l].length);
+  const fit = (room2 + 11 * 0.1) / (Math.max(1, ...chars2) * 0.7);
+  const size = Math.max(8.5, Math.floor(Math.min(11, fit) * 4) / 4);
+  const w = Math.max(...chars2.map((c) => c ? size * (c * 0.7 - 0.1) : 0));
+  return { x: b.x, y: b.y, w, h: b.h };
+}
+function headerChip(scene, g) {
+  if (!g.label.lines.length) return void 0;
+  const b = titleBox(scene, g);
   const icon2 = g.overlay ? g.iconBox : void 0;
   const parts = icon2 && icon2.y < b.y + b.h && b.y < icon2.y + icon2.h ? [b, icon2] : [b];
   const x2 = Math.min(...parts.map((b2) => b2.x));
@@ -9852,10 +10355,10 @@ function ownNarrower(model) {
     "narrow the axis with timeline start and end"
   ];
 }
-function longLabels({ scene, warn }) {
+function longLabels({ scene, warn: warn2 }) {
   for (const n4 of scene.nodes) {
     if (n4.label.lines.length > 3) {
-      warn("DG204", `node "${n4.id}" label wraps to ${n4.label.lines.length} lines`, {
+      warn2("DG204", `node "${n4.id}" label wraps to ${n4.label.lines.length} lines`, {
         subject: { node: n4.id },
         evidence: { lines: n4.label.lines },
         fixes: ["shorten the label and move detail into note"]
@@ -9863,27 +10366,29 @@ function longLabels({ scene, warn }) {
     }
   }
 }
-function canvasShape({ scene, model, opts, warn }) {
-  const maxWidth = opts.maxWidth ?? 2400;
+var MAX_WIDTH = 2400;
+function canvasShape({ scene, model, opts, warn: warn2 }) {
+  const maxWidth = opts.maxWidth ?? MAX_WIDTH;
   const own = OWN_LAYOUT.has(model.kind);
   if (scene.width > maxWidth) {
-    warn("DG205", `diagram is ${scene.width}px wide (over ${maxWidth}px)`, {
+    warn2("DG205", `diagram is ${scene.width}px wide (over ${maxWidth}px)`, {
       evidence: { width: scene.width, height: scene.height },
       fixes: own ? [...ownNarrower(model), "split into two diagrams"] : [...turnFix(model), "group related nodes", "split into two diagrams"]
     });
   }
+  if (own) return;
   const ratio = scene.width / Math.max(1, scene.height);
   if (ratio > 4.5 && scene.nodes.length > 6) {
-    warn("DG205", `diagram is a ${ratio.toFixed(1)}:1 strip, hard to read in docs`, {
+    warn2("DG205", `diagram is a ${ratio.toFixed(1)}:1 strip, hard to read in docs`, {
       evidence: { width: scene.width, height: scene.height },
-      fixes: own ? [...ownNarrower(model), "split into two diagrams"] : [...turnFix(model, " for long chains"), "group stages into zones"]
+      fixes: [...turnFix(model, " for long chains"), "group stages into zones"]
     });
   }
   const tall = scene.height / Math.max(1, scene.width);
   if (tall > 4.5 && scene.height > 1800 && scene.nodes.length > 6) {
-    warn("DG205", `diagram is a ${tall.toFixed(1)}:1 tall strip, hard to read in docs`, {
+    warn2("DG205", `diagram is a ${tall.toFixed(1)}:1 tall strip, hard to read in docs`, {
       evidence: { width: scene.width, height: scene.height },
-      fixes: own ? ["split into two diagrams"] : [
+      fixes: [
         ...turnFix(model, " for long chains"),
         "arrange stages in side-by-side zones",
         "split into two diagrams"
@@ -9891,17 +10396,30 @@ function canvasShape({ scene, model, opts, warn }) {
     });
   }
 }
-function nodeCount({ model, warn }) {
+function nodeCount({ model, warn: warn2 }) {
   if (model.nodes.length > 40) {
-    warn("DG206", `${model.nodes.length} nodes in one diagram`, {
+    warn2("DG206", `${model.nodes.length} nodes in one diagram`, {
       fixes: [
         "split into an overview and detail diagrams",
         "collapse repeated nodes and use badge: x3"
       ]
     });
   }
+  if (model.edges.length > ELK_BUDGET && !OWN_LAYOUT.has(model.kind)) {
+    warn2(
+      "DG206",
+      `${model.edges.length} edges in one diagram: past ${ELK_BUDGET}, layout keeps its first order and does not try one with fewer crossings`,
+      {
+        evidence: { edges: model.edges.length, budget: ELK_BUDGET },
+        fixes: [
+          "split into an overview and detail diagrams",
+          "draw one edge to a group instead of one to each of its members"
+        ]
+      }
+    );
+  }
 }
-function sticksOut({ scene, warn }) {
+function sticksOut({ scene, warn: warn2 }) {
   return (what, subject, box2, fixes) => {
     if (!box2) return;
     const past = {
@@ -9912,7 +10430,7 @@ function sticksOut({ scene, warn }) {
     };
     const sides = Object.entries(past).filter(([, v]) => v > EPS);
     if (!sides.length) return;
-    warn(
+    warn2(
       "DG210",
       `${what} sticks out of the ${scene.width}x${scene.height} canvas (${sides.map(([k, v]) => `${tenth(v)}px past the ${k}`).join(", ")})`,
       {
@@ -9963,22 +10481,22 @@ function offCanvas(ctx) {
 }
 
 // src/check/composition.ts
-function emptyGroups({ model, warn }) {
+function emptyGroups({ model, warn: warn2 }) {
   for (const g of model.groups) {
     const used = !!g.around?.length || model.nodes.some((x2) => x2.parent === g.id || x2.on === g.id) || model.groups.some((x2) => x2.parent === g.id) || g.type === "pool" && model.edges.some((e) => e.from === g.id || e.to === g.id);
     if (!used) {
-      warn("DG207", `group "${g.id}" is empty`, {
+      warn2("DG207", `group "${g.id}" is empty`, {
         subject: { group: g.id },
         fixes: [`put nodes in it with in: ${g.id}, or remove it`]
       });
     }
   }
 }
-function lonelyNodes({ model, parentOf, warn }) {
+function lonelyNodes({ model, parentOf, warn: warn2 }) {
   const own = OWN_LAYOUT.has(model.kind);
   if (!model.edges.length) {
     if (!own && model.nodes.length > 1) {
-      warn("DG208", `${model.nodes.length} nodes and no edges, so the diagram shows no flow`, {
+      warn2("DG208", `${model.nodes.length} nodes and no edges, so the diagram shows no flow`, {
         evidence: { nodes: model.nodes.length, edges: 0 },
         fixes: [
           "connect the nodes with edges (a -> b) in the order requests or data move",
@@ -9997,14 +10515,14 @@ function lonelyNodes({ model, parentOf, warn }) {
   };
   for (const n4 of own ? [] : model.nodes) {
     if (!reached(n4)) {
-      warn("DG208", `node "${n4.id}" has no connections`, {
+      warn2("DG208", `node "${n4.id}" has no connections`, {
         subject: { node: n4.id },
         fixes: [`connect "${n4.id}" or remove it (fine for a legend or a standalone service)`]
       });
     }
   }
 }
-function unexplainedLines({ model, warn }) {
+function unexplainedLines({ model, warn: warn2 }) {
   const explained = new Set((model.legend ?? []).map((l) => l.line));
   const notation = (e) => e.flow === "message" && e.line === "dashed" || e.flow === "association" && e.line === "dotted" || model.kind === "sequence" && (e.line === "dashed" || e.line === "dotted");
   const styles = /* @__PURE__ */ new Map();
@@ -10014,7 +10532,7 @@ function unexplainedLines({ model, warn }) {
   }
   if (styles.size) {
     const counts = [...styles].map(([line2, k]) => `${line2} (${k} edge${k === 1 ? "" : "s"})`);
-    warn("DG217", `line styles without a legend entry: ${counts.join(", ")}`, {
+    warn2("DG217", `line styles without a legend entry: ${counts.join(", ")}`, {
       subject: { lines: [...styles.keys()] },
       evidence: Object.fromEntries(styles),
       fixes: [
@@ -10024,9 +10542,9 @@ function unexplainedLines({ model, warn }) {
     });
   }
 }
-function layoutFallback({ scene, warn }) {
+function layoutFallback({ scene, warn: warn2 }) {
   if (scene.layoutFallback) {
-    warn(
+    warn2(
       "DG218",
       `layout used the "${scene.layoutFallback}" fallback; spec order may not be kept`,
       {
@@ -10041,11 +10559,11 @@ function layoutFallback({ scene, warn }) {
   }
 }
 var kindOf = (model, id) => model.nodes.some((n4) => n4.id === id) ? "node" : model.groups.some((g) => g.id === id) ? "group" : model.edges.some((e) => e.id === id) ? "edge" : "layout";
-function ignoredSettings({ scene, model, warn }) {
+function ignoredSettings({ scene, model, warn: warn2 }) {
   for (const ig of scene.ignored ?? []) {
     const kind = kindOf(model, ig.subject);
     const what = ig.setting.startsWith(`${ig.subject}.`) ? ig.setting : `${ig.subject} ${ig.setting}`;
-    warn("DG219", `${what} had no effect: ${ig.reason}`, {
+    warn2("DG219", `${what} had no effect: ${ig.reason}`, {
       subject: { [kind]: ig.subject, setting: ig.setting },
       evidence: { reason: ig.reason },
       fixes: [
@@ -10059,8 +10577,8 @@ function ignoredSettings({ scene, model, warn }) {
 // src/check/context.ts
 function checkContext(scene, model, opts) {
   const out = [];
-  const warn = (code3, message, extra = {}) => {
-    out.push({ code: code3, severity: "warning", message, ...extra });
+  const warn2 = (code4, message, extra = {}) => {
+    out.push({ code: code4, severity: "warning", message, ...extra });
   };
   const nodeBoxes2 = scene.nodes.map((n4) => {
     const parts = [n4.box, n4.iconBox, n4.labelBox, n4.noteBox].filter((b) => !!b && b.w > 0);
@@ -10074,11 +10592,11 @@ function checkContext(scene, model, opts) {
     ...model.nodes.map((x2) => [x2.id, x2.parent]),
     ...model.groups.map((x2) => [x2.id, x2.parent])
   ]);
-  return { scene, model, opts, out, warn, nodeBoxes: nodeBoxes2, parentOf };
+  return { scene, model, opts, out, warn: warn2, nodeBoxes: nodeBoxes2, parentOf };
 }
 
 // src/layout/geometry.ts
-var round = (v) => Math.round(v * 100) / 100;
+var round2 = (v) => Math.round(v * 100) / 100;
 var segmentBox = (p, q2) => ({
   x: Math.min(p.x, q2.x),
   y: Math.min(p.y, q2.y),
@@ -10111,10 +10629,10 @@ function dropStraightPoints(points) {
   return out.length >= 2 ? out : points;
 }
 function headRoom(points, heads) {
-  const run2 = (p, q2) => p && q2 ? Math.abs(p.x - q2.x) + Math.abs(p.y - q2.y) : 0;
+  const run3 = (p, q2) => p && q2 ? Math.abs(p.x - q2.x) + Math.abs(p.y - q2.y) : 0;
   const n4 = points.length;
   const room2 = heads.room ?? 16;
-  return n4 < 3 || (!heads.start || run2(points[0], points[1]) >= room2) && (!heads.end || run2(points[n4 - 2], points[n4 - 1]) >= room2);
+  return n4 < 3 || (!heads.start || run3(points[0], points[1]) >= room2) && (!heads.end || run3(points[n4 - 2], points[n4 - 1]) >= room2);
 }
 function collinear(points, p, q2) {
   const v = Math.abs(p.x - q2.x) < 0.5;
@@ -10193,8 +10711,8 @@ function borderHug(points, borders) {
     const [lo, hi] = flat4 ? [Math.min(p.x, q2.x), Math.max(p.x, q2.x)] : [Math.min(p.y, q2.y), Math.max(p.y, q2.y)];
     const at2 = flat4 ? p.y : p.x;
     for (const box2 of borders) {
-      const [from, to] = flat4 ? [box2.x, box2.x + box2.w] : [box2.y, box2.y + box2.h];
-      if (Math.min(hi, to) - Math.max(lo, from) <= ON_BORDER_ALONG) continue;
+      const [from2, to] = flat4 ? [box2.x, box2.x + box2.w] : [box2.y, box2.y + box2.h];
+      if (Math.min(hi, to) - Math.max(lo, from2) <= ON_BORDER_ALONG) continue;
       const sides = flat4 ? [box2.y, box2.y + box2.h] : [box2.x, box2.x + box2.w];
       const line2 = sides.find((v) => Math.abs(v - at2) <= ON_BORDER);
       if (line2 !== void 0) return { i, line: line2, box: box2 };
@@ -10219,8 +10737,8 @@ function alongBorder(points, borders, min = 12) {
     const [lo, hi] = flat4 ? [Math.min(p.x, q2.x), Math.max(p.x, q2.x)] : [Math.min(p.y, q2.y), Math.max(p.y, q2.y)];
     const at2 = flat4 ? p.y : p.x;
     return borders.some((b) => {
-      const [from, to] = flat4 ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
-      if (Math.min(hi, to) - Math.max(lo, from) < min) return false;
+      const [from2, to] = flat4 ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+      if (Math.min(hi, to) - Math.max(lo, from2) < min) return false;
       const sides = flat4 ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
       return sides.some((v) => Math.abs(v - at2) < BORDER);
     });
@@ -10244,8 +10762,8 @@ function exits(a, b, label2 = { w: 0, h: 0 }) {
   if (!within(a.full, b.full)) return [];
   const { side, full } = a;
   const outer = b.full;
-  const cx = round(side.x + side.w / 2);
-  const cy = round(side.y + side.h / 2);
+  const cx = round2(side.x + side.w / 2);
+  const cy = round2(side.y + side.h / 2);
   const [left, right] = [side.x, side.x + side.w];
   const [top, bottom] = [full.y, full.y + full.h];
   const across3 = label2.w + 12;
@@ -10302,7 +10820,7 @@ function loops(end) {
         { x: x2 + sx * size, y: y + sy * size },
         { x: x2 + sx * size, y: into },
         { x: x2, y: into }
-      ].map((p) => ({ x: round(p.x), y: round(p.y) }));
+      ].map((p) => ({ x: round2(p.x), y: round2(p.y) }));
     })
   );
 }
@@ -10321,15 +10839,15 @@ function lanesFor(a, b, heads, borders, h) {
   const dir = forward ? 1 : -1;
   const s0 = h ? cy(a.side) : cx(a.side);
   const t0 = h ? cy(b.side) : cx(b.side);
-  const pt2 = (u, v) => h ? { x: round(u), y: round(v) } : { x: round(v), y: round(u) };
+  const pt2 = (u, v) => h ? { x: round2(u), y: round2(v) } : { x: round2(v), y: round2(u) };
   if (Math.abs(s0 - t0) >= 1) {
     const ok = (u) => (u - s) * dir >= (heads.start ? room2 : 8) && (t - u) * dir >= (heads.end ? room2 : 8);
     const mid = s + (t - s) * RISER;
     const roomy = dir > 0 ? Math.min(mid, t - room2) : Math.max(mid, t + room2);
     const [lo, hi] = [Math.min(s0, t0), Math.max(s0, t0)];
     const lines2 = borders.flatMap((g) => {
-      const [from, to] = h ? [g.y, g.y + g.h] : [g.x, g.x + g.w];
-      if (hi <= from + BORDER || lo >= to - BORDER) return [];
+      const [from2, to] = h ? [g.y, g.y + g.h] : [g.x, g.x + g.w];
+      if (hi <= from2 + BORDER || lo >= to - BORDER) return [];
       return h ? [g.x, g.x + g.w] : [g.y, g.y + g.h];
     });
     const onLine = (u) => lines2.some((l) => Math.abs(u - l) <= BORDER);
@@ -10348,7 +10866,7 @@ function lanesFor(a, b, heads, borders, h) {
       s + room2 * dir,
       t - room2 * dir
     ];
-    for (const u of new Set(lanes.map(round)))
+    for (const u of new Set(lanes.map(round2)))
       if (ok(u)) out.push([pt2(s, s0), pt2(u, s0), pt2(u, t0), pt2(t, t0)]);
   }
   const cross = (r6) => h ? [r6.y, r6.y + r6.h] : [r6.x, r6.x + r6.w];
@@ -10371,12 +10889,12 @@ function lanesFor(a, b, heads, borders, h) {
 
 // src/check/edges.ts
 var SKIM_PX = 10;
-function edgeThroughNode({ scene, nodeBoxes: nodeBoxes2, warn }) {
+function edgeThroughNode({ scene, nodeBoxes: nodeBoxes2, warn: warn2 }) {
   for (const e of scene.edges) {
     for (const nb of nodeBoxes2) {
       if (nb.id === e.from || nb.id === e.to) continue;
       if (firstSegment(e.points, (p, q2) => segmentHitsBox(p, q2, nb.box))) {
-        warn("DG201", `edge ${e.from} -> ${e.to} passes through node "${nb.id}"`, {
+        warn2("DG201", `edge ${e.from} -> ${e.to} passes through node "${nb.id}"`, {
           subject: { edge: e.id, from: e.from, to: e.to, node: nb.id },
           fixes: [
             `move "${nb.id}" earlier or later in the nodes list`,
@@ -10388,16 +10906,16 @@ function edgeThroughNode({ scene, nodeBoxes: nodeBoxes2, warn }) {
     }
   }
 }
-function edgeThroughHeader({ scene, warn }) {
+function edgeThroughHeader({ scene, warn: warn2 }) {
   for (const g of scene.groups) {
-    const chip2 = g.lane ? g.lane.header : headerChip(g);
+    const chip2 = g.lane ? g.lane.header : headerChip(scene, g);
     if (!chip2) continue;
     const what = g.lane ? "the name strip of" : "the header label of group";
     for (const e of scene.edges) {
       const hit = firstSegment(e.points, (p2, q3) => segmentHitsBox(p2, q3, chip2, EPS));
       if (!hit) continue;
       const [p, q2] = hit;
-      warn("DG209", `edge ${e.from} -> ${e.to} runs through ${what} "${g.id}"`, {
+      warn2("DG209", `edge ${e.from} -> ${e.to} runs through ${what} "${g.id}"`, {
         subject: { edge: e.id, from: e.from, to: e.to, group: g.id },
         evidence: { header: boxOf(chip2), segment: [pointOf(p), pointOf(q2)] },
         fixes: g.lane ? [
@@ -10412,7 +10930,7 @@ function edgeThroughHeader({ scene, warn }) {
     }
   }
 }
-function edgeThroughLabel({ scene, warn }) {
+function edgeThroughLabel({ scene, warn: warn2 }) {
   for (const a of scene.edges) {
     const label2 = a.labelBox;
     if (!label2) continue;
@@ -10421,7 +10939,7 @@ function edgeThroughLabel({ scene, warn }) {
       const hit = firstSegment(b.points, (p2, q3) => segmentHitsBox(p2, q3, label2, EPS));
       if (!hit) continue;
       const [p, q2] = hit;
-      warn(
+      warn2(
         "DG212",
         `edge ${b.from} -> ${b.to} runs through the label "${a.label?.lines.join(" ")}" of ${a.from} -> ${a.to}`,
         {
@@ -10437,7 +10955,7 @@ function edgeThroughLabel({ scene, warn }) {
     }
   }
 }
-function edgeSkimsNode({ scene, nodeBoxes: nodeBoxes2, warn }) {
+function edgeSkimsNode({ scene, nodeBoxes: nodeBoxes2, warn: warn2 }) {
   for (const e of scene.edges) {
     for (const nb of nodeBoxes2) {
       if (nb.id === e.from || nb.id === e.to) continue;
@@ -10451,7 +10969,7 @@ function edgeSkimsNode({ scene, nodeBoxes: nodeBoxes2, warn }) {
         gap2 = Math.min(gap2, segmentBoxDistance(p, q2, nb.box));
       }
       if (through || gap2 >= SKIM_PX) continue;
-      warn(
+      warn2(
         "DG221",
         `edge ${e.from} -> ${e.to} passes ${tenth(gap2)}px from node "${nb.id}", so it reads as touching it`,
         {
@@ -10473,17 +10991,17 @@ function endRun(pts) {
   const [ux, uy] = [prev.x - tip.x, prev.y - tip.y];
   const raw = Math.hypot(ux, uy);
   if (raw < 0.01) return { raw, run: 0 };
-  let run2 = raw;
+  let run3 = raw;
   for (const p of pts.slice(2)) {
     const [dx, dy] = [p.x - tip.x, p.y - tip.y];
     const across3 = Math.abs(dx * uy - dy * ux) / raw;
     const along3 = (dx * ux + dy * uy) / raw;
-    if (across3 > 0.01 || along3 < run2) break;
-    run2 = along3;
+    if (across3 > 0.01 || along3 < run3) break;
+    run3 = along3;
   }
-  return { raw, run: run2 };
+  return { raw, run: run3 };
 }
-function headOnShortEnd({ scene, warn }) {
+function headOnShortEnd({ scene, warn: warn2 }) {
   for (const e of scene.edges) {
     const n4 = e.points.length;
     if (n4 < 2) continue;
@@ -10494,16 +11012,16 @@ function headOnShortEnd({ scene, warn }) {
       ...e.arrow === "start" || e.arrow === "both" ? [{ at: e.from, pts: e.points }] : []
     ];
     for (const { at: at2, pts } of ends3) {
-      const { raw, run: run2 } = endRun(pts);
+      const { raw, run: run3 } = endRun(pts);
       const zero = raw < 0.01;
-      if (!zero && (spline || run2 >= head2 - EPS)) continue;
+      if (!zero && (spline || run3 >= head2 - EPS)) continue;
       const tip = pts[0];
-      warn(
+      warn2(
         "DG222",
-        zero ? `the arrowhead of ${e.from} -> ${e.to} at "${at2}" ends a zero-length segment, so it points nowhere` : `the arrowhead of ${e.from} -> ${e.to} at "${at2}" sits on a ${tenth(run2)}px straight run, shorter than the ${tenth(head2)}px head, so it covers the bend`,
+        zero ? `the arrowhead of ${e.from} -> ${e.to} at "${at2}" ends a zero-length segment, so it points nowhere` : `the arrowhead of ${e.from} -> ${e.to} at "${at2}" sits on a ${tenth(run3)}px straight run, shorter than the ${tenth(head2)}px head, so it covers the bend`,
         {
           subject: { edge: e.id, from: e.from, to: e.to, end: at2 },
-          evidence: { runPx: tenth(run2), headPx: tenth(head2), tip: pointOf(tip) },
+          evidence: { runPx: tenth(run3), headPx: tenth(head2), tip: pointOf(tip) },
           fixes: [
             `move "${at2}" in the nodes list so it lines up with the other end`,
             "use layout: { spacing: loose }",
@@ -10530,7 +11048,7 @@ function runOf(p, q2) {
 }
 var segmentsOf2 = (pts) => pts.slice(1).map((q2, i) => [pts[i], q2]);
 var within2 = (b, g) => b.x >= g.x - EPS && b.y >= g.y - EPS && b.x + b.w <= g.x + g.w + EPS && b.y + b.h <= g.y + g.h + EPS;
-function edgeThroughGroup({ scene, model, parentOf, warn }) {
+function edgeThroughGroup({ scene, model, parentOf, warn: warn2 }) {
   if (model.kind === "sequence") return;
   const under = (id, gid) => {
     for (let p = id; p; p = parentOf.get(p)) if (p === gid) return true;
@@ -10550,7 +11068,7 @@ function edgeThroughGroup({ scene, model, parentOf, warn }) {
     });
     for (const { g, hit } of cut) {
       if (cut.some((o) => o.g !== g && under(g.id, o.g.id))) continue;
-      warn(
+      warn2(
         "DG223",
         `edge ${e.from} -> ${e.to} cuts through group "${g.id}", which holds neither end`,
         {
@@ -10567,7 +11085,7 @@ function edgeThroughGroup({ scene, model, parentOf, warn }) {
     }
   }
 }
-function edgeAlongBorder({ scene, warn }) {
+function edgeAlongBorder({ scene, warn: warn2 }) {
   for (const e of scene.edges) {
     if (scene.routing === "spline" && (e.points.length - 1) % 3 === 0 && e.points.length > 2)
       continue;
@@ -10581,17 +11099,17 @@ function edgeAlongBorder({ scene, warn }) {
       ];
       let found;
       for (const seg of segmentsOf2(e.points)) {
-        const run2 = runOf(...seg);
-        if (!run2) continue;
+        const run3 = runOf(...seg);
+        if (!run3) continue;
         for (const b of borders) {
-          const off = Math.abs(run2.at - b.at);
-          const len2 = Math.min(run2.hi, b.hi) - Math.max(run2.lo, b.lo);
-          if (b.vertical !== run2.vertical || off > BORDER_PX || len2 <= ALONG_MIN) continue;
+          const off = Math.abs(run3.at - b.at);
+          const len2 = Math.min(run3.hi, b.hi) - Math.max(run3.lo, b.lo);
+          if (b.vertical !== run3.vertical || off > BORDER_PX || len2 <= ALONG_MIN) continue;
           if (!found || len2 > found.len) found = { side: b.side, off, len: len2, seg };
         }
       }
       if (!found) continue;
-      warn(
+      warn2(
         "DG224",
         `edge ${e.from} -> ${e.to} runs ${tenth(found.len)}px along the ${found.side} border of group "${g.id}" (${tenth(found.off)}px off it), so the line hides under the frame`,
         {
@@ -10613,12 +11131,12 @@ function edgeAlongBorder({ scene, warn }) {
     }
   }
 }
-function edgeNearTitle({ scene, warn }) {
+function edgeNearTitle({ scene, warn: warn2 }) {
   for (const g of scene.groups) {
-    const chip2 = headerChip(g);
+    const chip2 = headerChip(scene, g);
     if (!framed(g) || !chip2) continue;
     const r6 = g.box;
-    const t = g.labelBox;
+    const t = titleBox(scene, g);
     const band = Math.max(TITLE_BAND, t.y + t.h - r6.y);
     for (const e of scene.edges) {
       const b = e.labelBox;
@@ -10626,7 +11144,7 @@ function edgeNearTitle({ scene, warn }) {
       const onTop = r6.y > b.y + 1 && r6.y < b.y + b.h - 1;
       const inBand = b.y < r6.y + band && b.y + b.h > r6.y && b.x >= r6.x && b.x + b.w <= r6.x + r6.w;
       if (onTop || !inBand) continue;
-      warn(
+      warn2(
         "DG225",
         `label "${e.label.lines.join(" ")}" on ${e.from} -> ${e.to} sits in the title band of group "${g.id}", so it reads as part of the title`,
         {
@@ -10642,13 +11160,13 @@ function edgeNearTitle({ scene, warn }) {
     }
     for (const e of scene.edges) {
       const near2 = segmentsOf2(e.points).find(([p, q2]) => {
-        const run2 = runOf(p, q2);
-        const gap3 = run2 ? run2.at - (t.x + t.w) : -1;
-        return !!run2?.vertical && gap3 > 0 && gap3 < TITLE_CLEAR2 - EPS && run2.lo < t.y + t.h && run2.hi > t.y && !segmentHitsBox(p, q2, chip2, EPS);
+        const run3 = runOf(p, q2);
+        const gap3 = run3 ? run3.at - (t.x + t.w) : -1;
+        return !!run3?.vertical && gap3 > 0 && gap3 < TITLE_CLEAR2 - EPS && run3.lo < t.y + t.h && run3.hi > t.y && !segmentHitsBox(p, q2, chip2, EPS);
       });
       if (!near2) continue;
       const gap2 = near2[0].x - (t.x + t.w);
-      warn(
+      warn2(
         "DG225",
         `edge ${e.from} -> ${e.to} passes ${tenth(gap2)}px to the right of the title of group "${g.id}", which crowds it`,
         {
@@ -10671,12 +11189,12 @@ function edgeNearTitle({ scene, warn }) {
 }
 
 // src/check/overlaps.ts
-function edgeLabelCovers({ scene, nodeBoxes: nodeBoxes2, warn }) {
+function edgeLabelCovers({ scene, nodeBoxes: nodeBoxes2, warn: warn2 }) {
   const labels2 = scene.edges.filter((e) => e.labelBox).map((e) => ({ e, box: e.labelBox }));
   for (const { e, box: box2 } of labels2) {
     for (const nb of nodeBoxes2) {
       if (overlaps(box2, nb.foot, -1)) {
-        warn(
+        warn2(
           "DG202",
           `label "${e.label?.lines.join(" ")}" on ${e.from} -> ${e.to} covers node "${nb.id}"`,
           {
@@ -10696,7 +11214,7 @@ function edgeLabelCovers({ scene, nodeBoxes: nodeBoxes2, warn }) {
       const a = labels2[i];
       const b = labels2[j];
       if (a && b && overlaps(a.box, b.box, -1)) {
-        warn(
+        warn2(
           "DG202",
           `edge labels on ${a.e.from} -> ${a.e.to} and ${b.e.from} -> ${b.e.to} overlap`,
           {
@@ -10708,13 +11226,13 @@ function edgeLabelCovers({ scene, nodeBoxes: nodeBoxes2, warn }) {
     }
   }
 }
-function nodesOverlap({ nodeBoxes: nodeBoxes2, warn }) {
+function nodesOverlap({ nodeBoxes: nodeBoxes2, warn: warn2 }) {
   for (let i = 0; i < nodeBoxes2.length; i++) {
     for (let j = i + 1; j < nodeBoxes2.length; j++) {
       const a = nodeBoxes2[i];
       const b = nodeBoxes2[j];
       if (a && b && overlaps(a.foot, b.foot, -2)) {
-        warn("DG203", `nodes "${a.id}" and "${b.id}" overlap (labels collide)`, {
+        warn2("DG203", `nodes "${a.id}" and "${b.id}" overlap (labels collide)`, {
           subject: { nodes: [a.id, b.id] },
           fixes: [`shorten the label of "${a.id}" or "${b.id}"`, "use layout: { spacing: loose }"]
         });
@@ -10751,9 +11269,9 @@ function pillsMeet(a, b) {
   return a.round && b.round ? Math.hypot(a.box.x + ra - (b.box.x + rb), a.box.y + ra - (b.box.y + rb)) < ra + rb - EPS : a.round ? circleHitsBox(a.box, b.box) : hits(b, a.box);
 }
 function badgesCover(ctx) {
-  const { scene, warn } = ctx;
+  const { scene, warn: warn2 } = ctx;
   const pills = pillsOf(ctx);
-  const pillWarn = (p, over2, subject, box2) => warn("DG211", `${p.what} covers ${over2}`, {
+  const pillWarn = (p, over2, subject, box2) => warn2("DG211", `${p.what} covers ${over2}`, {
     subject: { ...p.subject, ...subject },
     evidence: { badge: boxOf(p.box), over: boxOf(box2) },
     fixes: pillFixes(p)
@@ -10782,7 +11300,7 @@ function badgesCover(ctx) {
 }
 var inside = (v, lo, len2) => v > lo + 1 && v < lo + len2 - 1;
 var spans = (lo, len2, a, alen) => lo < a + alen - EPS && a < lo + len2 - EPS;
-function labelOnBorder({ scene, warn }) {
+function labelOnBorder({ scene, warn: warn2 }) {
   for (const e of scene.edges) {
     const b = e.labelBox;
     if (!b || !e.label) continue;
@@ -10796,7 +11314,7 @@ function labelOnBorder({ scene, warn }) {
       ];
       const on = sides.filter(([, hit]) => hit).map(([side]) => side);
       if (!on.length) continue;
-      warn(
+      warn2(
         "DG220",
         `label "${e.label.lines.join(" ")}" on ${e.from} -> ${e.to} sits on the ${on.join(" and ")} border of group "${g.id}"`,
         {
@@ -10829,7 +11347,7 @@ function isMember(parentOf, onOf, id, members) {
     for (let p = start; p; p = parentOf.get(p)) if (members.has(p)) return true;
   return false;
 }
-function overlayEncloses({ scene, model, parentOf, warn }) {
+function overlayEncloses({ scene, model, parentOf, warn: warn2 }) {
   const onOf = new Map(model.nodes.flatMap((n4) => n4.on ? [[n4.id, n4.on]] : []));
   for (const mg of model.groups) {
     const ov = mg.around?.length ? scene.groups.find((x2) => x2.id === mg.id) : void 0;
@@ -10847,7 +11365,7 @@ function overlayEncloses({ scene, model, parentOf, warn }) {
       if (!g.overlay && inside4 && !isIn(g.id)) enclosed.push({ id: g.id, kind: "group", box: b });
     }
     for (const x2 of enclosed) {
-      warn(
+      warn2(
         "DG213",
         `overlay group "${mg.id}" encloses ${x2.kind} "${x2.id}", which it does not list in around:`,
         {
@@ -10863,16 +11381,16 @@ function overlayEncloses({ scene, model, parentOf, warn }) {
     }
   }
 }
-var headerParts = (g) => [g.label.lines.length ? g.labelBox : void 0, g.iconBox].filter(
+var headerParts = (scene, g) => [g.label.lines.length ? titleBox(scene, g) : void 0, g.iconBox].filter(
   (b) => !!b && b.w > 0 && b.h > 0
 );
 function coveredBy(scene, ov) {
-  const own = headerParts(ov);
+  const own = headerParts(scene, ov);
   const hits5 = (b) => own.find((o) => overlaps(o, b, -EPS));
   const covered = [];
   for (const g of scene.groups) {
     if (g.id === ov.id) continue;
-    for (const b of headerParts(g)) {
+    for (const b of headerParts(scene, g)) {
       const by = hits5(b);
       if (by) {
         covered.push({
@@ -10897,14 +11415,14 @@ function coveredBy(scene, ov) {
   }
   return covered;
 }
-function overlayHeaderCovers({ scene, model, parentOf, warn }) {
+function overlayHeaderCovers({ scene, model, parentOf, warn: warn2 }) {
   for (const ov of scene.groups) {
     if (!ov.overlay) continue;
     const covered = coveredBy(scene, ov);
     const members = model.groups.find((g) => g.id === ov.id)?.around ?? [];
     const loose = members.filter((m) => !parentOf.get(m)).map((m) => `"${m}"`);
     for (const x2 of covered) {
-      warn("DG214", `the header of overlay group "${ov.id}" covers ${x2.what}`, {
+      warn2("DG214", `the header of overlay group "${ov.id}" covers ${x2.what}`, {
         subject: { group: ov.id, covered: x2.id, kind: x2.kind },
         evidence: { header: boxOf(x2.by), covered: boxOf(x2.box) },
         fixes: [
@@ -11091,12 +11609,12 @@ var FONT_STACK = "Inter, 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 
 // src/layout/elk.ts
 import { existsSync as existsSync4 } from "node:fs";
 import { createRequire } from "node:module";
-import { join as join4 } from "node:path";
+import { join as join6 } from "node:path";
 var elkInstance;
 function elk() {
   if (elkInstance) return elkInstance;
   const require2 = createRequire(import.meta.url);
-  const vendored = join4(vendorDir, "elk.bundled.cjs");
+  const vendored = join6(vendorDir, "elk.bundled.cjs");
   const ELK = require2(
     existsSync4(vendored) ? vendored : "elkjs/lib/elk.bundled.js"
   );
@@ -11126,10 +11644,10 @@ function findNode(n4, id) {
 function moveElk(n4, dx, dy) {
   const at2 = (p) => ({
     ...p,
-    x: round((p.x ?? 0) + dx),
-    y: round((p.y ?? 0) + dy)
+    x: round2((p.x ?? 0) + dx),
+    y: round2((p.y ?? 0) + dy)
   });
-  const pt2 = (p) => ({ x: round(p.x + dx), y: round(p.y + dy) });
+  const pt2 = (p) => ({ x: round2(p.x + dx), y: round2(p.y + dy) });
   return {
     ...at2(n4),
     labels: n4.labels?.map(at2),
@@ -11157,17 +11675,17 @@ function findEdge(n4, id) {
 var elkRuns = /* @__PURE__ */ new Map();
 async function runElk(root) {
   const key = JSON.stringify(root);
-  let run2 = elkRuns.get(key);
-  if (!run2) {
-    run2 = runElkUncached(root);
-    elkRuns.set(key, run2);
-    run2.catch(() => elkRuns.delete(key));
+  let run3 = elkRuns.get(key);
+  if (!run3) {
+    run3 = runElkUncached(root);
+    elkRuns.set(key, run3);
+    run3.catch(() => elkRuns.delete(key));
     if (elkRuns.size > 64) {
       const oldest = elkRuns.keys().next().value;
       if (oldest !== void 0) elkRuns.delete(oldest);
     }
   }
-  const { graph, fallback } = await run2;
+  const { graph, fallback } = await run3;
   return { graph: structuredClone(graph), fallback };
 }
 function crossings(graph) {
@@ -11234,114 +11752,160 @@ function applyOptions(n4, extra) {
   return n4;
 }
 
-// src/layout/sizes.ts
-var SIZES = {
-  pad: 28,
-  nodeLabel: 13,
-  note: 11.5,
-  groupLabel: 13,
-  edgeLabel: 11.5,
-  title: 20,
-  subtitle: 13,
-  iconLabelMax: 132,
-  // Step badges: official AWS, Azure and Google badges are 0.54 to 0.75 of the icon size.
-  step: 28,
-  cardLabelMax: 168,
-  shapeLabelMax: 156,
-  edgeLabelMax: 150,
-  // AWS group tiles are 40x40 next to 48px service icons in the deck ("DON'T: Resize group icons").
-  tile: 40,
-  inlineIcon: 20
-};
-var ENDS = { pitch: 14, inset: 8, gap: 0 };
-var animateOf = (model) => model.animate ?? (model.skin === "stage" ? "relay" : "packets");
-
-// src/text.ts
-import { readFileSync as readFileSync5 } from "node:fs";
-import { join as join5 } from "node:path";
-var tables;
-var unitsPerEm = 2048;
-function load() {
-  if (tables) return tables;
-  const metrics = JSON.parse(readFileSync5(join5(fontsDir, "metrics.json"), "utf8"));
-  unitsPerEm = metrics.unitsPerEm;
-  tables = {};
-  for (const [weight, packed] of Object.entries(metrics.weights)) {
-    const widths = /* @__PURE__ */ new Map();
-    let cp = -1;
-    for (const part of packed.split(",")) {
-      const colon = part.indexOf(":");
-      if (colon >= 0) {
-        cp = Number(part.slice(0, colon));
-        widths.set(cp, Number(part.slice(colon + 1)));
+// src/layout/kinds/shared.ts
+var PAD = 28;
+var EDGE_TEXT = 11.5;
+var EDGE_MAX = 150;
+var STEP = 28;
+var LABEL_GAP = 8;
+var r = (v) => Math.round(v * 100) / 100;
+function union3(boxes) {
+  const list = boxes.filter((b) => !!b && (b.w > 0 || b.h > 0));
+  if (!list.length) return void 0;
+  const x2 = Math.min(...list.map((b) => b.x));
+  const y = Math.min(...list.map((b) => b.y));
+  const w = Math.max(...list.map((b) => b.x + b.w)) - x2;
+  const h = Math.max(...list.map((b) => b.y + b.h)) - y;
+  return { x: x2, y, w, h };
+}
+var bodyOf = (n4) => union3([n4.box, n4.iconBox, n4.labelBox, n4.noteBox]) ?? n4.box;
+var footOf = (n4) => union3([bodyOf(n4), n4.badgeBox]) ?? n4.box;
+var hits2 = (a, b, pad2 = 0) => a.x < b.x + b.w + pad2 && b.x < a.x + a.w + pad2 && a.y < b.y + b.h + pad2 && b.y < a.y + a.h + pad2;
+function crosses(p, q2, b, inset) {
+  const box2 = { x: b.x + inset, y: b.y + inset, w: b.w - inset * 2, h: b.h - inset * 2 };
+  if (box2.w <= 0 || box2.h <= 0) return false;
+  let t0 = 0;
+  let t1 = 1;
+  const dx = q2.x - p.x;
+  const dy = q2.y - p.y;
+  const sides = [
+    [-dx, p.x - box2.x],
+    [dx, box2.x + box2.w - p.x],
+    [-dy, p.y - box2.y],
+    [dy, box2.y + box2.h - p.y]
+  ];
+  for (const [pp, qq] of sides) {
+    if (pp === 0) {
+      if (qq < 0) return false;
+    } else {
+      const t = qq / pp;
+      if (pp < 0) {
+        if (t > t1) return false;
+        if (t > t0) t0 = t;
       } else {
-        cp += 1;
-        widths.set(cp, Number(part));
+        if (t < t0) return false;
+        if (t < t1) t1 = t;
       }
     }
-    tables[Number(weight)] = { widths, fallback: unitsPerEm };
   }
-  return tables;
+  return t0 < t1;
 }
-function measure2(text6, size, weight = 400) {
-  const table2 = load()[weight] ?? load()[400];
-  if (!table2) return text6.length * size * 0.6;
-  let units = 0;
-  for (const ch of text6) units += table2.widths.get(ch.codePointAt(0) ?? 32) ?? table2.fallback;
-  return units / unitsPerEm * size;
+var segments = (pts) => pts.slice(1).map((q2, i) => [pts[i] ?? q2, q2]);
+var dot = (p) => ({ ...p, w: 0.01, h: 0.01 });
+function drawnPoints(pts, spline) {
+  const [a, b, c, d] = pts;
+  if (!spline || pts.length !== 4 || !a || !b || !c || !d) return pts;
+  return Array.from({ length: 17 }, (_, i) => {
+    const t = i / 16;
+    const u = 1 - t;
+    const k = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+    return {
+      x: k[0] * a.x + k[1] * b.x + k[2] * c.x + k[3] * d.x,
+      y: k[0] * a.y + k[1] * b.y + k[2] * c.y + k[3] * d.y
+    };
+  });
 }
-function wrap(text6, size, maxWidth, weight = 400) {
-  const lines2 = [];
-  for (const paragraph of text6.split(/\r?\n/)) {
-    const words2 = paragraph.split(/[^\S\u00a0\u2007\u202f]+/).filter(Boolean);
-    let line2 = "";
-    for (const word2 of words2) {
-      const candidate = line2 ? `${line2} ${word2}` : word2;
-      if (measure2(candidate, size, weight) <= maxWidth) {
-        line2 = candidate;
-        continue;
-      }
-      if (line2) lines2.push(line2);
-      if (measure2(word2, size, weight) <= maxWidth) {
-        line2 = word2;
-        continue;
-      }
-      const pieces = word2.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=-)/);
-      if (pieces.length > 1 && pieces.every((x2) => measure2(x2, size, weight) <= maxWidth)) {
-        let part = "";
-        for (const piece of pieces) {
-          if (part && measure2(part + piece, size, weight) > maxWidth) {
-            lines2.push(part);
-            part = piece;
-          } else part += piece;
-        }
-        line2 = part;
-        continue;
-      }
-      let chunk2 = "";
-      for (const ch of word2) {
-        if (measure2(chunk2 + ch, size, weight) > maxWidth && chunk2) {
-          lines2.push(chunk2);
-          chunk2 = ch;
-        } else chunk2 += ch;
-      }
-      line2 = chunk2;
+function moveBoxes(boxes, dx, dy, seen) {
+  for (const b of boxes) {
+    if (!b || seen.has(b)) continue;
+    seen.add(b);
+    b.x = r(b.x + dx);
+    b.y = r(b.y + dy);
+  }
+}
+var moveNode = (n4, dx, dy) => moveBoxes([n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox], dx, dy, /* @__PURE__ */ new Set());
+function tidyPoints(points) {
+  const out = [];
+  for (const p of points.map((q2) => ({ x: r(q2.x), y: r(q2.y) }))) {
+    const last = out[out.length - 1];
+    const prev = out[out.length - 2];
+    if (last && Math.abs(last.x - p.x) < 0.01 && Math.abs(last.y - p.y) < 0.01) continue;
+    if (prev && last) {
+      const cross = (last.x - prev.x) * (p.y - prev.y) - (last.y - prev.y) * (p.x - prev.x);
+      if (Math.abs(cross) < 0.01) out.pop();
     }
-    if (line2 || !words2.length) lines2.push(line2);
+    out.push(p);
   }
-  return lines2;
+  return out;
 }
-function textBlock(text6, size, maxWidth, weight = 400, lineHeight = 1.3) {
-  const lines2 = text6 ? wrap(text6, size, maxWidth, weight) : [];
-  const lead = Math.round(size * lineHeight * 10) / 10;
-  const width2 = Math.max(0, ...lines2.map((l) => measure2(l, size, weight)));
-  return { lines: lines2, size, weight, lead, width: width2, height: lines2.length ? lines2.length * lead : 0 };
+function restoreEdges(ctx, only = () => true) {
+  const ids3 = /* @__PURE__ */ new Set([...ctx.nodes.map((n4) => n4.id), ...ctx.groups.map((g) => g.id)]);
+  for (const e of ctx.model.edges) {
+    if (!only(e) || ctx.edges.some((x2) => x2.id === e.id)) continue;
+    if (!ids3.has(e.from) || !ids3.has(e.to)) continue;
+    ctx.edges.push({
+      id: e.id,
+      from: e.from,
+      to: e.to,
+      points: [],
+      line: e.line,
+      arrow: e.arrow,
+      color: e.color,
+      step: e.step,
+      ...e.flow ? { flow: e.flow } : {}
+    });
+  }
+  const order2 = new Map(ctx.model.edges.map((e, i) => [e.id, i]));
+  ctx.edges.sort((a, b) => (order2.get(a.id) ?? 0) - (order2.get(b.id) ?? 0));
 }
+function labelSize(model) {
+  if (!model || !model.label && model.step === void 0) return void 0;
+  const block3 = textBlock(model.label ?? "", EDGE_TEXT, EDGE_MAX);
+  const stepW = model.step !== void 0 ? STEP + 2 : 0;
+  const w = Math.ceil(
+    (model.label ? block3.width + 12 : 0) + stepW + (model.label && stepW ? 2 : 0)
+  );
+  const h = Math.ceil(Math.max(model.label ? block3.height + 6 : 0, stepW ? STEP : 0));
+  return { w, h, stepW };
+}
+function setLabel(e, model, size, box2) {
+  if (model?.step !== void 0)
+    e.stepBox = { x: r(box2.x), y: r(box2.y + (box2.h - STEP) / 2), w: STEP, h: STEP };
+  else delete e.stepBox;
+  if (model?.label) {
+    const gap2 = size.stepW ? size.stepW + 2 : 0;
+    e.label = textBlock(model.label, EDGE_TEXT, EDGE_MAX);
+    e.labelBox = { x: r(box2.x + gap2), y: r(box2.y), w: r(size.w - gap2), h: size.h };
+  } else {
+    delete e.label;
+    delete e.labelBox;
+  }
+}
+function settle(ctx) {
+  const all = union3([
+    ...ctx.nodes.map(footOf),
+    ...ctx.groups.flatMap((g) => [g.box, g.label.lines.length ? g.labelBox : void 0, g.iconBox]),
+    ...ctx.edges.flatMap((e) => [e.labelBox, e.stepBox, ...e.points.map(dot)])
+  ]);
+  if (!all) return;
+  const dx = PAD - all.x;
+  const dy = ctx.top + PAD - all.y;
+  const seen = /* @__PURE__ */ new Set();
+  for (const n4 of ctx.nodes)
+    moveBoxes([n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox], dx, dy, seen);
+  for (const g of ctx.groups) moveBoxes([g.box, g.labelBox, g.iconBox, g.inner?.box], dx, dy, seen);
+  for (const e of ctx.edges) {
+    moveBoxes([e.labelBox, e.stepBox], dx, dy, seen);
+    e.points = e.points.map((p) => ({ x: r(p.x + dx), y: r(p.y + dy) }));
+  }
+}
+var point2 = (main2, cross, horizontal) => horizontal ? { x: r(main2), y: r(cross) } : { x: r(cross), y: r(main2) };
+var labelBoxAt = (main2, cross, size, horizontal) => horizontal ? { x: main2 - size.w / 2, y: cross - size.h / 2, w: size.w, h: size.h } : { x: cross - size.w / 2, y: main2 - size.h / 2, w: size.w, h: size.h };
 
 // src/layout/er/table.ts
 var ROW = 22;
 var BODY_PAD = 4;
-var PAD = 12;
+var PAD2 = 12;
 var NAME_SIZE = 12;
 var TYPE_SIZE = 11;
 var TAG_SIZE = 8.5;
@@ -11361,7 +11925,7 @@ function tagsOf(f) {
 }
 var tagWidth = (tag) => Math.ceil(Math.max(measure2(tag, TAG_SIZE, 600), monoWidth(tag, TAG_SIZE, 0.06))) + 2 * TAG_PAD;
 var typeText = (f) => f.type ? `${f.type}${f.nullable ? "?" : ""}` : f.nullable ? "null" : "";
-function columnsOf(fields) {
+function columnsOf2(fields) {
   const tagW = Math.max(
     0,
     ...fields.map((f) => {
@@ -11386,10 +11950,10 @@ function columnsOf(fields) {
       })
     )
   );
-  const tag = PAD;
+  const tag = PAD2;
   const name2 = tag + (tagW ? tagW + 8 : 0);
   const type = name2 + nameW + NAME_GAP;
-  const width2 = (typeW ? type + typeW : name2 + nameW) + PAD;
+  const width2 = (typeW ? type + typeW : name2 + nameW) + PAD2;
   return { tag, tagW, name: name2, nameW, type, typeW, width: width2 };
 }
 function tableOf(n4) {
@@ -11401,8 +11965,8 @@ function tableOf(n4) {
   const textH = label2.height + (note ? note.height + 2 : 0);
   const icon2 = n4.icon ? HEAD_ICON + 8 : 0;
   const header2 = Math.ceil(Math.max(34, Math.max(textH, n4.icon ? HEAD_ICON : 0) + 16));
-  const cols = columnsOf(fields);
-  const w = Math.ceil(Math.max(MIN_W, PAD + icon2 + textW + PAD, cols.width));
+  const cols = columnsOf2(fields);
+  const w = Math.ceil(Math.max(MIN_W, PAD2 + icon2 + textW + PAD2, cols.width));
   const h = header2 + 2 * BODY_PAD + fields.length * ROW;
   return { w, h, header: header2, label: label2, note };
 }
@@ -11422,7 +11986,7 @@ function headerOf(nd) {
 // src/layout/er/align.ts
 var MAX = 3 * ROW;
 var CLEAR = 20;
-var r = (v) => Math.round(v * 100) / 100;
+var r3 = (v) => Math.round(v * 100) / 100;
 function lineOf(nd, field2) {
   if (!nd.fields?.length) {
     const b = nd.iconBox && nd.look === "icon" ? nd.iconBox : nd.box;
@@ -11473,7 +12037,7 @@ function move(nd, dy) {
   ]) {
     if (!b || seen.has(b)) continue;
     seen.add(b);
-    b.y = r(b.y + dy);
+    b.y = r3(b.y + dy);
   }
 }
 function alignTables(ctx, joined) {
@@ -11494,7 +12058,7 @@ function alignTables(ctx, joined) {
       const own = lineOf(nd, mine ? rows.from : rows.to);
       const theirs = lineOf(other, mine ? rows.to : rows.from);
       if (own === void 0 || theirs === void 0) continue;
-      const dy = r(theirs - own);
+      const dy = r3(theirs - own);
       if (Math.abs(dy) > MAX || !levelClear(ctx, nd, other, theirs)) continue;
       const want = wants.get(dy) ?? { count: 0, with: [] };
       want.count++;
@@ -11594,7 +12158,7 @@ function slotsOn(face2, n4) {
   const pitch = n4 > 1 ? Math.min(ENDS.pitch, (hi - lo) / (n4 - 1)) : 0;
   return Array.from({ length: n4 }, (_, i) => c + (i - (n4 - 1) / 2) * pitch);
 }
-var MIN_PITCH = 8;
+var MIN_PITCH2 = 8;
 function slotsAround(face2, n4, pins) {
   const fixed = pins.flatMap((v, i) => v === void 0 ? [] : [[i, v]]);
   if (!fixed.length) return slotsOn(face2, n4);
@@ -11614,1797 +12178,8 @@ function slotsAround(face2, n4, pins) {
   const at2 = Array.from({ length: n4 }, (_, i) => v0 + (i - k0) * pitch);
   const even = fixed.every(([i, v]) => Math.abs((at2[i] ?? v) - v) < 0.5);
   const inside4 = at2.every((v) => v >= lo - 0.01 && v <= hi + 0.01);
-  return n4 === 1 || even && inside4 && pitch >= MIN_PITCH - 0.01 ? at2 : void 0;
+  return n4 === 1 || even && inside4 && pitch >= MIN_PITCH2 - 0.01 ? at2 : void 0;
 }
-
-// src/layout/labels.ts
-function placeFreeLabels(ctx) {
-  const { model, opts, nodes, groups, edges, headers, rerouted, rel: rel2 } = ctx;
-  const footprints = nodes.map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox]));
-  for (const e of model.edges) {
-    const edge3 = edges.find((x2) => x2.id === e.id);
-    if (!(rel2.free(e) || rerouted.has(e.id)) || !edge3 || !e.label && e.step === void 0)
-      continue;
-    const block3 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
-    const w = Math.ceil((e.label ? block3.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-    const h = Math.ceil(Math.max(e.label ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
-    const fresh = rel2.inBlock(e) || rel2.gridBetween(e) || rel2.seated(e) || rerouted.has(e.id) || !!opts.loose?.has(e.id);
-    const avoid = [
-      ...footprints,
-      ...edges.flatMap((x2) => [x2.labelBox, x2.stepBox]),
-      ...groups.map((g) => g.labelBox),
-      ...fresh ? nodes.map((n4) => n4.badgeBox) : [],
-      ...fresh ? groups.flatMap((g) => [
-        { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
-        { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
-        { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
-        { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
-      ]) : []
-    ];
-    const frames2 = groups.flatMap((g) => [
-      { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
-      { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
-      { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
-      { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
-    ]);
-    const lines2 = edges.filter((x2) => x2 !== edge3).map((x2) => x2.points);
-    const search2 = () => labelSpot(
-      edge3.points,
-      w,
-      h,
-      [
-        ...avoid.filter((b) => !!b),
-        ...fresh ? [] : frames2,
-        ...headers.map((x2) => x2.box),
-        ...groups.flatMap((g) => g.iconBox ? [g.iconBox] : [])
-      ],
-      lines2
-    );
-    const usual = fresh ? void 0 : freeLabelBox(edge3.points, w, h, avoid);
-    const inside4 = (v, lo, len2) => v > lo + 1 && v < lo + len2 - 1;
-    const spans2 = (lo, len2, a, alen) => lo < a + alen && a < lo + len2;
-    const crossed = (at2) => {
-      if (!e.label) return false;
-      const b = { ...at2, x: at2.x + stepW + (stepW ? 2 : 0), w: w - stepW - (stepW ? 2 : 0) };
-      return lines2.some((pts) => segmentsOf(pts).some(([p, q2]) => segmentHits(p, q2, b, 0.5))) || groups.some(
-        ({ box: r6 }) => (inside4(r6.y, b.y, b.h) || inside4(r6.y + r6.h, b.y, b.h)) && spans2(r6.x, r6.w, b.x, b.w) || (inside4(r6.x, b.x, b.w) || inside4(r6.x + r6.w, b.x, b.w)) && spans2(r6.y, r6.h, b.y, b.h)
-      );
-    };
-    const box2 = (usual && !crossed(usual) ? usual : search2()) ?? usual ?? freeLabelBox(edge3.points, w, h, avoid);
-    if (e.step !== void 0)
-      edge3.stepBox = {
-        x: box2.x,
-        y: round(box2.y + (h - SIZES.step) / 2),
-        w: SIZES.step,
-        h: SIZES.step
-      };
-    if (e.label) {
-      edge3.label = block3;
-      edge3.labelBox = {
-        x: round(box2.x + stepW + (stepW ? 2 : 0)),
-        y: box2.y,
-        w: round(w - stepW - (stepW ? 2 : 0)),
-        h
-      };
-    }
-  }
-}
-function labelSpot(points, w, h, avoid, lines2) {
-  const stroke3 = ([p, q2]) => ({
-    x: Math.min(p.x, q2.x) - 1,
-    y: Math.min(p.y, q2.y) - 1,
-    w: Math.abs(q2.x - p.x) + 2,
-    h: Math.abs(q2.y - p.y) + 2
-  });
-  const tips = (pts) => [pts[0], pts.at(-1)].flatMap((p) => p ? [{ x: p.x - 6, y: p.y - 6, w: 12, h: 12 }] : []);
-  const walls = [
-    ...avoid,
-    ...[...lines2, points].flatMap((pts) => [...segmentsOf(pts).map(stroke3), ...tips(pts)])
-  ];
-  const runs2 = segmentsOf(points).filter(([p, q2]) => Math.abs(p.x - q2.x) + Math.abs(p.y - q2.y) > 1).sort(([a, b], [c, d]) => Math.hypot(d.x - c.x, d.y - c.y) - Math.hypot(b.x - a.x, b.y - a.y));
-  for (const [p, q2] of runs2)
-    for (const f of [0.5, 1 / 3, 2 / 3]) {
-      const x2 = p.x + (q2.x - p.x) * f;
-      const y = p.y + (q2.y - p.y) * f;
-      const level2 = Math.abs(p.y - q2.y) < 0.5;
-      const spots = level2 ? [
-        { x: x2 - w / 2, y: y - h - 3, w, h },
-        { x: x2 - w / 2, y: y + 3, w, h }
-      ] : [
-        { x: x2 + 6, y: y - h / 2, w, h },
-        { x: x2 - 6 - w, y: y - h / 2, w, h }
-      ];
-      const spot = spots.find((b) => !walls.some((o) => meet(b, o)));
-      if (spot) return { x: round(spot.x), y: round(spot.y), w, h };
-    }
-  return void 0;
-}
-function freeLabelBox(points, w, h, avoid) {
-  const runs2 = points.slice(1).map((q3, i) => [points[i] ?? q3, q3]).filter(([p2, q3]) => Math.abs(p2.x - q3.x) < 0.5 && Math.abs(p2.y - q3.y) > 0.5).sort(([a, b], [c, d]) => Math.abs(d.y - c.y) - Math.abs(b.y - a.y));
-  const inside4 = (b) => ({
-    ...b,
-    x: round(Math.max(0, b.x)),
-    y: round(Math.max(0, b.y))
-  });
-  const clear2 = (b) => !avoid.some((o) => o && overlaps2(b, o));
-  const pick2 = (first, second) => clear2(first) || !clear2(second) ? first : second;
-  const run2 = runs2[0];
-  if (!run2) {
-    const mid = midpoint(points);
-    const above = inside4({ x: mid.x - w / 2, y: mid.y - h - 3, w, h });
-    return pick2(above, inside4({ ...above, y: mid.y + 3 }));
-  }
-  const [p, q2] = run2;
-  const y = (p.y + q2.y) / 2 - h / 2;
-  return pick2(inside4({ x: p.x + 6, y, w, h }), inside4({ x: p.x - 6 - w, y, w, h }));
-}
-
-// src/layout/bends.ts
-var TITLE_BAND2 = 28;
-var SKIM = 10;
-var BESIDE = 12;
-var BESIDE_ALONG = 48;
-var bendsOf = (points) => Math.max(0, dropStraightPoints(points).length - 2);
-var real2 = (b) => !!b && b.w > 0 && b.h > 0;
-var grow2 = (b, d) => ({
-  x: b.x - d,
-  y: b.y - d,
-  w: b.w + 2 * d,
-  h: b.h + 2 * d
-});
-var orthogonal = (points) => segmentsOf(points).every(([p, q2]) => Math.abs(p.x - q2.x) < 0.5 || Math.abs(p.y - q2.y) < 0.5);
-var lengthOf = (points) => segmentsOf(points).reduce((s, [p, q2]) => s + Math.abs(q2.x - p.x) + Math.abs(q2.y - p.y), 0);
-function itemOf(view, id) {
-  const nd = view.nodes.find((n4) => n4.id === id);
-  if (nd) return nd.bpmn ? void 0 : nd;
-  const g = view.groups.find((x2) => x2.id === id);
-  return g && !g.overlay && !g.lane ? g : void 0;
-}
-var holds = (outer, inner) => inner.x >= outer.x - 0.5 && inner.y >= outer.y - 0.5 && inner.x + inner.w <= outer.x + outer.w + 0.5 && inner.y + inner.h <= outer.y + outer.h + 0.5;
-function searchable(view, e, skip2) {
-  if (e.from === e.to || skip2?.has(e.from) || skip2?.has(e.to)) return false;
-  const a = itemOf(view, e.from);
-  const b = itemOf(view, e.to);
-  if (!a || !b || holds(a.box, b.box) || holds(b.box, a.box)) return false;
-  return orthogonal(e.points);
-}
-function sharesEnd(view, e) {
-  const endsAt = (x2) => [
-    [x2.from, x2.points[0]],
-    [x2.to, x2.points.at(-1)]
-  ];
-  const icon2 = (id) => view.nodes.some((n4) => n4.id === id && n4.look === "icon");
-  return endsAt(e).some(
-    ([id, p]) => !!p && !icon2(id) && view.edges.some(
-      (o) => o !== e && endsAt(o).some(
-        ([oid, q2]) => oid === id && !!q2 && Math.abs(q2.x - p.x) < 0.5 && Math.abs(q2.y - p.y) < 0.5
-      )
-    )
-  );
-}
-function simplerRoute(view, e, tag, repair = false) {
-  const a = itemOf(view, e.from);
-  const b = itemOf(view, e.to);
-  if (!a || !b) return void 0;
-  const now = bendsOf(e.points);
-  if (!repair && !now) return void 0;
-  const heads = {
-    start: e.arrow === "start" || e.arrow === "both",
-    end: e.arrow === "end" || e.arrow === "both"
-  };
-  const found = candidates(a, b, e, repair ? 3 : now, heads, linesOf(view)).map((points) => ({ points, bends: bendsOf(points), cost: costOf(points, a, b) })).filter((c) => repair || c.bends < now).sort((x2, y) => x2.bends - y.bends || x2.cost - y.cost);
-  if (!found.length) return void 0;
-  const test = tester(view, e, a, b, tag);
-  for (const c of found) {
-    const spot = test(c.points);
-    if (spot) return { points: c.points, bends: c.bends, ...spot === true ? {} : { tag: spot } };
-  }
-  return void 0;
-}
-function costOf(points, a, b) {
-  const off = (it, p) => {
-    const t = faceBox(it);
-    if (!p || !("look" in it)) return 0;
-    const dx = Math.abs(p.x - (t.x + t.w / 2));
-    const dy = Math.abs(p.y - (t.y + t.h / 2));
-    const onLevel = Math.abs(p.y - t.y) < 0.5 || p.y >= t.y + t.h - 0.5;
-    return onLevel ? dx : dy;
-  };
-  return 4 * (off(a, points[0]) + off(b, points.at(-1))) + lengthOf(points);
-}
-function linesOf(view) {
-  return [
-    ...view.groups.filter((g) => !g.overlay && !g.lane).map((g) => g.box),
-    ...view.nodes.map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox]))
-  ];
-}
-function channels(boxes, upright2, s, t, lo, hi) {
-  const [a, b] = [Math.min(s, t), Math.max(s, t)];
-  const at2 = boxes.filter((r6) => upright2 ? r6.y < hi && r6.y + r6.h > lo : r6.x < hi && r6.x + r6.w > lo).flatMap((r6) => upright2 ? [r6.x, r6.x + r6.w] : [r6.y, r6.y + r6.h]).filter((v) => v > a && v < b).sort((m, n4) => m - n4);
-  const cut = [a, ...at2, b];
-  return cut.slice(1).flatMap((v, i) => {
-    const u = cut[i] ?? v;
-    return v - u >= 32 ? [(u + v) / 2] : [];
-  });
-}
-function positions(it, face2, toward, was) {
-  const [lo, hi] = window(face2);
-  if (hi < lo) return [];
-  const c = (face2.lo + face2.hi) / 2;
-  const clamp = (v) => Math.min(hi, Math.max(lo, v));
-  const group2 = !("look" in it);
-  const list = group2 ? [was, clamp(toward), c] : [c, c - ENDS.pitch, c + ENDS.pitch, was];
-  return [
-    ...new Set(
-      list.filter((v) => v !== void 0 && v >= lo - 0.01 && v <= hi + 0.01).map(round)
-    )
-  ];
-}
-function candidates(a, b, e, now, heads, lines2) {
-  const fa = facesOf(a);
-  const fb = facesOf(b);
-  const ta = faceBox(a);
-  const tb = faceBox(b);
-  const center4 = (t) => ({ x: t.x + t.w / 2, y: t.y + t.h / 2 });
-  const ca = center4(ta);
-  const cb = center4(tb);
-  const first = e.points[0];
-  const last = e.points.at(-1);
-  const runA = heads.start ? HEAD_ROOM : 8;
-  const runB = heads.end ? HEAD_ROOM : 8;
-  const was = (f, p) => {
-    if (!p) return void 0;
-    const at2 = level(f.side) ? p.y : p.x;
-    return Math.abs(at2 - f.line) < 0.5 ? level(f.side) ? p.x : p.y : void 0;
-  };
-  const posA = (s) => positions(a, fa[s], level(s) ? cb.x : cb.y, was(fa[s], first));
-  const posB = (s) => positions(b, fb[s], level(s) ? ca.x : ca.y, was(fb[s], last));
-  const pt2 = (x2, y) => ({ x: round(x2), y: round(y) });
-  const out = [];
-  const clears = (v, f, run2) => (v - f.line) * outward(f.side) >= run2;
-  for (const [sa, sb] of [
-    ["right", "left"],
-    ["left", "right"],
-    ["bottom", "top"],
-    ["top", "bottom"]
-  ]) {
-    const A2 = fa[sa];
-    const B = fb[sb];
-    if (!clears(B.line, A2, Math.max(runA, runB))) continue;
-    const [a0, a1] = window(A2);
-    const [b0, b1] = window(B);
-    const lo = Math.max(a0, b0);
-    const hi = Math.min(a1, b1);
-    if (hi < lo) continue;
-    const mid = level(sa) ? (ca.x + cb.x) / 2 : (ca.y + cb.y) / 2;
-    const at2 = Math.min(hi, Math.max(lo, mid));
-    for (const v of new Set([at2, at2 - ENDS.pitch, at2 + ENDS.pitch].map(round)))
-      if (v >= lo - 0.01 && v <= hi + 0.01)
-        out.push(level(sa) ? [pt2(v, A2.line), pt2(v, B.line)] : [pt2(A2.line, v), pt2(B.line, v)]);
-  }
-  if (now < 2) return out;
-  for (const sa of ["left", "right", "top", "bottom"]) {
-    const A2 = fa[sa];
-    const across3 = level(sa) ? ["left", "right"] : ["top", "bottom"];
-    for (const sb of across3) {
-      const B = fb[sb];
-      for (const u of posA(sa))
-        for (const v of posB(sb)) {
-          if (!clears(v, A2, runA)) continue;
-          if ((u - B.line) * outward(sb) < runB) continue;
-          out.push(
-            level(sa) ? [pt2(u, A2.line), pt2(u, v), pt2(B.line, v)] : [pt2(A2.line, u), pt2(v, u), pt2(v, B.line)]
-          );
-        }
-    }
-  }
-  if (now < 3) return out;
-  for (const sa of ["left", "right", "top", "bottom"]) {
-    const A2 = fa[sa];
-    const pair = level(sa) ? ["top", "bottom"] : ["left", "right"];
-    for (const sb of pair) {
-      const B = fb[sb];
-      const facing = outward(sa) !== outward(sb);
-      const s = A2.line;
-      const t = B.line;
-      const risers2 = facing ? [
-        s + (t - s) * 0.45,
-        (s + t) / 2,
-        s + 24 * Math.sign(t - s),
-        t - 24 * Math.sign(t - s),
-        ...level(sa) ? channels(lines2, false, s, t, Math.min(ca.x, cb.x), Math.max(ca.x, cb.x)) : channels(lines2, true, s, t, Math.min(ca.y, cb.y), Math.max(ca.y, cb.y))
-      ] : [0, 12].map(
-        (d) => (outward(sa) > 0 ? Math.max(s, t) : Math.min(s, t)) + outward(sa) * (24 + d)
-      );
-      for (const m of risers2) {
-        if (!clears(m, A2, runA) || !clears(m, B, runB)) continue;
-        for (const u of posA(sa))
-          for (const v of posB(sb)) {
-            if (Math.abs(u - v) < 1) continue;
-            out.push(
-              level(sa) ? [pt2(u, s), pt2(u, m), pt2(v, m), pt2(v, t)] : [pt2(s, u), pt2(m, u), pt2(m, v), pt2(t, v)]
-            );
-          }
-      }
-    }
-  }
-  return out;
-}
-function probe(view, e, ref = e.points) {
-  const a = itemOf(view, e.from);
-  const b = itemOf(view, e.to);
-  return a && b ? prober(view, e, a, b, ref) : void 0;
-}
-function prober(view, e, a, b, ref = e.points) {
-  const ends3 = /* @__PURE__ */ new Set([e.from, e.to]);
-  const others = view.edges.filter((o) => o !== e);
-  const related2 = (o) => ends3.has(o.from) || ends3.has(o.to);
-  const own = [a, b].flatMap(
-    (it) => "look" in it ? [faceBox(it), it.label.lines.length ? it.labelBox : void 0, it.noteBox].filter(real2) : [it.box]
-  );
-  const strangers = view.nodes.filter((n4) => !ends3.has(n4.id));
-  const walls = [
-    ...strangers.flatMap((n4) => [
-      grow2(n4.box, SKIM),
-      grow2(union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox].filter(real2)), 4)
-    ]),
-    ...view.nodes.flatMap((n4) => real2(n4.badgeBox) ? [grow2(n4.badgeBox, 2)] : []),
-    ...others.flatMap((o) => [o.labelBox, o.stepBox].filter(real2).map((x2) => grow2(x2, 2))),
-    ...view.groups.flatMap(
-      (g) => [g.label.lines.length ? g.labelBox : void 0, g.iconBox].filter(real2).map((x2) => ({ x: x2.x - 4, y: x2.y - 1, w: x2.w + 8, h: x2.h + 2 }))
-    )
-  ];
-  const hard = [
-    ...strangers.flatMap((n4) => [
-      [n4.box, 3],
-      ...[n4.labelBox, n4.noteBox].filter(real2).map((x2) => [x2, 1])
-    ]),
-    ...others.flatMap(
-      (o) => [o.labelBox, o.stepBox].filter(real2).map((x2) => [x2, 0.5])
-    )
-  ];
-  const frames2 = view.groups.filter((g) => !g.overlay && !g.lane);
-  const borders = frames2.map((g) => g.box);
-  const titles2 = frames2.filter((g) => g.label.lines.length).map((g) => g.labelBox);
-  const counted = frames2.filter((g) => !ends3.has(g.id));
-  const crossedBefore = counted.map((g) => borderCrossings(ref, g.box));
-  const otherSegs = others.flatMap((o) => segmentsOf(o.points).map((s) => ({ o, s })));
-  return (points) => {
-    const segs2 = segmentsOf(points);
-    const hits5 = (boxes, inset) => segs2.filter(([p, q2]) => boxes.some((w) => segmentHits(p, q2, w, inset))).length;
-    let lines2 = 0;
-    for (const { o, s } of otherSegs)
-      if (collinear(points, s[0], s[1]) || !related2(o) && beside(segs2, s)) lines2++;
-    return {
-      hard: segs2.filter(([p, q2]) => hard.some(([w, inset]) => segmentHits(p, q2, w, inset))).length,
-      headers: crossedHeaders(view, points).length,
-      own: hits5(own, 1),
-      walls: hits5(walls, 0),
-      frames: (clearOfFrames(points, borders, titles2) ? 0 : 1) + (alongBorder(points, borders) ? 1 : 0),
-      borders: counted.reduce(
-        (n4, g, i) => n4 + Math.max(0, borderCrossings(points, g.box) - (crossedBefore[i] ?? 0)),
-        0
-      ),
-      lines: lines2,
-      crossings: crossings2(points, otherSegs)
-    };
-  };
-}
-function tagAvoid(view, e) {
-  const others = view.edges.filter((o) => o !== e);
-  const frames2 = view.groups.filter((g) => !g.overlay && !g.lane);
-  return [
-    ...view.nodes.map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox])),
-    ...view.nodes.flatMap((n4) => real2(n4.badgeBox) ? [n4.badgeBox] : []),
-    ...others.flatMap((o) => [o.labelBox, o.stepBox].filter(real2)),
-    ...view.groups.flatMap((g) => [g.label.lines.length ? g.labelBox : void 0, g.iconBox]),
-    ...frames2.flatMap((g) => [
-      { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
-      { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
-      { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
-      { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
-    ]),
-    // A label in the band under a group's top border reads as part of its title (DG225).
-    ...frames2.filter((g) => g.label.lines.length).map((g) => ({
-      ...g.box,
-      h: Math.max(TITLE_BAND2, g.labelBox.y + g.labelBox.h - g.box.y)
-    }))
-  ].filter(real2);
-}
-function tagSpot(view, e, points, tag) {
-  const lines2 = view.edges.filter((o) => o !== e).map((o) => o.points);
-  return labelSpot(points, tag.w, tag.h, tagAvoid(view, e), lines2);
-}
-function tagFits(view, e, points, box2) {
-  const lines2 = [...view.edges.filter((o) => o !== e).map((o) => o.points), points];
-  const strokes = lines2.flatMap((pts) => [
-    ...segmentsOf(pts).map(([p, q2]) => ({
-      x: Math.min(p.x, q2.x) - 1,
-      y: Math.min(p.y, q2.y) - 1,
-      w: Math.abs(q2.x - p.x) + 2,
-      h: Math.abs(q2.y - p.y) + 2
-    })),
-    ...[pts[0], pts.at(-1)].flatMap((p) => p ? [{ x: p.x - 6, y: p.y - 6, w: 12, h: 12 }] : [])
-  ]);
-  return ![...tagAvoid(view, e), ...strokes].some((o) => meet(box2, o));
-}
-function tester(view, e, a, b, tag) {
-  const count = prober(view, e, a, b);
-  const before = count(e.points).crossings;
-  return (points) => {
-    const d = count(points);
-    const bad = d.hard || d.headers || d.own || d.walls || d.frames || d.borders || d.lines;
-    if (bad || d.crossings > before) return false;
-    return tag ? tagSpot(view, e, points, tag) ?? false : true;
-  };
-}
-function crossedHeaders(view, points) {
-  const segs2 = segmentsOf(points);
-  return view.groups.filter((g) => {
-    const x2 = g.label.lines.length ? g.labelBox : void 0;
-    if (!real2(x2)) return false;
-    const chip2 = { x: x2.x - 4, y: x2.y - 1, w: x2.w + 8, h: x2.h + 2 };
-    return segs2.some(([p, q2]) => segmentHits(p, q2, chip2, 0.5));
-  });
-}
-function borderCrossings(points, b) {
-  let n4 = 0;
-  for (const [p, q2] of segmentsOf(points)) {
-    if (Math.abs(p.x - q2.x) < 0.5) {
-      if (p.x <= b.x || p.x >= b.x + b.w) continue;
-      const [y0, y1] = [Math.min(p.y, q2.y), Math.max(p.y, q2.y)];
-      for (const y of [b.y, b.y + b.h]) if (y > y0 + 0.5 && y < y1 - 0.5) n4++;
-    } else if (Math.abs(p.y - q2.y) < 0.5) {
-      if (p.y <= b.y || p.y >= b.y + b.h) continue;
-      const [x0, x1] = [Math.min(p.x, q2.x), Math.max(p.x, q2.x)];
-      for (const x2 of [b.x, b.x + b.w]) if (x2 > x0 + 0.5 && x2 < x1 - 0.5) n4++;
-    }
-  }
-  return n4;
-}
-function crossings2(points, others) {
-  let n4 = 0;
-  for (const [a, b] of segmentsOf(points)) {
-    const flat4 = Math.abs(a.y - b.y) < 0.5;
-    for (const {
-      s: [p, q2]
-    } of others) {
-      const level2 = Math.abs(p.y - q2.y) < 0.5;
-      if (level2 === flat4) continue;
-      const [h0, h1, v0, v1] = flat4 ? [a, b, p, q2] : [p, q2, a, b];
-      const x2 = v0.x;
-      const y = h0.y;
-      if (x2 > Math.min(h0.x, h1.x) + 0.5 && x2 < Math.max(h0.x, h1.x) - 0.5 && y > Math.min(v0.y, v1.y) + 0.5 && y < Math.max(v0.y, v1.y) - 0.5)
-        n4++;
-    }
-  }
-  return n4;
-}
-function beside(segs2, [p, q2]) {
-  const v = Math.abs(p.x - q2.x) < 0.5;
-  if (!v && Math.abs(p.y - q2.y) >= 0.5) return false;
-  const [b0, b1] = (v ? [p.y, q2.y] : [p.x, q2.x]).sort((m, n4) => m - n4);
-  return segs2.some(([r6, s]) => {
-    if (Math.abs(r6.x - s.x) < 0.5 !== v || !v && Math.abs(r6.y - s.y) >= 0.5) return false;
-    if (Math.abs((v ? r6.x : r6.y) - (v ? p.x : p.y)) >= BESIDE) return false;
-    const [a0, a1] = (v ? [r6.y, s.y] : [r6.x, s.x]).sort((m, n4) => m - n4);
-    return Math.min(a1 ?? 0, b1 ?? 0) - Math.max(a0 ?? 0, b0 ?? 0) > BESIDE_ALONG;
-  });
-}
-
-// src/layout/kinds/shared.ts
-var PAD2 = 28;
-var EDGE_TEXT = 11.5;
-var EDGE_MAX = 150;
-var STEP = 28;
-var LABEL_GAP = 8;
-var r3 = (v) => Math.round(v * 100) / 100;
-function union3(boxes) {
-  const list = boxes.filter((b) => !!b && (b.w > 0 || b.h > 0));
-  if (!list.length) return void 0;
-  const x2 = Math.min(...list.map((b) => b.x));
-  const y = Math.min(...list.map((b) => b.y));
-  const w = Math.max(...list.map((b) => b.x + b.w)) - x2;
-  const h = Math.max(...list.map((b) => b.y + b.h)) - y;
-  return { x: x2, y, w, h };
-}
-var bodyOf = (n4) => union3([n4.box, n4.iconBox, n4.labelBox, n4.noteBox]) ?? n4.box;
-var footOf = (n4) => union3([bodyOf(n4), n4.badgeBox]) ?? n4.box;
-var hits2 = (a, b, pad2 = 0) => a.x < b.x + b.w + pad2 && b.x < a.x + a.w + pad2 && a.y < b.y + b.h + pad2 && b.y < a.y + a.h + pad2;
-function crosses(p, q2, b, inset) {
-  const box2 = { x: b.x + inset, y: b.y + inset, w: b.w - inset * 2, h: b.h - inset * 2 };
-  if (box2.w <= 0 || box2.h <= 0) return false;
-  let t0 = 0;
-  let t1 = 1;
-  const dx = q2.x - p.x;
-  const dy = q2.y - p.y;
-  const sides = [
-    [-dx, p.x - box2.x],
-    [dx, box2.x + box2.w - p.x],
-    [-dy, p.y - box2.y],
-    [dy, box2.y + box2.h - p.y]
-  ];
-  for (const [pp, qq] of sides) {
-    if (pp === 0) {
-      if (qq < 0) return false;
-    } else {
-      const t = qq / pp;
-      if (pp < 0) {
-        if (t > t1) return false;
-        if (t > t0) t0 = t;
-      } else {
-        if (t < t0) return false;
-        if (t < t1) t1 = t;
-      }
-    }
-  }
-  return t0 < t1;
-}
-var segments = (pts) => pts.slice(1).map((q2, i) => [pts[i] ?? q2, q2]);
-var dot = (p) => ({ ...p, w: 0.01, h: 0.01 });
-function drawnPoints(pts, spline) {
-  const [a, b, c, d] = pts;
-  if (!spline || pts.length !== 4 || !a || !b || !c || !d) return pts;
-  return Array.from({ length: 17 }, (_, i) => {
-    const t = i / 16;
-    const u = 1 - t;
-    const k = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
-    return {
-      x: k[0] * a.x + k[1] * b.x + k[2] * c.x + k[3] * d.x,
-      y: k[0] * a.y + k[1] * b.y + k[2] * c.y + k[3] * d.y
-    };
-  });
-}
-function moveBoxes(boxes, dx, dy, seen) {
-  for (const b of boxes) {
-    if (!b || seen.has(b)) continue;
-    seen.add(b);
-    b.x = r3(b.x + dx);
-    b.y = r3(b.y + dy);
-  }
-}
-var moveNode = (n4, dx, dy) => moveBoxes([n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox], dx, dy, /* @__PURE__ */ new Set());
-function tidyPoints(points) {
-  const out = [];
-  for (const p of points.map((q2) => ({ x: r3(q2.x), y: r3(q2.y) }))) {
-    const last = out[out.length - 1];
-    const prev = out[out.length - 2];
-    if (last && Math.abs(last.x - p.x) < 0.01 && Math.abs(last.y - p.y) < 0.01) continue;
-    if (prev && last) {
-      const cross = (last.x - prev.x) * (p.y - prev.y) - (last.y - prev.y) * (p.x - prev.x);
-      if (Math.abs(cross) < 0.01) out.pop();
-    }
-    out.push(p);
-  }
-  return out;
-}
-function restoreEdges(ctx, only = () => true) {
-  const ids3 = /* @__PURE__ */ new Set([...ctx.nodes.map((n4) => n4.id), ...ctx.groups.map((g) => g.id)]);
-  for (const e of ctx.model.edges) {
-    if (!only(e) || ctx.edges.some((x2) => x2.id === e.id)) continue;
-    if (!ids3.has(e.from) || !ids3.has(e.to)) continue;
-    ctx.edges.push({
-      id: e.id,
-      from: e.from,
-      to: e.to,
-      points: [],
-      line: e.line,
-      arrow: e.arrow,
-      color: e.color,
-      step: e.step,
-      ...e.flow ? { flow: e.flow } : {}
-    });
-  }
-  const order2 = new Map(ctx.model.edges.map((e, i) => [e.id, i]));
-  ctx.edges.sort((a, b) => (order2.get(a.id) ?? 0) - (order2.get(b.id) ?? 0));
-}
-function labelSize(model) {
-  if (!model || !model.label && model.step === void 0) return void 0;
-  const block3 = textBlock(model.label ?? "", EDGE_TEXT, EDGE_MAX);
-  const stepW = model.step !== void 0 ? STEP + 2 : 0;
-  const w = Math.ceil(
-    (model.label ? block3.width + 12 : 0) + stepW + (model.label && stepW ? 2 : 0)
-  );
-  const h = Math.ceil(Math.max(model.label ? block3.height + 6 : 0, stepW ? STEP : 0));
-  return { w, h, stepW };
-}
-function setLabel(e, model, size, box2) {
-  if (model?.step !== void 0)
-    e.stepBox = { x: r3(box2.x), y: r3(box2.y + (box2.h - STEP) / 2), w: STEP, h: STEP };
-  else delete e.stepBox;
-  if (model?.label) {
-    const gap2 = size.stepW ? size.stepW + 2 : 0;
-    e.label = textBlock(model.label, EDGE_TEXT, EDGE_MAX);
-    e.labelBox = { x: r3(box2.x + gap2), y: r3(box2.y), w: r3(size.w - gap2), h: size.h };
-  } else {
-    delete e.label;
-    delete e.labelBox;
-  }
-}
-function settle(ctx) {
-  const all = union3([
-    ...ctx.nodes.map(footOf),
-    ...ctx.groups.flatMap((g) => [g.box, g.label.lines.length ? g.labelBox : void 0, g.iconBox]),
-    ...ctx.edges.flatMap((e) => [e.labelBox, e.stepBox, ...e.points.map(dot)])
-  ]);
-  if (!all) return;
-  const dx = PAD2 - all.x;
-  const dy = ctx.top + PAD2 - all.y;
-  const seen = /* @__PURE__ */ new Set();
-  for (const n4 of ctx.nodes)
-    moveBoxes([n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox], dx, dy, seen);
-  for (const g of ctx.groups) moveBoxes([g.box, g.labelBox, g.iconBox, g.inner?.box], dx, dy, seen);
-  for (const e of ctx.edges) {
-    moveBoxes([e.labelBox, e.stepBox], dx, dy, seen);
-    e.points = e.points.map((p) => ({ x: r3(p.x + dx), y: r3(p.y + dy) }));
-  }
-}
-var point2 = (main2, cross, horizontal) => horizontal ? { x: r3(main2), y: r3(cross) } : { x: r3(cross), y: r3(main2) };
-var labelBoxAt = (main2, cross, size, horizontal) => horizontal ? { x: main2 - size.w / 2, y: cross - size.h / 2, w: size.w, h: size.h } : { x: cross - size.w / 2, y: main2 - size.h / 2, w: size.w, h: size.h };
-
-// src/layout/er/route.ts
-var STUB = 30;
-var PITCH = 10;
-var ROUNDS = 3;
-function endOf(nd, field2) {
-  if (nd.fields?.length) {
-    const row = field2 ? rowsOf(nd).find((f) => f.name === field2.name) : void 0;
-    const band = row?.box ?? headerOf(nd);
-    return { left: nd.box.x, right: nd.box.x + nd.box.w, y: band.y + band.h / 2 };
-  }
-  const b = faceBox(nd);
-  return { left: b.x, right: b.x + b.w, y: b.y + b.h / 2 };
-}
-var pt = (x2, y) => ({ x: round(x2), y: round(y) });
-function risers(lo, hi) {
-  if (hi < lo) return [];
-  const mid = (lo + hi) / 2;
-  const out = [mid];
-  for (let d = PITCH; d <= (hi - lo) / 2 + 0.01; d += PITCH) out.push(mid - d, mid + d);
-  return out;
-}
-function candidates2(a, b, boxes) {
-  const out = [];
-  const level2 = Math.abs(a.y - b.y) < 0.5;
-  for (const [ax, bx] of [
-    [a.right, b.left],
-    [a.left, b.right]
-  ]) {
-    const sign = Math.sign(bx - ax);
-    if (Math.abs(bx - ax) < 2 * STUB || sign !== (ax === a.right ? 1 : -1)) continue;
-    if (level2) out.push([pt(ax, a.y), pt(bx, b.y)]);
-    else
-      for (const m of risers(Math.min(ax, bx) + STUB, Math.max(ax, bx) - STUB))
-        out.push([pt(ax, a.y), pt(m, a.y), pt(m, b.y), pt(bx, b.y)]);
-    const lo = Math.min(ax, bx);
-    const hi = Math.max(ax, bx);
-    const lines2 = boxes.filter((o) => o.x < hi && o.x + o.w > lo).flatMap((o) => [0, 1].flatMap((k) => [o.y - 20 - k * PITCH, o.y + o.h + 20 + k * PITCH]));
-    for (const y of lines2)
-      for (let i = 0; i < 2; i++)
-        for (let j = 0; j < 2; j++) {
-          const m1 = ax + sign * (STUB + i * PITCH);
-          const m2 = bx - sign * (STUB + j * PITCH);
-          if ((m2 - m1) * sign <= 0) continue;
-          out.push([pt(ax, a.y), pt(m1, a.y), pt(m1, y), pt(m2, y), pt(m2, b.y), pt(bx, b.y)]);
-        }
-  }
-  if (Math.abs(a.y - b.y) >= 2 * PITCH)
-    for (let k = 0; k < 6; k++) {
-      const right = Math.max(a.right, b.right) + STUB + k * PITCH;
-      const left = Math.min(a.left, b.left) - STUB - k * PITCH;
-      out.push([pt(a.right, a.y), pt(right, a.y), pt(right, b.y), pt(b.right, b.y)]);
-      out.push([pt(a.left, a.y), pt(left, a.y), pt(left, b.y), pt(b.left, b.y)]);
-    }
-  return out;
-}
-var bendsOf2 = (pts) => Math.max(0, pts.length - 2);
-var lengthOf2 = (pts) => segmentsOf(pts).reduce((s, [p, q2]) => s + Math.abs(q2.x - p.x) + Math.abs(q2.y - p.y), 0);
-function overlapCost(pts, e, others) {
-  let cost2 = 0;
-  const ends3 = [pts[0], pts.at(-1)];
-  for (const o of others) {
-    const related2 = [o.from, o.to].some((id) => id === e.from || id === e.to);
-    const theirs = [o.points[0], o.points.at(-1)];
-    const shared = ends3.some(
-      (p) => theirs.some((q2) => p && q2 && Math.hypot(p.x - q2.x, p.y - q2.y) < 0.5)
-    );
-    for (const [p, q2] of segmentsOf(pts))
-      for (const [u, v] of segmentsOf(o.points)) {
-        const flat4 = Math.abs(p.y - q2.y) < 0.5;
-        const upright2 = Math.abs(p.x - q2.x) < 0.5;
-        const oflat = Math.abs(u.y - v.y) < 0.5;
-        const oupright = Math.abs(u.x - v.x) < 0.5;
-        let gap2;
-        let span2;
-        if (flat4 && oflat) {
-          gap2 = Math.abs(p.y - u.y);
-          span2 = Math.min(Math.max(p.x, q2.x), Math.max(u.x, v.x)) - Math.max(Math.min(p.x, q2.x), Math.min(u.x, v.x));
-        } else if (upright2 && oupright) {
-          gap2 = Math.abs(p.x - u.x);
-          span2 = Math.min(Math.max(p.y, q2.y), Math.max(u.y, v.y)) - Math.max(Math.min(p.y, q2.y), Math.min(u.y, v.y));
-        } else continue;
-        if (span2 <= 0.5) continue;
-        if (shared && gap2 < 6 && touches(p, q2, theirs))
-          cost2 += Math.max(0, span2 - STUB - PITCH) * 0.5;
-        else if (gap2 < 6) cost2 += span2 * (related2 ? 2 : 12);
-        else if (gap2 < 12 && !related2) cost2 += span2 * 2;
-      }
-  }
-  return cost2;
-}
-function touches(p, q2, points) {
-  const at2 = (a, b) => !!b && Math.hypot(a.x - b.x, a.y - b.y) < 0.5;
-  return points.some((s) => at2(p, s) || at2(q2, s));
-}
-function outside(pts, area) {
-  let out = 0;
-  for (const p of pts) {
-    out += Math.max(0, area.x - p.x, p.x - (area.x + area.w));
-    out += Math.max(0, area.y - p.y, p.y - (area.y + area.h));
-  }
-  return out;
-}
-function bestRoute(view, e, a, b) {
-  const count = probe(view, e);
-  const others = view.edges.filter((o) => o !== e);
-  let best;
-  const boxes = view.nodes.filter((n4) => n4.id !== e.from && n4.id !== e.to).map((n4) => n4.box);
-  const all = union2(view.nodes.map((n4) => n4.box));
-  const area = { x: all.x - 24, y: all.y - 24, w: all.w + 48, h: all.h + 48 };
-  for (const pts of candidates2(a, b, boxes)) {
-    const d = count?.(pts);
-    const cost2 = (d ? 1e3 * d.hard + 400 * d.own + 200 * d.headers + 60 * d.walls + 40 * d.frames + 40 * d.borders + 25 * d.crossings : 0) + overlapCost(pts, e, others) + 2 * outside(pts, area) + 8 * bendsOf2(pts) + 0.02 * lengthOf2(pts);
-    if (!best || cost2 < best.cost - 1e-3) best = { pts, cost: cost2 };
-  }
-  return best?.pts;
-}
-var same2 = (p, q2) => p.length === q2.length && p.every((v, i) => v.x === q2[i]?.x && v.y === q2[i]?.y);
-function markBoxes(e) {
-  const out = [];
-  for (const [p, q2] of [
-    [e.points[0], e.points[1]],
-    [e.points.at(-1), e.points.at(-2)]
-  ]) {
-    if (!p || !q2) continue;
-    const dir = Math.sign(q2.x - p.x) || 1;
-    out.push({ x: dir > 0 ? p.x : p.x - STUB, y: p.y - 8, w: STUB, h: 16 });
-  }
-  return out;
-}
-function placeLabels(ctx, mine) {
-  const byId = new Map(ctx.model.edges.map((e) => [e.id, e]));
-  const feet = ctx.nodes.map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox]));
-  const frames2 = ctx.groups.filter((g) => !g.overlay && !g.lane).flatMap((g) => [
-    { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
-    { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
-    { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
-    { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
-  ]);
-  const heads = ctx.groups.flatMap((g) => [
-    g.label.lines.length ? g.labelBox : void 0,
-    g.iconBox
-  ]);
-  const marks2 = mine.flatMap(markBoxes);
-  for (const e of mine) {
-    const m = byId.get(e.id);
-    const size = labelSize(m);
-    if (!size) continue;
-    const tags = ctx.edges.flatMap((o) => o === e ? [] : [o.labelBox, o.stepBox]);
-    const avoid = [...feet, ...frames2, ...heads, ...tags, ...marks2].filter(
-      (b) => !!b && b.w > 0 && b.h > 0
-    );
-    const lines2 = ctx.edges.filter((o) => o !== e).map((o) => o.points);
-    const spot = labelSpot(e.points, size.w, size.h, avoid, lines2) ?? labelSpot(
-      e.points,
-      size.w,
-      size.h,
-      [...feet, ...tags].filter((b) => !!b),
-      []
-    ) ?? fallbackSpot(e.points, size.w, size.h);
-    setLabel(e, m, size, spot);
-  }
-}
-function fallbackSpot(points, w, h) {
-  const len2 = ([p2, q3]) => Math.abs(q3.x - p2.x) + Math.abs(q3.y - p2.y);
-  const longest = segmentsOf(points).sort((s, t) => len2(t) - len2(s))[0];
-  const start = points[0] ?? { x: 0, y: 0 };
-  const [p, q2] = longest ?? [start, start];
-  return { x: round((p.x + q2.x) / 2 - w / 2), y: round((p.y + q2.y) / 2 - h - 3), w, h };
-}
-function routeRelationships(ctx, rowsFor) {
-  const nodes = new Map(ctx.nodes.map((n4) => [n4.id, n4]));
-  const table2 = (id) => !!nodes.get(id)?.fields?.length;
-  const mine = ctx.edges.filter(
-    (e) => nodes.has(e.from) && nodes.has(e.to) && (table2(e.from) || table2(e.to))
-  );
-  if (!mine.length) return;
-  const ends3 = /* @__PURE__ */ new Map();
-  for (const e of mine) {
-    const a = nodes.get(e.from);
-    const b = nodes.get(e.to);
-    if (!a || !b) continue;
-    const rows = rowsFor(e);
-    const from = endOf(a, rows.from);
-    const to = endOf(b, rows.to);
-    if (a === b && Math.abs(from.y - to.y) < 0.5) {
-      from.y = Math.floor(from.y - PITCH);
-      to.y = Math.ceil(to.y + PITCH);
-    }
-    ends3.set(e, [from, to]);
-    delete e.labelBox;
-    delete e.stepBox;
-  }
-  const view = { nodes: ctx.nodes, groups: ctx.groups, edges: ctx.edges };
-  for (let k = 0; k < ROUNDS; k++) {
-    let moved = false;
-    for (const e of mine) {
-      const pair = ends3.get(e);
-      const pts = pair && bestRoute(view, e, pair[0], pair[1]);
-      if (!pts || same2(pts, e.points)) continue;
-      e.points = pts;
-      moved = true;
-    }
-    if (!moved) break;
-  }
-  placeLabels(ctx, mine);
-}
-
-// src/layout/er/rows.ts
-var norm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-function singular(word2) {
-  if (/ies$/.test(word2)) return `${word2.slice(0, -3)}y`;
-  if (/(ss|us|is)$/.test(word2)) return word2;
-  if (/(sses|xes|ches|shes|zes)$/.test(word2)) return word2.slice(0, -2);
-  if (/s$/.test(word2)) return word2.slice(0, -1);
-  return word2;
-}
-var otherSingular = (word2) => word2.replace(/([so])es$/, "$1").replace(/zzes$/, "z");
-function namesOf(n4) {
-  const out = /* @__PURE__ */ new Set();
-  for (const raw of [n4.id, n4.label]) {
-    const base = norm(raw);
-    if (!base) continue;
-    out.add(base);
-    out.add(singular(base));
-    out.add(otherSingular(base));
-    const words2 = raw.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
-    if (words2.length > 1)
-      out.add(norm([...words2.slice(0, -1), singular(words2.at(-1) ?? "")].join("")));
-  }
-  return out;
-}
-var primaryKey = (n4) => n4?.fields?.find((f) => f.pk);
-function fieldNaming(n4, other) {
-  if (!n4?.fields || !other) return void 0;
-  const key = norm(primaryKey(other)?.name ?? "id");
-  const wanted = /* @__PURE__ */ new Set();
-  for (const name2 of namesOf(other)) {
-    wanted.add(`${name2}id`);
-    if (key && key !== "id") wanted.add(`${name2}${key}`);
-  }
-  const named2 = n4.fields.filter((f) => wanted.has(norm(f.name)));
-  return named2.find((f) => f.fk) ?? named2[0];
-}
-var byName = (n4, name2) => name2 ? n4?.fields?.find((f) => f.name === name2) : void 0;
-function joinedRows(model, e) {
-  const a = model.nodes.find((n4) => n4.id === e.from);
-  const b = model.nodes.find((n4) => n4.id === e.to);
-  let from = byName(a, e.fromField);
-  let to = byName(b, e.toField);
-  if (!from && !to) {
-    const fa = fieldNaming(a, b);
-    const fb = fa ? void 0 : fieldNaming(b, a);
-    from = fa ?? primaryKey(a);
-    to = fb ?? primaryKey(b);
-    if (!fa && !fb) return {};
-  } else if (from && !to) to = otherEnd(from, b, a);
-  else if (to && !from) from = otherEnd(to, a, b);
-  return { ...from ? { from } : {}, ...to ? { to } : {} };
-}
-function otherEnd(known2, n4, other) {
-  if (known2.pk && !known2.fk) return fieldNaming(n4, other) ?? primaryKey(n4);
-  return primaryKey(n4);
-}
-
-// src/layout/er/index.ts
-function erGeometry(n4, _horizontal) {
-  const t = tableOf(n4);
-  return t ? { w: t.w, h: t.h, label: t.label, note: t.note } : void 0;
-}
-var r4 = (v) => Math.round(v * 100) / 100;
-function seatTables(ctx) {
-  for (const nd of ctx.nodes) {
-    const n4 = ctx.model.nodes.find((m) => m.id === nd.id);
-    const t = n4 && tableOf(n4);
-    if (!n4?.fields || !t) continue;
-    const b = nd.box;
-    const textH = t.label.height + (t.note ? t.note.height + 2 : 0);
-    const tx = b.x + PAD + (n4.icon ? HEAD_ICON + 8 : 0);
-    const ty = b.y + (t.header - textH) / 2;
-    if (n4.icon)
-      nd.iconBox = {
-        x: r4(b.x + PAD),
-        y: r4(b.y + (t.header - HEAD_ICON) / 2),
-        w: HEAD_ICON,
-        h: HEAD_ICON
-      };
-    nd.labelBox = { x: r4(tx), y: r4(ty), w: r4(t.label.width), h: r4(t.label.height) };
-    if (t.note)
-      nd.noteBox = {
-        x: r4(tx),
-        y: r4(ty + t.label.height + 2),
-        w: r4(t.note.width),
-        h: r4(t.note.height)
-      };
-    const top = b.y + t.header + BODY_PAD;
-    nd.fields = n4.fields.map((f, i) => ({
-      name: f.name,
-      ...f.type ? { type: f.type } : {},
-      ...f.pk ? { pk: true } : {},
-      ...f.fk ? { fk: true } : {},
-      ...f.unique ? { unique: true } : {},
-      ...f.nullable ? { nullable: true } : {},
-      box: { x: b.x, y: r4(top + i * ROW), w: b.w, h: ROW }
-    }));
-  }
-}
-var erHook = {
-  // Tables side by side keep a channel wide enough for a stub out of each and a riser between
-  // them: along the flow when it runs across, within a layer when it runs down (lines leave a
-  // table from its sides, so a vertical flow's layers need only the room for labels). ELK gives a
-  // labelled edge a layer of its own, the gap on both sides of it, so labels halve the gap.
-  elkOptions(model) {
-    if (model.kind !== "er") return {};
-    const channel = Math.max(2 * STUB + 24, 96 * model.spacing);
-    const labelled = model.edges.some((e) => e.label);
-    const vertical = model.direction === "down" || model.direction === "up";
-    const layers = vertical ? 64 * model.spacing : channel;
-    return {
-      "elk.layered.spacing.nodeNodeBetweenLayers": String(
-        Math.round(labelled ? Math.max(24, layers / 2 + 8) : layers)
-      ),
-      ...vertical ? { "elk.spacing.nodeNode": String(Math.round(channel)) } : {}
-    };
-  },
-  after(ctx) {
-    if (ctx.model.kind !== "er") return;
-    seatTables(ctx);
-    const byId = new Map(ctx.model.edges.map((e) => [e.id, e]));
-    for (const e of ctx.edges) {
-      const card = byId.get(e.id)?.card;
-      if (card) e.card = { ...card };
-    }
-    alignTables(ctx, (e) => joinedRows(ctx.model, e));
-    routeRelationships(ctx, (e) => {
-      const m = byId.get(e.id);
-      return m ? joinedRows(ctx.model, m) : {};
-    });
-  }
-};
-
-// src/layout/kinds/frames.ts
-function frames(ctx, before) {
-  const margin = /* @__PURE__ */ new Map();
-  const all = [...ctx.model.nodes, ...ctx.model.groups];
-  for (const g of ctx.groups) {
-    if (g.overlay || g.lane) continue;
-    const members = all.filter((x2) => x2.parent === g.id).map((x2) => before.get(x2.id));
-    const inner = union3(members);
-    if (!inner) continue;
-    const b = g.box;
-    margin.set(g.id, {
-      l: inner.x - b.x,
-      t: inner.y - b.y,
-      r: b.x + b.w - (inner.x + inner.w),
-      b: b.y + b.h - (inner.y + inner.h)
-    });
-  }
-  const parentOf = new Map(all.map((x2) => [x2.id, x2.parent]));
-  const chain = (id) => {
-    const out = [];
-    for (let p = parentOf.get(id); p; p = parentOf.get(p)) if (margin.has(p)) out.push(p);
-    return out;
-  };
-  return { chain, margin };
-}
-function room(f, h, horizontal, sign) {
-  const near2 = (m) => horizontal ? sign > 0 ? m.l : m.r : sign > 0 ? m.t : m.b;
-  const far = (m) => horizontal ? sign > 0 ? m.r : m.l : sign > 0 ? m.b : m.t;
-  const sum = (ids3, side) => ids3.reduce((a, g) => a + side(f.margin.get(g) ?? { l: 0, t: 0, r: 0, b: 0 }), 0);
-  const parentChain = (id) => {
-    const p = h.parent.get(id);
-    return p ? f.chain(p) : [];
-  };
-  return {
-    chain: f.chain,
-    /** Extra space between two neighbors: the margins of the frames only one of them is in. */
-    between: (left, right) => sum(
-      left.filter((g) => !right.includes(g)),
-      (m) => horizontal ? m.b : m.r
-    ) + sum(
-      right.filter((g) => !left.includes(g)),
-      (m) => horizontal ? m.t : m.l
-    ),
-    /** Frames entered on the way into a node, near margins summed. */
-    enter: (id) => {
-      const from = parentChain(id);
-      return sum(
-        f.chain(id).filter((g) => !from.includes(g)),
-        near2
-      );
-    },
-    /** Frames left on the way into a node, far margins summed. */
-    leave: (id) => {
-      const to = f.chain(id);
-      return sum(
-        parentChain(id).filter((g) => !to.includes(g)),
-        far
-      );
-    }
-  };
-}
-function snapshot(ctx) {
-  return new Map([
-    ...ctx.nodes.map((n4) => [n4.id, { ...footOf(n4) }]),
-    ...ctx.groups.map((g) => [g.id, { ...g.box }])
-  ]);
-}
-function refit(ctx, before) {
-  const now = (id) => {
-    const n4 = ctx.nodes.find((x2) => x2.id === id);
-    return n4 ? footOf(n4) : ctx.groups.find((g) => g.id === id)?.box;
-  };
-  const rank = (g) => g.overlay ? -1 : g.depth;
-  const order2 = ctx.groups.filter((g) => !g.lane).sort((a, b) => rank(b) - rank(a));
-  for (const g of order2) {
-    const model = ctx.model.groups.find((x2) => x2.id === g.id);
-    const members = g.overlay ? model?.around ?? [] : [...ctx.model.nodes, ...ctx.model.groups].filter((x2) => x2.parent === g.id).map((x2) => x2.id);
-    const was = union3(members.map((id) => before.get(id)));
-    const is = union3(members.map(now));
-    const old = before.get(g.id);
-    if (!was || !is || !old) continue;
-    const w = g.overlay ? is.w + (old.w - was.w) : Math.max(old.w, is.w + 40);
-    const box2 = {
-      x: r3(g.overlay ? is.x - (was.x - old.x) : is.x + is.w / 2 - w / 2),
-      y: r3(is.y - (was.y - old.y)),
-      w: r3(w),
-      h: r3(is.h + (old.h - was.h))
-    };
-    const slide2 = (b) => {
-      if (!b) return;
-      const centered = Math.abs(b.x + b.w / 2 - (old.x + old.w / 2)) < 1;
-      b.x = r3(centered ? box2.x + (box2.w - b.w) / 2 : b.x + box2.x - old.x);
-      b.y = r3(b.y + box2.y - old.y);
-    };
-    slide2(g.labelBox);
-    slide2(g.iconBox);
-    if (g.inner) {
-      const ib = g.inner.box;
-      g.inner.box = {
-        x: r3(box2.x + ib.x - old.x),
-        y: r3(box2.y + ib.y - old.y),
-        w: r3(box2.w - (old.w - ib.w)),
-        h: r3(box2.h - (old.h - ib.h))
-      };
-    }
-    Object.assign(g.box, box2);
-  }
-}
-function clearHeaders(ctx) {
-  for (const g of ctx.groups) {
-    if (g.lane || !g.label.lines.length) continue;
-    const corner = g.iconBox !== void 0 && Math.abs(g.iconBox.x - g.box.x) < 0.5 && Math.abs(g.iconBox.y - g.box.y) < 0.5;
-    const icon2 = g.iconBox && !corner ? g.iconBox : void 0;
-    for (let round5 = 0; round5 < 4; round5++) {
-      const u = union3([g.labelBox, icon2]) ?? g.labelBox;
-      const chip2 = { x: u.x - 6, y: u.y - 1, w: u.w + 12, h: u.h + 2 };
-      const cut = ctx.edges.flatMap((e) => segments(e.points)).find(([p, q2]) => crosses(p, q2, chip2, 0.5));
-      if (!cut) break;
-      const lo = (corner && g.iconBox ? g.iconBox.x + g.iconBox.w + 8 : g.box.x + 12) - u.x;
-      const hi = g.box.x + g.box.w - 12 - (u.x + u.w);
-      const right = Math.max(cut[0].x, cut[1].x) + 8 - u.x;
-      const left = Math.min(cut[0].x, cut[1].x) - 8 - (u.x + u.w);
-      const dx = right <= hi ? right : left >= lo ? left : void 0;
-      if (dx === void 0) break;
-      g.labelBox.x = r3(g.labelBox.x + dx);
-      if (icon2) icon2.x = r3(icon2.x + dx);
-    }
-  }
-}
-
-// src/layout/kinds/state.ts
-function loopPoints(b, c, k, spline) {
-  const size = 18 + 10 * k;
-  const inset = Math.max(4, Math.min(14 + 6 * k, b.w / 2 - 2, b.h / 2 - 2));
-  const sx = c.right ? 1 : -1;
-  const sy = c.top ? -1 : 1;
-  const cx = c.right ? b.x + b.w : b.x;
-  const cy = c.top ? b.y : b.y + b.h;
-  const a = { x: cx - sx * inset, y: cy };
-  const z = { x: cx, y: cy - sy * inset };
-  const pts = spline ? [a, { x: a.x, y: cy + sy * 2 * size }, { x: cx + sx * 2 * size, y: z.y }, z] : [
-    a,
-    { x: a.x, y: cy + sy * size },
-    { x: cx + sx * size, y: cy + sy * size },
-    { x: cx + sx * size, y: z.y },
-    z
-  ];
-  return pts.map((p) => ({ x: r3(p.x), y: r3(p.y) }));
-}
-function loopLabelSpots(loop2, c, w, h) {
-  const beside3 = c.right ? loop2.x + loop2.w + 6 : loop2.x - 6 - w;
-  const past = c.top ? loop2.y - 4 - h : loop2.y + loop2.h + 4;
-  const outer = c.right ? loop2.x + loop2.w - w : loop2.x;
-  const inner = c.right ? loop2.x : loop2.x + loop2.w - w;
-  return [
-    { x: beside3, y: loop2.y + loop2.h / 2 - h / 2 },
-    { x: loop2.x + loop2.w / 2 - w / 2, y: past },
-    { x: outer, y: past },
-    { x: inner, y: past }
-  ].map((p) => ({ x: r3(p.x), y: r3(p.y), w, h }));
-}
-function selfLoops(ctx, fresh) {
-  const spline = ctx.routing === "spline";
-  const count = /* @__PURE__ */ new Map();
-  for (const e of ctx.edges) {
-    if (e.from !== e.to) continue;
-    const n4 = ctx.nodes.find((x2) => x2.id === e.from);
-    const box2 = n4?.box ?? ctx.groups.find((g) => g.id === e.from)?.box;
-    if (!box2) continue;
-    const k = count.get(e.from) ?? 0;
-    count.set(e.from, k + 1);
-    const model = ctx.model.edges.find((x2) => x2.id === e.id);
-    const size = labelSize(model);
-    const below = !fresh && e.points.some((p) => p.y > box2.y + box2.h + 0.5) && !e.points.some((p) => p.y < box2.y - 0.5);
-    const tops = [
-      { right: true, top: true },
-      { right: false, top: true }
-    ];
-    const bottoms = [
-      { right: true, top: false },
-      { right: false, top: false }
-    ];
-    const corners = below ? [...bottoms, ...tops] : [...tops, ...bottoms];
-    const own = n4 ? footOf(n4) : box2;
-    const feet = ctx.nodes.filter((x2) => x2.id !== e.from).map(footOf);
-    const others = ctx.edges.filter((x2) => x2 !== e);
-    const labels2 = [
-      ...others.flatMap((x2) => [x2.labelBox, x2.stepBox]),
-      ...ctx.groups.flatMap((g) => [g.label.lines.length ? g.labelBox : void 0, g.iconBox])
-    ].filter((b) => !!b);
-    const lines2 = others.flatMap((x2) => segments(x2.points));
-    const loopClear = (pts) => segments(pts).every(
-      ([p, q2]) => !feet.some((f) => crosses(p, q2, f, 3)) && !labels2.some((l) => crosses(p, q2, l, 0.5))
-    );
-    const spotClear = (b, pts) => !hits2(b, own, 2) && !feet.some((f) => hits2(b, f, 2)) && !labels2.some((l) => hits2(b, l, 2)) && ![...lines2, ...segments(pts)].some(([p, q2]) => crosses(p, q2, b, -2));
-    const elk2 = fresh ? void 0 : union3([e.labelBox, e.stepBox]);
-    let chosen;
-    for (const c of corners) {
-      const pts = loopPoints(box2, c, k, spline);
-      const bounds = union3(drawnPoints(pts, spline).map(dot)) ?? box2;
-      const spots = size ? [...loopLabelSpots(bounds, c, size.w, size.h), ...elk2 ? [elk2] : []] : [];
-      const spot = spots.find((b) => spotClear(b, pts));
-      const cost2 = (loopClear(pts) ? 0 : 2) + (size && !spot ? 1 : 0);
-      if (!chosen || cost2 < chosen.cost) chosen = { pts, spot: spot ?? spots[0], cost: cost2 };
-      if (cost2 === 0) break;
-    }
-    if (!chosen) continue;
-    e.points = chosen.pts;
-    if (size && chosen.spot) setLabel(e, model, size, chosen.spot);
-  }
-}
-
-// src/layout/kinds/links.ts
-function links(a, b, feet) {
-  const ac = { x: a.x + a.w / 2, y: a.y + a.h / 2 };
-  const bc = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
-  const out = [];
-  if (a.x + a.w <= b.x || b.x + b.w <= a.x) {
-    const right2 = a.x + a.w <= b.x;
-    const sx = right2 ? a.x + a.w : a.x;
-    const ex = right2 ? b.x : b.x + b.w;
-    const mx = (sx + ex) / 2;
-    out.push([
-      { x: sx, y: ac.y },
-      { x: mx, y: ac.y },
-      { x: mx, y: bc.y },
-      { x: ex, y: bc.y }
-    ]);
-  }
-  if (a.y + a.h <= b.y || b.y + b.h <= a.y) {
-    const down = a.y + a.h <= b.y;
-    const sy = down ? a.y + a.h : a.y;
-    const ey = down ? b.y : b.y + b.h;
-    const my = (sy + ey) / 2;
-    out.push([
-      { x: ac.x, y: sy },
-      { x: ac.x, y: my },
-      { x: bc.x, y: my },
-      { x: bc.x, y: ey }
-    ]);
-  }
-  const [y0, y1] = [Math.min(ac.y, bc.y), Math.max(ac.y, bc.y)];
-  const [x0, x1] = [Math.min(ac.x, bc.x), Math.max(ac.x, bc.x)];
-  const rows = [a, b, ...feet.filter((f) => f.y < y1 && f.y + f.h > y0)];
-  const columns = [a, b, ...feet.filter((f) => f.x < x1 && f.x + f.w > x0)];
-  const right = Math.max(...rows.map((f) => f.x + f.w)) + 20;
-  const left = Math.min(...rows.map((f) => f.x)) - 20;
-  const bottom = Math.max(...columns.map((f) => f.y + f.h)) + 20;
-  const top = Math.min(...columns.map((f) => f.y)) - 20;
-  out.push(
-    [
-      { x: a.x + a.w, y: ac.y },
-      { x: right, y: ac.y },
-      { x: right, y: bc.y },
-      { x: b.x + b.w, y: bc.y }
-    ],
-    [
-      { x: a.x, y: ac.y },
-      { x: left, y: ac.y },
-      { x: left, y: bc.y },
-      { x: b.x, y: bc.y }
-    ],
-    [
-      { x: ac.x, y: a.y + a.h },
-      { x: ac.x, y: bottom },
-      { x: bc.x, y: bottom },
-      { x: bc.x, y: b.y + b.h }
-    ],
-    [
-      { x: ac.x, y: a.y },
-      { x: ac.x, y: top },
-      { x: bc.x, y: top },
-      { x: bc.x, y: b.y }
-    ]
-  );
-  return out;
-}
-function routeRest(ctx, h, spline) {
-  const tree = new Set([...h.via.values()].map((e) => e.id));
-  const boxOf2 = (id) => ctx.nodes.find((n4) => n4.id === id)?.box ?? ctx.groups.find((g) => g.id === id)?.box;
-  for (const e of ctx.edges) {
-    if (tree.has(e.id) || e.from === e.to) continue;
-    const a = boxOf2(e.from);
-    const b = boxOf2(e.to);
-    if (!a || !b) continue;
-    const feet = ctx.nodes.filter((n4) => n4.id !== e.from && n4.id !== e.to).map(footOf);
-    const routes = links(a, b, feet);
-    const pts = routes.find(
-      (route) => segments(route).every(([p2, q3]) => !feet.some((f) => crosses(p2, q3, f, 3)))
-    ) ?? routes[0] ?? [];
-    e.points = spline ? pts.map((p2) => ({ x: r3(p2.x), y: r3(p2.y) })) : tidyPoints(pts);
-    const model = ctx.model.edges.find((x2) => x2.id === e.id);
-    const size = labelSize(model);
-    const p = pts[1];
-    const q2 = pts[2];
-    if (size && p && q2)
-      setLabel(e, model, size, {
-        x: (p.x + q2.x) / 2 - size.w / 2,
-        y: (p.y + q2.y) / 2 - size.h / 2,
-        w: size.w,
-        h: size.h
-      });
-  }
-  selfLoops(ctx, true);
-}
-
-// src/layout/kinds/tidy.ts
-function hierarchy(ctx, undirected, first) {
-  const ids3 = ctx.nodes.map((n4) => n4.id);
-  const known2 = new Set(ids3);
-  const free = new Set(ctx.model.edges.filter((e) => !e.constraint).map((e) => e.id));
-  const joins = ctx.edges.filter(
-    (e) => e.from !== e.to && known2.has(e.from) && known2.has(e.to) && !free.has(e.id)
-  );
-  const into = new Set(joins.map((e) => e.to));
-  const order2 = [...first ? [first] : [], ...ids3.filter((id) => !into.has(id)), ...ids3];
-  const h = {
-    roots: [],
-    kids: /* @__PURE__ */ new Map(),
-    parent: /* @__PURE__ */ new Map(),
-    depth: /* @__PURE__ */ new Map(),
-    via: /* @__PURE__ */ new Map()
-  };
-  const seen = /* @__PURE__ */ new Set();
-  for (const root of order2) {
-    if (seen.has(root)) continue;
-    seen.add(root);
-    h.roots.push(root);
-    h.depth.set(root, 0);
-    const queue2 = [root];
-    for (let i = 0; i < queue2.length; i++) {
-      const id = queue2[i] ?? "";
-      for (const e of joins) {
-        const other = e.from === id ? e.to : undirected && e.to === id ? e.from : void 0;
-        if (other === void 0 || seen.has(other)) continue;
-        seen.add(other);
-        h.parent.set(other, id);
-        h.via.set(other, e);
-        h.depth.set(other, (h.depth.get(id) ?? 0) + 1);
-        h.kids.set(id, [...h.kids.get(id) ?? [], other]);
-        queue2.push(other);
-      }
-    }
-  }
-  return h;
-}
-var flip = (s) => ({ lo: -s.hi, hi: -s.lo });
-var mirror = (s) => ({ lo: -s.hi, hi: -s.lo, loIn: s.hiIn, hiIn: s.loIn });
-function addTo(acc, c, off, from = 0) {
-  c.forEach((s, i) => {
-    const d = i + from;
-    const at2 = acc[d];
-    const lo = !at2 || s.lo + off < at2.lo;
-    const hi = !at2 || s.hi + off > at2.hi;
-    acc[d] = {
-      lo: lo ? s.lo + off : at2?.lo ?? 0,
-      hi: hi ? s.hi + off : at2?.hi ?? 0,
-      loIn: lo ? s.loIn : at2?.loIn ?? [],
-      hiIn: hi ? s.hiIn : at2?.hiIn ?? []
-    };
-  });
-}
-function sweep(cs, gap2) {
-  const acc = [];
-  return cs.map((c, k) => {
-    let off = 0;
-    if (k > 0) {
-      off = Number.NEGATIVE_INFINITY;
-      for (let d = 0; d < Math.min(acc.length, c.length); d++) {
-        const a = acc[d];
-        const b = c[d];
-        if (a && b) off = Math.max(off, a.hi - b.lo + gap2(d, a.hiIn, b.loIn));
-      }
-    }
-    addTo(acc, c, off);
-    return off;
-  });
-}
-function spread(cs, gap2) {
-  const left = sweep(cs, gap2);
-  const right = sweep(
-    [...cs].reverse().map((c) => c.map(mirror)),
-    (d, a, b) => gap2(d, b, a)
-  ).reverse().map((v) => -v);
-  const shift2 = right[0] ?? 0;
-  return left.map((v, i) => (v + (right[i] ?? 0) - shift2) / 2);
-}
-function tidy(kids, extent2, gap2) {
-  const rel2 = /* @__PURE__ */ new Map();
-  const memo = /* @__PURE__ */ new Map();
-  const contour = (id) => {
-    const known2 = memo.get(id);
-    if (known2) return known2;
-    const children = kids.get(id) ?? [];
-    const out = [extent2(id)];
-    if (children.length) {
-      const cs = children.map(contour);
-      const pos = spread(cs, gap2);
-      const mid = ((pos[0] ?? 0) + (pos[pos.length - 1] ?? 0)) / 2;
-      children.forEach((c, i) => {
-        const off = (pos[i] ?? 0) - mid;
-        rel2.set(c, off);
-        addTo(out, cs[i] ?? [], off, 1);
-      });
-    }
-    memo.set(id, out);
-    return out;
-  };
-  const place2 = (id, at2, out) => {
-    out.set(id, at2);
-    for (const c of kids.get(id) ?? []) place2(c, at2 + (rel2.get(c) ?? 0), out);
-  };
-  return { contour, place: place2 };
-}
-function measure3(n4, horizontal) {
-  const b = n4.box;
-  const body = bodyOf(n4);
-  const foot = footOf(n4);
-  const main2 = horizontal ? b.x + b.w / 2 : b.y + b.h / 2;
-  const cross = horizontal ? b.y + b.h / 2 : b.x + b.w / 2;
-  const along3 = (x2) => horizontal ? { lo: x2.x - main2, hi: x2.x + x2.w - main2 } : { lo: x2.y - main2, hi: x2.y + x2.h - main2 };
-  return {
-    main: main2,
-    cross,
-    body: along3(body),
-    foot: along3(foot),
-    across: horizontal ? { lo: foot.y - cross, hi: foot.y + foot.h - cross } : { lo: foot.x - cross, hi: foot.x + foot.w - cross },
-    half: (horizontal ? b.w : b.h) / 2,
-    wide: (horizontal ? b.h : b.w) / 2
-  };
-}
-var grow3 = (s, sign) => sign > 0 ? s : flip(s);
-function levels(byDepth, m, sign, opts) {
-  const at2 = /* @__PURE__ */ new Map();
-  const starts = [];
-  const bars = [];
-  let start = opts.start;
-  byDepth.forEach((ids3, d) => {
-    const spans2 = ids3.map((id) => grow3(m.get(id)?.body ?? { lo: 0, hi: 0 }, sign));
-    const thick = Math.max(0, ...spans2.map((s) => s.hi - s.lo));
-    ids3.forEach((id, i) => {
-      const s = spans2[i] ?? { lo: 0, hi: 0 };
-      const near2 = opts.align === "near" || opts.align === "top" && sign > 0;
-      const far = opts.align === "top" && sign < 0;
-      at2.set(
-        id,
-        near2 ? start - s.lo : far ? start + thick - s.hi : start + thick / 2 - (s.lo + s.hi) / 2
-      );
-    });
-    const next = byDepth[d + 1] ?? [];
-    const stem = opts.stem(d);
-    starts.push(start);
-    bars.push(start + thick + stem);
-    start += thick + stem + Math.max(opts.drop, ...next.map(opts.need));
-  });
-  return { at: at2, starts, bars };
-}
-function depths(ctx, depth) {
-  const out = [];
-  for (const n4 of ctx.nodes) {
-    const d = depth(n4.id);
-    if (d !== void 0) out[d] = [...out[d] ?? [], n4.id];
-  }
-  return Array.from(out, (ids3) => ids3 ?? []);
-}
-function moveTo(n4, main2, cross, horizontal) {
-  const m = measure3(n4, horizontal);
-  const dm = main2 - m.main;
-  const dc = cross - m.cross;
-  moveNode(n4, horizontal ? dm : dc, horizontal ? dc : dm);
-}
-
-// src/layout/kinds/mindmap.ts
-var BRANCH_COLORS = ["#2f7fe0", "#d9480f", "#2f9e44", "#8b5cf6", "#0c8599", "#d6336c", "#b45309"];
-var ROOT_TEXT = 16;
-var ROOT_ICON = 4 / 3;
-function enlargeRoot(n4, text6, horizontal) {
-  if (n4.bpmn) return;
-  const label2 = text6 ? textBlock(text6, ROOT_TEXT, 220, 600) : n4.label;
-  const b = n4.box;
-  const cx = b.x + b.w / 2;
-  const cy = b.y + b.h / 2;
-  const note = n4.noteBox;
-  const textW = Math.max(label2.width, note?.w ?? 0);
-  const textH = label2.height + (note ? note.h + 2 : 0);
-  const stack = (left, top, middle) => {
-    n4.labelBox = {
-      x: r3(middle ? left + (textW - label2.width) / 2 : left),
-      y: r3(top),
-      w: r3(label2.width),
-      h: r3(label2.height)
-    };
-    if (note)
-      n4.noteBox = {
-        ...note,
-        x: r3(middle ? left + (textW - note.w) / 2 : left),
-        y: r3(top + label2.height + 2)
-      };
-  };
-  if (n4.look === "icon" && n4.iconBox) {
-    const size = Math.round(n4.iconBox.w * ROOT_ICON);
-    const ic = { x: n4.iconBox.x + n4.iconBox.w / 2, y: n4.iconBox.y + n4.iconBox.h / 2 };
-    const icon2 = { x: r3(ic.x - size / 2), y: r3(ic.y - size / 2), w: size, h: size };
-    n4.iconBox = icon2;
-    stack(ic.x - textW / 2, icon2.y + size + 6, true);
-    n4.box = horizontal ? { ...icon2 } : {
-      x: r3(ic.x - Math.max(size, textW) / 2),
-      y: icon2.y,
-      w: r3(Math.max(size, textW)),
-      h: r3(size + 6 + textH)
-    };
-  } else if (n4.look === "card") {
-    const iconW = n4.iconBox ? n4.iconBox.w + 12 : 0;
-    const w = Math.max(b.w, 20 + iconW + textW + 22);
-    const h = Math.max(b.h + 12, Math.max(textH, n4.iconBox?.h ?? 0) + 32);
-    n4.box = { x: r3(cx - w / 2), y: r3(cy - h / 2), w: r3(w), h: r3(h) };
-    if (n4.iconBox) n4.iconBox = { ...n4.iconBox, x: r3(n4.box.x + 20), y: r3(cy - n4.iconBox.h / 2) };
-    stack(n4.box.x + 20 + iconW, cy - textH / 2, false);
-  } else {
-    const iconW = n4.iconBox ? 28 : 0;
-    const w = Math.max(b.w + 24, textW + iconW + 48);
-    const h = Math.max(b.h + 12, textH + 34);
-    n4.box = { x: r3(cx - w / 2), y: r3(cy - h / 2), w: r3(w), h: r3(h) };
-    const left = cx - (textW + iconW) / 2;
-    if (n4.iconBox) n4.iconBox = { ...n4.iconBox, x: r3(left), y: r3(cy - n4.iconBox.h / 2) };
-    stack(left + iconW, cy - textH / 2, true);
-  }
-  n4.label = label2;
-  if (n4.badgeBox) {
-    const anchor2 = n4.look === "icon" && n4.iconBox ? n4.iconBox : n4.box;
-    const w = n4.badgeBox.w;
-    n4.badgeBox = {
-      ...n4.badgeBox,
-      x: r3(Math.max(anchor2.x + anchor2.w - w / 2 - 2, anchor2.x + anchor2.w / 2 + 6)),
-      y: r3(anchor2.y - 7)
-    };
-  }
-}
-function placeMindmap(ctx) {
-  const { model, horizontal } = ctx;
-  const s = model.spacing;
-  ctx.routing = "spline";
-  restoreEdges(ctx);
-  const before = snapshot(ctx);
-  const root = rootOf(ctx);
-  if (!root) return;
-  const h = hierarchy(ctx, true, root);
-  for (const n4 of ctx.nodes) {
-    const via = h.via.get(n4.id);
-    if (via) n4.via = via.id;
-  }
-  const rootNode = ctx.nodes.find((n4) => n4.id === root);
-  const rootModel = model.nodes.find((n4) => n4.id === root);
-  if (rootNode && rootModel) enlargeRoot(rootNode, rootModel.label, horizontal);
-  const m = new Map(ctx.nodes.map((n4) => [n4.id, measure3(n4, horizontal)]));
-  const sizes = /* @__PURE__ */ new Map();
-  for (const [child, e] of h.via) {
-    const size = labelSize(model.edges.find((x2) => x2.id === e.id));
-    if (size) sizes.set(child, size);
-  }
-  const f = frames(ctx, before);
-  const across3 = room(f, h, horizontal, 1);
-  const sibling = Math.round(12 * s);
-  const cousin = Math.round(20 * s);
-  const drop = Math.round(48 * s);
-  const gap2 = (d, a, b) => (d === 0 ? sibling : cousin) + across3.between(a, b);
-  const t = tidy(
-    h.kids,
-    (id) => {
-      const frame2 = f.chain(id);
-      return { ...m.get(id)?.across ?? { lo: 0, hi: 0 }, loIn: frame2, hiIn: frame2 };
-    },
-    gap2
-  );
-  const mind = { ctx, h, root, m, sizes, f, t, gap: gap2, cousin, drop };
-  const branches = [...h.kids.get(root) ?? [], ...h.roots.filter((id) => id !== root)];
-  const placed = placeHalves(mind, splitHalves(mind, branches));
-  for (const n4 of ctx.nodes) {
-    const sign = placed.sideOf.get(n4.id) ?? 1;
-    moveTo(n4, sign * (placed.at.get(n4.id) ?? 0), placed.cross.get(n4.id) ?? 0, horizontal);
-  }
-  refit(ctx, before);
-  const colorOf = paintBranches(ctx, h, branches);
-  drawBranches(mind, placed, colorOf);
-  routeRest(ctx, h, true);
-  clearHeaders(ctx);
-  settle(ctx);
-}
-function rootOf(ctx) {
-  const known2 = new Set(ctx.nodes.map((n4) => n4.id));
-  const into = new Set(
-    ctx.model.edges.filter((e) => e.from !== e.to && known2.has(e.from)).map((e) => e.to)
-  );
-  return ctx.nodes.find((n4) => !into.has(n4.id))?.id ?? ctx.nodes[0]?.id;
-}
-function splitHalves(mind, branches) {
-  const { ctx, t, cousin } = mind;
-  const model = ctx.model;
-  const first = model.direction === "left" || model.direction === "up" ? -1 : 1;
-  const halves = /* @__PURE__ */ new Map([
-    [first, []],
-    [-first, []]
-  ]);
-  const load3 = /* @__PURE__ */ new Map([
-    [first, 0],
-    [-first, 0]
-  ]);
-  for (const b of branches) {
-    const c = t.contour(b);
-    const span2 = Math.max(...c.map((x2) => x2.hi)) - Math.min(...c.map((x2) => x2.lo)) + cousin;
-    const side = (load3.get(first) ?? 0) <= (load3.get(-first) ?? 0) ? first : -first;
-    halves.get(side)?.push(b);
-    load3.set(side, (load3.get(side) ?? 0) + span2);
-  }
-  return halves;
-}
-function placeHalves(mind, halves) {
-  const { ctx, h, root, m, sizes, f, t, gap: gap2, drop } = mind;
-  const { model, horizontal } = ctx;
-  const s = model.spacing;
-  const cross = /* @__PURE__ */ new Map([[root, 0]]);
-  const at2 = /* @__PURE__ */ new Map([[root, 0]]);
-  const sideOf3 = /* @__PURE__ */ new Map();
-  const rm = m.get(root);
-  for (const [sign, list] of halves) {
-    if (!list.length || !rm) continue;
-    const pos = spread(
-      list.map((b) => t.contour(b)),
-      gap2
-    );
-    const mid = ((pos[0] ?? 0) + (pos[pos.length - 1] ?? 0)) / 2;
-    list.forEach((b, i) => {
-      t.place(b, (pos[i] ?? 0) - mid, cross);
-    });
-    const depth = /* @__PURE__ */ new Map();
-    const visit2 = (id, d) => {
-      sideOf3.set(id, sign);
-      depth.set(id, d);
-      for (const c of h.kids.get(id) ?? []) visit2(c, d + 1);
-    };
-    for (const b of list) visit2(b, 0);
-    const fr = room(f, h, horizontal, sign);
-    const need = (id) => {
-      const z = sizes.get(id);
-      const label2 = z ? (horizontal ? z.w : z.h) + 24 : 0;
-      const frame2 = fr.enter(id) + fr.leave(id);
-      return frame2 ? Math.max(drop, label2) + frame2 + LABEL_GAP : label2;
-    };
-    const lv = levels(
-      depths(ctx, (id) => depth.get(id)),
-      m,
-      sign,
-      {
-        start: grow3(rm.body, sign).hi + Math.max(Math.round(64 * s), ...list.map(need)),
-        align: "near",
-        stem: () => 0,
-        drop,
-        need
-      }
-    );
-    for (const [id, u] of lv.at) at2.set(id, u);
-  }
-  return { cross, at: at2, sideOf: sideOf3 };
-}
-function paintBranches(ctx, h, branches) {
-  const branchOf = /* @__PURE__ */ new Map();
-  const mark = (id, i) => {
-    branchOf.set(id, i);
-    for (const c of h.kids.get(id) ?? []) mark(c, i);
-  };
-  branches.forEach((b, i) => {
-    mark(b, i);
-  });
-  const colorOf = (id) => {
-    const i = branchOf.get(id);
-    return i === void 0 ? void 0 : BRANCH_COLORS[i % BRANCH_COLORS.length];
-  };
-  for (const n4 of ctx.nodes)
-    if (!ctx.model.nodes.find((x2) => x2.id === n4.id)?.color) n4.color = colorOf(n4.id) ?? n4.color;
-  return colorOf;
-}
-function drawBranches(mind, placed, colorOf) {
-  const { ctx, h, root, m, sizes } = mind;
-  const { model, horizontal } = ctx;
-  const { cross, at: at2, sideOf: sideOf3 } = placed;
-  for (const [child, e] of h.via) {
-    const parent = h.parent.get(child) ?? "";
-    const pm = m.get(parent);
-    const cm = m.get(child);
-    const sign = sideOf3.get(child) ?? 1;
-    if (!pm || !cm) continue;
-    const pu = (at2.get(parent) ?? 0) + pm.half;
-    const cu = (at2.get(child) ?? 0) - cm.half;
-    const pc = cross.get(parent) ?? 0;
-    const cc = cross.get(child) ?? 0;
-    const k = (cu - pu) / 2;
-    const pts = [
-      point2(sign * pu, pc, horizontal),
-      point2(sign * (pu + k), pc, horizontal),
-      point2(sign * (cu - k), cc, horizontal),
-      point2(sign * cu, cc, horizontal)
-    ];
-    e.points = e.from === child ? pts.reverse() : pts;
-    e.arrow = "none";
-    const me = model.edges.find((x2) => x2.id === e.id);
-    if (parent === root && e.line === "solid") e.line = "thick";
-    if (!me?.color) e.color = colorOf(child) ?? e.color;
-    const z = sizes.get(child);
-    if (z) setLabel(e, me, z, labelBoxAt(sign * ((pu + cu) / 2), (pc + cc) / 2, z, horizontal));
-  }
-}
-
-// src/layout/kinds/tree.ts
-function placeTree(ctx) {
-  const { model, horizontal } = ctx;
-  const s = model.spacing;
-  const sign = model.direction === "up" || model.direction === "left" ? -1 : 1;
-  restoreEdges(ctx);
-  const before = snapshot(ctx);
-  const h = hierarchy(ctx, false);
-  for (const n4 of ctx.nodes) {
-    const via = h.via.get(n4.id);
-    if (via) n4.via = via.id;
-  }
-  const m = new Map(ctx.nodes.map((n4) => [n4.id, measure3(n4, horizontal)]));
-  const sizes = /* @__PURE__ */ new Map();
-  for (const [child, e] of h.via) {
-    const size = labelSize(model.edges.find((x2) => x2.id === e.id));
-    if (size) sizes.set(child, size);
-  }
-  const along3 = (z) => horizontal ? z.w : z.h;
-  const fr = room(frames(ctx, before), h, horizontal, sign);
-  const extent2 = (id) => {
-    const a = m.get(id)?.across ?? { lo: 0, hi: 0 };
-    const z = sizes.get(id);
-    const half2 = z ? (horizontal ? z.h : z.w) / 2 + 4 : 0;
-    const frame2 = fr.chain(id);
-    return { lo: Math.min(a.lo, -half2), hi: Math.max(a.hi, half2), loIn: frame2, hiIn: frame2 };
-  };
-  const sibling = Math.round(28 * s);
-  const cousin = Math.round(44 * s);
-  const between = (a, b) => fr.between(a, b);
-  const t = tidy(h.kids, extent2, (d, a, b) => (d === 0 ? sibling : cousin) + between(a, b));
-  const offsets = spread(
-    h.roots.map((id) => t.contour(id)),
-    (_, a, b) => cousin + between(a, b)
-  );
-  const cross = /* @__PURE__ */ new Map();
-  h.roots.forEach((id, i) => {
-    t.place(id, offsets[i] ?? 0, cross);
-  });
-  const byDepth = depths(ctx, (id) => h.depth.get(id));
-  const stem = Math.round(26 * s);
-  const drop = Math.round(30 * s);
-  const leave = (d) => Math.max(0, ...(byDepth[d + 1] ?? []).map(fr.leave));
-  const lv = levels(byDepth, m, sign, {
-    start: 0,
-    // Rows of an org chart share their top line; columns of a sideways tree their center line.
-    align: horizontal ? "center" : "top",
-    stem: (d) => stem + leave(d),
-    drop,
-    need: (id) => {
-      const z = sizes.get(id);
-      const me = m.get(id);
-      const enter = fr.enter(id);
-      const poke = me ? grow3(me.body, sign).lo - grow3(me.foot, sign).lo : 0;
-      const label2 = z ? along3(z) + 2 * LABEL_GAP + poke : 0;
-      return enter ? Math.max(drop, label2) + enter + LABEL_GAP : label2;
-    }
-  });
-  for (const n4 of ctx.nodes)
-    moveTo(n4, sign * (lv.at.get(n4.id) ?? 0), cross.get(n4.id) ?? 0, horizontal);
-  refit(ctx, before);
-  for (const [child, e] of h.via) {
-    const parent = h.parent.get(child) ?? "";
-    const pm = m.get(parent);
-    const cm = m.get(child);
-    if (!pm || !cm) continue;
-    const pu = lv.at.get(parent) ?? 0;
-    const cu = lv.at.get(child) ?? 0;
-    const pc = cross.get(parent) ?? 0;
-    const off = (cross.get(child) ?? 0) - pc;
-    const cc = Math.abs(off) < Math.min(12, cm.wide - 6) ? pc : pc + off;
-    const bar = lv.bars[h.depth.get(parent) ?? 0] ?? pu;
-    e.points = tidyPoints([
-      point2(sign * (pu + pm.half), pc, horizontal),
-      point2(sign * bar, pc, horizontal),
-      point2(sign * bar, cc, horizontal),
-      point2(sign * (cu - cm.half), cc, horizontal)
-    ]);
-    e.arrow = "none";
-    const z = sizes.get(child);
-    if (z) {
-      const next = (lv.starts[h.depth.get(child) ?? 0] ?? cu) - fr.enter(child);
-      const at2 = fr.enter(child) ? next - LABEL_GAP : next;
-      const me = model.edges.find((x2) => x2.id === e.id);
-      setLabel(e, me, z, labelBoxAt(sign * ((bar + at2) / 2), cc, z, horizontal));
-    }
-  }
-  routeRest(ctx, h, ctx.routing === "spline");
-  clearHeaders(ctx);
-  settle(ctx);
-}
-
-// src/layout/kinds/index.ts
-var kindHooks = {
-  elkOptions(model) {
-    if (model.kind === "tree") return { "elk.nodeSize.fixedGraphSize": "true" };
-    if (model.kind === "mindmap")
-      return { "elk.nodeSize.fixedGraphSize": "true", "elk.edgeRouting": "SPLINES" };
-    if (model.kind === "state") return { "elk.layered.edgeRouting.selfLoopDistribution": "NORTH" };
-    return {};
-  },
-  after(ctx) {
-    if (ctx.model.kind === "tree") placeTree(ctx);
-    else if (ctx.model.kind === "mindmap") placeMindmap(ctx);
-    else if (ctx.model.kind === "state") {
-      restoreEdges(ctx, (e) => e.from === e.to);
-      selfLoops(ctx, false);
-    }
-  }
-};
 
 // src/styles.ts
 var AWS_DECK = "AWS Architecture Icons deck 2026-07-31, Groups slide";
@@ -13934,6 +12709,2066 @@ function serviceGroupStroke(type, icon2) {
   return info?.pack === "aws" ? AWS_CATEGORY_COLORS[info.category] : void 0;
 }
 
+// src/layout/relations.ts
+function relations(model, plan, hidden, opts) {
+  const groupIds = new Set(model.groups.map((g) => g.id));
+  const overlays = new Map(
+    model.groups.filter((g) => g.around?.length).map((g) => [g.id, g.around ?? []])
+  );
+  const parentOf = new Map([...model.groups, ...model.nodes].map((x2) => [x2.id, x2.parent]));
+  const above = (id) => {
+    const out = [];
+    for (let p = parentOf.get(id); p; p = parentOf.get(p)) out.push(p);
+    return out;
+  };
+  const lowest = (a, b) => {
+    const up = /* @__PURE__ */ new Set([a, ...above(a)]);
+    return [b, ...above(b)].find((g) => up.has(g) && groupIds.has(g));
+  };
+  const cellOf = (id) => id === void 0 ? void 0 : [id, ...above(id)].find((g) => groupIds.has(g) && plan.grids.has(parentOf.get(g) ?? ""));
+  const gridBetween = (e) => {
+    if (!plan.grids.size) return false;
+    const l = lowest(e.from, e.to);
+    if (l && plan.grids.has(l)) return true;
+    return [e.from, e.to].some((id) => {
+      if (id === l) return false;
+      for (const g of above(id)) {
+        if (g === l) return false;
+        if (plan.grids.has(g)) return true;
+      }
+      return false;
+    });
+  };
+  const inBlock = (e) => {
+    const b = plan.blockOf.get(e.from);
+    return b !== void 0 && b === plan.blockOf.get(e.to);
+  };
+  const seated = (e) => plan.seats.has(e.from) || plan.seats.has(e.to);
+  const free = (e) => !e.constraint || overlays.has(e.from) || overlays.has(e.to) || hidden.has(e.from) || hidden.has(e.to) || inBlock(e) || gridBetween(e) || seated(e) || !!opts.loose?.has(e.id);
+  const rep = (id) => [id, ...above(id)].filter((g) => plan.grids.has(g)).at(-1) ?? id;
+  const inside4 = (id) => [...model.nodes, ...model.groups].filter((x2) => x2.parent === id).flatMap((x2) => hidden.has(x2.id) ? inside4(x2.id) : [x2.id]);
+  const members = (id) => (overlays.get(id) ?? (hidden.has(id) ? inside4(id) : [id])).filter((m) => !overlays.has(m));
+  return {
+    groupIds,
+    overlays,
+    parentOf,
+    above,
+    lowest,
+    cellOf,
+    gridBetween,
+    inBlock,
+    seated,
+    free,
+    rep,
+    inside: inside4,
+    members
+  };
+}
+var depthOf = (model, id) => {
+  let d = 0;
+  let p = id;
+  while (p) {
+    d += 1;
+    p = model.groups.find((g) => g.id === p)?.parent;
+  }
+  return d;
+};
+function loopedEdges(model) {
+  const next = /* @__PURE__ */ new Map();
+  for (const e of model.edges) next.set(e.from, [...next.get(e.from) ?? [], e.to]);
+  const index2 = /* @__PURE__ */ new Map();
+  const low = /* @__PURE__ */ new Map();
+  const comp = /* @__PURE__ */ new Map();
+  const stack = [];
+  let count = 0;
+  for (const root of next.keys()) {
+    if (index2.has(root)) continue;
+    const walk = [[root, 0]];
+    index2.set(root, count);
+    low.set(root, count++);
+    stack.push(root);
+    while (walk.length) {
+      const top = walk[walk.length - 1];
+      const [v, i] = top;
+      const w = next.get(v)?.[i];
+      if (w !== void 0) {
+        top[1]++;
+        if (!index2.has(w)) {
+          index2.set(w, count);
+          low.set(w, count++);
+          stack.push(w);
+          walk.push([w, 0]);
+        } else if (!comp.has(w)) low.set(v, Math.min(low.get(v) ?? 0, index2.get(w) ?? 0));
+        continue;
+      }
+      walk.pop();
+      const parent = walk[walk.length - 1]?.[0];
+      if (parent !== void 0) low.set(parent, Math.min(low.get(parent) ?? 0, low.get(v) ?? 0));
+      if (low.get(v) !== index2.get(v)) continue;
+      for (let x2 = stack.pop(); x2 !== void 0; x2 = stack.pop()) {
+        comp.set(x2, index2.get(v) ?? 0);
+        if (x2 === v) break;
+      }
+    }
+  }
+  return new Set(
+    model.edges.filter((e) => e.from === e.to || comp.get(e.from) === comp.get(e.to)).map((e) => e.id)
+  );
+}
+
+// src/layout/groups.ts
+function paintGroup(ctx, grp, box2, overlay) {
+  const { model, theme, tokens: t, groupGeom, headerRoom } = ctx;
+  const gg = groupGeom.get(grp.id);
+  const style3 = resolveGroupStyle(grp.type);
+  if (!gg || !style3) return void 0;
+  const { stroke: stroke3, fill: fill2, labelColor } = groupColors(grp, style3, theme, t, overlay, gg.icon);
+  const { iconBox, labelX, labelY } = headerAt(gg, box2, overlay);
+  const cornerTile = !overlay && gg.iconStyle === "tile" && !!iconBox;
+  const inset = overlay ? 10 : 12;
+  headerRoom.set(grp.id, {
+    moveIcon: !!iconBox && !cornerTile,
+    lo: cornerTile ? box2.x + SIZES.tile + 8 : box2.x + inset,
+    hi: box2.x + box2.w - inset
+  });
+  const innerFill = !overlay && style3.innerFill ? theme === "dark" ? mixHex(style3.innerFill, t.background, 0.06) : style3.innerFill : void 0;
+  const headerH = gg.header + 4;
+  const inner = innerFill ? {
+    box: {
+      x: round2(box2.x + 8),
+      y: round2(box2.y + headerH),
+      w: round2(box2.w - 16),
+      h: round2(box2.h - headerH - 8)
+    },
+    fill: innerFill
+  } : void 0;
+  return {
+    inner,
+    id: grp.id,
+    type: grp.type,
+    box: box2,
+    depth: overlay ? 1e3 : depthOf(model, grp.parent),
+    label: gg.label,
+    labelBox: {
+      x: round2(labelX),
+      y: round2(labelY),
+      w: round2(gg.label.width),
+      h: round2(gg.label.height)
+    },
+    iconBox,
+    icon: gg.icon,
+    stroke: stroke3,
+    fill: fill2,
+    labelColor,
+    dash: grp.dashed === false ? void 0 : style3.dash ?? (grp.dashed ? "6 4" : void 0),
+    strokeWidth: style3.strokeWidth,
+    radius: style3.rounded,
+    parent: overlay ? void 0 : grp.parent,
+    overlay: overlay || void 0
+  };
+}
+function groupColors(grp, style3, theme, t, overlay, icon2) {
+  const strokeBase = grp.color ?? serviceGroupStroke(grp.type, icon2) ?? style3.stroke;
+  let stroke3 = strokeBase;
+  let fill2 = grp.fill === "none" ? "none" : grp.fill ?? style3.fill ?? "none";
+  if (overlay) fill2 = "none";
+  const ink = style3.labelColor === "ink" || !style3.labelColor;
+  let labelColor = grp.color ?? (ink ? t.text : style3.labelColor ?? t.text);
+  if (theme === "dark") {
+    if (luminance(strokeBase) < 0.04) stroke3 = "#c9d1d9";
+    else if (contrast(strokeBase, t.background) < 2) stroke3 = mixHex(strokeBase, "#ffffff", 0.55);
+    if (fill2 !== "none") fill2 = mixHex(fill2, t.background, 0.14);
+    if (!grp.color && !ink && luminance(style3.labelColor ?? "#000000") < 0.04) labelColor = t.text;
+  }
+  labelColor = ensureContrast(labelColor, fill2 === "none" ? t.background : fill2, 4.5);
+  return { stroke: stroke3, fill: fill2, labelColor };
+}
+function headerAt(gg, box2, overlay) {
+  const L = gg.label;
+  let iconBox;
+  let labelX;
+  let labelY;
+  if (overlay && gg.iconStyle === "tile-center" && gg.icon) {
+    iconBox = {
+      x: box2.x + (box2.w - SIZES.tile) / 2,
+      y: box2.y - SIZES.tile / 2,
+      w: SIZES.tile,
+      h: SIZES.tile
+    };
+    labelX = box2.x + (box2.w - L.width) / 2;
+    labelY = iconBox.y + SIZES.tile + 3;
+  } else if (overlay) {
+    iconBox = gg.icon ? { x: box2.x + 10, y: box2.y - 8, w: 16, h: 16 } : void 0;
+    labelX = iconBox ? iconBox.x + iconBox.w + 5 : box2.x + 12;
+    labelY = box2.y - L.height / 2;
+  } else if (gg.iconStyle === "tile-center") {
+    iconBox = gg.icon ? {
+      x: box2.x + (box2.w - SIZES.tile) / 2,
+      y: box2.y,
+      w: SIZES.tile,
+      h: SIZES.tile
+    } : void 0;
+    labelX = box2.x + (box2.w - L.width) / 2;
+    labelY = box2.y + (gg.icon ? SIZES.tile + 3 : 6);
+  } else if (gg.iconStyle === "tile") {
+    iconBox = gg.icon ? { x: box2.x, y: box2.y, w: SIZES.tile, h: SIZES.tile } : void 0;
+    labelX = gg.center ? box2.x + (box2.w - L.width) / 2 : iconBox ? box2.x + SIZES.tile + 8 : box2.x + 12;
+    labelY = iconBox ? box2.y + Math.max(6, (SIZES.tile - L.height) / 2) : box2.y + 6;
+  } else {
+    iconBox = gg.icon ? {
+      x: box2.x + 12,
+      y: box2.y + 9,
+      w: SIZES.inlineIcon,
+      h: SIZES.inlineIcon
+    } : void 0;
+    labelX = gg.center && !iconBox ? box2.x + (box2.w - L.width) / 2 : iconBox ? iconBox.x + iconBox.w + 8 : box2.x + 12;
+    labelY = box2.y + 10;
+  }
+  return { iconBox, labelX, labelY };
+}
+function headerText(g) {
+  const b = g.labelBox;
+  if (!g.label.lines.length) return b;
+  const room2 = Math.max(b.w, g.box.x + g.box.w - b.x - 10);
+  const chars2 = g.label.lines.map((l) => [...l].length);
+  const fit = (room2 + 11 * 0.1) / (Math.max(1, ...chars2) * 0.7);
+  const size = Math.max(8.5, Math.floor(Math.min(11, fit) * 4) / 4);
+  return { ...b, w: Math.max(b.w, ...chars2.map((c) => c ? size * (c * 0.7 - 0.1) : 0)) };
+}
+var HEADER_SLACK = 4;
+function clearHeader(g, room2, groups, nodes, edges) {
+  const icon2 = room2.moveIcon ? g.iconBox : void 0;
+  const u = union2([headerText(g), icon2]);
+  const chip2 = { x: u.x - 6, y: u.y - 1, w: u.w + 12, h: u.h + 2 };
+  const inBand = (b) => b.y < chip2.y + chip2.h - 0.5 && b.y + b.h > chip2.y + 0.5;
+  const hit = (b, dx2) => b.x < chip2.x + dx2 + chip2.w - 0.01 && b.x + b.w > chip2.x + dx2 + 0.01;
+  const segments3 = edges.flatMap((e) => e.points.slice(1).map((q2, i) => segmentBox(e.points[i] ?? q2, q2))).filter(inBand);
+  const others = [
+    ...segments3,
+    ...nodes.flatMap((n4) => [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox]),
+    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
+    ...groups.filter((o) => o !== g).flatMap((o) => [headerText(o), o.iconBox])
+  ].filter((b) => !!b && inBand(b));
+  if (!(g.overlay ? others : segments3).some((b) => hit(b, 0))) return true;
+  const min = room2.lo - u.x;
+  const max = room2.hi - (u.x + u.w);
+  const spot = (lo, hi) => others.flatMap((b) => [b.x - (chip2.x + chip2.w), b.x + b.w - chip2.x]).filter((d) => d >= lo - 0.01 && d <= hi + 0.01 && !others.some((b) => hit(b, d))).sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)[0];
+  const slide2 = (dx2) => {
+    g.labelBox.x = round2(g.labelBox.x + dx2);
+    if (icon2) icon2.x = round2(icon2.x + dx2);
+  };
+  const dx = spot(min, max);
+  if (dx !== void 0) {
+    slide2(dx);
+    return true;
+  }
+  const near2 = spot(min - HEADER_SLACK, max + HEADER_SLACK);
+  if (near2 !== void 0) slide2(near2);
+  return false;
+}
+
+// src/layout/labels.ts
+function placeFreeLabels(ctx) {
+  const { model, opts, nodes, groups, edges, headers, rerouted, rel: rel2 } = ctx;
+  const footprints = nodes.map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox]));
+  for (const e of model.edges) {
+    const edge3 = edges.find((x2) => x2.id === e.id);
+    if (!(rel2.free(e) || rerouted.has(e.id)) || !edge3 || !e.label && e.step === void 0)
+      continue;
+    const block3 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
+    const w = Math.ceil((e.label ? block3.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
+    const h = Math.ceil(Math.max(e.label ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
+    const fresh = rel2.inBlock(e) || rel2.gridBetween(e) || rel2.seated(e) || rerouted.has(e.id) || !!opts.loose?.has(e.id);
+    const avoid = [
+      ...footprints,
+      ...edges.flatMap((x2) => [x2.labelBox, x2.stepBox]),
+      ...groups.map(headerText),
+      ...fresh ? nodes.map((n4) => n4.badgeBox) : [],
+      ...fresh ? groups.flatMap((g) => [
+        { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
+        { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
+        { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
+        { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
+      ]) : []
+    ];
+    const frames2 = groups.flatMap((g) => [
+      { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
+      { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
+      { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
+      { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
+    ]);
+    const lines2 = edges.filter((x2) => x2 !== edge3).map((x2) => x2.points);
+    const search2 = () => labelSpot(
+      edge3.points,
+      w,
+      h,
+      [
+        ...avoid.filter((b) => !!b),
+        ...fresh ? [] : frames2,
+        ...headers.map((x2) => x2.box),
+        ...groups.flatMap((g) => g.iconBox ? [g.iconBox] : [])
+      ],
+      lines2
+    );
+    const usual = fresh ? void 0 : freeLabelBox(edge3.points, w, h, avoid);
+    const inside4 = (v, lo, len2) => v > lo + 1 && v < lo + len2 - 1;
+    const spans2 = (lo, len2, a, alen) => lo < a + alen && a < lo + len2;
+    const crossed = (at2) => {
+      if (!e.label) return false;
+      const b = { ...at2, x: at2.x + stepW + (stepW ? 2 : 0), w: w - stepW - (stepW ? 2 : 0) };
+      return lines2.some((pts) => segmentsOf(pts).some(([p, q2]) => segmentHits(p, q2, b, 0.5))) || groups.some(
+        ({ box: r6 }) => (inside4(r6.y, b.y, b.h) || inside4(r6.y + r6.h, b.y, b.h)) && spans2(r6.x, r6.w, b.x, b.w) || (inside4(r6.x, b.x, b.w) || inside4(r6.x + r6.w, b.x, b.w)) && spans2(r6.y, r6.h, b.y, b.h)
+      );
+    };
+    const box2 = (usual && !crossed(usual) ? usual : search2()) ?? usual ?? freeLabelBox(edge3.points, w, h, avoid);
+    if (e.step !== void 0)
+      edge3.stepBox = {
+        x: box2.x,
+        y: round2(box2.y + (h - SIZES.step) / 2),
+        w: SIZES.step,
+        h: SIZES.step
+      };
+    if (e.label) {
+      edge3.label = block3;
+      edge3.labelBox = {
+        x: round2(box2.x + stepW + (stepW ? 2 : 0)),
+        y: box2.y,
+        w: round2(w - stepW - (stepW ? 2 : 0)),
+        h
+      };
+    }
+  }
+}
+function labelSpot(points, w, h, avoid, lines2) {
+  const stroke3 = ([p, q2]) => ({
+    x: Math.min(p.x, q2.x) - 1,
+    y: Math.min(p.y, q2.y) - 1,
+    w: Math.abs(q2.x - p.x) + 2,
+    h: Math.abs(q2.y - p.y) + 2
+  });
+  const tips = (pts) => [pts[0], pts.at(-1)].flatMap((p) => p ? [{ x: p.x - 6, y: p.y - 6, w: 12, h: 12 }] : []);
+  const walls = [
+    ...avoid,
+    ...[...lines2, points].flatMap((pts) => [...segmentsOf(pts).map(stroke3), ...tips(pts)])
+  ];
+  const runs2 = segmentsOf(points).filter(([p, q2]) => Math.abs(p.x - q2.x) + Math.abs(p.y - q2.y) > 1).sort(([a, b], [c, d]) => Math.hypot(d.x - c.x, d.y - c.y) - Math.hypot(b.x - a.x, b.y - a.y));
+  for (const [p, q2] of runs2)
+    for (const f of [0.5, 1 / 3, 2 / 3]) {
+      const x2 = p.x + (q2.x - p.x) * f;
+      const y = p.y + (q2.y - p.y) * f;
+      const level2 = Math.abs(p.y - q2.y) < 0.5;
+      const spots = level2 ? [
+        { x: x2 - w / 2, y: y - h - 3, w, h },
+        { x: x2 - w / 2, y: y + 3, w, h }
+      ] : [
+        { x: x2 + 6, y: y - h / 2, w, h },
+        { x: x2 - 6 - w, y: y - h / 2, w, h }
+      ];
+      const spot = spots.find((b) => !walls.some((o) => meet(b, o)));
+      if (spot) return { x: round2(spot.x), y: round2(spot.y), w, h };
+    }
+  return void 0;
+}
+function freeLabelBox(points, w, h, avoid) {
+  const runs2 = points.slice(1).map((q3, i) => [points[i] ?? q3, q3]).filter(([p2, q3]) => Math.abs(p2.x - q3.x) < 0.5 && Math.abs(p2.y - q3.y) > 0.5).sort(([a, b], [c, d]) => Math.abs(d.y - c.y) - Math.abs(b.y - a.y));
+  const inside4 = (b) => ({
+    ...b,
+    x: round2(Math.max(0, b.x)),
+    y: round2(Math.max(0, b.y))
+  });
+  const clear2 = (b) => !avoid.some((o) => o && overlaps2(b, o));
+  const pick2 = (first, second) => clear2(first) || !clear2(second) ? first : second;
+  const run3 = runs2[0];
+  if (!run3) {
+    const mid = midpoint(points);
+    const above = inside4({ x: mid.x - w / 2, y: mid.y - h - 3, w, h });
+    return pick2(above, inside4({ ...above, y: mid.y + 3 }));
+  }
+  const [p, q2] = run3;
+  const y = (p.y + q2.y) / 2 - h / 2;
+  return pick2(inside4({ x: p.x + 6, y, w, h }), inside4({ x: p.x - 6 - w, y, w, h }));
+}
+
+// src/layout/bends.ts
+var TITLE_BAND2 = 28;
+var SKIM = 10;
+var BESIDE = 12;
+var BESIDE_ALONG = 48;
+var bendsOf = (points) => Math.max(0, dropStraightPoints(points).length - 2);
+var real2 = (b) => !!b && b.w > 0 && b.h > 0;
+var grow2 = (b, d) => ({
+  x: b.x - d,
+  y: b.y - d,
+  w: b.w + 2 * d,
+  h: b.h + 2 * d
+});
+var orthogonal = (points) => segmentsOf(points).every(([p, q2]) => Math.abs(p.x - q2.x) < 0.5 || Math.abs(p.y - q2.y) < 0.5);
+var lengthOf = (points) => segmentsOf(points).reduce((s, [p, q2]) => s + Math.abs(q2.x - p.x) + Math.abs(q2.y - p.y), 0);
+function itemOf(view, id) {
+  const nd = view.nodes.find((n4) => n4.id === id);
+  if (nd) return nd.bpmn ? void 0 : nd;
+  const g = view.groups.find((x2) => x2.id === id);
+  return g && !g.overlay && !g.lane ? g : void 0;
+}
+var holds = (outer, inner) => inner.x >= outer.x - 0.5 && inner.y >= outer.y - 0.5 && inner.x + inner.w <= outer.x + outer.w + 0.5 && inner.y + inner.h <= outer.y + outer.h + 0.5;
+function searchable(view, e, skip2) {
+  if (e.from === e.to || skip2?.has(e.from) || skip2?.has(e.to)) return false;
+  const a = itemOf(view, e.from);
+  const b = itemOf(view, e.to);
+  if (!a || !b || holds(a.box, b.box) || holds(b.box, a.box)) return false;
+  return orthogonal(e.points);
+}
+function sharesEnd(view, e) {
+  const endsAt = (x2) => [
+    [x2.from, x2.points[0]],
+    [x2.to, x2.points.at(-1)]
+  ];
+  const icon2 = (id) => view.nodes.some((n4) => n4.id === id && n4.look === "icon");
+  return endsAt(e).some(
+    ([id, p]) => !!p && !icon2(id) && view.edges.some(
+      (o) => o !== e && endsAt(o).some(
+        ([oid, q2]) => oid === id && !!q2 && Math.abs(q2.x - p.x) < 0.5 && Math.abs(q2.y - p.y) < 0.5
+      )
+    )
+  );
+}
+function simplerRoute(view, e, tag, repair = false) {
+  const a = itemOf(view, e.from);
+  const b = itemOf(view, e.to);
+  if (!a || !b) return void 0;
+  const now = bendsOf(e.points);
+  if (!repair && !now) return void 0;
+  const heads = {
+    start: e.arrow === "start" || e.arrow === "both",
+    end: e.arrow === "end" || e.arrow === "both"
+  };
+  const found = candidates(a, b, e, repair ? 3 : now, heads, linesOf(view)).map((points) => ({ points, bends: bendsOf(points), cost: costOf(points, a, b) })).filter((c) => repair || c.bends < now).sort((x2, y) => x2.bends - y.bends || x2.cost - y.cost);
+  if (!found.length) return void 0;
+  const test = tester(view, e, a, b, tag);
+  for (const c of found) {
+    const spot = test(c.points);
+    if (spot) return { points: c.points, bends: c.bends, ...spot === true ? {} : { tag: spot } };
+  }
+  return void 0;
+}
+function costOf(points, a, b) {
+  const off = (it, p) => {
+    const t = faceBox(it);
+    if (!p || !("look" in it)) return 0;
+    const dx = Math.abs(p.x - (t.x + t.w / 2));
+    const dy = Math.abs(p.y - (t.y + t.h / 2));
+    const onLevel = Math.abs(p.y - t.y) < 0.5 || p.y >= t.y + t.h - 0.5;
+    return onLevel ? dx : dy;
+  };
+  return 4 * (off(a, points[0]) + off(b, points.at(-1))) + lengthOf(points);
+}
+function linesOf(view) {
+  return [
+    ...view.groups.filter((g) => !g.overlay && !g.lane).map((g) => g.box),
+    ...view.nodes.map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox]))
+  ];
+}
+function channels(boxes, upright2, s, t, lo, hi) {
+  const [a, b] = [Math.min(s, t), Math.max(s, t)];
+  const at2 = boxes.filter((r6) => upright2 ? r6.y < hi && r6.y + r6.h > lo : r6.x < hi && r6.x + r6.w > lo).flatMap((r6) => upright2 ? [r6.x, r6.x + r6.w] : [r6.y, r6.y + r6.h]).filter((v) => v > a && v < b).sort((m, n4) => m - n4);
+  const cut = [a, ...at2, b];
+  return cut.slice(1).flatMap((v, i) => {
+    const u = cut[i] ?? v;
+    return v - u >= 32 ? [(u + v) / 2] : [];
+  });
+}
+function positions(it, face2, toward, was) {
+  const [lo, hi] = window(face2);
+  if (hi < lo) return [];
+  const c = (face2.lo + face2.hi) / 2;
+  const clamp = (v) => Math.min(hi, Math.max(lo, v));
+  const group2 = !("look" in it);
+  const list = group2 ? [was, clamp(toward), c] : [c, c - ENDS.pitch, c + ENDS.pitch, was];
+  return [
+    ...new Set(
+      list.filter((v) => v !== void 0 && v >= lo - 0.01 && v <= hi + 0.01).map(round2)
+    )
+  ];
+}
+function candidates(a, b, e, now, heads, lines2) {
+  const fa = facesOf(a);
+  const fb = facesOf(b);
+  const ta = faceBox(a);
+  const tb = faceBox(b);
+  const center4 = (t) => ({ x: t.x + t.w / 2, y: t.y + t.h / 2 });
+  const ca = center4(ta);
+  const cb = center4(tb);
+  const first = e.points[0];
+  const last = e.points.at(-1);
+  const runA = heads.start ? HEAD_ROOM : 8;
+  const runB = heads.end ? HEAD_ROOM : 8;
+  const was = (f, p) => {
+    if (!p) return void 0;
+    const at2 = level(f.side) ? p.y : p.x;
+    return Math.abs(at2 - f.line) < 0.5 ? level(f.side) ? p.x : p.y : void 0;
+  };
+  const posA = (s) => positions(a, fa[s], level(s) ? cb.x : cb.y, was(fa[s], first));
+  const posB = (s) => positions(b, fb[s], level(s) ? ca.x : ca.y, was(fb[s], last));
+  const pt2 = (x2, y) => ({ x: round2(x2), y: round2(y) });
+  const out = [];
+  const clears = (v, f, run3) => (v - f.line) * outward(f.side) >= run3;
+  for (const [sa, sb] of [
+    ["right", "left"],
+    ["left", "right"],
+    ["bottom", "top"],
+    ["top", "bottom"]
+  ]) {
+    const A2 = fa[sa];
+    const B = fb[sb];
+    if (!clears(B.line, A2, Math.max(runA, runB))) continue;
+    const [a0, a1] = window(A2);
+    const [b0, b1] = window(B);
+    const lo = Math.max(a0, b0);
+    const hi = Math.min(a1, b1);
+    if (hi < lo) continue;
+    const mid = level(sa) ? (ca.x + cb.x) / 2 : (ca.y + cb.y) / 2;
+    const at2 = Math.min(hi, Math.max(lo, mid));
+    for (const v of new Set([at2, at2 - ENDS.pitch, at2 + ENDS.pitch].map(round2)))
+      if (v >= lo - 0.01 && v <= hi + 0.01)
+        out.push(level(sa) ? [pt2(v, A2.line), pt2(v, B.line)] : [pt2(A2.line, v), pt2(B.line, v)]);
+  }
+  if (now < 2) return out;
+  for (const sa of ["left", "right", "top", "bottom"]) {
+    const A2 = fa[sa];
+    const across3 = level(sa) ? ["left", "right"] : ["top", "bottom"];
+    for (const sb of across3) {
+      const B = fb[sb];
+      for (const u of posA(sa))
+        for (const v of posB(sb)) {
+          if (!clears(v, A2, runA)) continue;
+          if ((u - B.line) * outward(sb) < runB) continue;
+          out.push(
+            level(sa) ? [pt2(u, A2.line), pt2(u, v), pt2(B.line, v)] : [pt2(A2.line, u), pt2(v, u), pt2(v, B.line)]
+          );
+        }
+    }
+  }
+  if (now < 3) return out;
+  for (const sa of ["left", "right", "top", "bottom"]) {
+    const A2 = fa[sa];
+    const pair = level(sa) ? ["top", "bottom"] : ["left", "right"];
+    for (const sb of pair) {
+      const B = fb[sb];
+      const facing = outward(sa) !== outward(sb);
+      const s = A2.line;
+      const t = B.line;
+      const risers2 = facing ? [
+        s + (t - s) * 0.45,
+        (s + t) / 2,
+        s + 24 * Math.sign(t - s),
+        t - 24 * Math.sign(t - s),
+        ...level(sa) ? channels(lines2, false, s, t, Math.min(ca.x, cb.x), Math.max(ca.x, cb.x)) : channels(lines2, true, s, t, Math.min(ca.y, cb.y), Math.max(ca.y, cb.y))
+      ] : [0, 12].map(
+        (d) => (outward(sa) > 0 ? Math.max(s, t) : Math.min(s, t)) + outward(sa) * (24 + d)
+      );
+      for (const m of risers2) {
+        if (!clears(m, A2, runA) || !clears(m, B, runB)) continue;
+        for (const u of posA(sa))
+          for (const v of posB(sb)) {
+            if (Math.abs(u - v) < 1) continue;
+            out.push(
+              level(sa) ? [pt2(u, s), pt2(u, m), pt2(v, m), pt2(v, t)] : [pt2(s, u), pt2(m, u), pt2(m, v), pt2(t, v)]
+            );
+          }
+      }
+    }
+  }
+  return out;
+}
+function probe(view, e, ref = e.points) {
+  const a = itemOf(view, e.from);
+  const b = itemOf(view, e.to);
+  return a && b ? prober(view, e, a, b, ref) : void 0;
+}
+function counters(view, e, a, b, ref) {
+  const ends3 = /* @__PURE__ */ new Set([e.from, e.to]);
+  const others = view.edges.filter((o) => o !== e);
+  const related2 = (o) => ends3.has(o.from) || ends3.has(o.to);
+  const own = [a, b].flatMap(
+    (it) => "look" in it ? [faceBox(it), it.label.lines.length ? it.labelBox : void 0, it.noteBox].filter(real2) : [it.box]
+  );
+  const strangers = view.nodes.filter((n4) => !ends3.has(n4.id));
+  const walls = [
+    ...strangers.flatMap((n4) => [
+      grow2(n4.box, SKIM),
+      grow2(union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox].filter(real2)), 4)
+    ]),
+    ...view.nodes.flatMap((n4) => real2(n4.badgeBox) ? [grow2(n4.badgeBox, 2)] : []),
+    ...others.flatMap((o) => [o.labelBox, o.stepBox].filter(real2).map((x2) => grow2(x2, 2))),
+    ...view.groups.flatMap(
+      (g) => [g.label.lines.length ? headerText(g) : void 0, g.iconBox].filter(real2).map((x2) => ({ x: x2.x - 4, y: x2.y - 1, w: x2.w + 8, h: x2.h + 2 }))
+    )
+  ];
+  const hard = [
+    ...strangers.flatMap((n4) => [
+      [n4.box, 3],
+      ...[n4.labelBox, n4.noteBox].filter(real2).map((x2) => [x2, 1])
+    ]),
+    ...others.flatMap(
+      (o) => [o.labelBox, o.stepBox].filter(real2).map((x2) => [x2, 0.5])
+    )
+  ];
+  const frames2 = view.groups.filter((g) => !g.overlay && !g.lane);
+  const borders = frames2.map((g) => g.box);
+  const titles2 = frames2.filter((g) => g.label.lines.length).map(headerText);
+  const counted = frames2.filter((g) => !ends3.has(g.id));
+  const crossedBefore = counted.map((g) => borderCrossings(ref, g.box));
+  const index2 = indexLines(others, related2);
+  const hardRow = rowOf(hard);
+  const wallRow = rowOf(walls.map((w) => [w, 0]));
+  const hits5 = (row, segs2) => segs2.filter(([p, q2]) => hitsRow(row, p, q2)).length;
+  return {
+    own: (_, segs2) => segs2.filter(([p, q2]) => own.some((w) => segmentHits(p, q2, w, 1))).length,
+    walls: (_, segs2) => hits5(wallRow, segs2),
+    hard: (_, segs2) => hits5(hardRow, segs2),
+    lines: (_, segs2) => linesHit(segs2, index2),
+    frames: (points) => (clearOfFrames(points, borders, titles2) ? 0 : 1) + (alongBorder(points, borders) ? 1 : 0),
+    headers: (points) => crossedHeaders(view, points).length,
+    borders: (points) => counted.reduce(
+      (n4, g, i) => n4 + Math.max(0, borderCrossings(points, g.box) - (crossedBefore[i] ?? 0)),
+      0
+    ),
+    crossings: (_, segs2) => crossings2(segs2, index2)
+  };
+}
+function prober(view, e, a, b, ref = e.points) {
+  const count = counters(view, e, a, b, ref);
+  return (points) => {
+    const segs2 = segmentsOf(points);
+    return {
+      hard: count.hard(points, segs2),
+      headers: count.headers(points, segs2),
+      own: count.own(points, segs2),
+      walls: count.walls(points, segs2),
+      frames: count.frames(points, segs2),
+      borders: count.borders(points, segs2),
+      lines: count.lines(points, segs2),
+      crossings: count.crossings(points, segs2)
+    };
+  };
+}
+function rowOf(boxes) {
+  return {
+    boxes: [...boxes].sort((m, n4) => m[0].x - n4[0].x),
+    widest: Math.max(0, ...boxes.map(([b]) => b.w))
+  };
+}
+function hitsRow(row, p, q2) {
+  const x0 = Math.min(p.x, q2.x);
+  const x1 = Math.max(p.x, q2.x);
+  const y0 = Math.min(p.y, q2.y);
+  const y1 = Math.max(p.y, q2.y);
+  const { boxes } = row;
+  let lo = 0;
+  let hi = boxes.length;
+  while (lo < hi) {
+    const mid = lo + hi >> 1;
+    if (boxes[mid][0].x < x0 - row.widest) lo = mid + 1;
+    else hi = mid;
+  }
+  for (let k = lo; k < boxes.length; k++) {
+    const [b, inset] = boxes[k];
+    if (b.x > x1) break;
+    if (b.x + b.w < x0 || b.y > y1 || b.y + b.h < y0) continue;
+    if (segmentHits(p, q2, b, inset)) return true;
+  }
+  return false;
+}
+function indexLines(others, related2) {
+  const index2 = { upright: [], flat: [], level: [], steep: [] };
+  let i = 0;
+  for (const o of others) {
+    const free = !related2(o);
+    for (const s of segmentsOf(o.points)) {
+      const [p, q2] = s;
+      if (Math.abs(p.x - q2.x) < 0.5) index2.upright.push({ at: p.x, s, i, free });
+      else if (Math.abs(p.y - q2.y) < 0.5) index2.flat.push({ at: p.y, s, i, free });
+      if (Math.abs(p.y - q2.y) < 0.5) index2.level.push({ at: p.y, s, i, free });
+      else index2.steep.push({ at: p.x, s, i, free });
+      i++;
+    }
+  }
+  for (const list of Object.values(index2)) list.sort((m, n4) => m.at - n4.at);
+  return index2;
+}
+function from(list, v) {
+  let lo = 0;
+  let hi = list.length;
+  while (lo < hi) {
+    const mid = lo + hi >> 1;
+    if (list[mid].at < v) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+function linesHit(segs2, index2) {
+  const hit = /* @__PURE__ */ new Set();
+  for (const [r6, s] of segs2) {
+    const v = Math.abs(r6.x - s.x) < 0.5;
+    if (!v && Math.abs(r6.y - s.y) >= 0.5) continue;
+    const list = v ? index2.upright : index2.flat;
+    const at2 = v ? r6.x : r6.y;
+    const [a0, a1] = (v ? [r6.y, s.y] : [r6.x, s.x]).sort((m, n4) => m - n4);
+    for (let k = from(list, at2 - BESIDE); k < list.length; k++) {
+      const run3 = list[k];
+      if (run3.at >= at2 + BESIDE) break;
+      if (hit.has(run3.i)) continue;
+      const [p, q2] = run3.s;
+      const [b0, b1] = (v ? [p.y, q2.y] : [p.x, q2.x]).sort((m, n4) => m - n4);
+      const off = Math.abs(at2 - run3.at);
+      const over2 = Math.min(a1, b1) - Math.max(a0, b0);
+      if (off < 6 && over2 > 0.5 || run3.free && off < BESIDE && over2 > BESIDE_ALONG)
+        hit.add(run3.i);
+    }
+  }
+  return hit.size;
+}
+function tagAvoid(view, e) {
+  const others = view.edges.filter((o) => o !== e);
+  const frames2 = view.groups.filter((g) => !g.overlay && !g.lane);
+  return [
+    ...view.nodes.map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox])),
+    ...view.nodes.flatMap((n4) => real2(n4.badgeBox) ? [n4.badgeBox] : []),
+    ...others.flatMap((o) => [o.labelBox, o.stepBox].filter(real2)),
+    ...view.groups.flatMap((g) => [g.label.lines.length ? headerText(g) : void 0, g.iconBox]),
+    ...frames2.flatMap((g) => [
+      { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
+      { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
+      { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
+      { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
+    ]),
+    // A label in the band under a group's top border reads as part of its title (DG225).
+    ...frames2.filter((g) => g.label.lines.length).map((g) => ({
+      ...g.box,
+      h: Math.max(TITLE_BAND2, g.labelBox.y + g.labelBox.h - g.box.y)
+    }))
+  ].filter(real2);
+}
+function tagSpot(view, e, points, tag) {
+  const lines2 = view.edges.filter((o) => o !== e).map((o) => o.points);
+  return labelSpot(points, tag.w, tag.h, tagAvoid(view, e), lines2);
+}
+function tagFits(view, e, points, box2) {
+  const lines2 = [...view.edges.filter((o) => o !== e).map((o) => o.points), points];
+  const strokes = lines2.flatMap((pts) => [
+    ...segmentsOf(pts).map(([p, q2]) => ({
+      x: Math.min(p.x, q2.x) - 1,
+      y: Math.min(p.y, q2.y) - 1,
+      w: Math.abs(q2.x - p.x) + 2,
+      h: Math.abs(q2.y - p.y) + 2
+    })),
+    ...[pts[0], pts.at(-1)].flatMap((p) => p ? [{ x: p.x - 6, y: p.y - 6, w: 12, h: 12 }] : [])
+  ]);
+  return ![...tagAvoid(view, e), ...strokes].some((o) => meet(box2, o));
+}
+function tester(view, e, a, b, tag) {
+  const count = counters(view, e, a, b, e.points);
+  const before = count.crossings(e.points, segmentsOf(e.points));
+  const tests = Object.entries(count);
+  return (points) => {
+    const segs2 = segmentsOf(points);
+    for (const [key, test] of tests)
+      if (test(points, segs2) > (key === "crossings" ? before : 0)) return false;
+    return tag ? tagSpot(view, e, points, tag) ?? false : true;
+  };
+}
+function crossedHeaders(view, points) {
+  const segs2 = segmentsOf(points);
+  return view.groups.filter((g) => {
+    const x2 = g.label.lines.length ? headerText(g) : void 0;
+    if (!real2(x2)) return false;
+    const chip2 = { x: x2.x - 4, y: x2.y - 1, w: x2.w + 8, h: x2.h + 2 };
+    return segs2.some(([p, q2]) => segmentHits(p, q2, chip2, 0.5));
+  });
+}
+function borderCrossings(points, b) {
+  let n4 = 0;
+  for (const [p, q2] of segmentsOf(points)) {
+    if (Math.abs(p.x - q2.x) < 0.5) {
+      if (p.x <= b.x || p.x >= b.x + b.w) continue;
+      const [y0, y1] = [Math.min(p.y, q2.y), Math.max(p.y, q2.y)];
+      for (const y of [b.y, b.y + b.h]) if (y > y0 + 0.5 && y < y1 - 0.5) n4++;
+    } else if (Math.abs(p.y - q2.y) < 0.5) {
+      if (p.y <= b.y || p.y >= b.y + b.h) continue;
+      const [x0, x1] = [Math.min(p.x, q2.x), Math.max(p.x, q2.x)];
+      for (const x2 of [b.x, b.x + b.w]) if (x2 > x0 + 0.5 && x2 < x1 - 0.5) n4++;
+    }
+  }
+  return n4;
+}
+function crossings2(segs2, index2) {
+  let n4 = 0;
+  for (const [a, b] of segs2) {
+    const flat4 = Math.abs(a.y - b.y) < 0.5;
+    const list = flat4 ? index2.steep : index2.level;
+    const lo = (flat4 ? Math.min(a.x, b.x) : Math.min(a.y, b.y)) + 0.5;
+    const hi = (flat4 ? Math.max(a.x, b.x) : Math.max(a.y, b.y)) - 0.5;
+    for (let k = from(list, lo); k < list.length; k++) {
+      const run3 = list[k];
+      if (run3.at >= hi) break;
+      if (run3.at <= lo) continue;
+      const [p, q2] = run3.s;
+      const across3 = flat4 ? a.y : a.x;
+      const [c0, c1] = flat4 ? [p.y, q2.y] : [p.x, q2.x];
+      if (across3 > Math.min(c0, c1) + 0.5 && across3 < Math.max(c0, c1) - 0.5) n4++;
+    }
+  }
+  return n4;
+}
+
+// src/layout/er/route.ts
+var STUB = 30;
+var PITCH = 10;
+var SEAT = 14;
+var ROUNDS = 3;
+function endOf2(nd, field2) {
+  if (nd.fields?.length) {
+    const row = field2 ? rowsOf(nd).find((f) => f.name === field2.name) : void 0;
+    const band = row?.box ?? headerOf(nd);
+    return { left: nd.box.x, right: nd.box.x + nd.box.w, y: band.y + band.h / 2 };
+  }
+  const b = faceBox(nd);
+  return { left: b.x, right: b.x + b.w, y: b.y + b.h / 2 };
+}
+var pt = (x2, y) => ({ x: round2(x2), y: round2(y) });
+function risers(lo, hi) {
+  if (hi < lo) return [];
+  const mid = (lo + hi) / 2;
+  const out = [mid];
+  for (let d = PITCH; d <= (hi - lo) / 2 + 0.01; d += PITCH) out.push(mid - d, mid + d);
+  return out;
+}
+function candidates2(a, b, boxes, own) {
+  const out = [];
+  const level2 = Math.abs(a.y - b.y) < 0.5;
+  for (const [ax, bx] of [
+    [a.right, b.left],
+    [a.left, b.right]
+  ]) {
+    const sign = Math.sign(bx - ax);
+    if (Math.abs(bx - ax) < 2 * STUB || sign !== (ax === a.right ? 1 : -1)) continue;
+    if (level2) out.push([pt(ax, a.y), pt(bx, b.y)]);
+    else
+      for (const m of risers(Math.min(ax, bx) + STUB, Math.max(ax, bx) - STUB))
+        out.push([pt(ax, a.y), pt(m, a.y), pt(m, b.y), pt(bx, b.y)]);
+    const lo = Math.min(ax, bx);
+    const hi = Math.max(ax, bx);
+    const lines2 = boxes.filter((o) => o.x < hi && o.x + o.w > lo).flatMap((o) => [0, 1].flatMap((k) => [o.y - 20 - k * PITCH, o.y + o.h + 20 + k * PITCH]));
+    for (const y of lines2)
+      for (let i = 0; i < 2; i++)
+        for (let j = 0; j < 2; j++) {
+          const m1 = ax + sign * (STUB + i * PITCH);
+          const m2 = bx - sign * (STUB + j * PITCH);
+          if ((m2 - m1) * sign <= 0) continue;
+          out.push([pt(ax, a.y), pt(m1, a.y), pt(m1, y), pt(m2, y), pt(m2, b.y), pt(bx, b.y)]);
+        }
+  }
+  if (Math.abs(a.y - b.y) >= 2 * PITCH)
+    for (let k = 0; k < 6; k++) {
+      const right = Math.max(a.right, b.right) + STUB + k * PITCH;
+      const left = Math.min(a.left, b.left) - STUB - k * PITCH;
+      out.push([pt(a.right, a.y), pt(right, a.y), pt(right, b.y), pt(b.right, b.y)]);
+      out.push([pt(a.left, a.y), pt(left, a.y), pt(left, b.y), pt(b.left, b.y)]);
+    }
+  const gaps = [...boxes, ...own].flatMap((o) => [o.y - 20, o.y + o.h + 20]);
+  for (const [ax, sa] of [
+    [a.right, 1],
+    [a.left, -1]
+  ])
+    for (const [bx, sb] of [
+      [b.right, 1],
+      [b.left, -1]
+    ])
+      for (const y of gaps)
+        for (let i = 0; i < 2; i++) {
+          const m1 = ax + sa * (STUB + i * PITCH);
+          const m2 = bx + sb * (STUB + i * PITCH);
+          out.push([pt(ax, a.y), pt(m1, a.y), pt(m1, y), pt(m2, y), pt(m2, b.y), pt(bx, b.y)]);
+        }
+  return out;
+}
+var bendsOf2 = (pts) => Math.max(0, pts.length - 2);
+var lengthOf2 = (pts) => segmentsOf(pts).reduce((s, [p, q2]) => s + Math.abs(q2.x - p.x) + Math.abs(q2.y - p.y), 0);
+function overlapCost(pts, e, others) {
+  let cost2 = 0;
+  const ends3 = [pts[0], pts.at(-1)];
+  for (const o of others) {
+    const related2 = [o.from, o.to].some((id) => id === e.from || id === e.to);
+    const theirs = [o.points[0], o.points.at(-1)];
+    const shared2 = ends3.some(
+      (p) => theirs.some((q2) => p && q2 && Math.hypot(p.x - q2.x, p.y - q2.y) < 0.5)
+    );
+    for (const [p, q2] of segmentsOf(pts))
+      for (const [u, v] of segmentsOf(o.points)) {
+        const flat4 = Math.abs(p.y - q2.y) < 0.5;
+        const upright2 = Math.abs(p.x - q2.x) < 0.5;
+        const oflat = Math.abs(u.y - v.y) < 0.5;
+        const oupright = Math.abs(u.x - v.x) < 0.5;
+        let gap2;
+        let span2;
+        if (flat4 && oflat) {
+          gap2 = Math.abs(p.y - u.y);
+          span2 = Math.min(Math.max(p.x, q2.x), Math.max(u.x, v.x)) - Math.max(Math.min(p.x, q2.x), Math.min(u.x, v.x));
+        } else if (upright2 && oupright) {
+          gap2 = Math.abs(p.x - u.x);
+          span2 = Math.min(Math.max(p.y, q2.y), Math.max(u.y, v.y)) - Math.max(Math.min(p.y, q2.y), Math.min(u.y, v.y));
+        } else continue;
+        if (span2 <= 0.5) continue;
+        if (shared2 && gap2 < 6 && touches(p, q2, theirs))
+          cost2 += Math.max(0, span2 - STUB - PITCH) * 0.5;
+        else if (gap2 < 6) cost2 += span2 * (related2 ? 2 : 12);
+        else if (gap2 < 12 && !related2) cost2 += span2 * 2;
+      }
+  }
+  return cost2;
+}
+function touches(p, q2, points) {
+  const at2 = (a, b) => !!b && Math.hypot(a.x - b.x, a.y - b.y) < 0.5;
+  return points.some((s) => at2(p, s) || at2(q2, s));
+}
+function outside(pts, area) {
+  let out = 0;
+  for (const p of pts) {
+    out += Math.max(0, area.x - p.x, p.x - (area.x + area.w));
+    out += Math.max(0, area.y - p.y, p.y - (area.y + area.h));
+  }
+  return out;
+}
+function bestRoute(view, e, a, b) {
+  const count = probe(view, e);
+  const others = view.edges.filter((o) => o !== e);
+  let best;
+  const boxes = view.nodes.filter((n4) => n4.id !== e.from && n4.id !== e.to).map((n4) => n4.box);
+  const all = union2(view.nodes.map((n4) => n4.box));
+  const area = { x: all.x - 24, y: all.y - 24, w: all.w + 48, h: all.h + 48 };
+  const own = view.nodes.filter((n4) => n4.id === e.from || n4.id === e.to).map((n4) => n4.box);
+  for (const pts of candidates2(a, b, boxes, own)) {
+    const d = count?.(pts);
+    const cost2 = (d ? 1e3 * d.hard + 400 * d.own + 200 * d.headers + 60 * d.walls + 40 * d.frames + 40 * d.borders + 25 * d.crossings : 0) + overlapCost(pts, e, others) + 2 * outside(pts, area) + 8 * bendsOf2(pts) + 0.02 * lengthOf2(pts);
+    if (!best || cost2 < best.cost - 1e-3) best = { pts, cost: cost2 };
+  }
+  return best?.pts;
+}
+var same2 = (p, q2) => p.length === q2.length && p.every((v, i) => v.x === q2[i]?.x && v.y === q2[i]?.y);
+function markBoxes(e) {
+  const out = [];
+  for (const [p, q2] of [
+    [e.points[0], e.points[1]],
+    [e.points.at(-1), e.points.at(-2)]
+  ]) {
+    if (!p || !q2) continue;
+    const dir = Math.sign(q2.x - p.x) || 1;
+    out.push({ x: dir > 0 ? p.x : p.x - STUB, y: p.y - 8, w: STUB, h: 16 });
+  }
+  return out;
+}
+function placeLabels(ctx, mine) {
+  const byId = new Map(ctx.model.edges.map((e) => [e.id, e]));
+  const feet = ctx.nodes.map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox]));
+  const frames2 = ctx.groups.filter((g) => !g.overlay && !g.lane).flatMap((g) => [
+    { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
+    { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
+    { x: g.box.x, y: g.box.y - 1, w: g.box.w, h: 2 },
+    { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
+  ]);
+  const heads = ctx.groups.flatMap((g) => [
+    g.label.lines.length ? g.labelBox : void 0,
+    g.iconBox
+  ]);
+  const marks2 = mine.flatMap(markBoxes);
+  for (const e of mine) {
+    const m = byId.get(e.id);
+    const size = labelSize(m);
+    if (!size) continue;
+    const tags = ctx.edges.flatMap((o) => o === e ? [] : [o.labelBox, o.stepBox]);
+    const avoid = [...feet, ...frames2, ...heads, ...tags, ...marks2].filter(
+      (b) => !!b && b.w > 0 && b.h > 0
+    );
+    const lines2 = ctx.edges.filter((o) => o !== e).map((o) => o.points);
+    const spot = labelSpot(e.points, size.w, size.h, avoid, lines2) ?? labelSpot(
+      e.points,
+      size.w,
+      size.h,
+      [...feet, ...tags].filter((b) => !!b),
+      []
+    ) ?? fallbackSpot(e.points, size.w, size.h);
+    setLabel(e, m, size, spot);
+  }
+}
+function fallbackSpot(points, w, h) {
+  const len2 = ([p2, q3]) => Math.abs(q3.x - p2.x) + Math.abs(q3.y - p2.y);
+  const longest = segmentsOf(points).sort((s, t) => len2(t) - len2(s))[0];
+  const start = points[0] ?? { x: 0, y: 0 };
+  const [p, q2] = longest ?? [start, start];
+  return { x: round2((p.x + q2.x) / 2 - w / 2), y: round2((p.y + q2.y) / 2 - h - 3), w, h };
+}
+function routeRelationships(ctx, rowsFor) {
+  const nodes = new Map(ctx.nodes.map((n4) => [n4.id, n4]));
+  const table2 = (id) => !!nodes.get(id)?.fields?.length;
+  const mine = ctx.edges.filter(
+    (e) => nodes.has(e.from) && nodes.has(e.to) && (table2(e.from) || table2(e.to))
+  );
+  if (!mine.length) return;
+  const ends3 = /* @__PURE__ */ new Map();
+  for (const e of mine) {
+    const a = nodes.get(e.from);
+    const b = nodes.get(e.to);
+    if (!a || !b) continue;
+    const rows = rowsFor(e);
+    const from2 = endOf2(a, rows.from);
+    const to = endOf2(b, rows.to);
+    if (a === b && Math.abs(from2.y - to.y) < 0.5) {
+      from2.y = Math.floor(from2.y - PITCH);
+      to.y = Math.ceil(to.y + PITCH);
+    }
+    ends3.set(e, [from2, to]);
+    delete e.labelBox;
+    delete e.stepBox;
+  }
+  const view = { nodes: ctx.nodes, groups: ctx.groups, edges: ctx.edges };
+  const routeAll = () => {
+    for (let k = 0; k < ROUNDS; k++) {
+      let moved = false;
+      for (const e of mine) {
+        const pair = ends3.get(e);
+        const pts = pair && bestRoute(view, e, pair[0], pair[1]);
+        if (!pts || same2(pts, e.points)) continue;
+        e.points = pts;
+        moved = true;
+      }
+      if (!moved) break;
+    }
+  };
+  routeAll();
+  for (let k = 0; k < 2 && seatShared(mine, ends3); k++) routeAll();
+  placeLabels(ctx, mine);
+}
+function seatShared(mine, ends3) {
+  const seats = /* @__PURE__ */ new Map();
+  mine.forEach((e, i) => {
+    const pair = ends3.get(e);
+    if (!pair) return;
+    for (const k of [0, 1]) {
+      const p = k === 0 ? e.points[0] : e.points.at(-1);
+      if (!p) continue;
+      const key = `${k === 0 ? e.from : e.to}|${Math.round(p.x)}|${Math.round(p.y)}`;
+      const list = seats.get(key) ?? [];
+      list.push({ end: pair[k], other: pair[1 - k] ?? pair[k], order: 2 * i + k });
+      seats.set(key, list);
+    }
+  });
+  let moved = false;
+  for (const list of seats.values()) {
+    const center4 = list[0]?.end.y;
+    if (list.length < 2 || center4 === void 0) continue;
+    list.sort((p, q2) => p.other.y - q2.other.y || p.order - q2.order);
+    list.forEach((s, i) => {
+      s.end.y = center4 + (i - (list.length - 1) / 2) * SEAT;
+    });
+    moved = true;
+  }
+  return moved;
+}
+
+// src/layout/er/rows.ts
+var norm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+function singular(word2) {
+  if (/ies$/.test(word2)) return `${word2.slice(0, -3)}y`;
+  if (/(ss|us|is)$/.test(word2)) return word2;
+  if (/(sses|xes|ches|shes|zes)$/.test(word2)) return word2.slice(0, -2);
+  if (/s$/.test(word2)) return word2.slice(0, -1);
+  return word2;
+}
+var otherSingular = (word2) => word2.replace(/([so])es$/, "$1").replace(/zzes$/, "z");
+var unprefixed = (raw) => raw.replace(/^(?:dim|fact|fct|stg|tbl)[_\s-]+/i, "").replace(/^(?:Dim|Fact|Fct|Stg|Tbl)(?=[A-Z])/, "");
+function namesOf(n4) {
+  const out = /* @__PURE__ */ new Set();
+  for (const raw of [n4.id, n4.label].flatMap((s) => [s, unprefixed(s)])) {
+    const base = norm(raw);
+    if (!base) continue;
+    out.add(base);
+    out.add(singular(base));
+    out.add(otherSingular(base));
+    const words2 = raw.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    if (words2.length > 1)
+      out.add(norm([...words2.slice(0, -1), singular(words2.at(-1) ?? "")].join("")));
+  }
+  return out;
+}
+var primaryKey = (n4) => n4?.fields?.find((f) => f.pk);
+function fieldNaming(n4, other) {
+  if (!n4?.fields || !other) return void 0;
+  const key = norm(primaryKey(other)?.name ?? "id");
+  const wanted = /* @__PURE__ */ new Set();
+  for (const name2 of namesOf(other)) {
+    wanted.add(`${name2}id`);
+    if (key && key !== "id") wanted.add(`${name2}${key}`);
+  }
+  const named2 = n4.fields.filter(
+    (f) => wanted.has(norm(f.name)) || f.fk && key && key !== "id" && norm(f.name) === key
+  );
+  return named2.find((f) => f.fk) ?? named2[0];
+}
+var byName = (n4, name2) => name2 ? n4?.fields?.find((f) => f.name === name2) : void 0;
+function joinedRows(model, e) {
+  const a = model.nodes.find((n4) => n4.id === e.from);
+  const b = model.nodes.find((n4) => n4.id === e.to);
+  let from2 = byName(a, e.fromField);
+  let to = byName(b, e.toField);
+  if (!from2 && !to) {
+    const fa = fieldNaming(a, b);
+    const fb = fa ? void 0 : fieldNaming(b, a);
+    from2 = fa ?? primaryKey(a);
+    to = fb ?? primaryKey(b);
+    if (!fa && !fb) return {};
+  } else if (from2 && !to) to = otherEnd(from2, b, a);
+  else if (to && !from2) from2 = otherEnd(to, a, b);
+  return { ...from2 ? { from: from2 } : {}, ...to ? { to } : {} };
+}
+function otherEnd(known2, n4, other) {
+  if (known2.pk && !known2.fk) return fieldNaming(n4, other) ?? primaryKey(n4);
+  return primaryKey(n4);
+}
+
+// src/layout/er/index.ts
+function erGeometry(n4, _horizontal) {
+  const t = tableOf(n4);
+  return t ? { w: t.w, h: t.h, label: t.label, note: t.note } : void 0;
+}
+var r4 = (v) => Math.round(v * 100) / 100;
+var widest = (edges) => Math.max(0, ...edges.map((e) => labelSize(e)?.w ?? 0));
+function seatTables(ctx) {
+  for (const nd of ctx.nodes) {
+    const n4 = ctx.model.nodes.find((m) => m.id === nd.id);
+    const t = n4 && tableOf(n4);
+    if (!n4?.fields || !t) continue;
+    const b = nd.box;
+    const textH = t.label.height + (t.note ? t.note.height + 2 : 0);
+    const tx = b.x + PAD2 + (n4.icon ? HEAD_ICON + 8 : 0);
+    const ty = b.y + (t.header - textH) / 2;
+    if (n4.icon)
+      nd.iconBox = {
+        x: r4(b.x + PAD2),
+        y: r4(b.y + (t.header - HEAD_ICON) / 2),
+        w: HEAD_ICON,
+        h: HEAD_ICON
+      };
+    nd.labelBox = { x: r4(tx), y: r4(ty), w: r4(t.label.width), h: r4(t.label.height) };
+    if (t.note)
+      nd.noteBox = {
+        x: r4(tx),
+        y: r4(ty + t.label.height + 2),
+        w: r4(t.note.width),
+        h: r4(t.note.height)
+      };
+    const top = b.y + t.header + BODY_PAD;
+    nd.fields = n4.fields.map((f, i) => ({
+      name: f.name,
+      ...f.type ? { type: f.type } : {},
+      ...f.pk ? { pk: true } : {},
+      ...f.fk ? { fk: true } : {},
+      ...f.unique ? { unique: true } : {},
+      ...f.nullable ? { nullable: true } : {},
+      box: { x: b.x, y: r4(top + i * ROW), w: b.w, h: ROW }
+    }));
+  }
+}
+var erHook = {
+  // Tables side by side keep a channel wide enough for a stub out of each and a riser between
+  // them: along the flow when it runs across, within a layer when it runs down (lines leave a
+  // table from its sides, so a vertical flow's layers need only the room for labels). ELK gives a
+  // labelled edge a layer of its own, the gap on both sides of it, so labels halve the gap.
+  elkOptions(model) {
+    if (model.kind !== "er") return {};
+    const channel = Math.max(2 * STUB + 24, 96 * model.spacing);
+    const labelled = model.edges.some((e) => e.label);
+    const vertical = model.direction === "down" || model.direction === "up";
+    const layers = vertical ? 64 * model.spacing : channel;
+    return {
+      "elk.layered.spacing.nodeNodeBetweenLayers": String(
+        Math.round(labelled ? Math.max(24, layers / 2 + 8) : layers)
+      ),
+      // Within a layer a label sits in the gap between two tables, beside the risers that pass it.
+      ...vertical ? { "elk.spacing.nodeNode": String(Math.round(channel + widest(model.edges))) } : {}
+    };
+  },
+  after(ctx) {
+    if (ctx.model.kind !== "er") return;
+    seatTables(ctx);
+    const byId = new Map(ctx.model.edges.map((e) => [e.id, e]));
+    for (const e of ctx.edges) {
+      const card = byId.get(e.id)?.card;
+      if (card) e.card = { ...card };
+    }
+    alignTables(ctx, (e) => joinedRows(ctx.model, e));
+    routeRelationships(ctx, (e) => {
+      const m = byId.get(e.id);
+      return m ? joinedRows(ctx.model, m) : {};
+    });
+  }
+};
+
+// src/layout/kinds/frames.ts
+function frames(ctx, before) {
+  const margin = /* @__PURE__ */ new Map();
+  const all = [...ctx.model.nodes, ...ctx.model.groups];
+  for (const g of ctx.groups) {
+    if (g.overlay || g.lane) continue;
+    const members = all.filter((x2) => x2.parent === g.id).map((x2) => before.get(x2.id));
+    const inner = union3(members);
+    if (!inner) continue;
+    const b = g.box;
+    margin.set(g.id, {
+      l: inner.x - b.x,
+      t: inner.y - b.y,
+      r: b.x + b.w - (inner.x + inner.w),
+      b: b.y + b.h - (inner.y + inner.h)
+    });
+  }
+  const parentOf = new Map(all.map((x2) => [x2.id, x2.parent]));
+  const chain = (id) => {
+    const out = [];
+    for (let p = parentOf.get(id); p; p = parentOf.get(p)) if (margin.has(p)) out.push(p);
+    return out;
+  };
+  return { chain, margin };
+}
+function room(f, h, horizontal, sign) {
+  const near2 = (m) => horizontal ? sign > 0 ? m.l : m.r : sign > 0 ? m.t : m.b;
+  const far = (m) => horizontal ? sign > 0 ? m.r : m.l : sign > 0 ? m.b : m.t;
+  const sum = (ids3, side) => ids3.reduce((a, g) => a + side(f.margin.get(g) ?? { l: 0, t: 0, r: 0, b: 0 }), 0);
+  const parentChain = (id) => {
+    const p = h.parent.get(id);
+    return p ? f.chain(p) : [];
+  };
+  return {
+    chain: f.chain,
+    /** Extra space between two neighbors: the margins of the frames only one of them is in. */
+    between: (left, right) => sum(
+      left.filter((g) => !right.includes(g)),
+      (m) => horizontal ? m.b : m.r
+    ) + sum(
+      right.filter((g) => !left.includes(g)),
+      (m) => horizontal ? m.t : m.l
+    ),
+    /** Frames entered on the way into a node, near margins summed. */
+    enter: (id) => {
+      const from2 = parentChain(id);
+      return sum(
+        f.chain(id).filter((g) => !from2.includes(g)),
+        near2
+      );
+    },
+    /** Frames left on the way into a node, far margins summed. */
+    leave: (id) => {
+      const to = f.chain(id);
+      return sum(
+        parentChain(id).filter((g) => !to.includes(g)),
+        far
+      );
+    }
+  };
+}
+function snapshot(ctx) {
+  return new Map([
+    ...ctx.nodes.map((n4) => [n4.id, { ...footOf(n4) }]),
+    ...ctx.groups.map((g) => [g.id, { ...g.box }])
+  ]);
+}
+function refit(ctx, before) {
+  const now = (id) => {
+    const n4 = ctx.nodes.find((x2) => x2.id === id);
+    return n4 ? footOf(n4) : ctx.groups.find((g) => g.id === id)?.box;
+  };
+  const rank = (g) => g.overlay ? -1 : g.depth;
+  const order2 = ctx.groups.filter((g) => !g.lane).sort((a, b) => rank(b) - rank(a));
+  for (const g of order2) {
+    const model = ctx.model.groups.find((x2) => x2.id === g.id);
+    const members = g.overlay ? model?.around ?? [] : [...ctx.model.nodes, ...ctx.model.groups].filter((x2) => x2.parent === g.id).map((x2) => x2.id);
+    const was = union3(members.map((id) => before.get(id)));
+    const is = union3(members.map(now));
+    const old = before.get(g.id);
+    if (!was || !is || !old) continue;
+    const w = g.overlay ? is.w + (old.w - was.w) : Math.max(old.w, is.w + 40);
+    const box2 = {
+      x: r(g.overlay ? is.x - (was.x - old.x) : is.x + is.w / 2 - w / 2),
+      y: r(is.y - (was.y - old.y)),
+      w: r(w),
+      h: r(is.h + (old.h - was.h))
+    };
+    const slide2 = (b) => {
+      if (!b) return;
+      const centered = Math.abs(b.x + b.w / 2 - (old.x + old.w / 2)) < 1;
+      b.x = r(centered ? box2.x + (box2.w - b.w) / 2 : b.x + box2.x - old.x);
+      b.y = r(b.y + box2.y - old.y);
+    };
+    slide2(g.labelBox);
+    slide2(g.iconBox);
+    if (g.inner) {
+      const ib = g.inner.box;
+      g.inner.box = {
+        x: r(box2.x + ib.x - old.x),
+        y: r(box2.y + ib.y - old.y),
+        w: r(box2.w - (old.w - ib.w)),
+        h: r(box2.h - (old.h - ib.h))
+      };
+    }
+    Object.assign(g.box, box2);
+  }
+}
+function clearHeaders(ctx) {
+  for (const g of ctx.groups) {
+    if (g.lane || !g.label.lines.length) continue;
+    const corner = g.iconBox !== void 0 && Math.abs(g.iconBox.x - g.box.x) < 0.5 && Math.abs(g.iconBox.y - g.box.y) < 0.5;
+    const icon2 = g.iconBox && !corner ? g.iconBox : void 0;
+    for (let round5 = 0; round5 < 4; round5++) {
+      const u = union3([g.labelBox, icon2]) ?? g.labelBox;
+      const chip2 = { x: u.x - 6, y: u.y - 1, w: u.w + 12, h: u.h + 2 };
+      const cut = ctx.edges.flatMap((e) => segments(e.points)).find(([p, q2]) => crosses(p, q2, chip2, 0.5));
+      if (!cut) break;
+      const lo = (corner && g.iconBox ? g.iconBox.x + g.iconBox.w + 8 : g.box.x + 12) - u.x;
+      const hi = g.box.x + g.box.w - 12 - (u.x + u.w);
+      const right = Math.max(cut[0].x, cut[1].x) + 8 - u.x;
+      const left = Math.min(cut[0].x, cut[1].x) - 8 - (u.x + u.w);
+      const dx = right <= hi ? right : left >= lo ? left : void 0;
+      if (dx === void 0) break;
+      g.labelBox.x = r(g.labelBox.x + dx);
+      if (icon2) icon2.x = r(icon2.x + dx);
+    }
+  }
+}
+
+// src/layout/kinds/state.ts
+function loopPoints(b, c, k, spline) {
+  const size = 18 + 10 * k;
+  const inset = Math.max(4, Math.min(14 + 6 * k, b.w / 2 - 2, b.h / 2 - 2));
+  const sx = c.right ? 1 : -1;
+  const sy = c.top ? -1 : 1;
+  const cx = c.right ? b.x + b.w : b.x;
+  const cy = c.top ? b.y : b.y + b.h;
+  const a = { x: cx - sx * inset, y: cy };
+  const z = { x: cx, y: cy - sy * inset };
+  const pts = spline ? [a, { x: a.x, y: cy + sy * 2 * size }, { x: cx + sx * 2 * size, y: z.y }, z] : [
+    a,
+    { x: a.x, y: cy + sy * size },
+    { x: cx + sx * size, y: cy + sy * size },
+    { x: cx + sx * size, y: z.y },
+    z
+  ];
+  return pts.map((p) => ({ x: r(p.x), y: r(p.y) }));
+}
+function loopLabelSpots(loop2, c, w, h) {
+  const beside2 = c.right ? loop2.x + loop2.w + 6 : loop2.x - 6 - w;
+  const past = c.top ? loop2.y - 4 - h : loop2.y + loop2.h + 4;
+  const outer = c.right ? loop2.x + loop2.w - w : loop2.x;
+  const inner = c.right ? loop2.x : loop2.x + loop2.w - w;
+  return [
+    { x: beside2, y: loop2.y + loop2.h / 2 - h / 2 },
+    { x: loop2.x + loop2.w / 2 - w / 2, y: past },
+    { x: outer, y: past },
+    { x: inner, y: past }
+  ].map((p) => ({ x: r(p.x), y: r(p.y), w, h }));
+}
+function selfLoops(ctx, fresh) {
+  const spline = ctx.routing === "spline";
+  const count = /* @__PURE__ */ new Map();
+  for (const e of ctx.edges) {
+    if (e.from !== e.to) continue;
+    const n4 = ctx.nodes.find((x2) => x2.id === e.from);
+    const box2 = n4?.box ?? ctx.groups.find((g) => g.id === e.from)?.box;
+    if (!box2) continue;
+    const k = count.get(e.from) ?? 0;
+    count.set(e.from, k + 1);
+    const model = ctx.model.edges.find((x2) => x2.id === e.id);
+    const size = labelSize(model);
+    const below = !fresh && e.points.some((p) => p.y > box2.y + box2.h + 0.5) && !e.points.some((p) => p.y < box2.y - 0.5);
+    const tops = [
+      { right: true, top: true },
+      { right: false, top: true }
+    ];
+    const bottoms = [
+      { right: true, top: false },
+      { right: false, top: false }
+    ];
+    const corners = below ? [...bottoms, ...tops] : [...tops, ...bottoms];
+    const own = n4 ? footOf(n4) : box2;
+    const feet = ctx.nodes.filter((x2) => x2.id !== e.from).map(footOf);
+    const others = ctx.edges.filter((x2) => x2 !== e);
+    const labels2 = [
+      ...others.flatMap((x2) => [x2.labelBox, x2.stepBox]),
+      ...ctx.groups.flatMap((g) => [g.label.lines.length ? g.labelBox : void 0, g.iconBox])
+    ].filter((b) => !!b);
+    const lines2 = others.flatMap((x2) => segments(x2.points));
+    const loopClear = (pts) => segments(pts).every(
+      ([p, q2]) => !feet.some((f) => crosses(p, q2, f, 3)) && !labels2.some((l) => crosses(p, q2, l, 0.5))
+    );
+    const spotClear = (b, pts) => !hits2(b, own, 2) && !feet.some((f) => hits2(b, f, 2)) && !labels2.some((l) => hits2(b, l, 2)) && ![...lines2, ...segments(pts)].some(([p, q2]) => crosses(p, q2, b, -2));
+    const elk2 = fresh ? void 0 : union3([e.labelBox, e.stepBox]);
+    let chosen;
+    for (const c of corners) {
+      const pts = loopPoints(box2, c, k, spline);
+      const bounds = union3(drawnPoints(pts, spline).map(dot)) ?? box2;
+      const spots = size ? [...loopLabelSpots(bounds, c, size.w, size.h), ...elk2 ? [elk2] : []] : [];
+      const spot = spots.find((b) => spotClear(b, pts));
+      const cost2 = (loopClear(pts) ? 0 : 2) + (size && !spot ? 1 : 0);
+      if (!chosen || cost2 < chosen.cost) chosen = { pts, spot: spot ?? spots[0], cost: cost2 };
+      if (cost2 === 0) break;
+    }
+    if (!chosen) continue;
+    e.points = chosen.pts;
+    if (size && chosen.spot) setLabel(e, model, size, chosen.spot);
+  }
+}
+
+// src/layout/kinds/links.ts
+function links(a, b, feet) {
+  const ac = { x: a.x + a.w / 2, y: a.y + a.h / 2 };
+  const bc = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+  const out = [];
+  if (a.x + a.w <= b.x || b.x + b.w <= a.x) {
+    const right2 = a.x + a.w <= b.x;
+    const sx = right2 ? a.x + a.w : a.x;
+    const ex = right2 ? b.x : b.x + b.w;
+    const mx = (sx + ex) / 2;
+    out.push([
+      { x: sx, y: ac.y },
+      { x: mx, y: ac.y },
+      { x: mx, y: bc.y },
+      { x: ex, y: bc.y }
+    ]);
+  }
+  if (a.y + a.h <= b.y || b.y + b.h <= a.y) {
+    const down = a.y + a.h <= b.y;
+    const sy = down ? a.y + a.h : a.y;
+    const ey = down ? b.y : b.y + b.h;
+    const my = (sy + ey) / 2;
+    out.push([
+      { x: ac.x, y: sy },
+      { x: ac.x, y: my },
+      { x: bc.x, y: my },
+      { x: bc.x, y: ey }
+    ]);
+  }
+  const [y0, y1] = [Math.min(ac.y, bc.y), Math.max(ac.y, bc.y)];
+  const [x0, x1] = [Math.min(ac.x, bc.x), Math.max(ac.x, bc.x)];
+  const rows = [a, b, ...feet.filter((f) => f.y < y1 && f.y + f.h > y0)];
+  const columns = [a, b, ...feet.filter((f) => f.x < x1 && f.x + f.w > x0)];
+  const right = Math.max(...rows.map((f) => f.x + f.w)) + 20;
+  const left = Math.min(...rows.map((f) => f.x)) - 20;
+  const bottom = Math.max(...columns.map((f) => f.y + f.h)) + 20;
+  const top = Math.min(...columns.map((f) => f.y)) - 20;
+  out.push(
+    [
+      { x: a.x + a.w, y: ac.y },
+      { x: right, y: ac.y },
+      { x: right, y: bc.y },
+      { x: b.x + b.w, y: bc.y }
+    ],
+    [
+      { x: a.x, y: ac.y },
+      { x: left, y: ac.y },
+      { x: left, y: bc.y },
+      { x: b.x, y: bc.y }
+    ],
+    [
+      { x: ac.x, y: a.y + a.h },
+      { x: ac.x, y: bottom },
+      { x: bc.x, y: bottom },
+      { x: bc.x, y: b.y + b.h }
+    ],
+    [
+      { x: ac.x, y: a.y },
+      { x: ac.x, y: top },
+      { x: bc.x, y: top },
+      { x: bc.x, y: b.y }
+    ]
+  );
+  return out;
+}
+function routeRest(ctx, h, spline) {
+  const tree = new Set([...h.via.values()].map((e) => e.id));
+  const boxOf2 = (id) => ctx.nodes.find((n4) => n4.id === id)?.box ?? ctx.groups.find((g) => g.id === id)?.box;
+  for (const e of ctx.edges) {
+    if (tree.has(e.id) || e.from === e.to) continue;
+    const a = boxOf2(e.from);
+    const b = boxOf2(e.to);
+    if (!a || !b) continue;
+    const feet = ctx.nodes.filter((n4) => n4.id !== e.from && n4.id !== e.to).map(footOf);
+    const routes = links(a, b, feet);
+    const pts = routes.find(
+      (route) => segments(route).every(([p2, q3]) => !feet.some((f) => crosses(p2, q3, f, 3)))
+    ) ?? routes[0] ?? [];
+    e.points = spline ? pts.map((p2) => ({ x: r(p2.x), y: r(p2.y) })) : tidyPoints(pts);
+    const model = ctx.model.edges.find((x2) => x2.id === e.id);
+    const size = labelSize(model);
+    const p = pts[1];
+    const q2 = pts[2];
+    if (size && p && q2)
+      setLabel(e, model, size, {
+        x: (p.x + q2.x) / 2 - size.w / 2,
+        y: (p.y + q2.y) / 2 - size.h / 2,
+        w: size.w,
+        h: size.h
+      });
+  }
+  selfLoops(ctx, true);
+}
+
+// src/layout/kinds/tidy.ts
+function hierarchy(ctx, undirected, first) {
+  const ids3 = ctx.nodes.map((n4) => n4.id);
+  const known2 = new Set(ids3);
+  const free = new Set(ctx.model.edges.filter((e) => !e.constraint).map((e) => e.id));
+  const joins = ctx.edges.filter(
+    (e) => e.from !== e.to && known2.has(e.from) && known2.has(e.to) && !free.has(e.id)
+  );
+  const into = new Set(joins.map((e) => e.to));
+  const order2 = [...first ? [first] : [], ...ids3.filter((id) => !into.has(id)), ...ids3];
+  const h = {
+    roots: [],
+    kids: /* @__PURE__ */ new Map(),
+    parent: /* @__PURE__ */ new Map(),
+    depth: /* @__PURE__ */ new Map(),
+    via: /* @__PURE__ */ new Map()
+  };
+  const seen = /* @__PURE__ */ new Set();
+  for (const root of order2) {
+    if (seen.has(root)) continue;
+    seen.add(root);
+    h.roots.push(root);
+    h.depth.set(root, 0);
+    const queue2 = [root];
+    for (let i = 0; i < queue2.length; i++) {
+      const id = queue2[i] ?? "";
+      for (const e of joins) {
+        const other = e.from === id ? e.to : undirected && e.to === id ? e.from : void 0;
+        if (other === void 0 || seen.has(other)) continue;
+        seen.add(other);
+        h.parent.set(other, id);
+        h.via.set(other, e);
+        h.depth.set(other, (h.depth.get(id) ?? 0) + 1);
+        h.kids.set(id, [...h.kids.get(id) ?? [], other]);
+        queue2.push(other);
+      }
+    }
+  }
+  framesTogether(ctx, h);
+  return h;
+}
+function framesTogether(ctx, h) {
+  const framed2 = new Set(ctx.groups.filter((g) => !g.overlay && !g.lane).map((g) => g.id));
+  const parentOf = new Map([...ctx.model.nodes, ...ctx.model.groups].map((x2) => [x2.id, x2.parent]));
+  const chainOf = (id) => {
+    const out = [];
+    for (let p = parentOf.get(id); p; p = parentOf.get(p)) if (framed2.has(p)) out.unshift(p);
+    return out;
+  };
+  const flatten = (s) => [...s.id ? [s.id] : [], ...s.slots.flatMap(flatten)];
+  for (const [parent, kids] of h.kids) {
+    if (kids.length < 3) continue;
+    const top = { slots: [] };
+    for (const id of kids) {
+      let at2 = top;
+      for (const g of chainOf(id)) {
+        let next = at2.slots.find((s) => s.frame === g);
+        if (!next) {
+          next = { frame: g, slots: [] };
+          at2.slots.push(next);
+        }
+        at2 = next;
+      }
+      at2.slots.push({ id, slots: [] });
+    }
+    h.kids.set(parent, flatten(top));
+  }
+}
+var flip = (s) => ({ lo: -s.hi, hi: -s.lo });
+var mirror = (s) => ({ lo: -s.hi, hi: -s.lo, loIn: s.hiIn, hiIn: s.loIn });
+function addTo(acc, c, off, from2 = 0) {
+  c.forEach((s, i) => {
+    const d = i + from2;
+    const at2 = acc[d];
+    const lo = !at2 || s.lo + off < at2.lo;
+    const hi = !at2 || s.hi + off > at2.hi;
+    acc[d] = {
+      lo: lo ? s.lo + off : at2?.lo ?? 0,
+      hi: hi ? s.hi + off : at2?.hi ?? 0,
+      loIn: lo ? s.loIn : at2?.loIn ?? [],
+      hiIn: hi ? s.hiIn : at2?.hiIn ?? []
+    };
+  });
+}
+function sweep(cs, gap2) {
+  const acc = [];
+  return cs.map((c, k) => {
+    let off = 0;
+    if (k > 0) {
+      off = Number.NEGATIVE_INFINITY;
+      for (let d = 0; d < Math.min(acc.length, c.length); d++) {
+        const a = acc[d];
+        const b = c[d];
+        if (a && b) off = Math.max(off, a.hi - b.lo + gap2(d, a.hiIn, b.loIn));
+      }
+    }
+    addTo(acc, c, off);
+    return off;
+  });
+}
+function spread(cs, gap2) {
+  const left = sweep(cs, gap2);
+  const right = sweep(
+    [...cs].reverse().map((c) => c.map(mirror)),
+    (d, a, b) => gap2(d, b, a)
+  ).reverse().map((v) => -v);
+  const shift2 = right[0] ?? 0;
+  return left.map((v, i) => (v + (right[i] ?? 0) - shift2) / 2);
+}
+function tidy(kids, extent2, gap2) {
+  const rel2 = /* @__PURE__ */ new Map();
+  const memo = /* @__PURE__ */ new Map();
+  const contour = (id) => {
+    const known2 = memo.get(id);
+    if (known2) return known2;
+    const children = kids.get(id) ?? [];
+    const out = [extent2(id)];
+    if (children.length) {
+      const cs = children.map(contour);
+      const pos = spread(cs, gap2);
+      const mid = ((pos[0] ?? 0) + (pos[pos.length - 1] ?? 0)) / 2;
+      children.forEach((c, i) => {
+        const off = (pos[i] ?? 0) - mid;
+        rel2.set(c, off);
+        addTo(out, cs[i] ?? [], off, 1);
+      });
+    }
+    memo.set(id, out);
+    return out;
+  };
+  const place2 = (id, at2, out) => {
+    out.set(id, at2);
+    for (const c of kids.get(id) ?? []) place2(c, at2 + (rel2.get(c) ?? 0), out);
+  };
+  return { contour, place: place2 };
+}
+function measure3(n4, horizontal) {
+  const b = n4.box;
+  const body = bodyOf(n4);
+  const foot = footOf(n4);
+  const main2 = horizontal ? b.x + b.w / 2 : b.y + b.h / 2;
+  const cross = horizontal ? b.y + b.h / 2 : b.x + b.w / 2;
+  const along3 = (x2) => horizontal ? { lo: x2.x - main2, hi: x2.x + x2.w - main2 } : { lo: x2.y - main2, hi: x2.y + x2.h - main2 };
+  return {
+    main: main2,
+    cross,
+    body: along3(body),
+    foot: along3(foot),
+    across: horizontal ? { lo: foot.y - cross, hi: foot.y + foot.h - cross } : { lo: foot.x - cross, hi: foot.x + foot.w - cross },
+    half: (horizontal ? b.w : b.h) / 2,
+    wide: (horizontal ? b.h : b.w) / 2
+  };
+}
+var grow3 = (s, sign) => sign > 0 ? s : flip(s);
+function levels(byDepth, m, sign, opts) {
+  const at2 = /* @__PURE__ */ new Map();
+  const starts = [];
+  const bars = [];
+  let start = opts.start;
+  byDepth.forEach((ids3, d) => {
+    const spans2 = ids3.map((id) => grow3(m.get(id)?.body ?? { lo: 0, hi: 0 }, sign));
+    const thick = Math.max(0, ...spans2.map((s) => s.hi - s.lo));
+    ids3.forEach((id, i) => {
+      const s = spans2[i] ?? { lo: 0, hi: 0 };
+      const near2 = opts.align === "near" || opts.align === "top" && sign > 0;
+      const far = opts.align === "top" && sign < 0;
+      at2.set(
+        id,
+        near2 ? start - s.lo : far ? start + thick - s.hi : start + thick / 2 - (s.lo + s.hi) / 2
+      );
+    });
+    const next = byDepth[d + 1] ?? [];
+    const stem = opts.stem(d);
+    starts.push(start);
+    bars.push(start + thick + stem);
+    start += thick + stem + Math.max(opts.drop, ...next.map(opts.need));
+  });
+  return { at: at2, starts, bars };
+}
+function depths(ctx, depth) {
+  const out = [];
+  for (const n4 of ctx.nodes) {
+    const d = depth(n4.id);
+    if (d !== void 0) out[d] = [...out[d] ?? [], n4.id];
+  }
+  return Array.from(out, (ids3) => ids3 ?? []);
+}
+function moveTo(n4, main2, cross, horizontal) {
+  const m = measure3(n4, horizontal);
+  const dm = main2 - m.main;
+  const dc = cross - m.cross;
+  moveNode(n4, horizontal ? dm : dc, horizontal ? dc : dm);
+}
+
+// src/layout/kinds/mindmap.ts
+var BRANCH_COLORS = ["#2f7fe0", "#d9480f", "#2f9e44", "#8b5cf6", "#0c8599", "#d6336c", "#b45309"];
+var ROOT_TEXT = 16;
+var ROOT_ICON = 4 / 3;
+function enlargeRoot(n4, text6, horizontal) {
+  if (n4.bpmn) return;
+  const label2 = text6 ? textBlock(text6, ROOT_TEXT, 220, 600) : n4.label;
+  const b = n4.box;
+  const cx = b.x + b.w / 2;
+  const cy = b.y + b.h / 2;
+  const note = n4.noteBox;
+  const textW = Math.max(label2.width, note?.w ?? 0);
+  const textH = label2.height + (note ? note.h + 2 : 0);
+  const stack = (left, top, middle) => {
+    n4.labelBox = {
+      x: r(middle ? left + (textW - label2.width) / 2 : left),
+      y: r(top),
+      w: r(label2.width),
+      h: r(label2.height)
+    };
+    if (note)
+      n4.noteBox = {
+        ...note,
+        x: r(middle ? left + (textW - note.w) / 2 : left),
+        y: r(top + label2.height + 2)
+      };
+  };
+  if (n4.look === "icon" && n4.iconBox) {
+    const size = Math.round(n4.iconBox.w * ROOT_ICON);
+    const ic = { x: n4.iconBox.x + n4.iconBox.w / 2, y: n4.iconBox.y + n4.iconBox.h / 2 };
+    const icon2 = { x: r(ic.x - size / 2), y: r(ic.y - size / 2), w: size, h: size };
+    n4.iconBox = icon2;
+    stack(ic.x - textW / 2, icon2.y + size + 6, true);
+    n4.box = horizontal ? { ...icon2 } : {
+      x: r(ic.x - Math.max(size, textW) / 2),
+      y: icon2.y,
+      w: r(Math.max(size, textW)),
+      h: r(size + 6 + textH)
+    };
+  } else if (n4.look === "card") {
+    const iconW = n4.iconBox ? n4.iconBox.w + 12 : 0;
+    const w = Math.max(b.w, 20 + iconW + textW + 22);
+    const h = Math.max(b.h + 12, Math.max(textH, n4.iconBox?.h ?? 0) + 32);
+    n4.box = { x: r(cx - w / 2), y: r(cy - h / 2), w: r(w), h: r(h) };
+    if (n4.iconBox) n4.iconBox = { ...n4.iconBox, x: r(n4.box.x + 20), y: r(cy - n4.iconBox.h / 2) };
+    stack(n4.box.x + 20 + iconW, cy - textH / 2, false);
+  } else {
+    const iconW = n4.iconBox ? 28 : 0;
+    const w = Math.max(b.w + 24, textW + iconW + 48);
+    const h = Math.max(b.h + 12, textH + 34);
+    n4.box = { x: r(cx - w / 2), y: r(cy - h / 2), w: r(w), h: r(h) };
+    const left = cx - (textW + iconW) / 2;
+    if (n4.iconBox) n4.iconBox = { ...n4.iconBox, x: r(left), y: r(cy - n4.iconBox.h / 2) };
+    stack(left + iconW, cy - textH / 2, true);
+  }
+  n4.label = label2;
+  if (n4.badgeBox) {
+    const anchor2 = n4.look === "icon" && n4.iconBox ? n4.iconBox : n4.box;
+    const w = n4.badgeBox.w;
+    n4.badgeBox = {
+      ...n4.badgeBox,
+      x: r(Math.max(anchor2.x + anchor2.w - w / 2 - 2, anchor2.x + anchor2.w / 2 + 6)),
+      y: r(anchor2.y - 7)
+    };
+  }
+}
+function placeMindmap(ctx) {
+  const { model, horizontal } = ctx;
+  const s = model.spacing;
+  ctx.routing = "spline";
+  restoreEdges(ctx);
+  const before = snapshot(ctx);
+  const root = rootOf(ctx);
+  if (!root) return;
+  const h = hierarchy(ctx, true, root);
+  for (const n4 of ctx.nodes) {
+    const via = h.via.get(n4.id);
+    if (via) n4.via = via.id;
+  }
+  const rootNode = ctx.nodes.find((n4) => n4.id === root);
+  const rootModel = model.nodes.find((n4) => n4.id === root);
+  if (rootNode && rootModel) enlargeRoot(rootNode, rootModel.label, horizontal);
+  const m = new Map(ctx.nodes.map((n4) => [n4.id, measure3(n4, horizontal)]));
+  const sizes = /* @__PURE__ */ new Map();
+  for (const [child, e] of h.via) {
+    const size = labelSize(model.edges.find((x2) => x2.id === e.id));
+    if (size) sizes.set(child, size);
+  }
+  const f = frames(ctx, before);
+  const across3 = room(f, h, horizontal, 1);
+  const sibling = Math.round(12 * s);
+  const cousin = Math.round(20 * s);
+  const drop = Math.round(48 * s);
+  const gap2 = (d, a, b) => (d === 0 ? sibling : cousin) + across3.between(a, b);
+  const t = tidy(
+    h.kids,
+    (id) => {
+      const frame2 = f.chain(id);
+      return { ...m.get(id)?.across ?? { lo: 0, hi: 0 }, loIn: frame2, hiIn: frame2 };
+    },
+    gap2
+  );
+  const mind = { ctx, h, root, m, sizes, f, t, gap: gap2, cousin, drop };
+  const branches = [...h.kids.get(root) ?? [], ...h.roots.filter((id) => id !== root)];
+  const placed = placeHalves(mind, splitHalves(mind, branches));
+  for (const n4 of ctx.nodes) {
+    const sign = placed.sideOf.get(n4.id) ?? 1;
+    moveTo(n4, sign * (placed.at.get(n4.id) ?? 0), placed.cross.get(n4.id) ?? 0, horizontal);
+  }
+  refit(ctx, before);
+  const colorOf = paintBranches(ctx, h, branches);
+  drawBranches(mind, placed, colorOf);
+  routeRest(ctx, h, true);
+  clearHeaders(ctx);
+  settle(ctx);
+}
+function rootOf(ctx) {
+  const known2 = new Set(ctx.nodes.map((n4) => n4.id));
+  const into = new Set(
+    ctx.model.edges.filter((e) => e.from !== e.to && known2.has(e.from)).map((e) => e.to)
+  );
+  return ctx.nodes.find((n4) => !into.has(n4.id))?.id ?? ctx.nodes[0]?.id;
+}
+function splitHalves(mind, branches) {
+  const { ctx, t, cousin } = mind;
+  const model = ctx.model;
+  const first = model.direction === "left" || model.direction === "up" ? -1 : 1;
+  const halves = /* @__PURE__ */ new Map([
+    [first, []],
+    [-first, []]
+  ]);
+  const load3 = /* @__PURE__ */ new Map([
+    [first, 0],
+    [-first, 0]
+  ]);
+  const rootFrames = new Set(mind.f.chain(mind.root));
+  const frameSide = /* @__PURE__ */ new Map();
+  for (const b of branches) {
+    const c = t.contour(b);
+    const span2 = Math.max(...c.map((x2) => x2.hi)) - Math.min(...c.map((x2) => x2.lo)) + cousin;
+    const frame2 = mind.f.chain(b).filter((g) => !rootFrames.has(g)).at(-1);
+    const side = (frame2 ? frameSide.get(frame2) : void 0) ?? ((load3.get(first) ?? 0) <= (load3.get(-first) ?? 0) ? first : -first);
+    if (frame2) frameSide.set(frame2, side);
+    halves.get(side)?.push(b);
+    load3.set(side, (load3.get(side) ?? 0) + span2);
+  }
+  return halves;
+}
+function placeHalves(mind, halves) {
+  const { ctx, h, root, m, sizes, f, t, gap: gap2, drop } = mind;
+  const { model, horizontal } = ctx;
+  const s = model.spacing;
+  const cross = /* @__PURE__ */ new Map([[root, 0]]);
+  const at2 = /* @__PURE__ */ new Map([[root, 0]]);
+  const sideOf3 = /* @__PURE__ */ new Map();
+  const rm = m.get(root);
+  for (const [sign, list] of halves) {
+    if (!list.length || !rm) continue;
+    const pos = spread(
+      list.map((b) => t.contour(b)),
+      gap2
+    );
+    const mid = ((pos[0] ?? 0) + (pos[pos.length - 1] ?? 0)) / 2;
+    list.forEach((b, i) => {
+      t.place(b, (pos[i] ?? 0) - mid, cross);
+    });
+    const depth = /* @__PURE__ */ new Map();
+    const visit2 = (id, d) => {
+      sideOf3.set(id, sign);
+      depth.set(id, d);
+      for (const c of h.kids.get(id) ?? []) visit2(c, d + 1);
+    };
+    for (const b of list) visit2(b, 0);
+    const fr = room(f, h, horizontal, sign);
+    const need = (id) => {
+      const z = sizes.get(id);
+      const label2 = z ? (horizontal ? z.w : z.h) + 24 : 0;
+      const frame2 = fr.enter(id) + fr.leave(id);
+      return frame2 ? Math.max(drop, label2) + frame2 + LABEL_GAP : label2;
+    };
+    const lv = levels(
+      depths(ctx, (id) => depth.get(id)),
+      m,
+      sign,
+      {
+        start: grow3(rm.body, sign).hi + Math.max(Math.round(64 * s), ...list.map(need)),
+        align: "near",
+        stem: () => 0,
+        drop,
+        need
+      }
+    );
+    for (const [id, u] of lv.at) at2.set(id, u);
+  }
+  return { cross, at: at2, sideOf: sideOf3 };
+}
+function paintBranches(ctx, h, branches) {
+  const branchOf = /* @__PURE__ */ new Map();
+  const mark = (id, i) => {
+    branchOf.set(id, i);
+    for (const c of h.kids.get(id) ?? []) mark(c, i);
+  };
+  branches.forEach((b, i) => {
+    mark(b, i);
+  });
+  const colorOf = (id) => {
+    const i = branchOf.get(id);
+    return i === void 0 ? void 0 : BRANCH_COLORS[i % BRANCH_COLORS.length];
+  };
+  for (const n4 of ctx.nodes)
+    if (!ctx.model.nodes.find((x2) => x2.id === n4.id)?.color) n4.color = colorOf(n4.id) ?? n4.color;
+  return colorOf;
+}
+function drawBranches(mind, placed, colorOf) {
+  const { ctx, h, root, m, sizes } = mind;
+  const { model, horizontal } = ctx;
+  const { cross, at: at2, sideOf: sideOf3 } = placed;
+  for (const [child, e] of h.via) {
+    const parent = h.parent.get(child) ?? "";
+    const pm = m.get(parent);
+    const cm = m.get(child);
+    const sign = sideOf3.get(child) ?? 1;
+    if (!pm || !cm) continue;
+    const pu = (at2.get(parent) ?? 0) + pm.half;
+    const cu = (at2.get(child) ?? 0) - cm.half;
+    const pc = cross.get(parent) ?? 0;
+    const cc = cross.get(child) ?? 0;
+    const k = (cu - pu) / 2;
+    const pts = [
+      point2(sign * pu, pc, horizontal),
+      point2(sign * (pu + k), pc, horizontal),
+      point2(sign * (cu - k), cc, horizontal),
+      point2(sign * cu, cc, horizontal)
+    ];
+    e.points = e.from === child ? pts.reverse() : pts;
+    e.arrow = "none";
+    const me = model.edges.find((x2) => x2.id === e.id);
+    if (parent === root && e.line === "solid") e.line = "thick";
+    if (!me?.color) e.color = colorOf(child) ?? e.color;
+    const z = sizes.get(child);
+    if (z) setLabel(e, me, z, labelBoxAt(sign * ((pu + cu) / 2), (pc + cc) / 2, z, horizontal));
+  }
+}
+
+// src/layout/kinds/tree.ts
+function placeTree(ctx) {
+  const { model, horizontal } = ctx;
+  const s = model.spacing;
+  const sign = model.direction === "up" || model.direction === "left" ? -1 : 1;
+  restoreEdges(ctx);
+  const before = snapshot(ctx);
+  const h = hierarchy(ctx, false);
+  for (const n4 of ctx.nodes) {
+    const via = h.via.get(n4.id);
+    if (via) n4.via = via.id;
+  }
+  const m = new Map(ctx.nodes.map((n4) => [n4.id, measure3(n4, horizontal)]));
+  const sizes = /* @__PURE__ */ new Map();
+  for (const [child, e] of h.via) {
+    const size = labelSize(model.edges.find((x2) => x2.id === e.id));
+    if (size) sizes.set(child, size);
+  }
+  const along3 = (z) => horizontal ? z.w : z.h;
+  const fr = room(frames(ctx, before), h, horizontal, sign);
+  const extent2 = (id) => {
+    const a = m.get(id)?.across ?? { lo: 0, hi: 0 };
+    const z = sizes.get(id);
+    const half2 = z ? (horizontal ? z.h : z.w) / 2 + 4 : 0;
+    const frame2 = fr.chain(id);
+    return { lo: Math.min(a.lo, -half2), hi: Math.max(a.hi, half2), loIn: frame2, hiIn: frame2 };
+  };
+  const sibling = Math.round(28 * s);
+  const cousin = Math.round(44 * s);
+  const between = (a, b) => fr.between(a, b);
+  const t = tidy(h.kids, extent2, (d, a, b) => (d === 0 ? sibling : cousin) + between(a, b));
+  const offsets = spread(
+    h.roots.map((id) => t.contour(id)),
+    (_, a, b) => cousin + between(a, b)
+  );
+  const cross = /* @__PURE__ */ new Map();
+  h.roots.forEach((id, i) => {
+    t.place(id, offsets[i] ?? 0, cross);
+  });
+  const byDepth = depths(ctx, (id) => h.depth.get(id));
+  const stem = Math.round(26 * s);
+  const drop = Math.round(30 * s);
+  const leave = (d) => Math.max(0, ...(byDepth[d + 1] ?? []).map(fr.leave));
+  const lv = levels(byDepth, m, sign, {
+    start: 0,
+    // Rows of an org chart share their top line; columns of a sideways tree their center line.
+    align: horizontal ? "center" : "top",
+    stem: (d) => stem + leave(d),
+    drop,
+    need: (id) => {
+      const z = sizes.get(id);
+      const me = m.get(id);
+      const enter = fr.enter(id);
+      const poke = me ? grow3(me.body, sign).lo - grow3(me.foot, sign).lo : 0;
+      const label2 = z ? along3(z) + 2 * LABEL_GAP + poke : 0;
+      return enter ? Math.max(drop, label2) + enter + LABEL_GAP : label2;
+    }
+  });
+  for (const n4 of ctx.nodes)
+    moveTo(n4, sign * (lv.at.get(n4.id) ?? 0), cross.get(n4.id) ?? 0, horizontal);
+  refit(ctx, before);
+  for (const [child, e] of h.via) {
+    const parent = h.parent.get(child) ?? "";
+    const pm = m.get(parent);
+    const cm = m.get(child);
+    if (!pm || !cm) continue;
+    const pu = lv.at.get(parent) ?? 0;
+    const cu = lv.at.get(child) ?? 0;
+    const pc = cross.get(parent) ?? 0;
+    const off = (cross.get(child) ?? 0) - pc;
+    const cc = Math.abs(off) < Math.min(12, cm.wide - 6) ? pc : pc + off;
+    const bar = lv.bars[h.depth.get(parent) ?? 0] ?? pu;
+    e.points = tidyPoints([
+      point2(sign * (pu + pm.half), pc, horizontal),
+      point2(sign * bar, pc, horizontal),
+      point2(sign * bar, cc, horizontal),
+      point2(sign * (cu - cm.half), cc, horizontal)
+    ]);
+    e.arrow = "none";
+    const z = sizes.get(child);
+    if (z) {
+      const next = (lv.starts[h.depth.get(child) ?? 0] ?? cu) - fr.enter(child);
+      const at2 = fr.enter(child) ? next - LABEL_GAP : next;
+      const me = model.edges.find((x2) => x2.id === e.id);
+      setLabel(e, me, z, labelBoxAt(sign * ((bar + at2) / 2), cc, z, horizontal));
+    }
+  }
+  routeRest(ctx, h, ctx.routing === "spline");
+  clearHeaders(ctx);
+  settle(ctx);
+}
+
+// src/layout/kinds/index.ts
+var kindHooks = {
+  elkOptions(model) {
+    if (model.kind === "tree") return { "elk.nodeSize.fixedGraphSize": "true" };
+    if (model.kind === "mindmap")
+      return { "elk.nodeSize.fixedGraphSize": "true", "elk.edgeRouting": "SPLINES" };
+    if (model.kind === "state") return { "elk.layered.edgeRouting.selfLoopDistribution": "NORTH" };
+    return {};
+  },
+  after(ctx) {
+    if (ctx.model.kind === "tree") placeTree(ctx);
+    else if (ctx.model.kind === "mindmap") placeMindmap(ctx);
+    else if (ctx.model.kind === "state") {
+      restoreEdges(ctx, (e) => e.from === e.to);
+      selfLoops(ctx, false);
+    }
+  }
+};
+
 // src/layout/notation.ts
 var LABEL = 13;
 var NOTE = 11.5;
@@ -14102,9 +14937,9 @@ function fitNotationEnds(nodes, edges, shapes = false) {
   if (!outlines.size) return;
   for (const e of edges) {
     const to = outlines.get(e.to);
-    const from = outlines.get(e.from);
+    const from2 = outlines.get(e.from);
     if (to) fitEnd(e.points, e.points.length - 1, e.points.length - 2, to);
-    if (from) fitEnd(e.points, 0, 1, from);
+    if (from2) fitEnd(e.points, 0, 1, from2);
   }
 }
 var notationHooks = {
@@ -14177,8 +15012,8 @@ function fitEnd(pts, i, j, o) {
   const b = o.box;
   if (!E || !Q || i === j) return;
   const near2 = (v, w) => Math.abs(v - w) < 0.6;
-  const within4 = (v, lo2, len2) => v >= lo2 - 0.6 && v <= lo2 + len2 + 0.6;
-  const side = (near2(E.x, b.x) || near2(E.x, b.x + b.w)) && within4(E.y, b.y, b.h) || (near2(E.y, b.y) || near2(E.y, b.y + b.h)) && within4(E.x, b.x, b.w);
+  const within5 = (v, lo2, len2) => v >= lo2 - 0.6 && v <= lo2 + len2 + 0.6;
+  const side = (near2(E.x, b.x) || near2(E.x, b.x + b.w)) && within5(E.y, b.y, b.h) || (near2(E.y, b.y) || near2(E.y, b.y + b.h)) && within5(E.x, b.x, b.w);
   if (!side || o.inside(E.x, E.y)) return;
   const d = Math.hypot(E.x - Q.x, E.y - Q.y);
   if (!d) return;
@@ -14210,7 +15045,7 @@ var RUN = 28;
 var CHANNEL = 12;
 var CLEAR2 = 6;
 var BEND = 28;
-var round2 = (v) => Math.round(v * 100) / 100;
+var round3 = (v) => Math.round(v * 100) / 100;
 function union4(boxes) {
   const list = boxes.filter((b) => !!b && (b.w > 0 || b.h > 0));
   const x2 = Math.min(...list.map((b) => b.x));
@@ -14522,7 +15357,7 @@ function placeLabels2(r6, edges) {
       const flat4 = Math.abs(p.y - q2.y) < 0.01;
       const len2 = flat4 ? Math.abs(q2.x - p.x) : Math.abs(q2.y - p.y);
       const along3 = flat4 === horizontal;
-      const shared = segments3.some(
+      const shared2 = segments3.some(
         (s) => s.e !== e && Math.abs(flat4 ? s.p.y - p.y : s.p.x - p.x) < 0.5 && Math.abs(flat4 ? s.q.y - q2.y : s.q.x - q2.x) < 0.5 && Math.min(
           flat4 ? Math.max(p.x, q2.x) : Math.max(p.y, q2.y),
           flat4 ? Math.max(s.p.x, s.q.x) : Math.max(s.p.y, s.q.y)
@@ -14531,7 +15366,7 @@ function placeLabels2(r6, edges) {
           flat4 ? Math.min(s.p.x, s.q.x) : Math.min(s.p.y, s.q.y)
         ) > 0.5
       );
-      const base = (along3 ? 0 : 12) + (shared ? 60 : 0) + k * (early ? 6 : 1);
+      const base = (along3 ? 0 : 12) + (shared2 ? 60 : 0) + k * (early ? 6 : 1);
       const need = (flat4 ? w : h) + 12;
       if (len2 < need && !(len2 >= (flat4 ? w : h) + 4)) return;
       const lo = flat4 ? Math.min(p.x, q2.x) : Math.min(p.y, q2.y);
@@ -14575,16 +15410,16 @@ function placeLabels2(r6, edges) {
         score: 0
       };
     }
-    const box2 = { x: round2(best.box.x), y: round2(best.box.y), w, h };
+    const box2 = { x: round3(best.box.x), y: round3(best.box.y), w, h };
     blocks.push(grow4(box2, 2));
     if (me.step !== void 0)
-      e.stepBox = { x: box2.x, y: round2(box2.y + (h - STEP2) / 2), w: STEP2, h: STEP2 };
+      e.stepBox = { x: box2.x, y: round3(box2.y + (h - STEP2) / 2), w: STEP2, h: STEP2 };
     if (me.label) {
       e.label = block3;
       e.labelBox = {
-        x: round2(box2.x + stepW + (stepW ? 2 : 0)),
+        x: round3(box2.x + stepW + (stepW ? 2 : 0)),
         y: box2.y,
-        w: round2(w - stepW - (stepW ? 2 : 0)),
+        w: round3(w - stepW - (stepW ? 2 : 0)),
         h
       };
     }
@@ -14593,7 +15428,7 @@ function placeLabels2(r6, edges) {
 
 // src/layout/lanes/ports.ts
 var INF = Number.POSITIVE_INFINITY;
-function endOf2(r6, id) {
+function endOf3(r6, id) {
   const horizontal = r6.ctx.horizontal;
   const n4 = r6.sceneNode.get(id);
   if (n4) {
@@ -14737,12 +15572,14 @@ function routeEdges(r6) {
     joins
   };
   const out = [];
+  const bandOf = new Map(r6.all.flatMap((band) => band.items.map((it) => [it.id, band])));
   const order2 = model.edges.map((me, i) => {
-    const a = endOf2(r6, me.from);
-    const b = endOf2(r6, me.to);
+    const a = endOf3(r6, me.from);
+    const b = endOf3(r6, me.to);
     const msg = me.flow === "message";
     const span2 = a && b ? Math.abs(ports.mMid(b.box) - ports.mMid(a.box)) : 0;
-    const rank = msg ? 2 : a?.band || b?.band ? 3 : 0;
+    const within5 = !!bandOf.get(me.from) && bandOf.get(me.from) === bandOf.get(me.to);
+    const rank = msg ? 2 : a?.band || b?.band ? 3 : within5 ? 0 : 1;
     return { me, i, a, b, rank, span: span2 };
   });
   order2.sort((p, q2) => p.rank - q2.rank || p.span - q2.span || p.i - q2.i);
@@ -14765,7 +15602,7 @@ function routeEdges(r6) {
       if (prior) result2.set(me.id, prior);
       continue;
     }
-    edge3.points = dropStraight(points.map((p) => ({ x: round2(p.x), y: round2(p.y) })));
+    edge3.points = dropStraight(points.map((p) => ({ x: round3(p.x), y: round3(p.y) })));
     ports.claim(me, edge3.points[0], edge3.points[edge3.points.length - 1], msg);
     for (let k = 1; k < edge3.points.length; k++) {
       const p = edge3.points[k - 1];
@@ -14802,26 +15639,26 @@ function gridLines(r6) {
   gaps.push([prevEnd, r6.endM]);
   for (const [s, e] of gaps) {
     const mid = (s + e) / 2;
-    if (e - s > 2) mLines.add(round2(mid));
+    if (e - s > 2) mLines.add(round3(mid));
     for (let k = 1; k <= 3; k++)
       for (const v of [mid + 12 * k, mid - 12 * k])
-        if (v > s + 8 && v < e - 8) mLines.add(round2(v));
+        if (v > s + 8 && v < e - 8) mLines.add(round3(v));
   }
   for (const it of r6.items) {
-    mLines.add(round2(it.attach[A2.m] + it.attach[A2.mw] / 2));
-    cLines.add(round2(it.attach[A2.c] + it.attach[A2.cw] / 2));
+    mLines.add(round3(it.attach[A2.m] + it.attach[A2.mw] / 2));
+    cLines.add(round3(it.attach[A2.c] + it.attach[A2.cw] / 2));
   }
   const drawn2 = r6.all.filter((b) => b.group || b.items.length);
   for (const b of drawn2) {
-    if (!b.kids.length) cLines.add(round2(b.c0 + b.size / 2));
-    cLines.add(round2(b.c0 + CHANNEL));
-    cLines.add(round2(b.c0 + b.size - CHANNEL));
+    if (!b.kids.length) cLines.add(round3(b.c0 + b.size / 2));
+    cLines.add(round3(b.c0 + CHANNEL));
+    cLines.add(round3(b.c0 + b.size - CHANNEL));
   }
   const tops = r6.all.filter((b) => b.depth === 0 && (b.group || b.items.length));
   const outer0 = Math.min(...tops.map((b) => b.c0));
   const outer1 = Math.max(...tops.map((b) => b.c0 + b.size));
-  cLines.add(round2(outer0 - 16));
-  cLines.add(round2(outer1 + 16));
+  cLines.add(round3(outer0 - 16));
+  cLines.add(round3(outer1 + 16));
   const sortedTops = [...tops].sort((a, b) => a.c0 - b.c0);
   const poolGaps = [];
   for (let i = 1; i < sortedTops.length; i++) {
@@ -14832,14 +15669,14 @@ function gridLines(r6) {
     if (b.c0 - s <= 16) continue;
     poolGaps.push([s, b.c0]);
     for (const v of [(s + b.c0) / 2, (s + b.c0) / 2 - 12, (s + b.c0) / 2 + 12])
-      cLines.add(round2(v));
+      cLines.add(round3(v));
   }
   for (const cols of r6.layers.values())
     for (const col of cols)
       for (let i = 1; i < col.length; i++) {
         const a = col[i - 1];
         const b = col[i];
-        if (a && b) cLines.add(round2((a.foot[A2.c] + a.foot[A2.cw] + b.foot[A2.c]) / 2));
+        if (a && b) cLines.add(round3((a.foot[A2.c] + a.foot[A2.cw] + b.foot[A2.c]) / 2));
       }
   return { mLines, cLines, drawn: drawn2, poolGaps };
 }
@@ -14865,8 +15702,8 @@ function routeOne(rt, me, edge3, a, b, msg) {
   const horizontal = rt.r.ctx.horizontal;
   const xsOf = () => [...horizontal ? mLines : cLines];
   const ysOf = () => [...horizontal ? cLines : mLines];
-  const addX = (v) => (horizontal ? mLines : cLines).add(round2(v));
-  const addY = (v) => (horizontal ? cLines : mLines).add(round2(v));
+  const addX = (v) => (horizontal ? mLines : cLines).add(round3(v));
+  const addY = (v) => (horizontal ? cLines : mLines).add(round3(v));
   const { starts, ends: ends3 } = portsFor(rt.r, rt.ports, me, a, b, msg);
   const obstacles = obstaclesFor(rt, me, a, b, starts, ends3);
   for (const port of [...starts, ...ends3]) {
@@ -14952,10 +15789,10 @@ function penaltyOf(rt, me, edge3, prefM) {
         const sAt = flat4 ? s.p.y : s.p.x;
         const [a0, a1] = flat4 ? [Math.min(p.x, q2.x), Math.max(p.x, q2.x)] : [Math.min(p.y, q2.y), Math.max(p.y, q2.y)];
         const [b0, b1] = flat4 ? [Math.min(s.p.x, s.q.x), Math.max(s.p.x, s.q.x)] : [Math.min(s.p.y, s.q.y), Math.max(s.p.y, s.q.y)];
-        const shared = Math.min(a1, b1) - Math.max(a0, b0);
-        if (shared > 0.5 && Math.abs(at2 - sAt) < 1) cost2 += 400 + 4 * shared;
-        else if (shared > 0.5 && Math.abs(at2 - sAt) < 8) cost2 += 300 + 3 * shared;
-        else if (shared > 0.5 && Math.abs(at2 - sAt) < 11) cost2 += 40 + 1.2 * shared;
+        const shared2 = Math.min(a1, b1) - Math.max(a0, b0);
+        if (shared2 > 0.5 && Math.abs(at2 - sAt) < 1) cost2 += 400 + 4 * shared2;
+        else if (shared2 > 0.5 && Math.abs(at2 - sAt) < 8) cost2 += 300 + 3 * shared2;
+        else if (shared2 > 0.5 && Math.abs(at2 - sAt) < 11) cost2 += 40 + 1.2 * shared2;
       } else {
         const h = flat4 ? { p, q: q2 } : { p: s.p, q: s.q };
         const v = flat4 ? { p: s.p, q: s.q } : { p, q: q2 };
@@ -14999,11 +15836,11 @@ function bandLayout(ctx, ids3) {
   const layers = sizeBands(sc, tree, elkCross);
   const lead = insetStrips(tree, all);
   const along3 = pullColumns(sc, items, itemOf2);
-  const run2 = runOf2(sc, items, along3, lead);
+  const run3 = runOf2(sc, items, along3, lead);
   placeAcross(ctx, tree);
-  moveItems(sc, tree, all, layers, along3, run2.m0);
+  moveItems(sc, tree, all, layers, along3, run3.m0);
   followOverlays(sc, overlays);
-  paintBands(ctx, all, run2);
+  paintBands(ctx, all, run3);
   inkOnBands(sc, tree.bands);
   const routes = routeEdges({
     ctx,
@@ -15016,8 +15853,8 @@ function bandLayout(ctx, ids3) {
     itemOf: itemOf2,
     sceneNode: sc.sceneNode,
     sceneGroup: new Map(groups.map((g) => [g.id, g])),
-    contentM: run2.contentM,
-    endM: run2.endM
+    contentM: run3.contentM,
+    endM: run3.endM
   });
   edges.splice(0, edges.length, ...routes);
 }
@@ -15033,24 +15870,24 @@ var makeBand = (group2, depth) => ({
 });
 function bandTree(model, ids3) {
   const bands2 = /* @__PURE__ */ new Map();
-  const roots = [];
+  const roots2 = [];
   for (const g of model.groups) if (ids3.has(g.id)) bands2.set(g.id, makeBand(g, 0));
   for (const g of model.groups) {
     const b = bands2.get(g.id);
     if (!b) continue;
     const parent = g.parent ? bands2.get(g.parent) : void 0;
     if (parent) parent.kids.push(b);
-    else roots.push(b);
+    else roots2.push(b);
   }
   const deepen = (b, d) => {
     b.depth = d;
     for (const k of b.kids) deepen(k, d + 1);
   };
-  for (const r6 of roots) deepen(r6, 0);
+  for (const r6 of roots2) deepen(r6, 0);
   const own = /* @__PURE__ */ new Map();
   const tree = {
     bands: bands2,
-    roots,
+    roots: roots2,
     bandFor(parent) {
       const b = parent ? bands2.get(parent) : void 0;
       if (!b) {
@@ -15067,7 +15904,7 @@ function bandTree(model, ids3) {
   return tree;
 }
 function collectItems(sc, tree) {
-  const { ctx, ids: ids3, A: A2, sceneNode, sceneGroup, within: within4 } = sc;
+  const { ctx, ids: ids3, A: A2, sceneNode, sceneGroup, within: within5 } = sc;
   const { model, edges, horizontal } = ctx;
   const attachOf = (n4) => symbolBox(n4) ?? (n4.look === "icon" && horizontal && n4.iconBox ? n4.iconBox : n4.box);
   const items = [];
@@ -15092,14 +15929,14 @@ function collectItems(sc, tree) {
     if (!sg) continue;
     const boxes = [sg.box, sg.labelBox, sg.iconBox, sg.inner?.box];
     for (const x2 of [...model.nodes, ...model.groups]) {
-      if (!within4(x2.id, g.id)) continue;
+      if (!within5(x2.id, g.id)) continue;
       const n4 = sceneNode.get(x2.id);
       const s = sceneGroup.get(x2.id);
       if (n4) boxes.push(...nodeBoxes(n4));
       if (s) boxes.push(s.box, s.labelBox, s.iconBox, s.inner?.box);
     }
     const inner = edges.filter(
-      (e) => [e.from, e.to].every((id) => id === g.id || within4(id, g.id))
+      (e) => [e.from, e.to].every((id) => id === g.id || within5(id, g.id))
     );
     const it = {
       id: g.id,
@@ -15116,7 +15953,7 @@ function collectItems(sc, tree) {
   for (const it of items) {
     itemOf2.set(it.id, it);
     for (const x2 of [...model.nodes, ...model.groups])
-      if (within4(x2.id, it.id)) itemOf2.set(x2.id, it);
+      if (within5(x2.id, it.id)) itemOf2.set(x2.id, it);
   }
   return { items, elkCross, itemOf: itemOf2 };
 }
@@ -15283,8 +16120,8 @@ function moveItems(sc, tree, all, layers, along3, m0) {
   const shiftBox2 = (b, dm, dc) => {
     if (!b || moved.has(b)) return;
     moved.add(b);
-    b[A2.m] = round2(b[A2.m] + dm);
-    b[A2.c] = round2(b[A2.c] + dc);
+    b[A2.m] = round3(b[A2.m] + dm);
+    b[A2.c] = round3(b[A2.c] + dc);
   };
   const move2 = (it, dc) => {
     const dm = m0 + (along3.get(it) ?? 0);
@@ -15292,7 +16129,7 @@ function moveItems(sc, tree, all, layers, along3, m0) {
     it.foot = { ...it.foot, [A2.m]: it.foot[A2.m] + dm, [A2.c]: it.foot[A2.c] + dc };
     for (const e of it.inner) {
       const d = horizontal ? { x: dm, y: dc } : { x: dc, y: dm };
-      e.points = e.points.map((p) => ({ x: round2(p.x + d.x), y: round2(p.y + d.y) }));
+      e.points = e.points.map((p) => ({ x: round3(p.x + d.x), y: round3(p.y + d.y) }));
       shiftBox2(e.labelBox, dm, dc);
       shiftBox2(e.stepBox, dm, dc);
     }
@@ -15326,23 +16163,23 @@ function followOverlays(sc, overlays) {
     const right = b.x + b.w - (o.before.x + o.before.w);
     const bottom = b.y + b.h - (o.before.y + o.before.h);
     g.box = {
-      x: round2(b.x + dx),
-      y: round2(b.y + dy),
-      w: round2(now.x + now.w + right - (b.x + dx)),
-      h: round2(now.y + now.h + bottom - (b.y + dy))
+      x: round3(b.x + dx),
+      y: round3(b.y + dy),
+      w: round3(now.x + now.w + right - (b.x + dx)),
+      h: round3(now.y + now.h + bottom - (b.y + dy))
     };
     for (const x2 of [g.labelBox, g.iconBox]) {
       if (!x2) continue;
-      x2.x = round2(x2.x + dx);
-      x2.y = round2(x2.y + dy);
+      x2.x = round3(x2.x + dx);
+      x2.y = round3(x2.y + dy);
     }
   }
 }
-function paintBands(ctx, all, run2) {
+function paintBands(ctx, all, run3) {
   const { groups, horizontal } = ctx;
-  const { startM, endM } = run2;
+  const { startM, endM } = run3;
   const t = THEME_TOKENS[ctx.theme];
-  const boxOf2 = (m, mlen, c0, clen) => horizontal ? { x: round2(m), y: round2(c0), w: round2(mlen), h: round2(clen) } : { x: round2(c0), y: round2(m), w: round2(clen), h: round2(mlen) };
+  const boxOf2 = (m, mlen, c0, clen) => horizontal ? { x: round3(m), y: round3(c0), w: round3(mlen), h: round3(clen) } : { x: round3(c0), y: round3(m), w: round3(clen), h: round3(mlen) };
   const painted = [];
   for (const b of all) {
     const g = b.group;
@@ -15372,10 +16209,10 @@ function paintBands(ctx, all, run2) {
       depth: b.depth,
       label: label2,
       labelBox: {
-        x: round2(header2.x + (header2.w - lw) / 2),
-        y: round2(header2.y + (header2.h - lh) / 2),
-        w: round2(lw),
-        h: round2(lh)
+        x: round3(header2.x + (header2.w - lw) / 2),
+        y: round3(header2.y + (header2.h - lh) / 2),
+        w: round3(lw),
+        h: round3(lh)
       },
       stroke: stroke3,
       fill: fill2,
@@ -15397,15 +16234,15 @@ function inkOnBands(sc, bands2) {
   const t = THEME_TOKENS[ctx.theme];
   for (const n4 of ctx.nodes) {
     if (n4.ink) continue;
-    let surface;
-    for (let p = n4.parent; p && !surface; p = parentOf.get(p)) {
+    let surface2;
+    for (let p = n4.parent; p && !surface2; p = parentOf.get(p)) {
       const fill2 = bands2.get(p)?.scene?.fill;
-      if (fill2 && fill2 !== "none") surface = fill2;
+      if (fill2 && fill2 !== "none") surface2 = fill2;
       else if (!bands2.has(p) && (sceneGroup.get(p)?.fill ?? "none") !== "none") break;
     }
-    if (!surface) continue;
-    const ink = ensureContrast(t.text, surface, 4.5);
-    const inkMuted = ensureContrast(t.muted, surface, 4.5);
+    if (!surface2) continue;
+    const ink = ensureContrast(t.text, surface2, 4.5);
+    const inkMuted = ensureContrast(t.muted, surface2, 4.5);
     if (ink !== t.text) n4.ink = ink;
     if (inkMuted !== t.muted) n4.inkMuted = inkMuted;
   }
@@ -15416,6 +16253,7 @@ var isBandType = (g) => !!g && !g.around && (g.type === "pool" || g.type === "la
 function bandIds(model) {
   const byId = new Map(model.groups.map((g) => [g.id, g]));
   const out = /* @__PURE__ */ new Set();
+  if (model.kind === "tree" || model.kind === "mindmap") return out;
   for (const g of model.groups) {
     let ok = isBandType(g);
     for (let p = g.parent; ok && p; p = byId.get(p)?.parent) ok = isBandType(byId.get(p));
@@ -15488,6 +16326,7 @@ function planPlacement(model, hidden) {
     return p;
   };
   for (const g of model.groups) {
+    if (g.around && own && OWN_LAYOUT.has(model.kind)) ignore(g.id, "around", own);
     if (g.cols === void 0) continue;
     if (own) ignore(g.id, "cols", own);
     else if (hidden.has(g.id))
@@ -15506,7 +16345,7 @@ function planPlacement(model, hidden) {
   for (const n4 of model.nodes) {
     const g = n4.on === void 0 ? void 0 : groups.get(n4.on);
     if (!g) continue;
-    const grid = g.parent && plan.grids.has(g.parent) ? g.parent : void 0;
+    const grid = above(g.parent).find((id) => plan.grids.has(id));
     if (own) ignore(n4.id, "on", own);
     else if (g.around)
       ignore(n4.id, "on", `"${g.id}" is drawn around its members, so it has no border of its own`);
@@ -15619,8 +16458,8 @@ function gridCells(cells, cols, gap2) {
   const lift = (x2) => (band - x2.box.h) / 2 - x2.box.y;
   const pitch = Math.max(0, ...cells.map((x2) => lift(x2) + x2.h));
   const at2 = cells.map((x2, i) => ({
-    x: round(i % c * (cellW + gap2) + (cellW - x2.w) / 2),
-    y: round(Math.floor(i / c) * (pitch + gap2) + lift(x2))
+    x: round2(i % c * (cellW + gap2) + (cellW - x2.w) / 2),
+    y: round2(Math.floor(i / c) * (pitch + gap2) + lift(x2))
   }));
   return {
     w: Math.ceil(c * cellW + (c - 1) * gap2),
@@ -15664,6 +16503,12 @@ function prepare(model, opts, theme) {
     "elk.layered.layering.strategy": model.layering === "simplex" ? "NETWORK_SIMPLEX" : "LONGEST_PATH_SOURCE",
     "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
     "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+    // ELK's greedy cycle breaker reverses whichever edge balances in- and out-links best, often
+    // one on the main path; a depth-first walk in spec order keeps the edges the author wrote
+    // later (a retry, a loop back) as the back edges. The model-order breakers crash elkjs 0.12
+    // inside groups. Past ELK_BUDGET edges the greedy one stays: on a dense web of cycles the
+    // walk's layering takes ELK two to three times as long.
+    "elk.layered.cycleBreaking.strategy": model.edges.length <= ELK_BUDGET ? "DEPTH_FIRST" : "GREEDY",
     // Orders each layer by the elk.position hints below, so siblings keep spec order (AZ A left
     // of AZ B). considerModelOrder would do the same but crashes elkjs 0.12 on nested graphs.
     "elk.layered.crossingMinimization.semiInteractive": "true",
@@ -15699,22 +16544,43 @@ function prepare(model, opts, theme) {
 }
 
 // src/layout/defects.ts
-function properCross(a, b, c, d) {
-  const o = (p, q2, r6) => (q2.x - p.x) * (r6.y - p.y) - (q2.y - p.y) * (r6.x - p.x);
-  return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+function crosses2(p, q2, s, t) {
+  const rx = q2.x - p.x;
+  const ry = q2.y - p.y;
+  const sx = t.x - s.x;
+  const sy = t.y - s.y;
+  const den = rx * sy - ry * sx;
+  if (Math.abs(den) < 1e-9) return false;
+  const u = ((s.x - p.x) * sy - (s.y - p.y) * sx) / den;
+  const v = ((s.x - p.x) * ry - (s.y - p.y) * rx) / den;
+  const e1 = 1.5 / (Math.hypot(rx, ry) || 1);
+  const e2 = 1.5 / (Math.hypot(sx, sy) || 1);
+  return u > e1 && u < 1 - e1 && v > e2 && v < 1 - e2;
 }
 function sceneCrossings(scene) {
   let count = 0;
-  const lines2 = scene.edges.map((e) => ({ ends: [e.from, e.to], segs: segmentsOf(e.points) }));
+  const lines2 = scene.edges.map((e) => segmentsOf(e.points));
   for (let i = 0; i < lines2.length; i++)
-    for (let j = i + 1; j < lines2.length; j++) {
-      const a = lines2[i];
-      const b = lines2[j];
-      if (!a || !b || a.ends.some((x2) => b.ends.includes(x2))) continue;
-      for (const [p, q2] of a.segs)
-        for (const [r6, t] of b.segs) if (properCross(p, q2, r6, t)) count++;
-    }
+    for (let j = i + 1; j < lines2.length; j++)
+      for (const [p, q2] of lines2[i] ?? [])
+        for (const [s, t] of lines2[j] ?? []) if (crosses2(p, q2, s, t)) count++;
   return count;
+}
+function againstFlow(scene) {
+  const along3 = (dx, dy) => scene.direction === "right" ? dx : scene.direction === "left" ? -dx : scene.direction === "down" ? dy : -dy;
+  return scene.edges.filter((e) => {
+    const a = e.points[0];
+    const b = e.points.at(-1);
+    return e.arrow === "end" && !!a && !!b && along3(b.x - a.x, b.y - a.y) < -8;
+  }).length;
+}
+function longestEdge(scene) {
+  return Math.max(
+    0,
+    ...scene.edges.map(
+      (e) => segmentsOf(e.points).reduce((t, [p, q2]) => t + Math.hypot(q2.x - p.x, q2.y - p.y), 0)
+    )
+  );
 }
 function edgesThroughNodes(scene) {
   let count = 0;
@@ -15809,6 +16675,23 @@ function sceneDefects(scene) {
 }
 
 // src/skins.ts
+function ownLook(g, scene) {
+  const style3 = resolveGroupStyle(g.type);
+  if (!style3) return {};
+  const t = THEME_TOKENS[scene.theme];
+  const base = serviceGroupStroke(g.type, g.icon) ?? style3.stroke;
+  const strokes = [base];
+  let fill2 = style3.fill ?? "none";
+  if (scene.theme === "dark") {
+    if (luminance(base) < 0.04) strokes.push("#c9d1d9");
+    else if (contrast(base, t.background) < 2) strokes.push(mixHex(base, "#ffffff", 0.55));
+    if (fill2 !== "none") fill2 = mixHex(fill2, t.background, 0.14);
+  }
+  return {
+    ...strokes.includes(g.stroke) ? {} : { color: g.stroke },
+    ...g.overlay || g.fill === "none" || g.fill === fill2 ? {} : { fill: g.fill }
+  };
+}
 function stageColors(scene) {
   const t = tokensFor(scene);
   const s = t.stage;
@@ -15816,10 +16699,13 @@ function stageColors(scene) {
   const canvas2 = scene.background && scene.background !== "transparent" ? scene.background : t.background;
   const panel = mixHex(s.line, canvas2, s.panel);
   for (const g of scene.groups) {
-    g.fill = g.dash || g.overlay ? "none" : panel;
-    g.stroke = mixHex(s.line, canvas2, s.frame);
+    const own = ownLook(g, scene);
+    const open = g.dash || g.overlay;
+    const shown = own.fill ? mixHex(open ? canvas2 : panel, own.fill, 0.2) : panel;
+    g.fill = own.fill || !open ? shown : "none";
+    g.stroke = own.color ? ensureContrast(own.color, shown, 3) : mixHex(s.line, canvas2, s.frame);
     if (g.inner) g.inner.fill = panel;
-    g.labelColor = ensureContrast(g.depth === 0 ? s.header : t.text, panel);
+    g.labelColor = ensureContrast(own.color ?? (g.depth === 0 ? s.header : t.text), shown);
   }
   for (const nd of scene.nodes) {
     nd.ink = void 0;
@@ -15898,7 +16784,7 @@ function moveOff(ctx, edges, e, hug, borders) {
   const others = edges.filter((o) => o !== e);
   const tags = (o) => [o.labelBox, o.stepBox].filter(real4);
   const own = tags(e);
-  const carry2 = own.length > 0 && beside2(union2(own), at2, lo, hi, upright2);
+  const carry2 = own.length > 0 && beside(union2(own), at2, lo, hi, upright2);
   const walls = [
     ...nodes.filter((n4) => !ends3.has(n4.id)).flatMap((n4) => [
       grow5(n4.box, SKIM2),
@@ -15908,13 +16794,13 @@ function moveOff(ctx, edges, e, hug, borders) {
     ...others.flatMap(tags).map((b) => grow5(b, 2)),
     ...carry2 ? [] : own.map((b) => grow5(b, 2))
   ];
-  const titles2 = groups.filter((g) => !g.overlay && g.label.lines.length).map((g) => g.labelBox);
+  const titles2 = groups.filter((g) => !g.overlay && g.label.lines.length).map(headerText);
   const holds2 = (gid) => [...ends3].some((id) => id === gid || rel2.above(id).includes(gid));
   const strangers = groups.filter((g) => !g.overlay && !holds2(g.id)).map((g) => g.box);
   const homes = groups.filter(
     (g) => !g.overlay && [...ends3].every((id) => id === g.id || rel2.above(id).includes(g.id))
   ).map((g) => g.box);
-  const within4 = (path, b) => path.every(
+  const within5 = (path, b) => path.every(
     (pt2) => pt2.x >= b.x - 0.5 && pt2.x <= b.x + b.w + 0.5 && pt2.y >= b.y - 0.5 && pt2.y <= b.y + b.h + 0.5
   );
   const unrelated = others.filter((o) => !ends3.has(o.from) && !ends3.has(o.to));
@@ -15947,7 +16833,7 @@ function moveOff(ctx, edges, e, hug, borders) {
   const inward = (upright2 ? box2.x + box2.w / 2 : box2.y + box2.h / 2) > line2 ? 1 : -1;
   const side = Math.abs(at2 - line2) > 0.5 ? Math.sign(at2 - line2) : inward;
   let best;
-  for (const v of OFFSETS.flatMap((d) => [line2 + side * d, line2 - side * d]).map(round)) {
+  for (const v of OFFSETS.flatMap((d) => [line2 + side * d, line2 - side * d]).map(round2)) {
     const path = pts.map((pt2, m) => m === i || m === i + 1 ? { ...pt2, [k]: v } : pt2);
     const segs2 = segmentsOf(part(path));
     if (i === 0 && !endFits(e.from, p, v)) continue;
@@ -15957,7 +16843,7 @@ function moveOff(ctx, edges, e, hug, borders) {
     if (!crowded2 && nearTitle(part(path), titles2)) continue;
     if (walls.some((w) => reaches(segs2, w, 0) && !reaches(before, w, 0))) continue;
     if (strangers.some((g) => reaches(segs2, g, 4) && !reaches(before, g, 4))) continue;
-    if (homes.some((b) => within4(part(pts), b) && !within4(part(path), b))) continue;
+    if (homes.some((b) => within5(part(pts), b) && !within5(part(path), b))) continue;
     if (unrelated.some((o) => segs2.some(([a, c]) => collinear(o.points, a, c)))) continue;
     if (carry2 && !tagsFit(own, k, v - at2, nodes, groups, others, titles2)) continue;
     const r6 = room2(v);
@@ -15967,12 +16853,12 @@ function moveOff(ctx, edges, e, hug, borders) {
   const dv = best.v - at2;
   e.points = best.path;
   if (carry2) {
-    if (e.labelBox) e.labelBox = { ...e.labelBox, [k]: round(e.labelBox[k] + dv) };
-    if (e.stepBox) e.stepBox = { ...e.stepBox, [k]: round(e.stepBox[k] + dv) };
+    if (e.labelBox) e.labelBox = { ...e.labelBox, [k]: round2(e.labelBox[k] + dv) };
+    if (e.stepBox) e.stepBox = { ...e.stepBox, [k]: round2(e.stepBox[k] + dv) };
   }
   return true;
 }
-function beside2(b, at2, lo, hi, upright2) {
+function beside(b, at2, lo, hi, upright2) {
   const [s0, s1] = upright2 ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
   if (Math.min(hi, s1) - Math.max(lo, s0) <= 0) return false;
   const [c0, c1] = upright2 ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
@@ -16004,8 +16890,8 @@ function sizeCanvas(ctx) {
   const { model, hidden, result: result2, top, titleBlock, subtitleBlock, nodes, groups, edges } = ctx;
   const snug = ctx.seats.size > 0;
   const { dx, dy } = moveClear(ctx, snug);
-  let width2 = hidden.size || snug ? 0 : round((result2.width ?? 0) + dx);
-  let height = hidden.size || snug ? 0 : round((result2.height ?? 0) + top + dy);
+  let width2 = hidden.size || snug ? 0 : round2((result2.width ?? 0) + dx);
+  let height = hidden.size || snug ? 0 : round2((result2.height ?? 0) + top + dy);
   const relocated = model.kind !== "architecture" || hidden.size > 0 || snug ? nodes.flatMap((n4) => [n4.box, n4.labelBox, n4.noteBox, n4.badgeBox]) : [];
   for (const b of [
     ...groups.map((g) => g.box),
@@ -16013,43 +16899,35 @@ function sizeCanvas(ctx) {
     ...relocated
   ]) {
     if (!b) continue;
-    width2 = Math.max(width2, round(b.x + b.w + SIZES.pad));
-    height = Math.max(height, round(b.y + b.h + SIZES.pad));
+    width2 = Math.max(width2, round2(b.x + b.w + SIZES.pad));
+    height = Math.max(height, round2(b.y + b.h + SIZES.pad));
   }
   const reach2 = snug ? SIZES.pad : ROUTE_INK;
   for (const p of edges.flatMap((e) => e.points)) {
-    width2 = Math.max(width2, round(p.x + reach2));
-    height = Math.max(height, round(p.y + reach2));
+    width2 = Math.max(width2, round2(p.x + reach2));
+    height = Math.max(height, round2(p.y + reach2));
   }
   const room2 = Math.max(MIN_TEXT, width2 - SIZES.pad * 2);
   const title2 = titleBlock && model.title && titleBlock.width > room2 ? textBlock(model.title, SIZES.title, room2, 600, 1.25) : titleBlock;
   const subtitle = subtitleBlock && model.subtitle && subtitleBlock.width > room2 ? textBlock(model.subtitle, SIZES.subtitle, room2, 400) : subtitleBlock;
-  const grew = round(
-    (title2?.height ?? 0) - (titleBlock?.height ?? 0) + (title2 && subtitle?.height || 0) - (titleBlock && subtitleBlock?.height || 0)
+  const grew = round2(
+    (title2?.height ?? 0) - (titleBlock?.height ?? 0) + (subtitle?.height ?? 0) - (subtitleBlock?.height ?? 0)
   );
   if (grew > 0) {
     shiftAll(ctx, 0, grew);
-    height = round(height + grew);
+    height = round2(height + grew);
   }
-  let titleBox;
+  let titleBox2;
   let subtitleBox;
+  let y = SIZES.pad - 4;
   if (title2) {
-    titleBox = {
-      x: SIZES.pad,
-      y: SIZES.pad - 4,
-      w: round(title2.width),
-      h: round(title2.height)
-    };
-    width2 = Math.max(width2, round(title2.width + SIZES.pad * 2));
-    if (subtitle) {
-      subtitleBox = {
-        x: SIZES.pad,
-        y: round(titleBox.y + title2.height + 4),
-        w: round(subtitle.width),
-        h: round(subtitle.height)
-      };
-      width2 = Math.max(width2, round(subtitle.width + SIZES.pad * 2));
-    }
+    titleBox2 = { x: SIZES.pad, y, w: round2(title2.width), h: round2(title2.height) };
+    width2 = Math.max(width2, round2(title2.width + SIZES.pad * 2));
+    y = round2(y + title2.height + 4);
+  }
+  if (subtitle) {
+    subtitleBox = { x: SIZES.pad, y, w: round2(subtitle.width), h: round2(subtitle.height) };
+    width2 = Math.max(width2, round2(subtitle.width + SIZES.pad * 2));
   }
   width2 = Math.ceil(width2);
   height = Math.ceil(height);
@@ -16059,7 +16937,7 @@ function sizeCanvas(ctx) {
     width2 = Math.max(width2, Math.ceil(legend5.box.w + SIZES.pad * 2));
     height = Math.ceil(legend5.box.y + legend5.box.h + SIZES.pad);
   }
-  return { width: width2, height, title: title2, subtitle, titleBox, subtitleBox, legend: legend5 };
+  return { width: width2, height, title: title2, subtitle, titleBox: titleBox2, subtitleBox, legend: legend5 };
 }
 function moveClear(ctx, snug) {
   const { top, titleBlock, nodes, groups, edges } = ctx;
@@ -16074,8 +16952,8 @@ function moveClear(ctx, snug) {
   ].filter((b) => !!b);
   const x0 = Math.min(...drawn2.map((b) => b.x));
   const y0 = Math.min(...drawn2.map((b) => b.y));
-  const dx = snug ? round(SIZES.pad - x0) : Math.max(0, Math.ceil(4 - x0));
-  const dy = snug ? round(top + SIZES.pad - y0) : Math.max(0, Math.ceil(top + (titleBlock ? 8 : 4) - y0));
+  const dx = snug ? round2(SIZES.pad - x0) : Math.max(0, Math.ceil(4 - x0));
+  const dy = snug ? round2(top + SIZES.pad - y0) : Math.max(0, Math.ceil(top + (titleBlock ? 8 : 4) - y0));
   if (dx || dy) shiftAll(ctx, dx, dy);
   return { dx, dy };
 }
@@ -16085,8 +16963,8 @@ function shiftAll(ctx, dx, dy) {
   const move2 = (b) => {
     if (!b || moved.has(b)) return;
     moved.add(b);
-    b.x = round(b.x + dx);
-    b.y = round(b.y + dy);
+    b.x = round2(b.x + dx);
+    b.y = round2(b.y + dy);
   };
   for (const g of groups)
     [g.box, g.labelBox, g.iconBox, g.inner?.box, g.lane?.header].forEach(move2);
@@ -16097,8 +16975,8 @@ function shiftAll(ctx, dx, dy) {
   for (const e of edges) {
     [e.labelBox, e.stepBox].forEach(move2);
     e.points = e.points.map((p) => ({
-      x: round(p.x + dx),
-      y: round(p.y + dy)
+      x: round2(p.x + dx),
+      y: round2(p.y + dy)
     }));
   }
 }
@@ -16124,15 +17002,15 @@ function placeLegend(entries4, width2, height) {
   const items = rows.map((r6, i) => {
     const swatch = {
       x: box2.x + P2,
-      y: round(y + (r6.label.lead - 12) / 2),
+      y: round2(y + (r6.label.lead - 12) / 2),
       w: 28,
       h: 12
     };
     const labelBox = {
       x: box2.x + P2 + 36,
-      y: round(y),
-      w: round(r6.label.width),
-      h: round(r6.label.height)
+      y: round2(y),
+      w: round2(r6.label.width),
+      h: round2(r6.label.height)
     };
     y += pitch[i] ?? 18;
     return {
@@ -16182,11 +17060,11 @@ function steer(points, end, avoid, border) {
   const hi = (vertical ? avoid.x + avoid.w : avoid.y + avoid.h) + clear2;
   const min = (vertical ? border.x : border.y) + gap2;
   const max = (vertical ? border.x + border.w : border.y + border.h) - gap2;
-  const to = (far[k] <= (lo + hi) / 2 ? [lo, hi] : [hi, lo]).map(round).find((v) => v >= min && v <= max);
+  const to = (far[k] <= (lo + hi) / 2 ? [lo, hi] : [hi, lo]).map(round2).find((v) => v >= min && v <= max);
   if (to === void 0) return points;
   let out = pts;
   if (pts.length === 2) {
-    const mid = round((e[j] + far[j]) / 2);
+    const mid = round2((e[j] + far[j]) / 2);
     const at2 = (a, b) => vertical ? { x: a, y: b } : { x: b, y: a };
     out = [at2(to, e[j]), at2(to, mid), at2(far[k], mid), far];
   } else {
@@ -16195,13 +17073,13 @@ function steer(points, end, avoid, border) {
   }
   return end === "to" ? out.reverse() : out;
 }
-function freeRoute(from, to, shift2, label2) {
-  const [out] = exits(from, to, label2);
+function freeRoute(from2, to, shift2, label2) {
+  const [out] = exits(from2, to, label2);
   if (out) return out;
-  const sideBySide2 = from.full.x + from.full.w <= to.full.x || to.full.x + to.full.w <= from.full.x;
-  const a = sideBySide2 ? from.side : from.full;
+  const sideBySide2 = from2.full.x + from2.full.w <= to.full.x || to.full.x + to.full.w <= from2.full.x;
+  const a = sideBySide2 ? from2.side : from2.full;
   const b = sideBySide2 ? to.side : to.full;
-  const ac = { x: from.side.x + from.side.w / 2, y: a.y + a.h / 2 };
+  const ac = { x: from2.side.x + from2.side.w / 2, y: a.y + a.h / 2 };
   const bc = { x: to.side.x + to.side.w / 2, y: b.y + b.h / 2 };
   if (sideBySide2) {
     const right = a.x + a.w <= b.x;
@@ -16212,7 +17090,7 @@ function freeRoute(from, to, shift2, label2) {
         { x: sx, y: ac.y },
         { x: ex, y: ac.y }
       ];
-    const mx = round((sx + ex) / 2 + shift2);
+    const mx = round2((sx + ex) / 2 + shift2);
     return [
       { x: sx, y: ac.y },
       { x: mx, y: ac.y },
@@ -16228,7 +17106,7 @@ function freeRoute(from, to, shift2, label2) {
       { x: ac.x, y: sy },
       { x: ac.x, y: ey }
     ];
-  const my = round((sy + ey) / 2 + shift2);
+  const my = round2((sy + ey) / 2 + shift2);
   return [
     { x: ac.x, y: sy },
     { x: ac.x, y: my },
@@ -16323,15 +17201,15 @@ function sceneEdges(ctx, freeRoutes, rerouted) {
     const elkLabel = el.labels?.[0];
     if (lab && elkLabel?.x !== void 0 && elkLabel.y !== void 0) {
       const box2 = {
-        x: round(elkLabel.x),
-        y: round(elkLabel.y + top),
+        x: round2(elkLabel.x),
+        y: round2(elkLabel.y + top),
         w: lab.w,
         h: lab.h
       };
       if (e.step !== void 0) {
         edge3.stepBox = {
           x: box2.x,
-          y: round(box2.y + (box2.h - SIZES.step) / 2),
+          y: round2(box2.y + (box2.h - SIZES.step) / 2),
           w: SIZES.step,
           h: SIZES.step
         };
@@ -16339,9 +17217,9 @@ function sceneEdges(ctx, freeRoutes, rerouted) {
       if (e.label) {
         edge3.label = lab.block;
         edge3.labelBox = {
-          x: round(box2.x + lab.stepW + (lab.stepW ? 2 : 0)),
+          x: round2(box2.x + lab.stepW + (lab.stepW ? 2 : 0)),
           y: box2.y,
-          w: round(lab.w - lab.stepW - (lab.stepW ? 2 : 0)),
+          w: round2(lab.w - lab.stepW - (lab.stepW ? 2 : 0)),
           h: lab.h
         };
       }
@@ -16378,10 +17256,10 @@ function faces(end, room2, used) {
   const along3 = (len2) => len2 >= 36 ? [0, -12, 12] : [0];
   const out = [];
   const add = (at2, dx, dy, off) => {
-    const p = { x: round(at2.x), y: round(at2.y) };
+    const p = { x: round2(at2.x), y: round2(at2.y) };
     out.push({
       at: p,
-      stub: { x: round(p.x + dx * room2), y: round(p.y + dy * room2) },
+      stub: { x: round2(p.x + dx * room2), y: round2(p.y + dy * room2) },
       cost: (off ? 8 : 0) + (taken(p) ? 300 : 0)
     });
   };
@@ -16436,11 +17314,11 @@ function routeLines(all, walls, borders, ends3) {
         ...ends3.map((f) => pick2(f.stub)),
         ...walls.flatMap((r6) => [lo(r6) - 12, hi(r6) + 12]),
         ...borders.flatMap((r6) => [lo(r6) - 16, lo(r6) + 16, hi(r6) - 16, hi(r6) + 16])
-      ].map(round)
+      ].map(round2)
     )
   ].filter((v) => v >= min && v <= max).sort((m, n4) => m - n4).flatMap((v, i, all2) => {
     const next = all2[i + 1];
-    return next !== void 0 && next - v > 4 ? [v, round((v + next) / 2)] : [v];
+    return next !== void 0 && next - v > 4 ? [v, round2((v + next) / 2)] : [v];
   });
   const xs = coords(
     (p) => p.x,
@@ -16553,9 +17431,9 @@ function shortest(lines2, walls, borders, starts, goals) {
   const { shut, cut, hug } = raster(lines2, walls, borders);
   const BEND3 = 40;
   const dist = new Float64Array(W2 * ys.length * 4).fill(Infinity);
-  const from = new Int32Array(W2 * ys.length * 4).fill(-1);
+  const from2 = new Int32Array(W2 * ys.length * 4).fill(-1);
   const heap = [];
-  const index2 = (p) => [xs.indexOf(round(p.x)), ys.indexOf(round(p.y))];
+  const index2 = (p) => [xs.indexOf(round2(p.x)), ys.indexOf(round2(p.y))];
   const startAt = /* @__PURE__ */ new Map();
   for (const f of starts) {
     const [i, j] = index2(f.stub);
@@ -16596,24 +17474,24 @@ function shortest(lines2, walls, borders, starts, goals) {
       const s = key(k, l) * 4 + d;
       if (c < (dist[s] ?? Infinity)) {
         dist[s] = c;
-        from[s] = state;
+        from2[s] = state;
         heapPush(heap, c, s);
       }
     });
   }
   if (!best) return void 0;
-  const { path, origin } = trace2(lines2, from, best.state);
+  const { path, origin } = trace2(lines2, from2, best.state);
   const start = startAt.get(origin);
   const goal = goalAt.get(best.state >> 2);
   if (!start || !goal) return void 0;
   return { start, goal, path };
 }
-function trace2(lines2, from, last) {
+function trace2(lines2, from2, last) {
   const { xs, ys } = lines2;
   const W2 = xs.length;
   const path = [];
   let origin = last;
-  for (let s = last; s >= 0; s = from[s] ?? -1) {
+  for (let s = last; s >= 0; s = from2[s] ?? -1) {
     const c = s >> 2;
     path.push({ x: xs[c % W2] ?? 0, y: ys[Math.floor(c / W2)] ?? 0 });
     origin = s;
@@ -16710,9 +17588,9 @@ function nodeGeometry(n4, horizontal) {
   return { w: Math.ceil(w), h: Math.ceil(h), label: label2, note };
 }
 function badgePill(text6, anchor2) {
-  const w = round(Math.max(18, measure2(text6, 10, 600) + 10));
+  const w = round2(Math.max(18, measure2(text6, 10, 600) + 10));
   const x2 = Math.max(anchor2.x + anchor2.w - w / 2 - 2, anchor2.x + anchor2.w / 2 + 6);
-  return { x: round(x2), y: round(anchor2.y - 7), w, h: 16 };
+  return { x: round2(x2), y: round2(anchor2.y - 7), w, h: 16 };
 }
 function groupGeometry(g) {
   const style3 = resolveGroupStyle(g.type);
@@ -16732,16 +17610,19 @@ function groupGeometry(g) {
     header2 = Math.max(34, label2.height + 17);
     minWidth = 12 + (icon2 ? SIZES.inlineIcon + 8 : 0) + label2.width + 16;
   }
+  const mono3 = Math.max(0, ...label2.lines.map((l) => [...l].length * 11 * 0.7 - 11 * 0.1));
   return {
     label: label2,
     header: Math.ceil(header2),
     minWidth: Math.ceil(minWidth),
+    wide: Math.ceil(minWidth + Math.max(0, mono3 - label2.width)),
     icon: icon2,
     iconStyle,
     center: center4
   };
 }
-var minWidthOf = (ctx, id, gg) => !ctx.horizontal && ctx.opts.widen?.has(id) ? Math.max(gg.minWidth, 2 * (gg.minWidth - 10)) : gg.minWidth;
+var widenedOf = (gg) => Math.max(gg.minWidth, 2 * (gg.wide - 10));
+var minWidthOf = (ctx, id, gg) => !ctx.horizontal && ctx.opts.widen?.has(id) ? widenedOf(gg) : gg.minWidth;
 
 // src/layout/seats.ts
 var ENTRY = {
@@ -16883,7 +17764,7 @@ function seat(ctx, nd, g, tries, moving, seats) {
     const lo = start + size / 2 + CORNER2;
     const hi = end - size / 2 - CORNER2;
     if (lo > hi) continue;
-    const c0 = round(Math.min(hi, Math.max(lo, ideal ?? (up ? a.y + a.h / 2 : a.x + a.w / 2))));
+    const c0 = round2(Math.min(hi, Math.max(lo, ideal ?? (up ? a.y + a.h / 2 : a.x + a.w / 2))));
     const at2 = [c0];
     for (let d = STEP3; d <= hi - lo; d += STEP3) at2.push(c0 - d, c0 + d);
     for (const c of at2.filter((v) => v >= lo - 0.01 && v <= hi + 0.01)) {
@@ -16934,7 +17815,7 @@ function drawn(b, lines2, face2, start = false) {
   return start ? { ...b, w } : { ...b, x: b.x - (w - b.w) / 2, w };
 }
 function spotsAt(nd, a, side, line2, c) {
-  const anchor2 = upright(side) ? { x: round(line2 - a.w / 2), y: round(c - a.h / 2), w: a.w, h: a.h } : { x: round(c - a.w / 2), y: round(line2 - a.h / 2), w: a.w, h: a.h };
+  const anchor2 = upright(side) ? { x: round2(line2 - a.w / 2), y: round2(c - a.h / 2), w: a.w, h: a.h } : { x: round2(c - a.w / 2), y: round2(line2 - a.h / 2), w: a.w, h: a.h };
   const d = STUB2 + ROOM;
   const reach2 = upright(side) ? [
     { ...anchor2, x: anchor2.x - d, w: d },
@@ -16947,7 +17828,7 @@ function spotsAt(nd, a, side, line2, c) {
   if (!t) return [{ anchor: anchor2, reach: reach2 }];
   const at2 = (x3, y) => ({
     anchor: anchor2,
-    text: { x: round(x3), y: round(y), w: t.w, h: t.h },
+    text: { x: round2(x3), y: round2(y), w: t.w, h: t.h },
     reach: reach2
   });
   if (!upright(side)) {
@@ -17004,19 +17885,19 @@ function place(nd, spot) {
     nd.box = { ...anchor2 };
     if (text6) {
       const label2 = nd.label.lines.length ? nd.labelBox : void 0;
-      if (label2) nd.labelBox = { ...label2, x: round(text6.x + (text6.w - label2.w) / 2), y: text6.y };
+      if (label2) nd.labelBox = { ...label2, x: round2(text6.x + (text6.w - label2.w) / 2), y: text6.y };
       const below = label2 ? text6.y + label2.h + 2 : text6.y;
       if (nd.noteBox && nd.note?.lines.length)
         nd.noteBox = {
           ...nd.noteBox,
-          x: round(text6.x + (text6.w - nd.noteBox.w) / 2),
-          y: round(below)
+          x: round2(text6.x + (text6.w - nd.noteBox.w) / 2),
+          y: round2(below)
         };
     }
   } else {
     const dx = anchor2.x - nd.box.x;
     const dy = anchor2.y - nd.box.y;
-    const move2 = (b) => b ? { ...b, x: round(b.x + dx), y: round(b.y + dy) } : void 0;
+    const move2 = (b) => b ? { ...b, x: round2(b.x + dx), y: round2(b.y + dy) } : void 0;
     nd.box = anchor2;
     nd.iconBox = move2(nd.iconBox);
     nd.labelBox = move2(nd.labelBox) ?? nd.labelBox;
@@ -17054,13 +17935,13 @@ function seatEnd(ctx, e, end) {
   const [f0, span2] = across3 ? [a.y, a.h] : [a.x, a.w];
   const lone = mates.length === 1 ? attachBox(ctx, otherOf(e))?.side : void 0;
   const c = lone && (across3 ? lone.y + lone.h / 2 : lone.x + lone.w / 2);
-  const at2 = round(c !== void 0 && c >= f0 + 8 && c <= f0 + span2 - 8 ? c : f0 + span2 * t);
+  const at2 = round2(c !== void 0 && c >= f0 + 8 && c <= f0 + span2 - 8 ? c : f0 + span2 * t);
   const face2 = across3 ? { x: n4.x > 0 ? a.x + a.w : a.x, y: at2 } : { x: at2, y: n4.y > 0 ? a.y + a.h : a.y };
   const parts = [nd.labelBox, nd.noteBox].filter(real5);
   const text6 = parts.length && away && !across3 ? union2(parts) : void 0;
   const beyond = !text6 ? 0 : n4.y < 0 ? a.y - text6.y : text6.y + text6.h - (a.y + a.h);
   const len2 = Math.max(STUB2, beyond + 10);
-  const tip = { x: round(face2.x + n4.x * len2), y: round(face2.y + n4.y * len2) };
+  const tip = { x: round2(face2.x + n4.x * len2), y: round2(face2.y + n4.y * len2) };
   const pt2 = { x: tip.x, y: tip.y, w: 0, h: 0 };
   return { attach: { side: pt2, full: pt2, parts: [pt2] }, face: face2, tip };
 }
@@ -17244,7 +18125,7 @@ function slide(points, d, a, b) {
   const [s, t] = points;
   if (!s || !t || points.length !== 2) return [];
   const k = Math.abs(s.y - t.y) < 0.5 ? "y" : "x";
-  const v = round(s[k] + d);
+  const v = round2(s[k] + d);
   const on = (r6) => k === "y" ? [r6.y, r6.y + r6.h] : [r6.x, r6.x + r6.w];
   const fits3 = (r6) => {
     const [lo = 0, hi = 0] = on(r6);
@@ -17318,9 +18199,9 @@ function addEdges(ctx) {
     if (free(e)) {
       if (!e.constraint || inBlock(e) || opts.loose?.has(e.id)) continue;
       const ends3 = (id) => [...new Set(members(id).map(rep))];
-      const [from, to] = through(e);
+      const [from2, to] = through(e);
       let i = 0;
-      for (const s of ends3(from))
+      for (const s of ends3(from2))
         for (const t of ends3(to))
           if (s !== t) root.edges?.push({ id: `${e.id}__via${i++}`, sources: [s], targets: [t] });
       continue;
@@ -17377,76 +18258,11 @@ function seatLinks(ctx) {
   return (e) => {
     const a = plan.seats.get(e.from);
     const b = plan.seats.get(e.to);
-    const from = a && flow.get(e.from) === "before" && !inside4(e.to, a) ? a : e.from;
+    const from2 = a && flow.get(e.from) === "before" && !inside4(e.to, a) ? a : e.from;
     const to = b && flow.get(e.to) === "after" && !inside4(e.from, b) ? b : e.to;
-    return [from, to];
+    return [from2, to];
   };
 }
-
-// src/layout/relations.ts
-function relations(model, plan, hidden, opts) {
-  const groupIds = new Set(model.groups.map((g) => g.id));
-  const overlays = new Map(
-    model.groups.filter((g) => g.around?.length).map((g) => [g.id, g.around ?? []])
-  );
-  const parentOf = new Map([...model.groups, ...model.nodes].map((x2) => [x2.id, x2.parent]));
-  const above = (id) => {
-    const out = [];
-    for (let p = parentOf.get(id); p; p = parentOf.get(p)) out.push(p);
-    return out;
-  };
-  const lowest = (a, b) => {
-    const up = /* @__PURE__ */ new Set([a, ...above(a)]);
-    return [b, ...above(b)].find((g) => up.has(g) && groupIds.has(g));
-  };
-  const cellOf = (id) => id === void 0 ? void 0 : [id, ...above(id)].find((g) => groupIds.has(g) && plan.grids.has(parentOf.get(g) ?? ""));
-  const gridBetween = (e) => {
-    if (!plan.grids.size) return false;
-    const l = lowest(e.from, e.to);
-    if (l && plan.grids.has(l)) return true;
-    return [e.from, e.to].some((id) => {
-      if (id === l) return false;
-      for (const g of above(id)) {
-        if (g === l) return false;
-        if (plan.grids.has(g)) return true;
-      }
-      return false;
-    });
-  };
-  const inBlock = (e) => {
-    const b = plan.blockOf.get(e.from);
-    return b !== void 0 && b === plan.blockOf.get(e.to);
-  };
-  const seated = (e) => plan.seats.has(e.from) || plan.seats.has(e.to);
-  const free = (e) => !e.constraint || overlays.has(e.from) || overlays.has(e.to) || hidden.has(e.from) || hidden.has(e.to) || inBlock(e) || gridBetween(e) || seated(e) || !!opts.loose?.has(e.id);
-  const rep = (id) => [id, ...above(id)].filter((g) => plan.grids.has(g)).at(-1) ?? id;
-  const inside4 = (id) => [...model.nodes, ...model.groups].filter((x2) => x2.parent === id).flatMap((x2) => hidden.has(x2.id) ? inside4(x2.id) : [x2.id]);
-  const members = (id) => (overlays.get(id) ?? (hidden.has(id) ? inside4(id) : [id])).filter((m) => !overlays.has(m));
-  return {
-    groupIds,
-    overlays,
-    parentOf,
-    above,
-    lowest,
-    cellOf,
-    gridBetween,
-    inBlock,
-    seated,
-    free,
-    rep,
-    inside: inside4,
-    members
-  };
-}
-var depthOf = (model, id) => {
-  let d = 0;
-  let p = id;
-  while (p) {
-    d += 1;
-    p = model.groups.find((g) => g.id === p)?.parent;
-  }
-  return d;
-};
 
 // src/layout/graph.ts
 function buildGraph(ctx) {
@@ -17640,14 +18456,7 @@ function placeChildren(ctx, elkNodes, root) {
     }
     const block3 = elkNodes.get(plan.blockOf.get(item.id) ?? "");
     const parent = host(item.parent);
-    if (block3 && !block3.children?.length) {
-      const into = parent ?? root;
-      into.children?.push(block3);
-      into.layoutOptions = {
-        ...into.layoutOptions,
-        "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST"
-      };
-    }
+    if (block3 && !block3.children?.length) (parent ?? root).children?.push(block3);
     (block3?.children ?? parent?.children ?? root.children)?.push(el);
   }
   return cells;
@@ -17696,31 +18505,31 @@ var EMOTION_H = 136;
 var EMOTION_PAD = 22;
 var END_LABEL = 11;
 var ARROW = 12;
-var round3 = (v) => Math.round(v * 100) / 100;
+var round4 = (v) => Math.round(v * 100) / 100;
 function measureGrid(model, stages) {
   const s = model.spacing;
-  const G = round3(GUTTER * s);
-  const pad2 = round3(CELL_PAD * s);
-  const stack = round3(STACK2 * s);
+  const G = round4(GUTTER * s);
+  const pad2 = round4(CELL_PAD * s);
+  const stack = round4(STACK2 * s);
   const P2 = SIZES.pad;
   const rows = cardRows(model, stages, pad2, stack);
   const headers = headersOf(model, stages, rows, pad2);
-  const title2 = titleOf(model, P2);
+  const title2 = titleOf2(model, P2);
   const gutters = guttersOf(model, stages, rows.byId, G, pad2);
   const grid = { model, stages, G, pad: pad2, stack, P: P2, ...rows, ...headers, ...title2, ...gutters };
   return { ...grid, ...placeGrid(grid) };
 }
 function cardRows(model, stages, pad2, stack) {
   const groupIds = new Set(model.groups.map((g) => g.id));
-  const rowOf = (n4) => n4.parent && groupIds.has(n4.parent) ? n4.parent : "";
+  const rowOf2 = (n4) => n4.parent && groupIds.has(n4.parent) ? n4.parent : "";
   const rowIds = [];
-  if (model.nodes.some((n4) => rowOf(n4) === "")) rowIds.push("");
+  if (model.nodes.some((n4) => rowOf2(n4) === "")) rowIds.push("");
   for (const g of model.groups) if (model.nodes.some((n4) => n4.parent === g.id)) rowIds.push(g.id);
   const stageIx = new Map(stages.map((name2, i) => [name2, i]));
   const cards = [];
   const cells = /* @__PURE__ */ new Map();
   for (const n4 of model.nodes) {
-    const row = rowIds.indexOf(rowOf(n4));
+    const row = rowIds.indexOf(rowOf2(n4));
     const col = stageIx.get(n4.stage ?? "") ?? 0;
     const S = n4.icon ? Math.min(n4.iconSize, ICON_MAX) : 0;
     const label2 = textBlock(n4.label, SIZES.nodeLabel, TEXT_MAX, 600);
@@ -17761,7 +18570,7 @@ function cardRows(model, stages, pad2, stack) {
   );
   const rowH = rowIds.map((_, r6) => {
     const d = depth[r6] ?? 1;
-    return round3(2 * pad2 + d * (cardH[r6] ?? 0) + (d - 1) * (gap2[r6] ?? stack));
+    return round4(2 * pad2 + d * (cardH[r6] ?? 0) + (d - 1) * (gap2[r6] ?? stack));
   });
   return { rowIds, cards, cells, byId, cardH, gap: gap2, rowH };
 }
@@ -17798,7 +18607,7 @@ function headersOf(model, stages, rows, pad2) {
   const stageH = Math.ceil(Math.max(DIGIT, ...stageText.map((b) => b.height)) + 20);
   return { stageText, colW, rowText, scored, emotionText, endText, headerW, stageH };
 }
-function titleOf(model, P2) {
+function titleOf2(model, P2) {
   const titleBlock = model.title ? textBlock(model.title, SIZES.title, 1400, 600, 1.25) : void 0;
   const subtitleBlock = model.subtitle ? textBlock(model.subtitle, SIZES.subtitle, 1400, 400) : void 0;
   const top = titleBlock ? Math.ceil(P2 + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6) : 0;
@@ -17830,24 +18639,24 @@ function placeGrid(grid) {
   const colX = [];
   let x2 = gridX + headerW + G;
   for (let c = 0; c < stages.length; c++) {
-    colX.push(round3(x2));
+    colX.push(round4(x2));
     x2 += (colW[c] ?? 0) + (gut[c] ?? 0);
   }
   const lastCol = stages.length - 1;
-  const gridRight = round3((colX[lastCol] ?? 0) + (colW[lastCol] ?? 0));
+  const gridRight = round4((colX[lastCol] ?? 0) + (colW[lastCol] ?? 0));
   const rowY = [];
   let y = gridY + stageH + G;
   for (let r6 = 0; r6 < rowIds.length; r6++) {
-    rowY.push(round3(y));
+    rowY.push(round4(y));
     y += (rowH[r6] ?? 0) + G;
   }
-  const rowsBottom = round3(y - G);
+  const rowsBottom = round4(y - G);
   for (const c of cards) {
     c.box = {
-      x: round3((colX[c.col] ?? 0) + pad2),
-      y: round3((rowY[c.row] ?? 0) + pad2 + c.k * ((cardH[c.row] ?? 0) + (gap2[c.row] ?? stack))),
-      w: round3((colW[c.col] ?? 0) - 2 * pad2),
-      h: round3(cardH[c.row] ?? 0)
+      x: round4((colX[c.col] ?? 0) + pad2),
+      y: round4((rowY[c.row] ?? 0) + pad2 + c.k * ((cardH[c.row] ?? 0) + (gap2[c.row] ?? stack))),
+      w: round4((colW[c.col] ?? 0) - 2 * pad2),
+      h: round4(cardH[c.row] ?? 0)
     };
   }
   return { colX, lastCol, gridRight, rowY, rowsBottom };
@@ -17858,8 +18667,8 @@ function stageHeaders(grid) {
     const box2 = { x: colX[c] ?? 0, y: gridY, w: colW[c] ?? 0, h: stageH };
     const label2 = stageText[c] ?? textBlock("", STAGE_LABEL, 180, 600);
     const numberBox = {
-      x: round3(box2.x + 10),
-      y: round3(box2.y + (stageH - DIGIT) / 2),
+      x: round4(box2.x + 10),
+      y: round4(box2.y + (stageH - DIGIT) / 2),
       w: DIGIT,
       h: DIGIT
     };
@@ -17867,10 +18676,10 @@ function stageHeaders(grid) {
       label: label2,
       box: box2,
       labelBox: {
-        x: round3(numberBox.x + DIGIT + 8),
-        y: round3(box2.y + (stageH - label2.height) / 2),
-        w: round3(label2.width),
-        h: round3(label2.height)
+        x: round4(numberBox.x + DIGIT + 8),
+        y: round4(box2.y + (stageH - label2.height) / 2),
+        w: round4(label2.width),
+        h: round4(label2.height)
       },
       number: String(c + 1),
       numberBox
@@ -17888,12 +18697,12 @@ function rowBands(grid) {
     return {
       id,
       label: label2,
-      box: { x: gridX, y: yy, w: round3(gridRight - gridX), h },
+      box: { x: gridX, y: yy, w: round4(gridRight - gridX), h },
       labelBox: {
-        x: round3(gridX + 14),
-        y: round3(yy + (h - label2.height) / 2),
-        w: round3(label2.width),
-        h: round3(label2.height)
+        x: round4(gridX + 14),
+        y: round4(yy + (h - label2.height) / 2),
+        w: round4(label2.width),
+        h: round4(label2.height)
       },
       header: header2,
       cells: stages.map((_, c) => ({ x: colX[c] ?? 0, y: yy, w: colW[c] ?? 0, h })),
@@ -17906,14 +18715,14 @@ function emotionCurve(grid) {
   const { emotionText, endText } = grid;
   let curve;
   if (emotionText) {
-    const by = round3(rowsBottom + G);
+    const by = round4(rowsBottom + G);
     const band = {
       x: colX[0] ?? 0,
       y: by,
-      w: round3(gridRight - (colX[0] ?? 0)),
+      w: round4(gridRight - (colX[0] ?? 0)),
       h: EMOTION_H
     };
-    const zero = round3(by + EMOTION_H / 2);
+    const zero = round4(by + EMOTION_H / 2);
     const per = (EMOTION_H / 2 - EMOTION_PAD) / 2;
     const points = [];
     const scores = [];
@@ -17921,8 +18730,8 @@ function emotionCurve(grid) {
       const here2 = scored.filter((x2) => x2.col === c).map((x2) => x2.node.score ?? 0);
       if (!here2.length) return;
       const avg = here2.reduce((a, b) => a + b, 0) / here2.length;
-      scores.push(round3(avg));
-      points.push({ x: round3((colX[c] ?? 0) + (colW[c] ?? 0) / 2), y: round3(zero - avg * per) });
+      scores.push(round4(avg));
+      points.push({ x: round4((colX[c] ?? 0) + (colW[c] ?? 0) / 2), y: round4(zero - avg * per) });
     });
     const header2 = { x: gridX, y: by, w: headerW, h: EMOTION_H };
     curve = {
@@ -17932,21 +18741,21 @@ function emotionCurve(grid) {
       header: header2,
       label: emotionText,
       labelBox: {
-        x: round3(gridX + 14),
-        y: round3(zero - emotionText.height / 2),
-        w: round3(emotionText.width),
-        h: round3(emotionText.height)
+        x: round4(gridX + 14),
+        y: round4(zero - emotionText.height / 2),
+        w: round4(emotionText.width),
+        h: round4(emotionText.height)
       },
       zero,
-      unit: round3(per),
+      unit: round4(per),
       ends: endText.map(({ label: label2, score }) => ({
         label: label2,
         score,
         box: {
-          x: round3(gridX + 14),
-          y: round3(zero - score * per - label2.height / 2),
-          w: round3(label2.width),
-          h: round3(label2.height)
+          x: round4(gridX + 14),
+          y: round4(zero - score * per - label2.height / 2),
+          w: round4(label2.width),
+          h: round4(label2.height)
         }
       }))
     };
@@ -17959,17 +18768,17 @@ function canvasOf(grid, gridBottom) {
   const { model, gridRight, P: P2, titleBlock, subtitleBlock } = grid;
   let width2 = Math.ceil(gridRight + P2);
   let height = Math.ceil(gridBottom + P2);
-  let titleBox;
+  let titleBox2;
   let subtitleBox;
   if (titleBlock) {
-    titleBox = { x: P2, y: P2 - 4, w: round3(titleBlock.width), h: round3(titleBlock.height) };
+    titleBox2 = { x: P2, y: P2 - 4, w: round4(titleBlock.width), h: round4(titleBlock.height) };
     width2 = Math.max(width2, Math.ceil(titleBlock.width + P2 * 2));
     if (subtitleBlock) {
       subtitleBox = {
         x: P2,
-        y: round3(titleBox.y + titleBlock.height + 4),
-        w: round3(subtitleBlock.width),
-        h: round3(subtitleBlock.height)
+        y: round4(titleBox2.y + titleBlock.height + 4),
+        w: round4(subtitleBlock.width),
+        h: round4(subtitleBlock.height)
       };
       width2 = Math.max(width2, Math.ceil(subtitleBlock.width + P2 * 2));
     }
@@ -17980,7 +18789,7 @@ function canvasOf(grid, gridBottom) {
     width2 = Math.max(width2, Math.ceil(legend5.box.w + P2 * 2));
     height = Math.ceil(legend5.box.y + legend5.box.h + P2);
   }
-  return { width: width2, height, titleBox, subtitleBox, legend: legend5 };
+  return { width: width2, height, titleBox: titleBox2, subtitleBox, legend: legend5 };
 }
 function placeLegend2(entries4, width2, height) {
   const P2 = 10;
@@ -17997,12 +18806,12 @@ function placeLegend2(entries4, width2, height) {
   const box2 = { x: Math.max(SIZES.pad, width2 - SIZES.pad - w), y: height - SIZES.pad + 12, w, h };
   let y = box2.y + P2;
   const items = rows.map((r6, i) => {
-    const swatch = { x: box2.x + P2, y: round3(y + (r6.label.lead - 12) / 2), w: 28, h: 12 };
+    const swatch = { x: box2.x + P2, y: round4(y + (r6.label.lead - 12) / 2), w: 28, h: 12 };
     const labelBox = {
       x: box2.x + P2 + 36,
-      y: round3(y),
-      w: round3(r6.label.width),
-      h: round3(r6.label.height)
+      y: round4(y),
+      w: round4(r6.label.width),
+      h: round4(r6.label.height)
     };
     y += pitch[i] ?? 18;
     return {
@@ -18016,7 +18825,7 @@ function placeLegend2(entries4, width2, height) {
   });
   return { box: box2, items };
 }
-function describe(model, rows, curve) {
+function describe(model, rows, curve, scored) {
   const name2 = (id) => model.nodes.find((n4) => n4.id === id)?.label ?? id;
   const stages = model.stages ?? [];
   const parts = [];
@@ -18025,12 +18834,10 @@ function describe(model, rows, curve) {
     `Customer journey in ${stages.length} stages (${stages.join(", ")}) and ${rows.length} rows (${rows.map((r6) => r6.lines.join(" ")).join(", ")}), ${model.nodes.length} steps.`
   );
   if (curve?.scores.length) {
-    const scored = stages.filter(
-      (st) => model.nodes.some((n4) => n4.stage === st && n4.score !== void 0)
-    );
+    const cols = [...new Set(scored.map((c) => c.col))].sort((a, b) => a - b);
     const sign = (v) => v > 0 ? `+${v}` : String(v);
     parts.push(
-      `Emotion from -2 to 2 by stage: ${scored.map((st, i) => `${st} ${sign(curve.scores[i] ?? 0)}`).join(", ")}.`
+      `Emotion from -2 to 2 by stage: ${cols.map((c, i) => `${stages[c] ?? ""} ${sign(curve.scores[i] ?? 0)}`).join(", ")}.`
     );
   }
   const flows = model.edges.slice(0, 24).map((e) => `${name2(e.from)} to ${name2(e.to)}${e.label ? ` (${e.label})` : ""}`);
@@ -18053,8 +18860,8 @@ function journeyEdges(grid) {
 function pathsOf(grid) {
   const { G, colX, colW, gut, lastCol, gridRight, rowY, rowsBottom, cards, cells } = grid;
   return {
-    gutterX: (c) => c < 0 ? round3((colX[0] ?? 0) - G / 2) : c >= lastCol ? round3(gridRight + G / 2) : round3((colX[c] ?? 0) + (colW[c] ?? 0) + (gut[c] ?? G) / 2),
-    corridors: [...rowY.map((ry) => round3(ry - G / 2)), round3(rowsBottom + G / 2)],
+    gutterX: (c) => c < 0 ? round4((colX[0] ?? 0) - G / 2) : c >= lastCol ? round4(gridRight + G / 2) : round4((colX[c] ?? 0) + (colW[c] ?? 0) + (gut[c] ?? G) / 2),
+    corridors: [...rowY.map((ry) => round4(ry - G / 2)), round4(rowsBottom + G / 2)],
     between: (a, b) => cards.some((c) => {
       if (c === a || c === b || c.col !== a.col) return false;
       const lo = Math.min(a.box.y, b.box.y);
@@ -18093,7 +18900,7 @@ function planEdges(grid, paths) {
       continue;
     }
     const forward = a.col < b.col;
-    const [from, to] = forward ? ["right", "left"] : ["left", "right"];
+    const [from2, to] = forward ? ["right", "left"] : ["left", "right"];
     const g1 = forward ? a.col : a.col - 1;
     const g2 = forward ? b.col - 1 : b.col;
     const sx = forward ? a.box.x + a.box.w : a.box.x;
@@ -18102,7 +18909,7 @@ function planEdges(grid, paths) {
     const yt = center3(b.box).y;
     const elbow2 = Math.abs(ys - yt) < 0.5 && clearH(ys, sx, tx, [a, b]) ? "none" : clearH(ys, sx, gutterX(g2), [a, b]) ? "late" : clearH(yt, gutterX(g1), tx, [a, b]) ? "early" : void 0;
     if (elbow2) {
-      plans.push({ ...base, from, to, kind: "h", elbow: elbow2, g1, g2 });
+      plans.push({ ...base, from: from2, to, kind: "h", elbow: elbow2, g1, g2 });
       continue;
     }
     const mid = (ys + yt) / 2;
@@ -18110,7 +18917,7 @@ function planEdges(grid, paths) {
     const upright2 = (c) => cy === corridors[c.row] && c.k === 0 ? "top" : cy === corridors[c.row + 1] && c.k === stackOf(c) - 1 ? "bottom" : void 0;
     plans.push({
       ...base,
-      from: upright2(a) ?? from,
+      from: upright2(a) ?? from2,
       to: upright2(b) ?? to,
       kind: "bridge",
       g1,
@@ -18174,7 +18981,7 @@ function spreadPorts(plans) {
       const off = (i - (list.length - 1) / 2) * step;
       const c = center3(b);
       const pt2 = side === "left" ? { x: b.x, y: c.y + off } : side === "right" ? { x: b.x + b.w, y: c.y + off } : side === "top" ? { x: c.x + off, y: b.y } : { x: c.x + off, y: b.y + b.h };
-      const r6 = { x: round3(pt2.x), y: round3(pt2.y) };
+      const r6 = { x: round4(pt2.x), y: round4(pt2.y) };
       if (x2.end === "from") x2.p.ps = r6;
       else x2.p.pt = r6;
     });
@@ -18196,7 +19003,7 @@ function routePlans(paths, plans) {
     const id = p.e.id;
     let pts;
     if (p.kind === "v") {
-      const my = round3((ps.y + pt2.y) / 2);
+      const my = round4((ps.y + pt2.y) / 2);
       pts = Math.abs(ps.x - pt2.x) < 0.01 ? [ps, pt2] : [ps, { x: ps.x, y: my }, { x: pt2.x, y: my }, pt2];
     } else if (p.kind === "h" && p.elbow === "none" && Math.abs(ps.y - pt2.y) < 0.01) {
       pts = [ps, pt2];
@@ -18257,14 +19064,14 @@ function separateTracks(grid, routes, movable) {
     for (const m of list) {
       const t = track.get(m) ?? 0;
       const gap2 = Math.min(6, room2(m) / (ends3.length - 1));
-      const d = round3((t - (ends3.length - 1) / 2) * gap2);
+      const d = round4((t - (ends3.length - 1) / 2) * gap2);
       const pts = routes.get(m.id);
       const p = pts?.[m.i];
       const q2 = pts?.[m.i + 1];
       if (!pts || !p || !q2) continue;
       const k = m.vertical ? "x" : "y";
-      pts[m.i] = { ...p, [k]: round3(p[k] + d) };
-      pts[m.i + 1] = { ...q2, [k]: round3(q2[k] + d) };
+      pts[m.i] = { ...p, [k]: round4(p[k] + d) };
+      pts[m.i + 1] = { ...q2, [k]: round4(q2[k] + d) };
     }
   }
 }
@@ -18314,10 +19121,10 @@ function journeyNodes(grid) {
       icon: n4.icon,
       label: c.label,
       labelBox: {
-        x: round3(tx),
-        y: round3(ty),
-        w: round3(c.label.width),
-        h: round3(c.label.height)
+        x: round4(tx),
+        y: round4(ty),
+        w: round4(c.label.width),
+        h: round4(c.label.height)
       },
       note: c.note,
       color: n4.color,
@@ -18327,19 +19134,19 @@ function journeyNodes(grid) {
       ...n4.stage !== void 0 ? { stage: n4.stage } : {},
       ...n4.score !== void 0 ? { score: n4.score } : {}
     };
-    if (c.S) node4.iconBox = { x: round3(b.x + 12), y: round3(b.y + (b.h - c.S) / 2), w: c.S, h: c.S };
+    if (c.S) node4.iconBox = { x: round4(b.x + 12), y: round4(b.y + (b.h - c.S) / 2), w: c.S, h: c.S };
     if (c.note)
       node4.noteBox = {
-        x: round3(tx),
-        y: round3(ty + c.label.height + 2),
-        w: round3(c.note.width),
-        h: round3(c.note.height)
+        x: round4(tx),
+        y: round4(ty + c.label.height + 2),
+        w: round4(c.note.width),
+        h: round4(c.note.height)
       };
     if (n4.badge) {
-      const w = round3(Math.max(18, measure2(n4.badge, 10, 600) + 10));
+      const w = round4(Math.max(18, measure2(n4.badge, 10, 600) + 10));
       node4.badgeBox = {
-        x: round3(Math.max(b.x + b.w - w / 2 - 2, b.x + b.w / 2 + 6)),
-        y: round3(b.y - 7),
+        x: round4(Math.max(b.x + b.w - w / 2 - 2, b.x + b.w / 2 + 6)),
+        y: round4(b.y - 7),
         w,
         h: 16
       };
@@ -18357,8 +19164,8 @@ function placeEdgeLabels(grid, edges, blocked, gridBottom) {
     const chosen = candidates4.find((c) => fits2(clear2, edge3, c)) ?? candidates4[0];
     if (!chosen) continue;
     const box2 = {
-      x: round3(chosen.box.x),
-      y: round3(chosen.box.y),
+      x: round4(chosen.box.x),
+      y: round4(chosen.box.y),
       w: chosen.box.w,
       h: chosen.box.h
     };
@@ -18366,16 +19173,16 @@ function placeEdgeLabels(grid, edges, blocked, gridBottom) {
     if (edge3.step !== void 0)
       edge3.stepBox = {
         x: box2.x,
-        y: round3(box2.y + (box2.h - SIZES.step) / 2),
+        y: round4(box2.y + (box2.h - SIZES.step) / 2),
         w: SIZES.step,
         h: SIZES.step
       };
     if (u.block) {
       edge3.label = u.block;
       edge3.labelBox = {
-        x: round3(box2.x + u.stepW + (u.stepW ? 2 : 0)),
+        x: round4(box2.x + u.stepW + (u.stepW ? 2 : 0)),
         y: box2.y,
-        w: round3(w - u.stepW - (u.stepW ? 2 : 0)),
+        w: round4(w - u.stepW - (u.stepW ? 2 : 0)),
         h
       };
     }
@@ -18449,7 +19256,7 @@ async function journeyLayout(model, theme) {
     ...curve ? [curve.band, curve.header] : []
   ];
   placeEdgeLabels(grid, edges, blocked, gridBottom);
-  const { width: width2, height, titleBox, subtitleBox, legend: legend5 } = canvasOf(grid, gridBottom);
+  const { width: width2, height, titleBox: titleBox2, subtitleBox, legend: legend5 } = canvasOf(grid, gridBottom);
   return {
     width: width2,
     height,
@@ -18461,160 +19268,18 @@ async function journeyLayout(model, theme) {
     skin: model.skin,
     background: model.background,
     title: grid.titleBlock,
-    titleBox,
+    titleBox: titleBox2,
     subtitle: grid.subtitleBlock,
     subtitleBox,
     nodes,
     groups: [],
     edges,
     legend: legend5,
-    description: describe(model, grid.rowText, curve),
+    description: describe(model, grid.rowText, curve, grid.scored),
     kind: model.kind,
     ...model.story ? { story: model.story } : {},
     journey: { stages: journeyStages, rows, ...curve ? { curve } : {} }
   };
-}
-
-// src/layout/groups.ts
-function paintGroup(ctx, grp, box2, overlay) {
-  const { model, theme, tokens: t, groupGeom, headerRoom } = ctx;
-  const gg = groupGeom.get(grp.id);
-  const style3 = resolveGroupStyle(grp.type);
-  if (!gg || !style3) return void 0;
-  const { stroke: stroke3, fill: fill2, labelColor } = groupColors(grp, style3, theme, t, overlay, gg.icon);
-  const { iconBox, labelX, labelY } = headerAt(gg, box2, overlay);
-  const cornerTile = !overlay && gg.iconStyle === "tile" && !!iconBox;
-  const inset = overlay ? 10 : 12;
-  headerRoom.set(grp.id, {
-    moveIcon: !!iconBox && !cornerTile,
-    lo: cornerTile ? box2.x + SIZES.tile + 8 : box2.x + inset,
-    hi: box2.x + box2.w - inset
-  });
-  const innerFill = !overlay && style3.innerFill ? theme === "dark" ? mixHex(style3.innerFill, t.background, 0.06) : style3.innerFill : void 0;
-  const headerH = gg.header + 4;
-  const inner = innerFill ? {
-    box: {
-      x: round(box2.x + 8),
-      y: round(box2.y + headerH),
-      w: round(box2.w - 16),
-      h: round(box2.h - headerH - 8)
-    },
-    fill: innerFill
-  } : void 0;
-  return {
-    inner,
-    id: grp.id,
-    type: grp.type,
-    box: box2,
-    depth: overlay ? 1e3 : depthOf(model, grp.parent),
-    label: gg.label,
-    labelBox: {
-      x: round(labelX),
-      y: round(labelY),
-      w: round(gg.label.width),
-      h: round(gg.label.height)
-    },
-    iconBox,
-    icon: gg.icon,
-    stroke: stroke3,
-    fill: fill2,
-    labelColor,
-    dash: grp.dashed === false ? void 0 : style3.dash ?? (grp.dashed ? "6 4" : void 0),
-    strokeWidth: style3.strokeWidth,
-    radius: style3.rounded,
-    parent: overlay ? void 0 : grp.parent,
-    overlay: overlay || void 0
-  };
-}
-function groupColors(grp, style3, theme, t, overlay, icon2) {
-  const strokeBase = grp.color ?? serviceGroupStroke(grp.type, icon2) ?? style3.stroke;
-  let stroke3 = strokeBase;
-  let fill2 = grp.fill === "none" ? "none" : grp.fill ?? style3.fill ?? "none";
-  if (overlay) fill2 = "none";
-  const ink = style3.labelColor === "ink" || !style3.labelColor;
-  let labelColor = grp.color ?? (ink ? t.text : style3.labelColor ?? t.text);
-  if (theme === "dark") {
-    if (luminance(strokeBase) < 0.04) stroke3 = "#c9d1d9";
-    else if (contrast(strokeBase, t.background) < 2) stroke3 = mixHex(strokeBase, "#ffffff", 0.55);
-    if (fill2 !== "none") fill2 = mixHex(fill2, t.background, 0.14);
-    if (!grp.color && !ink && luminance(style3.labelColor ?? "#000000") < 0.04) labelColor = t.text;
-  }
-  labelColor = ensureContrast(labelColor, fill2 === "none" ? t.background : fill2, 4.5);
-  return { stroke: stroke3, fill: fill2, labelColor };
-}
-function headerAt(gg, box2, overlay) {
-  const L = gg.label;
-  let iconBox;
-  let labelX;
-  let labelY;
-  if (overlay && gg.iconStyle === "tile-center" && gg.icon) {
-    iconBox = {
-      x: box2.x + (box2.w - SIZES.tile) / 2,
-      y: box2.y - SIZES.tile / 2,
-      w: SIZES.tile,
-      h: SIZES.tile
-    };
-    labelX = box2.x + (box2.w - L.width) / 2;
-    labelY = iconBox.y + SIZES.tile + 3;
-  } else if (overlay) {
-    iconBox = gg.icon ? { x: box2.x + 10, y: box2.y - 8, w: 16, h: 16 } : void 0;
-    labelX = iconBox ? iconBox.x + iconBox.w + 5 : box2.x + 12;
-    labelY = box2.y - L.height / 2;
-  } else if (gg.iconStyle === "tile-center") {
-    iconBox = gg.icon ? {
-      x: box2.x + (box2.w - SIZES.tile) / 2,
-      y: box2.y,
-      w: SIZES.tile,
-      h: SIZES.tile
-    } : void 0;
-    labelX = box2.x + (box2.w - L.width) / 2;
-    labelY = box2.y + (gg.icon ? SIZES.tile + 3 : 6);
-  } else if (gg.iconStyle === "tile") {
-    iconBox = gg.icon ? { x: box2.x, y: box2.y, w: SIZES.tile, h: SIZES.tile } : void 0;
-    labelX = gg.center ? box2.x + (box2.w - L.width) / 2 : iconBox ? box2.x + SIZES.tile + 8 : box2.x + 12;
-    labelY = iconBox ? box2.y + Math.max(6, (SIZES.tile - L.height) / 2) : box2.y + 6;
-  } else {
-    iconBox = gg.icon ? {
-      x: box2.x + 12,
-      y: box2.y + 9,
-      w: SIZES.inlineIcon,
-      h: SIZES.inlineIcon
-    } : void 0;
-    labelX = gg.center && !iconBox ? box2.x + (box2.w - L.width) / 2 : iconBox ? iconBox.x + iconBox.w + 8 : box2.x + 12;
-    labelY = box2.y + 10;
-  }
-  return { iconBox, labelX, labelY };
-}
-var HEADER_SLACK = 4;
-function clearHeader(g, room2, groups, nodes, edges) {
-  const icon2 = room2.moveIcon ? g.iconBox : void 0;
-  const u = union2([g.labelBox, icon2]);
-  const chip2 = { x: u.x - 6, y: u.y - 1, w: u.w + 12, h: u.h + 2 };
-  const inBand = (b) => b.y < chip2.y + chip2.h - 0.5 && b.y + b.h > chip2.y + 0.5;
-  const hit = (b, dx2) => b.x < chip2.x + dx2 + chip2.w - 0.01 && b.x + b.w > chip2.x + dx2 + 0.01;
-  const segments3 = edges.flatMap((e) => e.points.slice(1).map((q2, i) => segmentBox(e.points[i] ?? q2, q2))).filter(inBand);
-  const others = [
-    ...segments3,
-    ...nodes.flatMap((n4) => [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox]),
-    ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
-    ...groups.filter((o) => o !== g).flatMap((o) => [o.labelBox, o.iconBox])
-  ].filter((b) => !!b && inBand(b));
-  if (!(g.overlay ? others : segments3).some((b) => hit(b, 0))) return true;
-  const min = room2.lo - u.x;
-  const max = room2.hi - (u.x + u.w);
-  const spot = (lo, hi) => others.flatMap((b) => [b.x - (chip2.x + chip2.w), b.x + b.w - chip2.x]).filter((d) => d >= lo - 0.01 && d <= hi + 0.01 && !others.some((b) => hit(b, d))).sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)[0];
-  const slide2 = (dx2) => {
-    g.labelBox.x = round(g.labelBox.x + dx2);
-    if (icon2) icon2.x = round(icon2.x + dx2);
-  };
-  const dx = spot(min, max);
-  if (dx !== void 0) {
-    slide2(dx);
-    return true;
-  }
-  const near2 = spot(min - HEADER_SLACK, max + HEADER_SLACK);
-  if (near2 !== void 0) slide2(near2);
-  return false;
 }
 
 // src/layout/overlays.ts
@@ -18669,7 +19334,7 @@ function drawOverlays(ctx, groups, nodes, only) {
     const sg = paintGroup(
       ctx,
       grp,
-      { x: round(x0), y: round(y0), w: round(x1 - x0), h: round(y1 - y0) },
+      { x: round2(x0), y: round2(y0), w: round2(x1 - x0), h: round2(y1 - y0) },
       true
     );
     const at2 = groups.findIndex((x2) => x2.id === grp.id && x2.overlay);
@@ -18691,8 +19356,8 @@ function clearOverlayBorders(ctx) {
         const flat4 = Math.abs(p.y - q2.y) < 0.5;
         if (!flat4 && Math.abs(p.x - q2.x) >= 0.5) continue;
         const [lo, hi] = flat4 ? [Math.min(p.x, q2.x), Math.max(p.x, q2.x)] : [Math.min(p.y, q2.y), Math.max(p.y, q2.y)];
-        const [from, to] = flat4 ? [x0, x1] : [y0, y1];
-        if (Math.min(hi, to) - Math.max(lo, from) < 20) continue;
+        const [from2, to] = flat4 ? [x0, x1] : [y0, y1];
+        if (Math.min(hi, to) - Math.max(lo, from2) < 20) continue;
         const at2 = flat4 ? p.y : p.x;
         if (flat4 && Math.abs(at2 - y0) < 8) y0 = Math.min(y0, at2 - 8);
         if (flat4 && Math.abs(at2 - y1) < 8) y1 = Math.max(y1, at2 + 8);
@@ -18701,7 +19366,7 @@ function clearOverlayBorders(ctx) {
       }
     if (x0 === g.box.x && y0 === g.box.y && x1 === g.box.x + g.box.w && y1 === g.box.y + g.box.h)
       continue;
-    const box2 = { x: round(x0), y: round(y0), w: round(x1 - x0), h: round(y1 - y0) };
+    const box2 = { x: round2(x0), y: round2(y0), w: round2(x1 - x0), h: round2(y1 - y0) };
     const sg = paintGroup(ctx, grp, box2, true);
     if (sg) groups[i] = sg;
   }
@@ -18725,7 +19390,7 @@ function secondPass(ctx) {
     const box2 = groups.find((g) => g.id === id)?.box;
     if (!gg || !box2 || gg.center || gg.iconStyle === "tile-center") return false;
     if (model.groups.find((g) => g.id === id)?.around) return false;
-    return box2.w + 0.5 < Math.max(gg.minWidth, 2 * (gg.minWidth - 10));
+    return box2.w + 0.5 < widenedOf(gg);
   });
   const room2 = overlayRoom(ctx);
   const wider = !horizontal && widen2.length > 0;
@@ -18754,7 +19419,7 @@ function overlayRoom(ctx) {
   const { model, groups, rel: rel2 } = ctx;
   const room2 = /* @__PURE__ */ new Map();
   const headOf = (g) => {
-    const parts = [g.label.lines.length ? g.labelBox : void 0, g.iconBox].filter(
+    const parts = [g.label.lines.length ? headerText(g) : void 0, g.iconBox].filter(
       (b) => !!b && b.w > 0 && b.h > 0
     );
     return parts.length ? union2(parts) : void 0;
@@ -18787,10 +19452,10 @@ function sceneNodes(ctx, placed, groups, top) {
     const g = nodeGeom.get(n4.id);
     if (!el || !g) continue;
     const box2 = {
-      x: round(el.x ?? 0),
-      y: round((el.y ?? 0) + top),
-      w: round(el.width ?? 0),
-      h: round(el.height ?? 0)
+      x: round2(el.x ?? 0),
+      y: round2((el.y ?? 0) + top),
+      w: round2(el.width ?? 0),
+      h: round2(el.height ?? 0)
     };
     const node4 = {
       id: n4.id,
@@ -18809,15 +19474,15 @@ function sceneNodes(ctx, placed, groups, top) {
       ...n4.stage !== void 0 ? { stage: n4.stage } : {},
       ...n4.score !== void 0 ? { score: n4.score } : {}
     };
-    let surface;
-    for (let p = n4.parent; p && !surface; p = model.groups.find((g2) => g2.id === p)?.parent) {
+    let surface2;
+    for (let p = n4.parent; p && !surface2; p = model.groups.find((g2) => g2.id === p)?.parent) {
       const sg = groups.find((g2) => g2.id === p);
-      if (sg?.inner) surface = sg.inner.fill;
-      else if (sg && sg.fill !== "none") surface = sg.fill;
+      if (sg?.inner) surface2 = sg.inner.fill;
+      else if (sg && sg.fill !== "none") surface2 = sg.fill;
     }
-    if (surface) {
-      const ink = ensureContrast(t.text, surface, 4.5);
-      const inkMuted = ensureContrast(t.muted, surface, 4.5);
+    if (surface2) {
+      const ink = ensureContrast(t.text, surface2, 4.5);
+      const inkMuted = ensureContrast(t.muted, surface2, 4.5);
       if (ink !== t.text) node4.ink = ink;
       if (inkMuted !== t.muted) node4.inkMuted = inkMuted;
     }
@@ -18827,7 +19492,7 @@ function sceneNodes(ctx, placed, groups, top) {
     const outside2 = el.labels?.find((l) => l.id === `${n4.id}__label`);
     placeNotation(node4, n4, g, {
       horizontal,
-      label: outside2?.x !== void 0 && outside2.y !== void 0 ? { x: round(outside2.x), y: round(outside2.y + top) } : void 0
+      label: outside2?.x !== void 0 && outside2.y !== void 0 ? { x: round2(outside2.x), y: round2(outside2.y + top) } : void 0
     });
     if (n4.badge)
       node4.badgeBox = badgePill(n4.badge, node4.iconBox && n4.look === "icon" ? node4.iconBox : box2);
@@ -18845,31 +19510,31 @@ function iconText(node4, n4, g, el, horizontal, top) {
     const ly = lab?.y !== void 0 ? lab.y + top : box2.y + S + 6;
     const ow = g.outside?.w ?? g.label.width;
     node4.labelBox = {
-      x: round(lx + (ow - g.label.width) / 2),
-      y: round(ly),
-      w: round(g.label.width),
-      h: round(g.label.height)
+      x: round2(lx + (ow - g.label.width) / 2),
+      y: round2(ly),
+      w: round2(g.label.width),
+      h: round2(g.label.height)
     };
   } else {
     node4.iconBox = {
-      x: round(box2.x + (box2.w - S) / 2),
+      x: round2(box2.x + (box2.w - S) / 2),
       y: box2.y,
       w: S,
       h: S
     };
     node4.labelBox = {
-      x: round(box2.x + (box2.w - g.label.width) / 2),
-      y: round(box2.y + S + 6),
-      w: round(g.label.width),
-      h: round(g.label.height)
+      x: round2(box2.x + (box2.w - g.label.width) / 2),
+      y: round2(box2.y + S + 6),
+      w: round2(g.label.width),
+      h: round2(g.label.height)
     };
   }
   if (g.note) {
     node4.noteBox = {
-      x: round(node4.labelBox.x + (g.label.width - g.note.width) / 2),
-      y: round(node4.labelBox.y + g.label.height + 2),
-      w: round(g.note.width),
-      h: round(g.note.height)
+      x: round2(node4.labelBox.x + (g.label.width - g.note.width) / 2),
+      y: round2(node4.labelBox.y + g.label.height + 2),
+      w: round2(g.note.width),
+      h: round2(g.note.height)
     };
   }
 }
@@ -18880,25 +19545,25 @@ function cardText(node4, n4, g) {
   const ix = box2.x + 16;
   if (n4.icon)
     node4.iconBox = {
-      x: round(ix),
-      y: round(box2.y + (box2.h - S) / 2),
+      x: round2(ix),
+      y: round2(box2.y + (box2.h - S) / 2),
       w: S,
       h: S
     };
   const tx = n4.icon ? ix + S + 12 : box2.x + 16;
   const ty = box2.y + (box2.h - textH) / 2;
   node4.labelBox = {
-    x: round(tx),
-    y: round(ty),
-    w: round(g.label.width),
-    h: round(g.label.height)
+    x: round2(tx),
+    y: round2(ty),
+    w: round2(g.label.width),
+    h: round2(g.label.height)
   };
   if (g.note)
     node4.noteBox = {
-      x: round(tx),
-      y: round(ty + g.label.height + 2),
-      w: round(g.note.width),
-      h: round(g.note.height)
+      x: round2(tx),
+      y: round2(ty + g.label.height + 2),
+      w: round2(g.note.width),
+      h: round2(g.note.height)
     };
 }
 function shapeText(node4, n4, g) {
@@ -18912,24 +19577,24 @@ function shapeText(node4, n4, g) {
   const ty = box2.y + extraTop + (innerH - textH) / 2;
   if (n4.icon)
     node4.iconBox = {
-      x: round(startX),
-      y: round(ty + (textH - 20) / 2),
+      x: round2(startX),
+      y: round2(ty + (textH - 20) / 2),
       w: 20,
       h: 20
     };
   const tx = startX + iconW;
   node4.labelBox = {
-    x: round(tx + (textW - g.label.width) / 2),
-    y: round(ty),
-    w: round(g.label.width),
-    h: round(g.label.height)
+    x: round2(tx + (textW - g.label.width) / 2),
+    y: round2(ty),
+    w: round2(g.label.width),
+    h: round2(g.label.height)
   };
   if (g.note) {
     node4.noteBox = {
-      x: round(tx + (textW - g.note.width) / 2),
-      y: round(ty + g.label.height + 2),
-      w: round(g.note.width),
-      h: round(g.note.height)
+      x: round2(tx + (textW - g.note.width) / 2),
+      y: round2(ty + g.label.height + 2),
+      w: round2(g.note.width),
+      h: round2(g.note.height)
     };
   }
 }
@@ -18939,9 +19604,9 @@ function fitIcons(scene) {
     const b = n4.iconBox;
     const aspect = n4.look === "icon" && n4.icon ? iconAspect(n4.icon) : void 0;
     if (!b || !aspect || aspect >= 1) continue;
-    const w = round(b.h * aspect);
+    const w = round2(b.h * aspect);
     if (w >= b.w - 0.01) continue;
-    const x2 = round(b.x + (b.w - w) / 2);
+    const x2 = round2(b.x + (b.w - w) / 2);
     for (const e of scene.edges) {
       const ends3 = [e.from === n4.id ? 0 : -1, e.to === n4.id ? e.points.length - 1 : -1];
       for (const i of ends3) {
@@ -18949,7 +19614,7 @@ function fitIcons(scene) {
         const next = e.points[i === 0 ? 1 : i - 1];
         if (!p || !next || Math.abs(next.y - p.y) > 0.5 || p.y < b.y || p.y > b.y + b.h) continue;
         if (Math.abs(p.x - b.x) < 0.5) e.points[i] = { x: x2, y: p.y };
-        else if (Math.abs(p.x - (b.x + b.w)) < 0.5) e.points[i] = { x: round(x2 + w), y: p.y };
+        else if (Math.abs(p.x - (b.x + b.w)) < 0.5) e.points[i] = { x: round2(x2 + w), y: p.y };
       }
     }
     n4.iconBox = { ...b, x: x2, w };
@@ -19057,9 +19722,9 @@ function stretchColumns(model, placed, edges) {
     const column = columns.find(
       (c) => c.every((o) => {
         const ob = boxOf2(placed.get(o.id) ?? el);
-        const shared = Math.min(b.x + b.w, ob.x + ob.w) - Math.max(b.x, ob.x);
+        const shared2 = Math.min(b.x + b.w, ob.x + ob.w) - Math.max(b.x, ob.x);
         const stacked = b.y >= ob.y + ob.h || ob.y >= b.y + b.h;
-        return o.type === grp.type && o.parent === grp.parent && stacked && shared > b.w / 2;
+        return o.type === grp.type && o.parent === grp.parent && stacked && shared2 > b.w / 2;
       })
     );
     if (column) column.push(grp);
@@ -19072,6 +19737,12 @@ function stretchColumns(model, placed, edges) {
     for (const el of els) {
       const b = boxOf2(el);
       if (b.w < (x1 - x0) * 0.75) continue;
+      const kids = (el.children ?? []).map(boxOf2);
+      if (kids.length) {
+        const k = union2(kids);
+        const off = (lo, hi) => Math.abs(k.x - lo - (hi - k.x - k.w)) / 2;
+        if (off(x0, x1) > 12 && off(b.x, b.x + b.w) <= 6) continue;
+      }
       const strips = [
         { x: x0, y: b.y, w: b.x - x0, h: b.h, left: true },
         { x: b.x + b.w, y: b.y, w: x1 - b.x - b.w, h: b.h, left: false }
@@ -19095,8 +19766,9 @@ function stretchColumns(model, placed, edges) {
 // src/layout/read.ts
 function readBack(ctx) {
   const { model, titleBlock, subtitleBlock, result: result2 } = ctx;
-  const top = titleBlock ? Math.ceil(SIZES.pad + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6) : 0;
-  const shift2 = (p) => ({ x: round(p.x), y: round(p.y + top) });
+  const heading3 = [titleBlock, subtitleBlock].flatMap((b) => b ? [b.height] : []);
+  const top = heading3.length ? Math.ceil(SIZES.pad + heading3.reduce((t, h) => t + h, 0) + 4 * (heading3.length - 1) - 6) : 0;
+  const shift2 = (p) => ({ x: round2(p.x), y: round2(p.y + top) });
   const placed = /* @__PURE__ */ new Map();
   const walk = (n4) => {
     placed.set(n4.id, n4);
@@ -19114,10 +19786,10 @@ function readBack(ctx) {
     const el = placed.get(grp.id);
     if (!el) continue;
     const box2 = {
-      x: round(el.x ?? 0),
-      y: round((el.y ?? 0) + top),
-      w: round(el.width ?? 0),
-      h: round(el.height ?? 0)
+      x: round2(el.x ?? 0),
+      y: round2((el.y ?? 0) + top),
+      w: round2(el.width ?? 0),
+      h: round2(el.height ?? 0)
     };
     const sg = paintGroup(paint, grp, box2, false);
     if (sg) groups.push(sg);
@@ -19172,13 +19844,13 @@ async function cellList(ctx, gid, ranked, cellRuns) {
     const child = elkNodes.get(id);
     if (!child) continue;
     if (!plan.grids.has(id) && child.children?.length) {
-      const run2 = {
+      const run3 = {
         id: `__cell:${id}`,
         layoutOptions: { ...base, "elk.padding": "[top=0,left=0,bottom=0,right=0]" },
         children: [child],
         edges: cellEdges.get(id) ?? []
       };
-      const { graph } = await ranked(run2);
+      const { graph } = await ranked(run3);
       const laid = graph.children?.[0];
       if (laid) {
         cellRuns.set(id, graph);
@@ -19218,8 +19890,8 @@ function fillGrids(ctx, result2, gridPlans, cellRuns) {
     const oy = (el.y ?? 0) + gp.top;
     el.children = gp.cells.map((c, i) => {
       const at2 = gp.at[i] ?? { x: 0, y: 0 };
-      const x2 = round(ox + at2.x + c.box.x);
-      const y = round(oy + at2.y + c.box.y);
+      const x2 = round2(ox + at2.x + c.box.x);
+      const y = round2(oy + at2.y + c.box.y);
       const g = nodeGeom.get(c.id);
       if (g?.outside)
         return {
@@ -19232,17 +19904,17 @@ function fillGrids(ctx, result2, gridPlans, cellRuns) {
             {
               id: `${c.id}__label`,
               text: " ",
-              x: round(x2 + (c.box.w - g.outside.w) / 2),
+              x: round2(x2 + (c.box.w - g.outside.w) / 2),
               y: y + c.box.h + 6,
               width: g.outside.w,
               height: g.outside.h
             }
           ]
         };
-      const run2 = cellRuns.get(c.id);
-      const laid = run2?.children?.[0];
-      if (!run2 || !laid) return { id: c.id, x: x2, y, width: c.box.w, height: c.box.h };
-      laid.edges = run2.edges ?? [];
+      const run3 = cellRuns.get(c.id);
+      const laid = run3?.children?.[0];
+      if (!run3 || !laid) return { id: c.id, x: x2, y, width: c.box.w, height: c.box.h };
+      laid.edges = run3.edges ?? [];
       return moveElk(laid, x2 - (laid.x ?? 0), y - (laid.y ?? 0));
     });
   }
@@ -19256,9 +19928,18 @@ async function runLayout(ctx) {
   const cellRuns = /* @__PURE__ */ new Map();
   if (plan.grids.size) await boxGrids(ctx, ranked, gridPlans, cellRuns);
   let { graph: result2, fallback } = await ranked(root);
-  const strict = crossings(result2);
+  let laid = root;
+  if (model.edges.length <= ELK_BUDGET && loopedEdges(model).size) {
+    const greedy = withCycleBreaking(structuredClone(root), "GREEDY");
+    const alt = await runElk(greedy).catch(() => void 0);
+    if (alt && laterFirst(backwards(ctx, alt.graph), backwards(ctx, result2)) < 0) {
+      ({ graph: result2, fallback } = alt);
+      laid = greedy;
+    }
+  }
+  const strict = model.edges.length <= ELK_BUDGET ? crossings(result2) : { count: 0, nodes: /* @__PURE__ */ new Set() };
   if (strict.count > 0) {
-    const free = structuredClone(root);
+    const free = structuredClone(laid);
     const leaves = new Set(model.nodes.map((n4) => n4.id).filter((id) => strict.nodes.has(id)));
     const unpin = (n4) => {
       if (leaves.has(n4.id) && n4.layoutOptions) delete n4.layoutOptions["elk.position"];
@@ -19278,6 +19959,41 @@ async function runLayout(ctx) {
     hoist(result2);
   }
   return { ...ctx, result: result2, fallback };
+}
+function withCycleBreaking(n4, strategy) {
+  if (n4.layoutOptions && "elk.algorithm" in n4.layoutOptions)
+    n4.layoutOptions["elk.layered.cycleBreaking.strategy"] = strategy;
+  for (const c of n4.children ?? []) withCycleBreaking(c, strategy);
+  return n4;
+}
+function backwards(ctx, graph) {
+  const at2 = /* @__PURE__ */ new Map();
+  const walk = (n4) => {
+    at2.set(n4.id, n4);
+    for (const c of n4.children ?? []) walk(c);
+  };
+  walk(graph);
+  const d = ctx.model.direction;
+  const span2 = (n4) => {
+    const lo = (ctx.horizontal ? n4.x : n4.y) ?? 0;
+    const hi = lo + ((ctx.horizontal ? n4.width : n4.height) ?? 0);
+    return d === "right" || d === "down" ? [lo, hi] : [-hi, -lo];
+  };
+  return ctx.model.edges.flatMap((e, i) => {
+    const a = at2.get(e.from);
+    const b = at2.get(e.to);
+    return a && b && e.constraint && e.from !== e.to && span2(b)[1] < span2(a)[0] ? [i] : [];
+  });
+}
+function laterFirst(a, b) {
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const [x2, y] = [a[i], b[i]];
+    if (x2 === y) continue;
+    if (x2 === void 0) return -1;
+    if (y === void 0) return 1;
+    return y - x2;
+  }
+  return 0;
 }
 async function runRanked(ctx, graph) {
   const { model, plan } = ctx;
@@ -19308,7 +20024,7 @@ async function runRanked(ctx, graph) {
 // src/layout/scene.ts
 function assemble(ctx, routing, canvas2) {
   const { model, theme, titleBlock, subtitleBlock, nodes, groups, edges, fallback, plan } = ctx;
-  const { width: width2, height, titleBox, subtitleBox, legend: legend5 } = canvas2;
+  const { width: width2, height, titleBox: titleBox2, subtitleBox, legend: legend5 } = canvas2;
   return {
     width: width2,
     height,
@@ -19321,7 +20037,7 @@ function assemble(ctx, routing, canvas2) {
     background: model.background,
     title: canvas2.title ?? titleBlock,
     ...model.title ? { name: model.title } : {},
-    titleBox,
+    titleBox: titleBox2,
     subtitle: canvas2.subtitle ?? subtitleBlock,
     subtitleBox,
     nodes,
@@ -19388,7 +20104,7 @@ var SEQ = {
   /** Lifelines longer than this get the participants' names again at their foot. */
   tall: 440
 };
-function columnsOf2(model) {
+function columnsOf3(model) {
   const root = [];
   const lists = /* @__PURE__ */ new Map();
   const parentOf = (id) => model.groups.find((g) => g.id === id)?.parent;
@@ -19443,14 +20159,14 @@ function messagesOf(model, cols) {
   return out;
 }
 function kindsOf(msgs) {
-  const waiting = /* @__PURE__ */ new Map();
+  const waiting2 = /* @__PURE__ */ new Map();
   const answered = /* @__PURE__ */ new Map();
-  const quiet = (col, from, to) => msgs.slice(from + 1, to).every((x2) => x2.a !== col && x2.b !== col);
+  const quiet = (col, from2, to) => msgs.slice(from2 + 1, to).every((x2) => x2.a !== col && x2.b !== col);
   msgs.forEach((m, k) => {
     if (m.a === m.b) m.kind = "self";
     else if (m.edge.line === "dotted") m.kind = "signal";
     else if (m.edge.line === "dashed") {
-      const callers = waiting.get(m.a) ?? [];
+      const callers = waiting2.get(m.a) ?? [];
       const i = callers.lastIndexOf(m.b);
       const last = answered.get(m.a);
       const again = i < 0 && last?.to === m.b && quiet(m.a, last.at, k);
@@ -19459,7 +20175,7 @@ function kindsOf(msgs) {
       if (m.kind === "reply") answered.set(m.a, { to: m.b, at: k });
     } else {
       m.kind = "call";
-      waiting.set(m.b, [...waiting.get(m.b) ?? [], m.a]);
+      waiting2.set(m.b, [...waiting2.get(m.b) ?? [], m.a]);
     }
   });
 }
@@ -19628,7 +20344,7 @@ function spaceColumns(model, cols, msgs, acts, frags, wrap2) {
 }
 
 // src/layout/sequence/parts.ts
-var shiftBox = (b, dx) => b ? { ...b, x: round(b.x + dx) } : b;
+var shiftBox = (b, dx) => b ? { ...b, x: round2(b.x + dx) } : b;
 function groupSides(model, cols, msgs, frags) {
   const spans2 = groupSpans(cols);
   const sides = /* @__PURE__ */ new Map();
@@ -19684,7 +20400,7 @@ function clearGroupBorders(model, cols, msgs) {
       const c = Math.min(hi, Math.max(lo, center4));
       if (best === void 0 || Math.abs(c - center4) < Math.abs(best - center4)) best = c;
     }
-    if (best !== void 0) b.x = round(best - b.w / 2);
+    if (best !== void 0) b.x = round2(best - b.w / 2);
   }
 }
 function levelsOf(model, ids3) {
@@ -19721,17 +20437,17 @@ function assemble2(model, theme, tokens2, cols, msgs, acts, frags, rows) {
   ];
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
-  const dx = round(P2 - minX);
-  for (const c of cols) c.x = round(c.x + dx);
+  const dx = round2(P2 - minX);
+  for (const c of cols) c.x = round2(c.x + dx);
   for (const m of msgs) {
-    m.x0 = round(m.x0 + dx);
-    m.x1 = round(m.x1 + dx);
+    m.x0 = round2(m.x0 + dx);
+    m.x1 = round2(m.x1 + dx);
     m.labelBox = shiftBox(m.labelBox, dx);
     m.stepBox = shiftBox(m.stepBox, dx);
   }
   for (const f of frags) {
-    f.x = round(f.x + dx);
-    f.right = round(f.right + dx);
+    f.x = round2(f.x + dx);
+    f.right = round2(f.right + dx);
   }
   const ids3 = new Set(sides.keys());
   const levels2 = levelsOf(model, ids3);
@@ -19745,8 +20461,8 @@ function assemble2(model, theme, tokens2, cols, msgs, acts, frags, rows) {
     const top = rows.groupTop.get(g.id);
     if (!side || top === void 0) continue;
     const bottom2 = rows.bottom + 12 + 8 * ((levels2.get(g.id) ?? 1) - 1);
-    const b = { x: round(side[0] + dx), y: round(top), w: round(side[1] - side[0]), h: 0 };
-    b.h = round(bottom2 - b.y);
+    const b = { x: round2(side[0] + dx), y: round2(top), w: round2(side[1] - side[0]), h: 0 };
+    b.h = round2(bottom2 - b.y);
     const sg = paintGroup(paint, g, b, false);
     if (sg) groups.push(sg);
   }
@@ -19765,9 +20481,9 @@ function assemble2(model, theme, tokens2, cols, msgs, acts, frags, rows) {
     const e = m.edge;
     const points = m.a === m.b ? [
       { x: m.x0, y: m.y },
-      { x: round(m.x0 + S.loopW), y: m.y },
-      { x: round(m.x0 + S.loopW), y: round(m.y + m.loop) },
-      { x: m.x1, y: round(m.y + m.loop) }
+      { x: round2(m.x0 + S.loopW), y: m.y },
+      { x: round2(m.x0 + S.loopW), y: round2(m.y + m.loop) },
+      { x: m.x1, y: round2(m.y + m.loop) }
     ] : [
       { x: m.x0, y: m.y },
       { x: m.x1, y: m.y }
@@ -19790,19 +20506,19 @@ function assemble2(model, theme, tokens2, cols, msgs, acts, frags, rows) {
   const lifelines = cols.map((c, i) => {
     const head2 = nodes.find((nd) => nd.id === c.node.id);
     const under = head2 ? union2([head2.box, head2.labelBox, head2.noteBox]) : void 0;
-    const top = round((under ? under.y + under.h : rows.headBottom) + 4);
+    const top = round2((under ? under.y + under.h : rows.headBottom) + 4);
     const label2 = rows.feet?.[i];
     const line2 = { id: c.node.id, x: c.x, top, bottom: rows.lifeEnd };
     if (label2) {
       const w = label2.width + 20;
       line2.foot = {
-        box: { x: round(c.x - w / 2), y: rows.lifeEnd, w: round(w), h: round(label2.height + 10) },
+        box: { x: round2(c.x - w / 2), y: rows.lifeEnd, w: round2(w), h: round2(label2.height + 10) },
         label: label2,
         labelBox: {
-          x: round(c.x - label2.width / 2),
-          y: round(rows.lifeEnd + 5),
-          w: round(label2.width),
-          h: round(label2.height)
+          x: round2(c.x - label2.width / 2),
+          y: round2(rows.lifeEnd + 5),
+          w: round2(label2.width),
+          h: round2(label2.height)
         }
       };
     }
@@ -19810,39 +20526,39 @@ function assemble2(model, theme, tokens2, cols, msgs, acts, frags, rows) {
   });
   const fragments = frags.map((f) => {
     const tagW = f.tag.width + 22;
-    const centered = (h) => round(f.top + Math.max(2, (S.tagH - h) / 2));
+    const centered = (h) => round2(f.top + Math.max(2, (S.tagH - h) / 2));
     return {
       type: f.type,
-      box: { x: f.x, y: round(f.top), w: round(f.right - f.x), h: round(f.bottom - f.top) },
+      box: { x: f.x, y: round2(f.top), w: round2(f.right - f.x), h: round2(f.bottom - f.top) },
       tag: {
-        box: { x: f.x, y: round(f.top), w: round(tagW), h: S.tagH },
+        box: { x: f.x, y: round2(f.top), w: round2(tagW), h: S.tagH },
         label: f.tag,
         labelBox: {
-          x: round(f.x + 8),
+          x: round2(f.x + 8),
           y: centered(f.tag.height),
-          w: round(f.tag.width),
-          h: round(f.tag.height)
+          w: round2(f.tag.width),
+          h: round2(f.tag.height)
         }
       },
       ...f.label ? {
         label: f.label,
         labelBox: {
-          x: round(f.x + tagW + 10),
+          x: round2(f.x + tagW + 10),
           y: centered(f.label.height),
-          w: round(f.label.width),
-          h: round(f.label.height)
+          w: round2(f.label.width),
+          h: round2(f.label.height)
         }
       } : {},
       dividers: f.dividers.map((d) => ({
-        y: round(d.y),
+        y: round2(d.y),
         ...d.label ? {
           label: d.label,
           // Under the guard above, so the branches' guards read down one column.
           labelBox: {
-            x: round(f.x + tagW + 10),
-            y: round(d.y + 4),
-            w: round(d.label.width),
-            h: round(d.label.height)
+            x: round2(f.x + tagW + 10),
+            y: round2(d.y + 4),
+            w: round2(d.label.width),
+            h: round2(d.label.height)
           }
         } : {}
       })),
@@ -19864,8 +20580,8 @@ function assemble2(model, theme, tokens2, cols, msgs, acts, frags, rows) {
       ...m.a === m.b ? { loop: m.loop } : {},
       x0: m.x0,
       x1: m.x1,
-      top: round(m.top),
-      bottom: round(m.bottom)
+      top: round2(m.top),
+      bottom: round2(m.bottom)
     })),
     activations: acts.flatMap((a) => {
       const call = msgs[a.start];
@@ -19876,10 +20592,10 @@ function assemble2(model, theme, tokens2, cols, msgs, acts, frags, rows) {
         {
           id: col.node.id,
           box: {
-            x: round(col.x - S.bar / 2 + a.level * S.nest),
+            x: round2(col.x - S.bar / 2 + a.level * S.nest),
             y: call.y,
             w: S.bar,
-            h: round(Math.max(8, reply.y - call.y))
+            h: round2(Math.max(8, reply.y - call.y))
           },
           level: a.level,
           call: call.edge.id,
@@ -19927,15 +20643,15 @@ function placeLegend3(entries4, width2, top) {
   const pitch = rows.map((r6) => Math.max(18, r6.label.height + 3));
   const last = rows[rows.length - 1]?.label.height ?? 0;
   const h = Math.ceil(P2 + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P2);
-  const box2 = { x: Math.max(SIZES.pad, width2 - SIZES.pad - w), y: round(top), w, h };
+  const box2 = { x: Math.max(SIZES.pad, width2 - SIZES.pad - w), y: round2(top), w, h };
   let y = box2.y + P2;
   const items = rows.map((r6, i) => {
-    const swatch = { x: box2.x + P2, y: round(y + (r6.label.lead - 12) / 2), w: 28, h: 12 };
+    const swatch = { x: box2.x + P2, y: round2(y + (r6.label.lead - 12) / 2), w: 28, h: 12 };
     const labelBox = {
       x: box2.x + P2 + 36,
-      y: round(y),
-      w: round(r6.label.width),
-      h: round(r6.label.height)
+      y: round2(y),
+      w: round2(r6.label.width),
+      h: round2(r6.label.height)
     };
     y += pitch[i] ?? 18;
     return {
@@ -20019,10 +20735,10 @@ function fragmentsOf(model, msgs) {
   const kept = [];
   const inside4 = (a, b) => a.first >= b.first && a.last <= b.last;
   for (const f of sorted) {
-    const crosses3 = kept.some(
+    const crosses4 = kept.some(
       (o) => !(f.last < o.first || f.first > o.last) && !inside4(f, o) && !inside4(o, f)
     );
-    if (crosses3) continue;
+    if (crosses4) continue;
     f.depth = kept.filter((o) => inside4(f, o)).length;
     kept.push(f);
   }
@@ -20034,17 +20750,17 @@ function placeRows(model, cols, msgs, frags, width2) {
   const wrapTitle = Math.max(width2 - 2 * P2, 560);
   const title2 = model.title ? textBlock(model.title, SIZES.title, wrapTitle, 600, 1.25) : void 0;
   const subtitle = model.subtitle ? textBlock(model.subtitle, SIZES.subtitle, wrapTitle, 400) : void 0;
-  let titleBox;
+  let titleBox2;
   let subtitleBox;
   let y = P2;
   if (title2) {
-    titleBox = { x: P2, y: P2 - 4, w: round(title2.width), h: round(title2.height) };
+    titleBox2 = { x: P2, y: P2 - 4, w: round2(title2.width), h: round2(title2.height) };
     if (subtitle)
       subtitleBox = {
         x: P2,
-        y: round(titleBox.y + title2.height + 4),
-        w: round(subtitle.width),
-        h: round(subtitle.height)
+        y: round2(titleBox2.y + title2.height + 4),
+        w: round2(subtitle.width),
+        h: round2(subtitle.height)
       };
     y = Math.ceil(P2 + title2.height + (subtitle ? subtitle.height + 4 : 0) - 6) + P2;
   }
@@ -20059,24 +20775,24 @@ function placeRows(model, cols, msgs, frags, width2) {
     below.set(id, v);
     return v;
   };
-  const roots = [...spans2.keys()].filter((id) => {
+  const roots2 = [...spans2.keys()].filter((id) => {
     const parent = model.groups.find((g) => g.id === id)?.parent;
     return !parent || !spans2.has(parent);
   });
-  const headTop = y + (roots.length ? 8 + Math.max(...roots.map(bandsBelow)) : 0);
+  const headTop = y + (roots2.length ? 8 + Math.max(...roots2.map(bandsBelow)) : 0);
   const groupTop = new Map([...spans2.keys()].map((id) => [id, headTop - 8 - bandsBelow(id)]));
   const headBottom = headTop + Math.max(0, ...cols.map((c) => c.geom.h));
   let cursor = headBottom + S.firstGap;
   msgs.forEach((m, k) => {
-    for (const f of frags.filter((x2) => x2.first === k).sort((p, q2) => p.depth - q2.depth)) {
-      f.top = cursor;
-      cursor += Math.max(S.tagH, (f.label?.height ?? 0) + 4) + S.tagGap;
-    }
     for (const f of frags)
       for (const d of f.dividers.filter((x2) => x2.k === k)) {
         d.y = cursor + 2;
         cursor = d.y + (d.label ? 4 + d.label.height + 6 : 8);
       }
+    for (const f of frags.filter((x2) => x2.first === k).sort((p, q2) => p.depth - q2.depth)) {
+      f.top = cursor;
+      cursor += Math.max(S.tagH, (f.label?.height ?? 0) + 4) + S.tagGap;
+    }
     const lbh = m.label ? m.label.height + S.chipY : 0;
     const half2 = m.step !== void 0 ? S.step / 2 : 0;
     m.top = cursor;
@@ -20103,18 +20819,18 @@ function placeRows(model, cols, msgs, frags, width2) {
     feet = cols.map((c) => textBlock(c.node.label || c.node.id, 12, 132, 600));
     bottom = lifeEnd + Math.max(...feet.map((f) => f.height)) + 10;
   }
-  lifeEnd = round(lifeEnd);
+  lifeEnd = round2(lifeEnd);
   return {
     ...title2 ? { title: title2 } : {},
     ...subtitle ? { subtitle } : {},
-    ...titleBox ? { titleBox } : {},
+    ...titleBox2 ? { titleBox: titleBox2 } : {},
     ...subtitleBox ? { subtitleBox } : {},
     headTop,
     headBottom,
     groupTop,
     lifeEnd,
     ...feet ? { feet } : {},
-    bottom: round(bottom)
+    bottom: round2(bottom)
   };
 }
 var chipW = (b) => b?.lines.length ? b.width + SEQ.chipX : 0;
@@ -20126,15 +20842,15 @@ function placeMessagesX(cols, msgs, acts) {
     const lbw = chipW(m.label);
     const lbh = m.label ? m.label.height + S.chipY : 0;
     if (m.a === m.b) {
-      m.x0 = m.x1 = round(xa + sideOf2(acts, m.a, k, 1));
+      m.x0 = m.x1 = round2(xa + sideOf2(acts, m.a, k, 1));
       if (m.label) m.labelBox = box(m.x0 + S.loopW + 8, m.y + (m.loop - lbh) / 2, lbw, lbh);
       if (m.step !== void 0)
         m.stepBox = box(m.x0 + S.loopW / 2 - S.step / 2, m.y - S.step / 2, S.step, S.step);
       return;
     }
     const dir = m.b > m.a ? 1 : -1;
-    m.x0 = round(xa + sideOf2(acts, m.a, k, dir === 1 ? 1 : -1));
-    m.x1 = round(xb + sideOf2(acts, m.b, k, dir === 1 ? -1 : 1));
+    m.x0 = round2(xa + sideOf2(acts, m.a, k, dir === 1 ? 1 : -1));
+    m.x1 = round2(xb + sideOf2(acts, m.b, k, dir === 1 ? -1 : 1));
     let lo = Math.min(m.x0, m.x1) + S.margin;
     let hi = Math.max(m.x0, m.x1) - S.margin;
     if (m.step !== void 0) {
@@ -20148,10 +20864,10 @@ function placeMessagesX(cols, msgs, acts) {
   });
 }
 var box = (x2, y, w, h) => ({
-  x: round(x2),
-  y: round(y),
-  w: round(w),
-  h: round(h)
+  x: round2(x2),
+  y: round2(y),
+  w: round2(w),
+  h: round2(h)
 });
 function placeFragmentsX(cols, msgs, acts, frags) {
   const S = SEQ;
@@ -20185,18 +20901,18 @@ function placeFragmentsX(cols, msgs, acts, frags) {
     const tagW = f.tag.width + 22;
     hi = Math.max(hi, lo + tagW + (f.label ? 10 + f.label.width + 10 : 10));
     for (const d of f.dividers) if (d.label) hi = Math.max(hi, lo + tagW + 10 + d.label.width + 10);
-    f.x = round(lo);
-    f.right = round(hi);
+    f.x = round2(lo);
+    f.right = round2(hi);
     f.cols = [c0, c1];
   }
 }
 
 // src/layout/sequence/index.ts
-var DISPLAY = 950;
+var DISPLAY2 = 950;
 var WRAPS = [200, 180, 160, 140, 120];
 function sequenceScene(model, theme) {
   const name2 = typeof theme === "string" ? theme : theme.name;
-  const cols = columnsOf2(model);
+  const cols = columnsOf3(model);
   if (!cols.length) return void 0;
   const msgs = messagesOf(model, cols);
   kindsOf(msgs);
@@ -20204,7 +20920,7 @@ function sequenceScene(model, theme) {
   const frags = fragmentsOf(model, msgs);
   let spaced = spaceColumns(model, cols, msgs, acts, frags, WRAPS[0] ?? 200);
   for (const wrap2 of WRAPS.slice(1)) {
-    if (spaced.width <= DISPLAY) break;
+    if (spaced.width <= DISPLAY2) break;
     spaced = spaceColumns(model, cols, msgs, acts, frags, wrap2);
   }
   const rows = placeRows(model, cols, msgs, frags, spaced.width);
@@ -20293,9 +21009,9 @@ function sizeOf(e) {
 }
 function setTag(e, box2, stepW) {
   if (e.step !== void 0 && e.stepBox)
-    e.stepBox = { ...e.stepBox, x: box2.x, y: round(box2.y + (box2.h - SIZES.step) / 2) };
+    e.stepBox = { ...e.stepBox, x: box2.x, y: round2(box2.y + (box2.h - SIZES.step) / 2) };
   if (e.labelBox)
-    e.labelBox = { ...e.labelBox, x: round(box2.x + stepW + (stepW ? 2 : 0)), y: box2.y };
+    e.labelBox = { ...e.labelBox, x: round2(box2.x + stepW + (stepW ? 2 : 0)), y: box2.y };
 }
 var tagBox = (e) => {
   const parts = [e.labelBox, e.stepBox].filter((b) => !!b && b.w > 0);
@@ -20323,7 +21039,7 @@ function spreadOnce(view, skip2, tagOf, held) {
       const targets = slotsAround(face2, slots.length, pins);
       if (!targets) continue;
       slots.forEach((slot, i) => {
-        const to = round(targets[i] ?? slot.along);
+        const to = round2(targets[i] ?? slot.along);
         for (const end of slot.ends) {
           const p = end.e.points[end.i];
           if (!p) continue;
@@ -20467,243 +21183,12 @@ function carry(before, after, box2) {
     const d = upright2 ? Math.max(0, Math.abs(c.x - p.x) - box2.w / 2) : Math.max(0, Math.abs(c.y - p.y) - box2.h / 2);
     if (d <= 12 && (!best || d < best.d)) best = { d, dx: moved.x - p.x, dy: moved.y - p.y };
   }
-  return best ? { ...box2, x: round(box2.x + best.dx), y: round(box2.y + best.dy) } : void 0;
+  return best ? { ...box2, x: round2(box2.x + best.dx), y: round2(box2.y + best.dy) } : void 0;
 }
 function moveTag(e, dx, dy) {
-  const move2 = (b) => b ? { ...b, x: round(b.x + dx), y: round(b.y + dy) } : b;
+  const move2 = (b) => b ? { ...b, x: round2(b.x + dx), y: round2(b.y + dy) } : b;
   if (e.labelBox) e.labelBox = move2(e.labelBox);
   if (e.stepBox) e.stepBox = move2(e.stepBox);
-}
-
-// src/layout/timeline/dates.ts
-var DAY = 864e5;
-var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-function utcMs(y, m, d) {
-  const t = /* @__PURE__ */ new Date(0);
-  t.setUTCFullYear(y, m, d);
-  return t.getTime();
-}
-function dayOf(iso2) {
-  const [y = 1970, m = 1, d = 1] = iso2.split("-").map(Number);
-  return Math.round(utcMs(y, m - 1, d) / DAY);
-}
-var isoOf = (day) => new Date(day * DAY).toISOString().slice(0, 10);
-function ymd(day) {
-  const t = new Date(day * DAY);
-  return {
-    y: t.getUTCFullYear(),
-    m: t.getUTCMonth(),
-    d: t.getUTCDate(),
-    dow: (t.getUTCDay() + 6) % 7
-  };
-}
-var utc = (y, m, d = 1) => Math.round(utcMs(y, m, d) / DAY);
-function floorTo(day, scale) {
-  const { y, m, dow } = ymd(day);
-  switch (scale) {
-    case "day":
-      return day;
-    case "week":
-      return day - dow;
-    case "month":
-      return utc(y, m);
-    case "quarter":
-      return utc(y, m - m % 3);
-    case "year":
-      return utc(y, 0);
-  }
-}
-function nextOf(start, scale) {
-  const { y, m } = ymd(start);
-  switch (scale) {
-    case "day":
-      return start + 1;
-    case "week":
-      return start + 7;
-    case "month":
-      return utc(y, m + 1);
-    case "quarter":
-      return utc(y, m + 3);
-    case "year":
-      return utc(y + 1, 0);
-  }
-}
-function periods(from, to, scale) {
-  const out = [];
-  for (let d = floorTo(from, scale); d < to; d = nextOf(d, scale)) out.push(d);
-  return out;
-}
-var FINER = {
-  year: "quarter",
-  quarter: "month",
-  month: void 0,
-  week: "day",
-  day: void 0
-};
-var COARSER = {
-  year: void 0,
-  quarter: "year",
-  month: "year",
-  week: "month",
-  day: "month"
-};
-function tickText(day, scale) {
-  const { y, m, d } = ymd(day);
-  switch (scale) {
-    case "year":
-      return String(y);
-    case "quarter":
-      return `Q${Math.floor(m / 3) + 1}`;
-    case "month":
-      return MONTHS[m] ?? "";
-    case "week":
-    case "day":
-      return String(d);
-  }
-}
-function periodName(day, scale) {
-  const { y, m, d } = ymd(day);
-  switch (scale) {
-    case "year":
-      return String(y);
-    case "quarter":
-      return `Q${Math.floor(m / 3) + 1} ${y}`;
-    case "month":
-      return `${MONTHS[m]} ${y}`;
-    case "week":
-      return `Week of ${MONTHS[m]} ${d} ${y}`;
-    case "day":
-      return `${MONTHS[m]} ${d} ${y}`;
-  }
-}
-function dayName(day) {
-  const { y, m, d } = ymd(day);
-  return `${MONTHS[m]} ${d} ${y}`;
-}
-function shortName(day, scale) {
-  const { y, m } = ymd(day);
-  return scale === "year" ? `'${String(y).slice(2)}` : MONTHS[m] ?? "";
-}
-function spanOf(when) {
-  const s = dayOf(when.start);
-  if (when.end !== void 0) return { t0: s, t1: dayOf(when.end) + 1, point: false };
-  const e = nextOf(floorTo(s, when.precision), when.precision);
-  const mid = when.precision === "day" ? s + 0.5 : (s + e) / 2;
-  return { t0: mid, t1: mid, point: true };
-}
-
-// src/layout/timeline/axis.ts
-var round4 = (v) => Math.round(v * 100) / 100;
-var DISPLAY2 = 880;
-var TICK_SIZE = 11.5;
-var PERIOD_SIZE = 12;
-var UPPER_H = 22;
-var LOWER_H = 24;
-var MIN_PITCH2 = {
-  day: 22,
-  week: 30,
-  month: 40,
-  quarter: 56,
-  year: 64
-};
-var MAX_PITCH = 260;
-function scaleOf2(starts, end, x0, pitch) {
-  const x2 = (day) => {
-    const first = starts[0] ?? end;
-    if (day <= first) return x0;
-    if (day >= end) return x0 + starts.length * pitch;
-    let i = starts.length - 1;
-    while (i > 0 && (starts[i] ?? end) > day) i--;
-    const a = starts[i] ?? first;
-    const b = starts[i + 1] ?? end;
-    return x0 + (i + (day - a) / Math.max(1e-9, b - a)) * pitch;
-  };
-  return { starts, end, x0, pitch, x: x2 };
-}
-function boundsOf(tl, spans2) {
-  const today = tl.today ? dayOf(tl.today) : void 0;
-  const lows = [...spans2.map((s) => s.t0), ...today !== void 0 ? [today] : []];
-  const highs = [...spans2.map((s) => s.t1), ...today !== void 0 ? [today + 1] : []];
-  const fallback = today ?? dayOf("2026-01-01");
-  const lo = tl.start ? dayOf(tl.start) : lows.length ? Math.min(...lows) : fallback;
-  const hi = tl.end ? dayOf(tl.end) + 1 : highs.length ? Math.max(...highs) : lo + 1;
-  return { from: lo, to: Math.max(hi, lo + 1) };
-}
-function columnsOf3(from, to, scale) {
-  const starts = periods(from, to, scale);
-  return starts.length ? starts : [floorTo(from, scale)];
-}
-var endOf3 = (starts, scale) => nextOf(starts[starts.length - 1] ?? 0, scale);
-function pitchOf(scale, starts, room2) {
-  const widest = Math.max(
-    0,
-    ...starts.map((d) => textBlock(tickText(d, scale), TICK_SIZE, 400, 600).width)
-  );
-  const min = Math.max(MIN_PITCH2[scale], Math.ceil(widest + 16));
-  const fit = Math.floor(room2 / Math.max(1, starts.length) * 100) / 100;
-  return Math.max(min, Math.min(MAX_PITCH, fit));
-}
-function axisOf(scale, sc, top) {
-  const coarser = COARSER[scale];
-  const upperH = coarser ? UPPER_H : 0;
-  const x1 = sc.x0 + sc.starts.length * sc.pitch;
-  const box2 = { x: sc.x0, y: top, w: round4(x1 - sc.x0), h: upperH + LOWER_H };
-  const lower = { x: sc.x0, y: top + upperH, w: box2.w, h: LOWER_H };
-  const ticks = sc.starts.map((d, i) => {
-    const label2 = textBlock(tickText(d, scale), TICK_SIZE, 400, 600);
-    const x2 = round4(sc.x0 + i * sc.pitch);
-    return {
-      x: x2,
-      w: sc.pitch,
-      date: isoOf(d),
-      name: periodName(d, scale),
-      label: label2,
-      labelBox: {
-        x: round4(x2 + (sc.pitch - label2.width) / 2),
-        y: round4(lower.y + (LOWER_H - label2.height) / 2),
-        w: round4(label2.width),
-        h: round4(label2.height)
-      }
-    };
-  });
-  const tiers = [];
-  if (coarser) {
-    const first = sc.starts[0] ?? sc.end;
-    for (const d of periods(first, sc.end, coarser)) {
-      const px0 = sc.x(Math.max(d, first));
-      const px1 = sc.x(Math.min(nextOf(d, coarser), sc.end));
-      const w = round4(px1 - px0);
-      const name2 = periodName(d, coarser);
-      const label2 = [name2, shortName(d, coarser)].map((s) => textBlock(s, PERIOD_SIZE, 400, 600)).find((b) => b.width + 16 <= w);
-      const cell = { x: round4(px0), w, name: name2, date: isoOf(d) };
-      if (label2) {
-        cell.label = label2;
-        cell.labelBox = {
-          x: round4(px0 + 8),
-          y: round4(top + (UPPER_H - label2.height) / 2),
-          w: round4(label2.width),
-          h: round4(label2.height)
-        };
-      }
-      tiers.push(cell);
-    }
-  }
-  const finer = FINER[scale];
-  const majors = new Set(sc.starts);
-  const minor = finer ? periods(sc.starts[0] ?? sc.end, sc.end, finer).filter((d) => !majors.has(d) && d > (sc.starts[0] ?? 0)).map((d) => round4(sc.x(d))) : [];
-  const axis = {
-    scale,
-    start: isoOf(sc.starts[0] ?? sc.end),
-    end: isoOf(sc.end - 1),
-    box: box2,
-    ...coarser ? { upper: { x: box2.x, y: top, w: box2.w, h: upperH } } : {},
-    lower,
-    periods: tiers,
-    ticks,
-    minor,
-    pitch: sc.pitch
-  };
-  return { axis, bottom: top + box2.h };
 }
 
 // src/layout/timeline/canvas.ts
@@ -20717,53 +21202,53 @@ var STATUS_NAMES = {
   "at-risk": "At risk"
 };
 var ORDER = ["done", "active", "planned", "at-risk"];
-function titleOf2(model) {
+function titleOf3(model) {
   const P2 = SIZES.pad;
   const titleBlock = model.title ? textBlock(model.title, SIZES.title, 1400, 600, 1.25) : void 0;
   const subtitleBlock = model.subtitle ? textBlock(model.subtitle, SIZES.subtitle, 1400, 400) : void 0;
   const top = titleBlock ? Math.ceil(P2 + titleBlock.height + (subtitleBlock ? subtitleBlock.height + 4 : 0) - 6) : 0;
-  let titleBox;
+  let titleBox2;
   let subtitleBox;
   if (titleBlock) {
-    titleBox = { x: P2, y: P2 - 4, w: round4(titleBlock.width), h: round4(titleBlock.height) };
+    titleBox2 = { x: P2, y: P2 - 4, w: round(titleBlock.width), h: round(titleBlock.height) };
     if (subtitleBlock)
       subtitleBox = {
         x: P2,
-        y: round4(titleBox.y + titleBlock.height + 4),
-        w: round4(subtitleBlock.width),
-        h: round4(subtitleBlock.height)
+        y: round(titleBox2.y + titleBlock.height + 4),
+        w: round(subtitleBlock.width),
+        h: round(subtitleBlock.height)
       };
   }
-  return { titleBlock, subtitleBlock, titleBox, subtitleBox, gridY: top + P2 };
+  return { titleBlock, subtitleBlock, titleBox: titleBox2, subtitleBox, gridY: top + P2 };
 }
 function todayOf(x2, date, top, bottom, canvasW, texts) {
   const label2 = textBlock("Today", 10.5, 200, 600);
   const w = Math.ceil(label2.width + 14);
   const h = 18;
   const cx = Math.min(Math.max(x2, SIZES.pad + w / 2), canvasW - SIZES.pad - w / 2);
-  const chip2 = { x: round4(cx - w / 2), y: round4(top + (TODAY_STRIP - h) / 2 - 2), w, h };
-  const y0 = round4(chip2.y + h);
+  const chip2 = { x: round(cx - w / 2), y: round(top + (TODAY_STRIP - h) / 2 - 2), w, h };
+  const y0 = round(chip2.y + h);
   const cuts2 = texts.filter((b) => x2 >= b.x - 3 && x2 <= b.x + b.w + 3).map((b) => [b.y - 3, b.y + b.h + 3]).sort((a, b) => a[0] - b[0]);
   const segments3 = [];
-  let from = y0;
+  let from2 = y0;
   for (const [a, b] of cuts2) {
-    if (a > from) segments3.push({ y0: round4(from), y1: round4(Math.min(a, bottom)) });
-    from = Math.max(from, b);
+    if (a > from2) segments3.push({ y0: round(from2), y1: round(Math.min(a, bottom)) });
+    from2 = Math.max(from2, b);
   }
-  if (from < bottom) segments3.push({ y0: round4(from), y1: round4(bottom) });
+  if (from2 < bottom) segments3.push({ y0: round(from2), y1: round(bottom) });
   return {
-    x: round4(x2),
+    x: round(x2),
     date,
     top: y0,
-    bottom: round4(bottom),
+    bottom: round(bottom),
     segments: segments3.filter((sg) => sg.y1 - sg.y0 > 1),
     chip: chip2,
     label: label2,
     labelBox: {
-      x: round4(chip2.x + (w - label2.width) / 2),
-      y: round4(chip2.y + (h - label2.height) / 2),
-      w: round4(label2.width),
-      h: round4(label2.height)
+      x: round(chip2.x + (w - label2.width) / 2),
+      y: round(chip2.y + (h - label2.height) / 2),
+      w: round(label2.width),
+      h: round(label2.height)
     }
   };
 }
@@ -20782,22 +21267,22 @@ function keyOf2(statuses, milestones, x2, top, right) {
       cx = x2;
       cy += rowH;
     }
-    const swatch = { x: round4(cx), y: round4(cy + (rowH - 12) / 2), w: KEY_SWATCH, h: 12 };
+    const swatch = { x: round(cx), y: round(cy + (rowH - 12) / 2), w: KEY_SWATCH, h: 12 };
     items.push({
       kind,
       swatch,
       label: label2,
       labelBox: {
-        x: round4(cx + KEY_SWATCH + 8),
-        y: round4(cy + (rowH - label2.height) / 2),
-        w: round4(label2.width),
-        h: round4(label2.height)
+        x: round(cx + KEY_SWATCH + 8),
+        y: round(cy + (rowH - label2.height) / 2),
+        w: round(label2.width),
+        h: round(label2.height)
       }
     });
     cx += w + 22;
   }
   const r6 = Math.max(...items.map((it) => it.labelBox.x + it.labelBox.w));
-  return { box: { x: x2, y: top, w: round4(r6 - x2), h: round4(cy + rowH - top) }, items };
+  return { box: { x: x2, y: top, w: round(r6 - x2), h: round(cy + rowH - top) }, items };
 }
 function placeLegend4(entries4, width2, height) {
   const P2 = 10;
@@ -20814,12 +21299,12 @@ function placeLegend4(entries4, width2, height) {
   const box2 = { x: Math.max(SIZES.pad, width2 - SIZES.pad - w), y: height - SIZES.pad + 12, w, h };
   let y = box2.y + P2;
   const items = rows.map((r6, i) => {
-    const swatch = { x: box2.x + P2, y: round4(y + (r6.label.lead - 12) / 2), w: 28, h: 12 };
+    const swatch = { x: box2.x + P2, y: round(y + (r6.label.lead - 12) / 2), w: 28, h: 12 };
     const labelBox = {
       x: box2.x + P2 + 36,
-      y: round4(y),
-      w: round4(r6.label.width),
-      h: round4(r6.label.height)
+      y: round(y),
+      w: round(r6.label.width),
+      h: round(r6.label.height)
     };
     y += pitch[i] ?? 18;
     return {
@@ -20977,8 +21462,8 @@ function placeX(items, sc) {
         x0 = mid - DOT / 2;
         x1 = mid + DOT / 2;
       }
-      it.bx0 = round4(x0);
-      it.bx1 = round4(x1);
+      it.bx0 = round(x0);
+      it.bx1 = round(x1);
       const clip0 = it.t0 < first;
       const clip1 = it.t1 > sc.end;
       if (clip0 || clip1) it.clipped = clip0 && clip1 ? "both" : clip0 ? "start" : "end";
@@ -20996,21 +21481,21 @@ function placeX(items, sc) {
       it.barH = it.side === "inside" ? Math.max(BAR_H, Math.ceil(it.textH + 10)) : BAR_H;
       it.h = Math.max(it.barH, Math.ceil(it.textH), it.iconOutside ? it.S : 0);
       const block3 = AWAY + (it.iconOutside ? iconRoom : 0) + text6;
-      it.fx0 = round4(it.side === "left" ? x0 - block3 : x0);
-      it.fx1 = round4(it.side === "right" ? x1 + block3 : x1);
+      it.fx0 = round(it.side === "left" ? x0 - block3 : x0);
+      it.fx1 = round(it.side === "right" ? x1 + block3 : x1);
     } else {
       const x2 = sc.x(it.t0);
       const r6 = half(it);
-      it.bx0 = round4(x2 - r6);
-      it.bx1 = round4(x2 + r6);
+      it.bx0 = round(x2 - r6);
+      it.bx1 = round(x2 + r6);
       if (it.t0 < first || it.t0 > sc.end) it.clipped = it.t0 < first ? "start" : "end";
       it.iconOutside = it.shape === "milestone" && !!it.S;
       const block3 = AWAY + 2 + (it.iconOutside ? iconRoom : 0) + text6 + SLACK;
       it.side = x2 + r6 + block3 <= plotR || x2 - r6 - block3 < sc.x0 ? "right" : "left";
       it.barH = 2 * r6;
       it.h = Math.max(2 * r6, Math.ceil(it.textH), it.iconOutside ? it.S : 0);
-      it.fx0 = round4(it.side === "left" ? x2 - r6 - block3 : x2 - r6);
-      it.fx1 = round4(it.side === "right" ? x2 + r6 + block3 : x2 + r6);
+      it.fx0 = round(it.side === "left" ? x2 - r6 - block3 : x2 - r6);
+      it.fx1 = round(it.side === "right" ? x2 + r6 + block3 : x2 + r6);
     }
   }
 }
@@ -21052,8 +21537,8 @@ function stackDepth(rows) {
   return deepest;
 }
 function placeLanes(rows, lanes, plot, headerX, top, spacing) {
-  const gap2 = round4(ROW_GAP * spacing);
-  const pad2 = round4(LANE_PAD * spacing);
+  const gap2 = round(ROW_GAP * spacing);
+  const pad2 = round(LANE_PAD * spacing);
   const out = [];
   let y = top;
   let slot = 0;
@@ -21063,11 +21548,11 @@ function placeLanes(rows, lanes, plot, headerX, top, spacing) {
       (r6) => Math.max(r6.some((it) => it.shape === "bar") ? BAR_H : 20, ...r6.map((it) => it.h))
     );
     const inner = heights2.reduce((s, h2) => s + h2, 0) + gap2 * Math.max(0, heights2.length - 1);
-    const h = round4(inner + 2 * pad2);
-    const box2 = { x: plot.x, y: round4(y), w: round4(plot.right - plot.x), h };
+    const h = round(inner + 2 * pad2);
+    const box2 = { x: plot.x, y: round(y), w: round(plot.right - plot.x), h };
     let ty = y + pad2;
     const tracks = heights2.map((th) => {
-      const t = { y: round4(ty), h: th };
+      const t = { y: round(ty), h: th };
       ty += th + gap2;
       return t;
     });
@@ -21089,20 +21574,20 @@ function placeLanes(rows, lanes, plot, headerX, top, spacing) {
       lane.header = header2;
       lane.label = label2;
       lane.labelBox = {
-        x: round4(lx),
-        y: round4(box2.y + (h - label2.height) / 2),
-        w: round4(label2.width),
-        h: round4(label2.height)
+        x: round(lx),
+        y: round(box2.y + (h - label2.height) / 2),
+        w: round(label2.width),
+        h: round(label2.height)
       };
       if (icon2) {
         lane.icon = icon2;
-        lane.iconBox = { x: headerX + 14, y: round4(box2.y + (h - ICON2) / 2), w: ICON2, h: ICON2 };
+        lane.iconBox = { x: headerX + 14, y: round(box2.y + (h - ICON2) / 2), w: ICON2, h: ICON2 };
       }
     }
     out.push(lane);
     y += h + LANE_GAP;
   });
-  return { lanes: out, bottom: round4(y - LANE_GAP) };
+  return { lanes: out, bottom: round(y - LANE_GAP) };
 }
 function itemNodes(items, lanes, model) {
   const nodes = [];
@@ -21116,16 +21601,16 @@ function itemNodes(items, lanes, model) {
     const n4 = it.node;
     const box2 = {
       x: it.bx0,
-      y: round4(cy - it.barH / 2),
-      w: round4(it.bx1 - it.bx0),
+      y: round(cy - it.barH / 2),
+      w: round(it.bx1 - it.bx0),
       h: it.barH
     };
     const iconInBlock = it.iconOutside && it.S > 0;
     let bx;
     if (it.side === "inside") {
-      const from = box2.x + INSET + (it.S ? it.S + 6 : 0);
-      const room2 = box2.x + box2.w - INSET - (it.mark ? MARK : 0) - from;
-      bx = from + (room2 - it.textW) / 2;
+      const from2 = box2.x + INSET + (it.S ? it.S + 6 : 0);
+      const room2 = box2.x + box2.w - INSET - (it.mark ? MARK : 0) - from2;
+      bx = from2 + (room2 - it.textW) / 2;
     } else {
       const away = AWAY + (it.shape === "bar" ? 0 : 2);
       bx = it.side === "right" ? box2.x + box2.w + away + (iconInBlock ? it.S + 6 : 0) : box2.x - away - it.textW;
@@ -21139,21 +21624,21 @@ function itemNodes(items, lanes, model) {
       shape: it.shape === "bar" ? "rounded" : it.shape === "milestone" ? "diamond" : "circle",
       box: box2,
       label: it.label,
-      labelBox: { x: round4(at2(it.labelW)), y: round4(ty), w: it.labelW, h: round4(it.label.height) }
+      labelBox: { x: round(at2(it.labelW)), y: round(ty), w: it.labelW, h: round(it.label.height) }
     };
     if (n4.icon) {
       node4.icon = n4.icon;
       const S = it.S;
       const ix = it.shape === "point" ? box2.x : iconInBlock ? bx - S - 6 : it.shape === "bar" ? box2.x + INSET : box2.x;
-      node4.iconBox = { x: round4(ix), y: round4(cy - S / 2), w: S, h: S };
+      node4.iconBox = { x: round(ix), y: round(cy - S / 2), w: S, h: S };
     }
     if (it.note) {
       node4.note = it.note;
       node4.noteBox = {
-        x: round4(at2(it.noteW)),
-        y: round4(ty + it.label.height + 2),
+        x: round(at2(it.noteW)),
+        y: round(ty + it.label.height + 2),
         w: it.noteW,
-        h: round4(it.note.height)
+        h: round(it.note.height)
       };
     }
     const color = n4.color ?? (n4.parent ? byGroup.get(n4.parent)?.color : void 0) ?? lane.color;
@@ -21166,8 +21651,8 @@ function itemNodes(items, lanes, model) {
       lane: it.lane,
       track: it.track,
       box: box2,
-      x0: round4(it.shape === "bar" ? it.bx0 : (it.bx0 + it.bx1) / 2),
-      x1: round4(it.shape === "bar" ? it.bx1 : (it.bx0 + it.bx1) / 2),
+      x0: round(it.shape === "bar" ? it.bx0 : (it.bx0 + it.bx1) / 2),
+      x1: round(it.shape === "bar" ? it.bx1 : (it.bx0 + it.bx1) / 2),
       side: it.side,
       ...it.mark ? { mark: true } : {},
       start: n4.when?.start ?? "",
@@ -21286,7 +21771,7 @@ function entries(it, nd) {
 function tidy2(points) {
   const pts = [];
   for (const p of points) {
-    const q2 = { x: round4(p.x), y: round4(p.y) };
+    const q2 = { x: round(p.x), y: round(p.y) };
     const last = pts[pts.length - 1];
     if (last && Math.abs(last.x - q2.x) < 0.01 && Math.abs(last.y - q2.y) < 0.01) continue;
     pts.push(q2);
@@ -21320,8 +21805,8 @@ function candidates3(a, b, field2, clear2, limit) {
   const rise = Math.abs(a.p.y - b.p.y);
   const least = (m) => {
     const back = m > Math.max(a.p.x, b.p.x) + 0.5 || m < Math.min(a.p.x, b.p.x) - 0.5;
-    const run2 = Math.abs(m - a.p.x) + Math.abs(m - b.p.x) + rise - 1;
-    return ends3 + (back ? 2 * BEND2 : 0) + run2 * PER_PX;
+    const run3 = Math.abs(m - a.p.x) + Math.abs(m - b.p.x) + rise - 1;
+    return ends3 + (back ? 2 * BEND2 : 0) + run3 * PER_PX;
   };
   if (least(a.p.x) >= limit) return [];
   const open = (m) => least(m) < limit;
@@ -21365,12 +21850,12 @@ function candidates3(a, b, field2, clear2, limit) {
   }
   return out;
 }
-function cost(path, from, to, scan, a, b, limit) {
+function cost(path, from2, to, scan, a, b, limit) {
   const bends = (path.length - 2) * BEND2;
-  const run2 = length2(path) * PER_PX;
+  const run3 = length2(path) * PER_PX;
   const aEnd = a.across ? ACROSS : 0;
   const bEnd = b.across ? ACROSS : 0;
-  const tail = bends + run2 + aEnd + bEnd;
+  const tail = bends + run3 + aEnd + bEnd;
   if (tail >= limit) return Number.POSITIVE_INFINITY;
   let c = 0;
   const ss = segs(path);
@@ -21383,8 +21868,8 @@ function cost(path, from, to, scan, a, b, limit) {
     const y1 = Math.max(p.y, q2.y);
     for (const o of nearby(scan.obstacles, x0, y0, x1, y1)) {
       const { nd } = o;
-      const own = nd.id === from || nd.id === to;
-      const skip2 = nd.id === from && i === 0 || nd.id === to && i === ss.length - 1;
+      const own = nd.id === from2 || nd.id === to;
+      const skip2 = nd.id === from2 && i === 0 || nd.id === to && i === ss.length - 1;
       if (!skip2 && hitsBox(p, q2, nd.box, own ? 1 : -2)) c += HIT;
       if (!own && distance2(p, q2, nd.box) < SKIM3) c += 40;
       for (const tb of o.texts) if (hitsBox(p, q2, tb, -1)) c += HIT;
@@ -21418,7 +21903,7 @@ function cost(path, from, to, scan, a, b, limit) {
     const [p, q2] = last;
     if (Math.abs(q2.x - p.x) + Math.abs(q2.y - p.y) < HEAD_RUN) c += 300;
   }
-  return c + bends + run2 + aEnd + bEnd;
+  return c + bends + run3 + aEnd + bEnd;
 }
 function routeEdges2(edges, field2) {
   const byId = new Map(field2.nodes.map((nd) => [nd.id, nd]));
@@ -21494,7 +21979,7 @@ function placeEdgeLabels2(edges, field2) {
     );
     const spot = spots.find(clear2) ?? spots[0];
     if (!spot) continue;
-    const box2 = { x: round4(spot.x), y: round4(spot.y), w, h };
+    const box2 = { x: round(spot.x), y: round(spot.y), w, h };
     taken.push(box2);
     e.labelBox = box2;
   }
@@ -21509,13 +21994,14 @@ async function timelineLayout(model, theme) {
   if (!items.length) return void 0;
   const P2 = SIZES.pad;
   const spacing = model.spacing;
-  const title2 = titleOf2(model);
+  const title2 = titleOf3(model);
   const headerX = P2;
   const plotX = P2 + lanes.headerW + (lanes.headerW ? 10 : 0);
-  const room2 = DISPLAY2 - plotX - P2;
-  const { from, to } = boundsOf(tl, items);
-  let starts = columnsOf3(from, to, scale);
-  let end = endOf3(starts, scale);
+  const room2 = DISPLAY - plotX - P2;
+  const { from: from2, to } = boundsOf(tl, items);
+  checkSpan(from2, to, scale);
+  let starts = columnsOf(from2, to, scale);
+  let end = endOf(starts, scale);
   let sc = scaleOf2(starts, end, plotX, pitchOf(scale, starts, room2));
   const over2 = overhangs(items, sc);
   if (over2.left && !tl.start || over2.right && !tl.end) {
@@ -21533,11 +22019,11 @@ async function timelineLayout(model, theme) {
   const todayIn = todayDay !== void 0 && todayDay >= (starts[0] ?? end) && todayDay < end;
   const axisTop = title2.gridY + (todayIn ? TODAY_STRIP : 0);
   const { axis, bottom: axisBottom } = axisOf(scale, sc, axisTop);
-  const lanesTop = round4(axisBottom + 6);
+  const lanesTop = round(axisBottom + 6);
   const plotRight = sc.x0 + starts.length * sc.pitch;
-  const bandRight = round4(
-    Math.max(plotRight, ...items.map((it) => it.fx1 > it.bx1 ? it.fx1 + 8 : it.fx1))
-  );
+  let labelRight = plotRight;
+  for (const it of items) labelRight = Math.max(labelRight, it.fx1 > it.bx1 ? it.fx1 + 8 : it.fx1);
+  const bandRight = round(labelRight);
   const placed = placeLanes(
     rows,
     lanes,
@@ -21550,13 +22036,13 @@ async function timelineLayout(model, theme) {
   const plot = {
     x: plotX,
     y: lanesTop,
-    w: round4(bandRight - plotX),
-    h: round4(placed.bottom - lanesTop)
+    w: round(bandRight - plotX),
+    h: round(placed.bottom - lanesTop)
   };
   const tracks = placed.lanes.flatMap((l) => l.tracks).sort((a, b) => a.y - b.y);
   const corridors = tracks.slice(1).map((t, i) => {
     const prev = tracks[i] ?? t;
-    return round4((prev.y + prev.h + t.y) / 2);
+    return round((prev.y + prev.h + t.y) / 2);
   });
   const field2 = {
     nodes,
@@ -21569,7 +22055,7 @@ async function timelineLayout(model, theme) {
   placeEdgeLabels2(edges, field2);
   const statuses = new Set(items.flatMap((it) => it.status ? [it.status] : []));
   const milestones = items.some((it) => it.shape === "milestone");
-  const key = keyOf2(statuses, milestones, headerX, round4(placed.bottom + 16), bandRight);
+  const key = keyOf2(statuses, milestones, headerX, round(placed.bottom + 16), bandRight);
   const bottom = key ? key.box.y + key.box.h : placed.bottom;
   let width2 = Math.ceil(
     Math.max(
@@ -21634,12 +22120,12 @@ function wallsOf(ctx) {
     return at2?.x === void 0 || at2.y === void 0 ? [] : [
       {
         id: e.id,
-        box: { x: round(at2.x), y: round(at2.y + top), w: lab?.w ?? 0, h: lab?.h ?? 0 }
+        box: { x: round2(at2.x), y: round2(at2.y + top), w: lab?.w ?? 0, h: lab?.h ?? 0 }
       }
     ];
   });
   const headers = groups.flatMap((g) => {
-    const parts = [g.label.lines.length ? g.labelBox : void 0, g.iconBox].filter(
+    const parts = [g.label.lines.length ? headerText(g) : void 0, g.iconBox].filter(
       (b) => !!b && b.w > 0 && b.h > 0
     );
     if (!parts.length) return [];
@@ -21664,7 +22150,7 @@ function wallsOf(ctx) {
     ...own(e)
   ];
   const borders = groups.filter((g) => !g.overlay).map((g) => g.box);
-  const titles2 = groups.filter((g) => !g.overlay && g.label.lines.length).map((g) => g.labelBox);
+  const titles2 = groups.filter((g) => !g.overlay && g.label.lines.length).map(headerText);
   return { headers, borders, titles: titles2, walls, roomyWalls };
 }
 
@@ -21694,12 +22180,18 @@ async function layoutCore(model, opts = {}) {
   for (const h of HOOKS) h.after?.(hooked);
   clearOverlayBorders(routed);
   const next = secondPass(routed);
-  const again = next ? layoutCore(model, next) : void 0;
-  if (again && !rerouted.size) return again;
+  let failed = "";
+  const again = next ? layoutCore(model, next).catch((e) => {
+    failed = e?.message ?? String(e);
+    return void 0;
+  }) : void 0;
+  const early = again && !rerouted.size ? await again : void 0;
+  if (early) return early;
   const scene = assemble(routed, hooked.routing, sizeCanvas(routed));
   const done = model.skin === "stage" ? stageColors(scene) : scene;
   if (!again) return done;
   const second = await again;
+  if (!second) return { ...done, layoutFallback: `first pass only (the second failed: ${failed})` };
   return sceneDefects(second) > sceneDefects(done) ? done : second;
 }
 
@@ -21833,7 +22325,8 @@ async function layoutGridded(model, opts) {
 }
 async function layoutAligned(model, opts) {
   const scene = await layoutCore(model, opts);
-  const plan = sceneDefects(scene) ? planPlacement(model, hiddenOf(model)) : void 0;
+  const turns = !selfPlaced(model.kind) && turnedBack(scene, model).length > 0;
+  const plan = turns || sceneDefects(scene) ? planPlacement(model, hiddenOf(model)) : void 0;
   if (!plan?.blocks.size) return scene;
   const without = (m, ids3) => ({
     ...m,
@@ -21844,14 +22337,69 @@ async function layoutAligned(model, opts) {
     })
   });
   const hinted = (m) => m.nodes.filter((n4) => n4.align !== void 0 && plan.blockOf.has(n4.id)).map((n4) => n4.id);
-  const kept = await dropCovering(model, scene, hinted, without, (m) => layoutCore(m, opts));
+  const run3 = (m) => layoutCore(m, opts);
+  const turned = turns ? await dropTurning(model, scene, hinted, without, run3) : { scene, model, dropped: [] };
+  const kept = sceneDefects(turned.scene) ? await dropCovering(turned.model, turned.scene, hinted, without, run3) : { scene: turned.scene, dropped: [] };
   const order2 = new Map(model.nodes.map((n4, i) => [n4.id, i]));
+  const byOrder = (a, b) => (order2.get(a.subject) ?? 0) - (order2.get(b.subject) ?? 0);
   return withIgnored(
     kept.scene,
-    kept.dropped.sort((a, b) => (order2.get(a) ?? 0) - (order2.get(b) ?? 0)).map((id) => ({ subject: id, setting: "align", reason: COVERED }))
+    [
+      ...turned.dropped,
+      ...kept.dropped.map((id) => ({ subject: id, setting: "align", reason: COVERED }))
+    ].sort(byOrder)
   );
 }
-async function dropCovering(model, first, hinted, without, run2) {
+function turnedBack(scene, model) {
+  const looped = loopedEdges(model);
+  const at2 = new Map(scene.nodes.map((n4) => [n4.id, n4.box]));
+  const span2 = (b) => {
+    const d = scene.direction;
+    const [lo, hi] = d === "right" || d === "left" ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+    return d === "right" || d === "down" ? [lo, hi] : [-hi, -lo];
+  };
+  return model.edges.filter((e) => {
+    const a = at2.get(e.from);
+    const b = at2.get(e.to);
+    if (!a || !b || !e.constraint || looped.has(e.id)) return false;
+    return span2(b)[1] < span2(a)[0];
+  });
+}
+async function dropTurning(model, first, hinted, without, run3) {
+  const why = (s, m) => {
+    const [e] = turnedBack(s, m);
+    return e ? `it turns ${e.from} -> ${e.to}, which is in no loop, against the flow` : "";
+  };
+  let scene = first;
+  let current = model;
+  let turned = turnedBack(scene, current).length;
+  const dropped = [];
+  while (turned) {
+    let pick2;
+    for (const id of hinted(current)) {
+      const m = without(current, /* @__PURE__ */ new Set([id]));
+      const s = await run3(m);
+      const t = turnedBack(s, m).length;
+      if (t <= (pick2 ? pick2.turned : turned - 1)) pick2 = { id, scene: s, turned: t, model: m };
+    }
+    if (!pick2) break;
+    dropped.push({ subject: pick2.id, setting: "align", reason: why(scene, current) });
+    ({ scene, turned, model: current } = pick2);
+  }
+  const rest = hinted(current);
+  if (turned && rest.length) {
+    const m = without(current, new Set(rest));
+    const s = await run3(m);
+    if (turnedBack(s, m).length < turned) {
+      const reason = why(scene, current);
+      dropped.push(...rest.map((id) => ({ subject: id, setting: "align", reason })));
+      scene = s;
+      current = m;
+    }
+  }
+  return { scene, model: current, dropped };
+}
+async function dropCovering(model, first, hinted, without, run3) {
   let scene = first;
   let defects = sceneDefects(scene);
   const dropped = [];
@@ -21860,7 +22408,7 @@ async function dropCovering(model, first, hinted, without, run2) {
     let pick2;
     for (const id of hinted(current)) {
       const m = without(current, /* @__PURE__ */ new Set([id]));
-      const s = await run2(m);
+      const s = await run3(m);
       const d = sceneDefects(s);
       if (d <= (pick2 ? pick2.defects : defects - 1)) pick2 = { id, scene: s, defects: d, model: m };
     }
@@ -21870,7 +22418,7 @@ async function dropCovering(model, first, hinted, without, run2) {
   }
   const rest = hinted(current);
   if (defects && rest.length) {
-    const s = await run2(without(current, new Set(rest)));
+    const s = await run3(without(current, new Set(rest)));
     const d = sceneDefects(s);
     if (d < defects) {
       scene = s;
@@ -21899,6 +22447,11 @@ async function layoutToAspect(model, opts) {
     const reason = OWN_REASON[model.kind] ?? "this kind places every node itself";
     return withIgnored(scene, [{ subject: "layout", setting: "layout.aspect", reason }]);
   }
+  if (model.edges.length > ELK_BUDGET) {
+    const scene = await layoutGridded(model, opts);
+    const reason = `${model.edges.length} edges are more than the ${ELK_BUDGET} it lays out again in other shapes`;
+    return withIgnored(scene, [{ subject: "layout", setting: "layout.aspect", reason }]);
+  }
   const turned = { ...model, direction: TURNED[model.direction] };
   const wraps = hiddenOf(model).size === 0 && model.kind !== "tree" && model.kind !== "mindmap" ? ["MULTI_EDGE", "SINGLE_EDGE"] : [];
   const tries = [
@@ -21909,18 +22462,25 @@ async function layoutToAspect(model, opts) {
     )
   ];
   const scenes = [];
+  let failed = 0;
   for (const [m, o] of tries) {
     try {
-      scenes.push(await layoutGridded(m, o));
+      scenes.push([await layoutGridded(m, o), m, !!o.wrap]);
     } catch (e) {
       if (!scenes.length) throw e;
+      failed++;
     }
   }
-  const [first] = scenes;
-  if (!first) throw new Error("layout failed");
+  const [written2] = scenes;
+  if (!written2) throw new Error("layout failed");
+  const [first] = written2;
+  const throughGroups = (s, m) => checkScene(s, m).filter((d) => d.code === "DG223").length;
   const crossings0 = sceneCrossings(first);
   const through0 = edgesThroughNodes(first);
+  const groups0 = throughGroups(first, model);
   const defects0 = sceneDefects(first);
+  const against0 = againstFlow(first);
+  const longest0 = longestEdge(first);
   const dropped0 = first.ignored?.length ?? 0;
   const ink = (s) => s.edges.reduce(
     (t, e) => t + e.points.slice(1).reduce(
@@ -21933,15 +22493,18 @@ async function layoutToAspect(model, opts) {
   const most = Math.max(0.6, 1.25 * reach2(first));
   const off = (s) => Math.abs(Math.log(s.width / Math.max(1, s.height) / target));
   const best = scenes.filter(
-    (s) => sceneCrossings(s) <= crossings0 && edgesThroughNodes(s) <= through0 && sceneDefects(s) <= defects0 && (s.ignored?.length ?? 0) <= dropped0 && reach2(s) <= most
-  ).sort((a, b) => off(a) - off(b))[0] ?? first;
+    ([s, m, wrapped]) => s === first || sceneCrossings(s) <= crossings0 && edgesThroughNodes(s) <= through0 && sceneDefects(s) <= defects0 && (wrapped || againstFlow(s) <= against0) && longestEdge(s) <= Math.max(1.5 * longest0, Math.sqrt(s.width * s.height)) && s.width <= Math.max(MAX_WIDTH, first.width) && (s.ignored?.length ?? 0) <= dropped0 && reach2(s) <= most && throughGroups(s, m) <= groups0
+  ).map(([s]) => s).sort((a, b) => off(a) - off(b))[0] ?? first;
   if (off(best) <= Math.log(1.25)) return best;
-  const ratio = (v) => `${Math.round(v * 100) / 100}:1`;
-  return withIgnored(best, [
+  const ratio = (s) => `${Math.round(s.width / Math.max(1, s.height) * 100) / 100}:1`;
+  const want = `${Math.round(target * 100) / 100}:1`;
+  const other = best === first ? "" : `, the nearest other one ${ratio(best)}`;
+  const lost = failed ? ` (${failed} more could not be laid out)` : "";
+  return withIgnored(first, [
     {
       subject: "layout",
       setting: "layout.aspect",
-      reason: `the nearest layout is ${ratio(best.width / Math.max(1, best.height))}, not ${ratio(target)}`
+      reason: `no layout as clean as the one written came within a quarter of ${want}; it is ${ratio(first)}${other}${lost}`
     }
   ]);
 }
@@ -22060,20 +22623,24 @@ var MONO = "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Libera
 var ADVANCE = 0.6;
 var LABEL3 = { size: 11.5, weight: 700, caps: true, track: 0.08 };
 var NOTE2 = { size: 10, weight: 400, caps: false, track: 0 };
-var EDGE2 = { size: 9.5, weight: 700, caps: true, track: 0.06 };
+var EDGE2 = { size: 9.5, weight: 700, caps: false, track: 0.06 };
 var HEADER = { size: 11, weight: 700, caps: true, track: 0.1 };
 var TITLE = { size: 18, weight: 700, caps: true, track: 0.06 };
 var SUBTITLE = { size: 11.5, weight: 400, caps: false, track: 0 };
 var KEY = { size: 9.5, weight: 700, caps: true, track: 0.06 };
 var DIGIT2 = { size: 13, weight: 700, caps: true, track: 0 };
 var chars = (s) => [...s].length;
+function keepCase(f, lines2, all = false) {
+  if (!f.caps) return f;
+  return all || lines2.some((l) => new RegExp("\\p{Ll}\\p{Lu}", "u").test(l)) ? { ...f, caps: false } : f;
+}
 function monoWidth4(s, f, size = f.size) {
   const c = chars(s);
   return c ? size * (c * (ADVANCE + f.track) - f.track) : 0;
 }
 function sizeFor(lines2, f, room2, min = 8) {
-  const widest = Math.max(1, ...lines2.map(chars));
-  const size = (room2 + f.size * f.track) / (widest * (ADVANCE + f.track));
+  const widest2 = Math.max(1, ...lines2.map(chars));
+  const size = (room2 + f.size * f.track) / (widest2 * (ADVANCE + f.track));
   return Math.max(min, Math.floor(Math.min(f.size, size) * 4) / 4);
 }
 function common(fits3, cap) {
@@ -22161,7 +22728,7 @@ function erTableClassic(ctx, nd) {
   const head2 = headerOf(nd);
   const band = nd.color ? mixHex(nd.color, t.surface, dark ? 0.22 : 0.12) : mixHex(t.text, t.surface, dark ? 0.07 : 0.045);
   const stroke3 = nd.color ?? t.border;
-  const cols = columnsOf(rows);
+  const cols = columnsOf2(rows);
   const parts = [
     `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" rx="8" fill="${t.surface}"/>`,
     `<path d="${topRounded(head2, 8)}" fill="${band}"/>`,
@@ -22281,7 +22848,7 @@ function erTableStage(ctx, nd) {
   const b = nd.box;
   const head2 = headerOf(nd);
   const tint = nd.color ?? k.tint;
-  const cols = columnsOf(rows);
+  const cols = columnsOf2(rows);
   const parts = [
     rect(b, 6, `${fill(k.tile)} ${stroke(k.line, k.frame, h)}`),
     `<path d="${topRounded({ ...head2, x: b.x + h / 2, w: b.w - h, y: b.y + h / 2, h: head2.h - h / 2 }, 5.5)}" ${fill(nd.color ?? k.line, nd.color ? 0.12 : k.panel * 2)}/>`,
@@ -22290,12 +22857,13 @@ function erTableStage(ctx, nd) {
   ];
   if (nd.icon && nd.iconBox) parts.push(glyph(ctx, nd.icon, nd.iconBox, iconInk(ctx, nd.icon)));
   const room2 = b.x + b.w - nd.labelBox.x - 10;
+  const face2 = keepCase(LABEL3, nd.label.lines, true);
   parts.push(
     block(
       nd.label,
       nd.labelBox,
-      LABEL3,
-      Math.min(ctx.sizes.label, sizeFor(nd.label.lines, LABEL3, room2, 8)),
+      face2,
+      Math.min(ctx.sizes.label, sizeFor(nd.label.lines, face2, room2, 8)),
       nd.ink ?? t.text,
       "start"
     )
@@ -22416,10 +22984,10 @@ function drawIn(scene) {
     }
   };
 }
-function moodColor(score, t, surface) {
+function moodColor(score, t, surface2) {
   const dark = t.name === "dark";
   const c = score > 0.5 ? dark ? "#3fb950" : "#1a7f37" : score < -0.5 ? dark ? "#f85149" : "#cf222e" : dark ? "#d29922" : "#9a6700";
-  return ensureContrast(c, surface, 3);
+  return ensureContrast(c, surface2, 3);
 }
 function journeyClassic(scene, t) {
   const j = scene.journey;
@@ -22489,8 +23057,8 @@ var HEAD = { size: 11, weight: 700, caps: true, track: 0.1 };
 var NUM2 = { size: 11, weight: 700, caps: true, track: 0 };
 var END = { size: 9.5, weight: 400, caps: true, track: 0.06 };
 function sizeFor2(lines2, f, room2, min = 8) {
-  const widest = Math.max(1, ...lines2.map((l) => [...l].length));
-  const size = (room2 + f.size * f.track) / (widest * (ADVANCE2 + f.track));
+  const widest2 = Math.max(1, ...lines2.map((l) => [...l].length));
+  const size = (room2 + f.size * f.track) / (widest2 * (ADVANCE2 + f.track));
   return Math.max(min, Math.floor(Math.min(f.size, size) * 4) / 4);
 }
 function mono2(lines2, f, size, box2, color, anchor2 = "start") {
@@ -22610,13 +23178,13 @@ function lines(block3, at2, baseline2, attrs, caps = false, dx = 0) {
   const turn = at2.rotated ? ` transform="rotate(-90 ${n(at2.cx)} ${n(at2.cy)})"` : "";
   return `<text${attrs} text-anchor="middle"${turn}>${spans2}</text>`;
 }
-function laneClassic(g, _t, surface = "none") {
+function laneClassic(g, _t, surface2 = "none") {
   if (!g.lane) return void 0;
   const b = g.box;
   const rect4 = (paint) => `<rect x="${n(b.x)}" y="${n(b.y)}" width="${n(b.w)}" height="${n(b.h)}" ${paint}/>`;
   const line2 = `stroke="${g.stroke}" stroke-width="${g.strokeWidth}"`;
   const frame2 = rect4(`fill="${g.fill}" ${g.dash ? `stroke="none"` : line2}`);
-  const outline = g.dash ? rect4(`fill="none" stroke="${surface}" stroke-width="${n(g.strokeWidth + 1)}"`) + rect4(`fill="none" ${line2} stroke-dasharray="${g.dash}"`) : void 0;
+  const outline = g.dash ? rect4(`fill="none" stroke="${surface2}" stroke-width="${n(g.strokeWidth + 1)}"`) + rect4(`fill="none" ${line2} stroke-dasharray="${g.dash}"`) : void 0;
   const parts = [];
   const d = divider(g);
   if (d) parts.push(`<path d="${d}" fill="none" ${line2}/>`);
@@ -22651,8 +23219,8 @@ function laneStage(g, k, _t, h, glow) {
   }
   const L = g.label;
   const at2 = nameOf(g);
-  const widest = Math.max(1, ...L.lines.map((l) => [...l].length));
-  const fits3 = (at2.room + HEADER2 * TRACK) / (widest * (ADVANCE3 + TRACK));
+  const widest2 = Math.max(1, ...L.lines.map((l) => [...l].length));
+  const fits3 = (at2.room + HEADER2 * TRACK) / (widest2 * (ADVANCE3 + TRACK));
   const size = Math.max(7.5, Math.floor(Math.min(HEADER2, fits3) * 4) / 4);
   const track = TRACK * size;
   const block3 = { ...L, lead: Math.max(L.lead, size * 1.4) };
@@ -22959,7 +23527,7 @@ function gear(cx, cy) {
   return poly(pts) + circle(cx, cy, 2);
 }
 function flowMarks(e, color, w, ground) {
-  const pts = e.points;
+  const pts = e.arrow === "start" ? [...e.points].reverse() : e.points;
   const a = pts[0];
   const b = pts[1];
   if (!a || !b || e.flow !== "message" && e.flow !== "default" && e.flow !== "conditional")
@@ -22971,10 +23539,10 @@ function flowMarks(e, color, w, ground) {
     const c = along(pts, r6 + w / 2).p;
     const parts = [circle(c.x, c.y, r6, ` fill="${ground}"${paint}`)];
     const tip = pts[pts.length - 1];
-    const from = pts[pts.length - 2];
-    if ((e.arrow === "end" || e.arrow === "both") && tip && from) {
+    const from2 = pts[pts.length - 2];
+    if (e.arrow !== "none" && tip && from2) {
       const thick = e.line === "thick";
-      parts.push(head(tip, from, (thick ? 11 : 9) * u, (thick ? 7.4 : 6) * u, ground, paint));
+      parts.push(head(tip, from2, (thick ? 11 : 9) * u, (thick ? 7.4 : 6) * u, ground, paint));
     }
     return parts.join("");
   }
@@ -22994,9 +23562,9 @@ function flowMarks(e, color, w, ground) {
   const s = (da, dt) => P(p.x + ux * da - uy * dt, p.y + uy * da + ux * dt);
   return `<path d="M${s(-2 * u, -6 * u)} L${s(2 * u, 6 * u)}" fill="none"${paint} stroke-linecap="round"/>`;
 }
-function head(tip, from, len2, half2, ground, paint) {
-  const d = Math.hypot(tip.x - from.x, tip.y - from.y) || 1;
-  const [ux, uy] = [(tip.x - from.x) / d, (tip.y - from.y) / d];
+function head(tip, from2, len2, half2, ground, paint) {
+  const d = Math.hypot(tip.x - from2.x, tip.y - from2.y) || 1;
+  const [ux, uy] = [(tip.x - from2.x) / d, (tip.y - from2.y) / d];
   const bx = tip.x - ux * len2;
   const by = tip.y - uy * len2;
   return poly(
@@ -23052,13 +23620,13 @@ function longestPath(edges) {
   };
   for (const v of [...starts.filter((s) => !entered.has(s)), ...starts]) if (!walked.has(v)) cut(v);
   const memo = /* @__PURE__ */ new Map();
-  const from = (v) => {
+  const from2 = (v) => {
     const known2 = memo.get(v);
     if (known2) return known2;
     let best2 = [];
     for (const e of out.get(v) ?? []) {
       if (back.has(e)) continue;
-      const path = [e, ...from(ends(e)[1])];
+      const path = [e, ...from2(ends(e)[1])];
       if (path.length > best2.length) best2 = path;
     }
     memo.set(v, best2);
@@ -23066,7 +23634,7 @@ function longestPath(edges) {
   };
   let best = [];
   for (const v of starts) {
-    const path = from(v);
+    const path = from2(v);
     if (path.length > best.length) best = path;
   }
   return best;
@@ -23086,8 +23654,8 @@ function storyWalk(scene, travel2) {
   let t = STORY_AT;
   hops.forEach(({ e, reverse }, i) => {
     const tr = travel2(e);
-    const run2 = { t0: t, t1: t + tr, reverse, park: i < hops.length - 1 ? PAUSE : 0 };
-    runs2.set(e.id, [...runs2.get(e.id) ?? [], run2]);
+    const run3 = { t0: t, t1: t + tr, reverse, park: i < hops.length - 1 ? PAUSE : 0 };
+    runs2.set(e.id, [...runs2.get(e.id) ?? [], run3]);
     t += tr + PAUSE;
   });
   return { runs: runs2, skip: /* @__PURE__ */ new Set() };
@@ -23116,8 +23684,8 @@ function tokenGraph(scene) {
     if (out) return out;
     const k = kind.get(v) ?? "";
     const outs = flows.filter((e) => src(e) === v);
-    const plain2 = outs.filter((e) => e.flow !== "default");
-    const taken = DECIDES.has(k) ? [branch(outs)] : plain2.length ? plain2 : outs;
+    const plain3 = outs.filter((e) => e.flow !== "default");
+    const taken = DECIDES.has(k) ? [branch(outs)] : plain3.length ? plain3 : outs;
     out = [
       ...k.startsWith("end") ? [] : taken.filter((e) => !!e),
       ...messages2.filter((e) => src(e) === v)
@@ -23172,13 +23740,13 @@ function fireTokens(g, starts, live, needs, travel2) {
   const runs2 = /* @__PURE__ */ new Map();
   const fired = /* @__PURE__ */ new Map();
   const got = /* @__PURE__ */ new Map();
-  const pending = [];
+  const pending2 = [];
   const fire = (v, at2) => {
     fired.set(v, at2);
     for (const e of leaving(v)) {
       const t1 = at2 + travel2(e);
       runs2.set(e.id, [{ t0: at2, t1, reverse: e.arrow === "start", park: 0 }]);
-      pending.push({ e, at: t1 });
+      pending2.push({ e, at: t1 });
     }
   };
   const ready = (v) => {
@@ -23194,9 +23762,9 @@ function fireTokens(g, starts, live, needs, travel2) {
     if (!need?.seq.length && !need?.msg.length) fire(v, STORY_AT);
   }
   for (; ; ) {
-    while (pending.length) {
-      pending.sort((a, b) => a.at - b.at);
-      const next = pending.shift();
+    while (pending2.length) {
+      pending2.sort((a, b) => a.at - b.at);
+      const next = pending2.shift();
       if (!next) break;
       got.set(next.e, next.at);
       const v = dst(next.e);
@@ -23219,10 +23787,10 @@ function tokenWalk(scene, travel2) {
   const { runs: runs2, fired, got } = fireTokens(g, starts, live, needs, travel2);
   if (!runs2.size) return void 0;
   for (const [e, at2] of got) {
-    const run2 = runs2.get(e.id)?.[0];
+    const run3 = runs2.get(e.id)?.[0];
     const v = dst(e);
     const left = fired.get(v);
-    if (run2 && left !== void 0 && left >= at2 && g.leaving(v).length) run2.park = left - at2;
+    if (run3 && left !== void 0 && left >= at2 && g.leaving(v).length) run3.park = left - at2;
   }
   return { runs: runs2, skip: new Set(g.flows.filter((e) => !runs2.has(e.id)).map((e) => e.id)) };
 }
@@ -23250,9 +23818,9 @@ function treeWalk(scene, travel2) {
       const reverse = e.from !== parent;
       next.add(reverse ? e.from : e.to);
       const tr = travel2(e);
-      const run2 = { t0: t, t1: t + tr, reverse, park: PAUSE };
-      runs2.set(e.id, [run2]);
-      ran.push(run2);
+      const run3 = { t0: t, t1: t + tr, reverse, park: PAUSE };
+      runs2.set(e.id, [run3]);
+      ran.push(run3);
       took = Math.max(took, tr);
     }
     if (!ran.length) break;
@@ -23260,7 +23828,7 @@ function treeWalk(scene, travel2) {
     t += took + PAUSE;
     level2 = next;
   }
-  for (const run2 of last) run2.park = 0;
+  for (const run3 of last) run3.park = 0;
   return runs2.size ? { runs: runs2, skip: /* @__PURE__ */ new Set() } : void 0;
 }
 
@@ -23387,9 +23955,9 @@ function messages(scene, model) {
   const path = stepped.length ? stepped : longestPath(scene.edges);
   const labels2 = new Map(model.edges.map((e) => [e.id, e.label]));
   return path.map((e, i) => {
-    const [from, to] = ends(e);
+    const [from2, to] = ends(e);
     const label2 = labels2.get(e.id) ?? e.label?.lines.join(" ") ?? "";
-    return { edge: e, from, to, label: label2, step: e.step ?? i + 1 };
+    return { edge: e, from: from2, to, label: label2, step: e.step ?? i + 1 };
   });
 }
 function participants(scene, model, list) {
@@ -23989,12 +24557,12 @@ function titles(ctx) {
 // src/render/stage/draw-edges.ts
 var ARROW_LEN = 6;
 var ARROW_HALF = 4;
-function chevron(ctx, tip, from, color, alpha) {
+function chevron(ctx, tip, from2, color, alpha) {
   const len2 = ARROW_LEN * ctx.h;
   const half2 = ARROW_HALF * ctx.h;
-  const d = Math.hypot(tip.x - from.x, tip.y - from.y) || 1;
-  const ux = (tip.x - from.x) / d;
-  const uy = (tip.y - from.y) / d;
+  const d = Math.hypot(tip.x - from2.x, tip.y - from2.y) || 1;
+  const ux = (tip.x - from2.x) / d;
+  const uy = (tip.y - from2.y) / d;
   const bx = tip.x - ux * len2;
   const by = tip.y - uy * len2;
   return `<path d="M${n(bx - uy * half2)} ${n(by + ux * half2)} L${n(tip.x)} ${n(tip.y)} L${n(bx + uy * half2)} ${n(by - ux * half2)}" fill="none" ${stroke(color, alpha, ctx.h)} stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -24030,11 +24598,12 @@ function wireOf(ctx, e) {
 }
 function edgeBase(ctx, e, w) {
   const { k } = ctx;
+  const ink = e.color ?? k.line;
   const flow = ctx.scene.animate === "flow" ? ` class="sdw-flow${e.line === "solid" || e.line === "thick" ? " sdw-solid" : ""}"` : "";
-  const heads = [w.heads.end, w.heads.start].map((hd) => hd ? chevron(ctx, hd[0], hd[1], k.line, k.arrow) : "").join("");
+  const heads = [w.heads.end, w.heads.start].map((hd) => hd ? chevron(ctx, hd[0], hd[1], ink, k.arrow) : "").join("");
   const marks2 = e.flow ? flowMarks(e, mixHex(k.line, ctx.t.background, k.arrow), w.width, k.tile) : "";
   const ends3 = e.card ? erEndsStage(ctx, e) : "";
-  return `<path d="${w.d}" fill="none" ${stroke(k.line, k.wire, w.width)} stroke-linecap="round" stroke-linejoin="round"${w.dash}${flow}/>${heads}${marks2}${ends3}`;
+  return `<path d="${w.d}" fill="none" ${stroke(ink, k.wire, w.width)} stroke-linecap="round" stroke-linejoin="round"${w.dash}${flow}/>${heads}${marks2}${ends3}`;
 }
 function edgeLit(ctx, e, w, runs2) {
   const { story, h } = ctx;
@@ -24061,9 +24630,9 @@ function edgeLit(ctx, e, w, runs2) {
       );
     }
   }
-  for (const run2 of runs2) {
-    const hd = run2.reverse ? w.heads.start : w.heads.end;
-    if (hd) parts.push(lit(ctx, chevron(ctx, hd[0], hd[1], color, 0.7), run2.t1, story.hold + RAMP));
+  for (const run3 of runs2) {
+    const hd = run3.reverse ? w.heads.start : w.heads.end;
+    if (hd) parts.push(lit(ctx, chevron(ctx, hd[0], hd[1], color, 0.7), run3.t1, story.hold + RAMP));
   }
   if (e.flow)
     parts.push(
@@ -24071,19 +24640,19 @@ function edgeLit(ctx, e, w, runs2) {
     );
   return parts.join("");
 }
-function packet(ctx, d, run2, color, r6) {
+function packet(ctx, d, run3, color, r6) {
   const { cycle } = ctx.story;
-  const [a, b] = run2.reverse ? ["1", "0"] : ["0", "1"];
-  const gone = run2.t1 + run2.park + FADE;
-  return `<circle r="${n(r6)}" fill="${color}" opacity="0"><animateMotion path="${d}" ${loop(ctx)} calcMode="spline" keyPoints="${a};${a};${b};${b}" keyTimes="${kt(ctx, [0, run2.t0, run2.t1, cycle])}" keySplines="0 0 1 1;${EASE};0 0 1 1"/><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt(ctx, [0, run2.t0 - FADE, run2.t0, gone - FADE, gone, cycle])}" ${loop(ctx)}/></circle>`;
+  const [a, b] = run3.reverse ? ["1", "0"] : ["0", "1"];
+  const gone = run3.t1 + run3.park + FADE;
+  return `<circle r="${n(r6)}" fill="${color}" opacity="0"><animateMotion path="${d}" ${loop(ctx)} calcMode="spline" keyPoints="${a};${a};${b};${b}" keyTimes="${kt(ctx, [0, run3.t0, run3.t1, cycle])}" keySplines="0 0 1 1;${EASE};0 0 1 1"/><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt(ctx, [0, run3.t0 - FADE, run3.t0, gone - FADE, gone, cycle])}" ${loop(ctx)}/></circle>`;
 }
-function comet(ctx, d, run2, color, len2) {
+function comet(ctx, d, run3, color, len2) {
   const { cycle } = ctx.story;
   const f = Math.min(0.5, COMET / Math.max(1, len2 / ctx.h));
-  const settle2 = run2.t1 + f * (run2.t1 - run2.t0);
-  const offsets = run2.reverse ? [-1, -1, 0, f, f] : [f, f, f - 1, -1, -1];
-  const times = kt(ctx, [0, run2.t0, run2.t1, settle2, cycle]);
-  return `<path d="${d}" fill="none" ${stroke(color, 0.6, 2.4 * ctx.h)} pathLength="1" stroke-dasharray="${n(f)} 2" stroke-dashoffset="${n(offsets[0] ?? 0)}" opacity="0"><animate attributeName="stroke-dashoffset" values="${offsets.map(n).join(";")}" keyTimes="${times}" calcMode="spline" keySplines="0 0 1 1;${EASE};0 0 1 1;0 0 1 1" ${loop(ctx)}/><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt(ctx, [0, run2.t0, run2.t0 + 0.01, settle2, settle2 + 0.01, cycle])}" ${loop(ctx)}/></path>`;
+  const settle2 = run3.t1 + f * (run3.t1 - run3.t0);
+  const offsets = run3.reverse ? [-1, -1, 0, f, f] : [f, f, f - 1, -1, -1];
+  const times = kt(ctx, [0, run3.t0, run3.t1, settle2, cycle]);
+  return `<path d="${d}" fill="none" ${stroke(color, 0.6, 2.4 * ctx.h)} pathLength="1" stroke-dasharray="${n(f)} 2" stroke-dashoffset="${n(offsets[0] ?? 0)}" opacity="0"><animate attributeName="stroke-dashoffset" values="${offsets.map(n).join(";")}" keyTimes="${times}" calcMode="spline" keySplines="0 0 1 1;${EASE};0 0 1 1;0 0 1 1" ${loop(ctx)}/><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt(ctx, [0, run3.t0, run3.t0 + 0.01, settle2, settle2 + 0.01, cycle])}" ${loop(ctx)}/></path>`;
 }
 function motion(ctx, wires) {
   const { k, h } = ctx;
@@ -24092,8 +24661,8 @@ function motion(ctx, wires) {
     const w = wires.get(e.id);
     if (!w) continue;
     const color = e.color ?? k.tint;
-    for (const run2 of ctx.story.runs.get(e.id) ?? [])
-      moving.push(comet(ctx, w.d, run2, color, w.len), packet(ctx, w.d, run2, color, 2.5 * h));
+    for (const run3 of ctx.story.runs.get(e.id) ?? [])
+      moving.push(comet(ctx, w.d, run3, color, w.len), packet(ctx, w.d, run3, color, 2.5 * h));
     const side = ctx.story.side.get(e.id);
     if (side) moving.push(packet(ctx, w.d, side, color, 2 * h));
   }
@@ -24105,13 +24674,17 @@ function groupFrame(ctx, g) {
   const { k, h } = ctx;
   const dash = g.dash ? ` stroke-dasharray="${n(3 * h)} ${n(3 * h)}"` : "";
   const rx = g.dash ? 0 : 2 * h;
-  const panel = !g.dash && g.depth < 2 ? fill(k.line, k.panel) : `fill="none"`;
+  const canvas2 = surface(ctx);
+  const ownLine = g.stroke !== mixHex(k.line, canvas2, k.frame);
+  const ownFill = g.fill !== "none" && g.fill !== mixHex(k.line, canvas2, k.panel);
+  const panel = ownFill ? fill(g.fill) : !g.dash && g.depth < 2 ? fill(k.line, k.panel) : `fill="none"`;
   const tint = g.depth === 0 ? fill(k.tint, (g.dash ? 0.04 : 0.03) * k.glow) : `fill="none"`;
-  const base = rect(g.box, rx, `${panel} ${stroke(k.line, k.frame, h)}`, dash);
+  const line2 = ownLine ? stroke(g.stroke, 1, h) : stroke(k.line, k.frame, h);
+  const base = rect(g.box, rx, `${panel} ${line2}`, dash);
   const glow = rect(g.box, rx, `${tint} ${stroke(k.tint, g.dash ? 0.5 : 0.6, h)}`, dash);
   return base + lit(ctx, glow, GROUPS_ON);
 }
-function crosses2(a, b, box2) {
+function crosses3(a, b, box2) {
   let lo = 0;
   let hi = 1;
   const dx = b.x - a.x;
@@ -24134,6 +24707,18 @@ function crosses2(a, b, box2) {
   }
   return true;
 }
+function surface(ctx) {
+  const bg = ctx.scene.background;
+  return bg && bg !== "transparent" ? bg : ctx.t.background;
+}
+function stageHeaderBox(g, h = 1) {
+  if (!g.label.lines.length) return void 0;
+  const b = g.labelBox;
+  const room2 = Math.max(b.w, g.box.x + g.box.w - b.x - 10 * h);
+  const size = sizeFor(g.label.lines, HEADER, room2, 8.5);
+  const w = Math.max(...g.label.lines.map((l) => monoWidth4(l, HEADER, size)));
+  return { x: b.x - 4, y: b.y - 1, w: w + 8, h: b.h + 2 };
+}
 function groupHeader(ctx, g) {
   const { k, h } = ctx;
   const parts = [];
@@ -24150,27 +24735,26 @@ function groupHeader(ctx, g) {
       parts.push(lit(ctx, glyph(ctx, g.icon, b, k.tint, 1.5), GROUPS_ON));
     }
   }
-  if (g.label.lines.length) {
+  const chip2 = stageHeaderBox(g, h);
+  if (chip2) {
     const b = g.labelBox;
     const room2 = Math.max(b.w, g.box.x + g.box.w - b.x - 10 * h);
     const size = sizeFor(g.label.lines, HEADER, room2, 8.5);
-    const w = Math.max(...g.label.lines.map((l) => monoWidth4(l, HEADER, size)));
-    const chip2 = { x: b.x - 4, y: b.y - 1, w: w + 8, h: b.h + 2 };
     const crossed = ctx.scene.edges.some(
       (e) => e.points.some((p, i) => {
         const q2 = e.points[i + 1];
-        return q2 !== void 0 && crosses2(p, q2, chip2);
+        return q2 !== void 0 && crosses3(p, q2, chip2);
       })
     );
-    const bg = ctx.scene.background;
-    const surface = bg && bg !== "transparent" ? bg : ctx.t.background;
-    if (crossed) parts.push(rect(chip2, 3, fill(surface)));
+    if (crossed) parts.push(rect(chip2, 3, fill(surface(ctx))));
     parts.push(block(g.label, b, HEADER, size, g.labelColor, "start"));
   }
   return parts.join("");
 }
 
 // src/render/stage/draw-labels.ts
+var litLabelInk = (ctx, e) => ensureContrast(e.color ?? ctx.k.tint, ctx.k.tile);
+var litStepInk = (ctx, pop2) => ensureContrast(ctx.k.onTint, pop2);
 function edgeLabel(ctx, e) {
   const { k, h, story } = ctx;
   const parts = [];
@@ -24184,7 +24768,7 @@ function edgeLabel(ctx, e) {
     parts.push(rect(chip2, 3, `${fill(k.tile)} ${stroke(k.line, k.hair, h)}`));
     parts.push(block(e.label, b, EDGE2, size, ctx.t.edgeLabel));
     if (runs2) {
-      const color = e.color ?? k.tint;
+      const color = litLabelInk(ctx, e);
       parts.push(
         lit(
           ctx,
@@ -24212,7 +24796,8 @@ function edgeLabel(ctx, e) {
       `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r6)}" ${fill(k.tile)} ${stroke(k.line, k.frame, h)}/>`
     );
     parts.push(digit(ctx.t.text, cx, cy));
-    const pop2 = `<circle r="${n(r6)}" ${fill(e.color ?? k.tint)}/>${digit(k.onTint, 0, 0)}`;
+    const popColor = e.color ?? k.tint;
+    const pop2 = `<circle r="${n(r6)}" ${fill(popColor)}/>${digit(litStepInk(ctx, popColor), 0, 0)}`;
     const at2 = story.badges.get(e.id);
     if (!story.animated) parts.push(`<g transform="translate(${n(cx)} ${n(cy)})">${pop2}</g>`);
     else if (at2 !== void 0) {
@@ -24281,11 +24866,12 @@ function badge(ctx, label2, anchor2, placed) {
 }
 function labels(ctx, nd, anchor2, room2) {
   const own = sizeFor(nd.label.lines, LABEL3, room2, 8);
+  const face2 = keepCase(LABEL3, nd.label.lines, ctx.scene.kind === "er");
   const parts = [
     block(
       nd.label,
       nd.labelBox,
-      LABEL3,
+      face2,
       Math.min(ctx.sizes.label, own),
       nd.ink ?? ctx.t.text,
       anchor2
@@ -24344,7 +24930,8 @@ function node(ctx, nd) {
     if (nd.badge) parts.push(badge(ctx, nd.badge, nd.box, nd.badgeBox));
   }
   const inner = parts.join("");
-  const body = nd.url ? `<a href="${esc(nd.url)}" xlink:href="${esc(nd.url)}" target="_blank">${inner}</a>` : inner;
+  const href = nd.url ? safeHref(nd.url) : void 0;
+  const body = href ? `<a href="${href}" xlink:href="${href}" target="_blank">${inner}</a>` : inner;
   return `<g id="${ctx.prefix}n-${nd.id}">${body}</g>`;
 }
 
@@ -24369,9 +24956,9 @@ function stepRuns(story, stepped, travel2) {
   });
   return t;
 }
-function pathRuns(story, directed, travel2) {
+function pathRuns(story, directed2, travel2) {
   let t = STORY_AT;
-  const path = longestPath(directed);
+  const path = longestPath(directed2);
   path.forEach((e, i) => {
     const tr = travel2(e);
     const park = i < path.length - 1 ? PAUSE : 0;
@@ -24392,9 +24979,9 @@ function storyPlan(scene, h) {
     badges: /* @__PURE__ */ new Map(),
     focus: { x: scene.width * 0.6, y: scene.height * 0.45 }
   };
-  const directed = scene.edges.filter((e) => e.arrow !== "none" && e.points.length > 1);
+  const directed2 = scene.edges.filter((e) => e.arrow !== "none" && e.points.length > 1);
   const travel2 = (e) => Math.min(1, Math.max(0.4, length3(e.points) / h / SPEED));
-  const stepped = directed.filter((e) => e.step !== void 0);
+  const stepped = directed2.filter((e) => e.step !== void 0);
   let t = STORY_AT;
   const walk = storyWalk(scene, travel2) ?? (scene.kind === "process" ? tokenWalk(scene, travel2) : scene.kind === "tree" || scene.kind === "mindmap" ? treeWalk(scene, travel2) : void 0);
   if (walk) {
@@ -24404,7 +24991,7 @@ function storyPlan(scene, h) {
       if (first) story.badges.set(e.id, first.t0);
     }
   } else if (stepped.length) t = stepRuns(story, stepped, travel2);
-  else t = pathRuns(story, directed, travel2);
+  else t = pathRuns(story, directed2, travel2);
   const end = walk ? Math.max(...[...walk.runs.values()].flat().map((r6) => r6.t1)) : story.runs.size ? t - PAUSE : TILES_ON + RAMP;
   story.hold = end + HOLD_FOR;
   story.cycle = story.hold / HOLD;
@@ -24412,7 +24999,7 @@ function storyPlan(scene, h) {
   const on = new Set(
     scene.edges.filter((e) => story.runs.has(e.id)).flatMap((e) => [e.from, e.to])
   );
-  const side = directed.filter((e) => !story.runs.has(e.id) && !walk?.skip.has(e.id)).sort((a, b) => Number(on.has(b.from) || on.has(b.to)) - Number(on.has(a.from) || on.has(a.to))).slice(0, SIDE_FLOWS);
+  const side = directed2.filter((e) => !story.runs.has(e.id) && !walk?.skip.has(e.id)).sort((a, b) => Number(on.has(b.from) || on.has(b.to)) - Number(on.has(a.from) || on.has(a.to))).slice(0, SIDE_FLOWS);
   side.forEach((e, i) => {
     const tr = travel2(e);
     const span2 = Math.max(0, end - STORY_AT);
@@ -24535,6 +25122,12 @@ var NOT_XML = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
 function esc(s) {
   return s.replace(NOT_XML, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
+function safeHref(url) {
+  const text6 = url.replace(NOT_XML, "");
+  const bare2 = text6.replace(/[\s\p{Cc}]/gu, "");
+  if (/^[a-z][a-z0-9+.-]*:/i.test(bare2) && !/^(https?|mailto):/i.test(bare2)) return void 0;
+  return esc(text6);
+}
 var n = (v) => {
   const r6 = Math.round(v * 100) / 100;
   return Object.is(r6, -0) ? "0" : String(r6);
@@ -24594,16 +25187,16 @@ function surfaceBehind(ctx, g) {
 }
 function groupHeader2(ctx, g) {
   const parts = [];
-  const surface = surfaceBehind(ctx, g);
+  const surface2 = surfaceBehind(ctx, g);
   if (g.label.lines.length) {
     const b = g.labelBox;
     const iconInRow = g.overlay && g.iconBox && g.iconBox.y < b.y + b.h && b.y < g.iconBox.y + g.iconBox.h;
     const left = iconInRow && g.iconBox ? g.iconBox.x - 4 : b.x - 4;
     parts.push(
-      `<rect x="${n(left)}" y="${n(b.y - 1)}" width="${n(b.x + b.w + 4 - left)}" height="${n(b.h + 2)}" rx="3" fill="${surface}"/>`
+      `<rect x="${n(left)}" y="${n(b.y - 1)}" width="${n(b.x + b.w + 4 - left)}" height="${n(b.h + 2)}" rx="3" fill="${surface2}"/>`
     );
   }
-  if (g.icon && g.iconBox) parts.push(icon(ctx, g.icon, g.iconBox, void 0, surface));
+  if (g.icon && g.iconBox) parts.push(icon(ctx, g.icon, g.iconBox, void 0, surface2));
   parts.push(text(g.label, g.labelBox, g.labelColor, "start"));
   return parts.join("");
 }
@@ -24655,18 +25248,18 @@ function trim(points, atEnd, by) {
   pts[i] = { x: tip.x - (tip.x - prev.x) / len2 * by, y: tip.y - (tip.y - prev.y) / len2 * by };
   return pts;
 }
-function arrowHead(tip, from, len2, half2, color, open = false, width2 = 1.5) {
+function arrowHead(tip, from2, len2, half2, color, open = false, width2 = 1.5) {
   if (open) {
-    const d2 = Math.hypot(tip.x - from.x, tip.y - from.y) || 1;
-    const ux2 = (tip.x - from.x) / d2;
-    const uy2 = (tip.y - from.y) / d2;
+    const d2 = Math.hypot(tip.x - from2.x, tip.y - from2.y) || 1;
+    const ux2 = (tip.x - from2.x) / d2;
+    const uy2 = (tip.y - from2.y) / d2;
     const bx2 = tip.x - ux2 * len2;
     const by2 = tip.y - uy2 * len2;
     return `<path d="M${n(bx2 - uy2 * half2)} ${n(by2 + ux2 * half2)} L${n(tip.x)} ${n(tip.y)} L${n(bx2 + uy2 * half2)} ${n(by2 - ux2 * half2)}" fill="none" stroke="${color}" stroke-width="${width2}" stroke-linecap="round" stroke-linejoin="round"/>`;
   }
-  const d = Math.hypot(tip.x - from.x, tip.y - from.y) || 1;
-  const ux = (tip.x - from.x) / d;
-  const uy = (tip.y - from.y) / d;
+  const d = Math.hypot(tip.x - from2.x, tip.y - from2.y) || 1;
+  const ux = (tip.x - from2.x) / d;
+  const uy = (tip.y - from2.y) / d;
   const bx = tip.x - ux * len2;
   const by = tip.y - uy * len2;
   const pts = [
@@ -24803,12 +25396,12 @@ function packets(ctx, e, d, m) {
   const color = e.color ?? ctx.t.flow;
   const r6 = e.line === "thick" ? 4.2 : 3.6;
   const { cycle, start, travel: travel2 } = m;
-  const one = (reverse, from, shift2 = 0) => {
-    const end = from + travel2;
-    const fadeIn = from === 0 ? [0, FADE3] : [0, from, from + FADE3];
-    const opacity = from === 0 ? "0;1;1;0;0" : "0;0;1;1;0;0";
+  const one = (reverse, from2, shift2 = 0) => {
+    const end = from2 + travel2;
+    const fadeIn = from2 === 0 ? [0, FADE3] : [0, from2, from2 + FADE3];
+    const opacity = from2 === 0 ? "0;1;1;0;0" : "0;0;1;1;0;0";
     const fade = keyTimes([...fadeIn, end - FADE3, end, cycle], cycle);
-    const at2 = keyTimes([0, from, end, cycle], cycle);
+    const at2 = keyTimes([0, from2, end, cycle], cycle);
     const begin = m.begin - shift2;
     const loop2 = `dur="${secs(cycle)}" repeatCount="indefinite"${begin ? ` begin="${secs(begin)}"` : ""}`;
     return `<g opacity="0"><circle r="${n(r6 * 2.3)}" fill="${color}" fill-opacity="0.22"/><circle r="${r6}" fill="${color}"/><animateMotion path="${d}" ${loop2} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${at2}"/><animate attributeName="opacity" values="${opacity}" keyTimes="${fade}" ${loop2}/></g>`;
@@ -24901,7 +25494,7 @@ function relayLine(ctx, e, d, heads, b, width2, dash) {
   ctx.defs.push(
     `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="${ctx.scene.width}" height="${ctx.scene.height}"><path d="${d}" fill="none" stroke="#ffffff" stroke-width="${n(width2 + 8)}" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="${hide}"><animate attributeName="stroke-dashoffset" values="${hide};${hide};0;0;${hide}" keyTimes="${kt2([0, b.t0, b.t1, gone, cycle])}" ${loop2}/></path></mask>`
   );
-  const show3 = (from) => `<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt2([0, from, from + 0.05, end, gone, cycle])}" ${loop2}/>`;
+  const show3 = (from2) => `<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt2([0, from2, from2 + 0.05, end, gone, cycle])}" ${loop2}/>`;
   const r6 = e.line === "thick" ? 3.6 : 3;
   return `<g mask="url(#${id})" opacity="0"><path d="${d}" fill="none" stroke="${color}" stroke-width="${width2}" stroke-linejoin="round"${dash}/>${show3(b.t0)}</g>` + (heads ? `<g opacity="0">${heads}${show3(b.t1)}</g>` : "") + `<circle r="${r6}" fill="${color}" opacity="0"><animateMotion path="${d}" ${loop2} calcMode="linear" keyPoints="${reverse ? "1;1;0;0" : "0;0;1;1"}" keyTimes="${kt2([0, b.t0, b.t1, cycle])}"/><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="${kt2([0, b.t0, b.t0 + 0.05, b.t1 - 0.05, b.t1, cycle])}" ${loop2}/></circle>`;
 }
@@ -25039,7 +25632,8 @@ function node2(ctx, nd) {
     if (nd.badge) parts.push(badge2(ctx, nd.badge, nd.box, nd.badgeBox));
   }
   const inner = parts.join("");
-  const body = nd.url ? `<a href="${esc(nd.url)}" xlink:href="${esc(nd.url)}" target="_blank">${inner}</a>` : inner;
+  const href = nd.url ? safeHref(nd.url) : void 0;
+  const body = href ? `<a href="${href}" xlink:href="${href}" target="_blank">${inner}</a>` : inner;
   return `<g id="${ctx.prefix}n-${nd.id}">${body}</g>`;
 }
 function legend2(ctx, l) {
@@ -25135,7 +25729,7 @@ function erDrawio(ctx, nd) {
   const id = `n-${nd.id}`;
   const head2 = headerOf(nd);
   const band = nd.color ? mixHex(nd.color, t.surface, dark ? 0.22 : 0.12) : mixHex(t.text, t.surface, dark ? 0.07 : 0.045);
-  const cols = columnsOf(rows);
+  const cols = columnsOf2(rows);
   const start = head2.h + BODY_PAD;
   const value2 = htmlLabel(nd.label.lines, nd.note?.lines, ensureContrast(t.muted, band, 4.5));
   const iconW = nd.icon && nd.iconBox ? nd.iconBox.x + nd.iconBox.w - b.x + 8 : 0;
@@ -25164,8 +25758,9 @@ function erDrawio(ctx, nd) {
     spacingLeft: Math.round(nd.labelBox.x - b.x - 2),
     resizeLast: 1
   });
+  const link2 = nd.url ? safeHref(nd.url) : void 0;
   const cells = [
-    nd.url ? `<UserObject id="${id}" label="${esc(value2)}" link="${esc(nd.url)}"><mxCell style="${table2}" vertex="1" parent="${cellParent(nd.parent)}">${geometry(b, nd.parent, ctx)}</mxCell></UserObject>` : `<mxCell id="${id}" value="${esc(value2)}" style="${table2}" vertex="1" parent="${cellParent(nd.parent)}">${geometry(b, nd.parent, ctx)}</mxCell>`
+    link2 ? `<UserObject id="${id}" label="${esc(value2)}" link="${link2}"><mxCell style="${table2}" vertex="1" parent="${cellParent(ctx, nd.parent)}">${geometry(b, nd.parent, ctx)}</mxCell></UserObject>` : `<mxCell id="${id}" value="${esc(value2)}" style="${table2}" vertex="1" parent="${cellParent(ctx, nd.parent)}">${geometry(b, nd.parent, ctx)}</mxCell>`
   ];
   rows.forEach((row, i) => {
     const rid = `${id}:r${i}`;
@@ -25197,7 +25792,7 @@ function erDrawio(ctx, nd) {
   });
   if (nd.icon && nd.iconBox && iconW)
     cells.push(
-      `<mxCell id="${id}:icon" value="" style="${style({ shape: "image", image: iconData(ctx, nd.icon, void 0, band), imageAspect: 1, aspect: "fixed", html: 1 })}" vertex="1" parent="${cellParent(nd.parent)}">${geometry(nd.iconBox, nd.parent, ctx)}</mxCell>`
+      `<mxCell id="${id}:icon" value="" style="${style({ shape: "image", image: iconData(ctx, nd.icon, void 0, band), imageAspect: 1, aspect: "fixed", html: 1 })}" vertex="1" parent="${cellParent(ctx, nd.parent)}">${geometry(nd.iconBox, nd.parent, ctx)}</mxCell>`
     );
   return cells;
 }
@@ -25483,8 +26078,9 @@ function timelineItemDrawio(ctx, nd) {
     fontFamily: FONT,
     ...labelSide(it)
   });
+  const link2 = nd.url ? safeHref(nd.url) : void 0;
   const cells = [
-    nd.url ? `<UserObject id="n-${nd.id}" label="${esc(value2)}" link="${esc(nd.url)}"><mxCell style="${s}" vertex="1" parent="1">${geometry(nd.box)}</mxCell></UserObject>` : `<mxCell id="n-${nd.id}" value="${esc(value2)}" style="${s}" vertex="1" parent="1">${geometry(nd.box)}</mxCell>`
+    link2 ? `<UserObject id="n-${nd.id}" label="${esc(value2)}" link="${link2}"><mxCell style="${s}" vertex="1" parent="1">${geometry(nd.box)}</mxCell></UserObject>` : `<mxCell id="n-${nd.id}" value="${esc(value2)}" style="${s}" vertex="1" parent="1">${geometry(nd.box)}</mxCell>`
   ];
   if (nd.icon && nd.iconBox)
     cells.push(
@@ -25516,7 +26112,7 @@ function geometry(box2, parent, ctx) {
   const y = box2.y - (origin?.y ?? 0);
   return `<mxGeometry x="${n3(x2)}" y="${n3(y)}" width="${n3(box2.w)}" height="${n3(box2.h)}" as="geometry"/>`;
 }
-var cellParent = (parent) => parent ? `g-${parent}` : "1";
+var cellParent = (ctx, parent) => parent && ctx.groupBox.has(parent) ? `g-${parent}` : "1";
 function htmlLabel(label2, note, noteColor) {
   const main2 = label2.map(esc).join("<br>");
   if (!note?.length) return main2;
@@ -25549,7 +26145,7 @@ function group(ctx, g) {
       recursiveResize: 0
     });
     ctx.cells.push(
-      `<mxCell id="g-${g.id}" value="${esc(esc(g.label.lines.join(" ")))}" style="${lane}" vertex="1" parent="${cellParent(g.parent)}">${geometry(g.box, g.parent, ctx)}</mxCell>`
+      `<mxCell id="g-${g.id}" value="${esc(esc(g.label.lines.join(" ")))}" style="${lane}" vertex="1" parent="${cellParent(ctx, g.parent)}">${geometry(g.box, g.parent, ctx)}</mxCell>`
     );
     return;
   }
@@ -25578,7 +26174,7 @@ function group(ctx, g) {
     pointerEvents: 0
   });
   ctx.cells.push(
-    `<mxCell id="g-${g.id}" value="${esc(esc(g.label.lines.join(" ")))}" style="${s}" vertex="1" parent="${cellParent(g.parent)}">${geometry(g.box, g.parent, ctx)}</mxCell>`
+    `<mxCell id="g-${g.id}" value="${esc(esc(g.label.lines.join(" ")))}" style="${s}" vertex="1" parent="${cellParent(ctx, g.parent)}">${geometry(g.box, g.parent, ctx)}</mxCell>`
   );
   if (g.inner) {
     ctx.cells.push(
@@ -25694,8 +26290,9 @@ function node3(ctx, nd) {
     return;
   }
   const id = `n-${nd.id}`;
-  const parent = cellParent(nd.parent);
-  const value2 = htmlLabel(nd.label.lines, nd.note?.lines, nd.inkMuted ?? ctx.t.muted);
+  const parent = cellParent(ctx, nd.parent);
+  const lines2 = nd.badge ? [...nd.label.lines.slice(0, -1), `${nd.label.lines.at(-1) ?? ""} (${nd.badge})`] : nd.label.lines;
+  const value2 = htmlLabel(lines2, nd.note?.lines, nd.inkMuted ?? ctx.t.muted);
   const bg = ctx.scene.background && ctx.scene.background !== "transparent" ? ctx.scene.background : ctx.t.background;
   let s;
   let geom;
@@ -25786,8 +26383,9 @@ function node3(ctx, nd) {
     });
     geom = geometry(sym ?? nd.box, nd.parent, ctx);
   }
+  const link2 = nd.url ? safeHref(nd.url) : void 0;
   ctx.cells.push(
-    nd.url ? `<UserObject id="${id}" label="${esc(value2)}" link="${esc(nd.url)}"><mxCell style="${s}" vertex="1" parent="${parent}">${geom}</mxCell></UserObject>` : `<mxCell id="${id}" value="${esc(value2)}" style="${s}" vertex="1" parent="${parent}">${geom}</mxCell>`
+    link2 ? `<UserObject id="${id}" label="${esc(value2)}" link="${link2}"><mxCell style="${s}" vertex="1" parent="${parent}">${geom}</mxCell></UserObject>` : `<mxCell id="${id}" value="${esc(value2)}" style="${s}" vertex="1" parent="${parent}">${geom}</mxCell>`
   );
 }
 function anchor(p, b) {
@@ -26014,6 +26612,7 @@ import { deflateSync, inflateSync } from "node:zlib";
 var NAMESPACE = "https://sagargupta.online/orrery/spec";
 var VERSION2 = 1;
 var KEYWORD = "orrery-spec";
+var MAX_SPEC_BYTES = 8 * 1024 * 1024;
 var PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 var NOT_XML2 = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u;
 var ENTITIES2 = { lt: "<", gt: ">", amp: "&", quot: '"', apos: "'" };
@@ -26031,9 +26630,9 @@ var lf = (source) => source.replace(/\r\n/g, "\n");
 function embedSvgSpec(svg, source) {
   if (!embeds(source)) return svg;
   const text6 = lf(source);
-  const plain2 = !NOT_XML2.test(text6);
-  const body = plain2 ? text6.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/]]>/g, "]]&gt;").replace(/\r/g, "&#13;") : Buffer.from(text6, "utf8").toString("base64");
-  const attrs = `xmlns:orrery="${NAMESPACE}" version="${VERSION2}"${plain2 ? "" : ' encoding="base64"'}`;
+  const plain3 = !NOT_XML2.test(text6);
+  const body = plain3 ? text6.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/]]>/g, "]]&gt;").replace(/\r/g, "&#13;") : Buffer.from(text6, "utf8").toString("base64");
+  const attrs = `xmlns:orrery="${NAMESPACE}" version="${VERSION2}"${plain3 ? "" : ' encoding="base64"'}`;
   const metadata = `
 <metadata><orrery:spec ${attrs}>${body}</orrery:spec></metadata>`;
   return svg.replace(
@@ -26062,9 +26661,14 @@ function extractSpec(file) {
     }
     return void 0;
   }
-  const m = /<orrery:spec\b([^>]*)>([\s\S]*?)<\/orrery:spec>/.exec(file);
-  if (!m) return void 0;
-  const [, attrs = "", body = ""] = m;
+  let at2 = file.indexOf("<orrery:spec");
+  while (at2 >= 0 && !/[\s>]/.test(file[at2 + 12] ?? "")) at2 = file.indexOf("<orrery:spec", at2 + 1);
+  if (at2 < 0) return void 0;
+  const openEnd = file.indexOf(">", at2);
+  const bodyEnd = openEnd < 0 ? -1 : file.indexOf("</orrery:spec>", openEnd);
+  if (bodyEnd < 0) return void 0;
+  const attrs = file.slice(at2 + 12, openEnd);
+  const body = file.slice(openEnd + 1, bodyEnd);
   if (/\sencoding="base64"/.test(attrs)) return Buffer.from(body, "base64").toString("utf8");
   return body.replace(
     /&(lt|gt|amp|quot|apos|#\d+|#x[\da-fA-F]+);/g,
@@ -26079,7 +26683,13 @@ function readItxt(data) {
   const translatedEnd = data.indexOf(0, languageEnd + 1);
   if (languageEnd < 0 || translatedEnd < 0) return void 0;
   const text6 = data.subarray(translatedEnd + 1);
-  return new TextDecoder().decode(compressed ? inflateSync(text6) : text6);
+  if (!compressed) return new TextDecoder().decode(text6);
+  try {
+    return new TextDecoder().decode(inflateSync(text6, { maxOutputLength: MAX_SPEC_BYTES }));
+  } catch (e) {
+    if (e instanceof RangeError) return void 0;
+    throw e;
+  }
 }
 function chunks(png2) {
   if (!isPng(png2)) return [];
@@ -26129,6 +26739,7 @@ function renderHtml(input) {
   const darkB64 = b64(input.dark);
   const stills = input.lightStill && input.darkStill ? `{ light: "${b64(input.lightStill)}", dark: "${b64(input.darkStill)}" }` : "svgs";
   const name2 = JSON.stringify(input.name).replace(/</g, "\\u003c");
+  const desc = /<desc id="[^"]*">([^<]*)<\/desc>/.exec(input.light)?.[1];
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -26151,8 +26762,10 @@ button:active,a.btn:active{transform:scale(.97)}
 main{position:relative;flex:1;overflow:hidden;touch-action:none;cursor:grab}
 main.dragging{cursor:grabbing}
 #canvas{position:absolute;left:0;top:0}
-#canvas img{display:block;max-width:none;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);transition:opacity .2s ease}
-body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
+#canvas img,#canvas svg{display:block;max-width:none;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);transition:opacity .2s ease}
+#canvas svg{user-select:none;-webkit-user-select:none}
+#canvas a{cursor:pointer}
+body[data-theme=dark] #canvas img,body[data-theme=dark] #canvas svg{box-shadow:0 0 0 1px var(--line)}
 .hint{position:absolute;right:12px;bottom:10px;font-size:12px;color:var(--muted);pointer-events:none}
 </style>
 </head>
@@ -26169,7 +26782,7 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
 </div>
 </header>
 <main id="stage" aria-label="Diagram, drag to pan, scroll or pinch to zoom">
-<div id="canvas"><img id="diagram" alt="${esc(input.title)}"></div>
+<div id="canvas">${input.inline ? "" : `<img id="diagram" alt="${desc || esc(input.title)}">`}</div>
 <div class="hint">drag to pan, scroll or pinch to zoom</div>
 </main>
 <script>
@@ -26178,25 +26791,53 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
   const stills = ${stills};
   const name = ${name2};
   const toUrl = (b64) => "data:image/svg+xml;base64," + b64;
+  const inline = ${input.inline ? "true" : "false"};
   const body = document.body, stage = document.getElementById("stage"), canvas = document.getElementById("canvas"), img = document.getElementById("diagram");
   let theme = body.dataset.theme, scale = 1, x = 0, y = 0;
-  const size = () => { const m = atob(svgs[theme].slice(0, 800)).match(/width="([\\d.]+)" height="([\\d.]+)"/); return m ? [Number(m[1]), Number(m[2])] : [1000, 600]; };
-  const apply = () => { const [w, h] = size(); canvas.style.left = x + "px"; canvas.style.top = y + "px"; img.style.width = w * scale + "px"; img.style.height = h * scale + "px"; };
+  const size = () => [${input.width}, ${input.height}];
+  // The inline SVG is cleaned before it joins the page: no scripts, foreign content or handlers, and
+  // links only to #, http(s) and mailto (embedded images stay).
+  const BLOCKED = new Set(["script", "foreignobject", "iframe", "object", "embed", "audio", "video", "link", "meta", "base", "form", "input", "button", "textarea"]);
+  const SAFE_LINK = /^(#|https?:|mailto:)/i;
+  const SAFE_HREF = /^(#|https?:|mailto:|data:image\\/(png|jpe?g|gif|webp|svg\\+xml)[;,])/i;
+  const bare = (v) => v.replace(/[\\s\\p{Cc}]/gu, "");
+  const decode = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
+  const clean = (markup) => {
+    const doc = new DOMParser().parseFromString(markup, "image/svg+xml"), root = doc.documentElement;
+    const drop = [], walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+    for (let node = root; node; node = walker.nextNode()) {
+      if (BLOCKED.has(node.localName.toLowerCase())) { drop.push(node); continue; }
+      for (const attr of [...node.attributes]) {
+        const name = attr.name.toLowerCase(), value = bare(attr.value);
+        if (name.startsWith("on") || ((name === "href" || name.endsWith(":href") || name === "src") && !SAFE_HREF.test(value))) node.removeAttribute(attr.name);
+      }
+    }
+    for (const el of drop) el.remove();
+    return document.importNode(root, true);
+  };
+  const apply = () => { const [w, h] = size(); const t = inline ? canvas.firstElementChild : img; canvas.style.left = x + "px"; canvas.style.top = y + "px"; if (t) { t.style.width = w * scale + "px"; t.style.height = h * scale + "px"; } };
   const fit = () => { const [w, h] = size(); const r = stage.getBoundingClientRect(); scale = Math.min((r.width - 32) / w, (r.height - 32) / h, 2); x = (r.width - w * scale) / 2; y = Math.max(16, (r.height - h * scale) / 2); apply(); };
-  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; apply(); const a = document.querySelector('[data-act=svg]'); a.href = toUrl(svgs[theme]); a.download = name + "-" + theme + ".svg"; };
+  const show = () => { body.dataset.theme = theme; const [w, h] = size(); if (inline) canvas.replaceChildren(clean(decode(svgs[theme]))); else { img.src = toUrl(svgs[theme]); img.width = w; img.height = h; } apply(); const a = document.querySelector('[data-act=svg]'); a.href = toUrl(svgs[theme]); a.download = name + "-" + theme + ".svg"; };
   const zoomAt = (f, cx, cy) => { const ns = Math.max(0.1, Math.min(8, scale * f)); x = cx - (cx - x) * (ns / scale); y = cy - (cy - y) * (ns / scale); scale = ns; apply(); };
-  const pointers = new Map(); let pinch = 0;
-  stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.classList.add("dragging"); });
+  const pointers = new Map(); let pinch = 0, tap = null;
+  stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.classList.add("dragging"); tap = pointers.size === 1 ? [e.clientX, e.clientY] : null; });
+  // A touch or click that did not move opens the link under it; the page captures the pointer for panning, so the browser never clicks the link itself.
+  const follow = (e) => {
+    const a = document.elementFromPoint(e.clientX, e.clientY)?.closest("a");
+    const href = a && (a.getAttribute("href") || a.getAttribute("xlink:href"));
+    if (href && SAFE_LINK.test(bare(href)) && !href.startsWith("#")) window.open(href, "_blank", "noopener");
+  };
   stage.addEventListener("pointermove", (e) => {
     if (!pointers.has(e.pointerId)) return;
     const prev = pointers.get(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    if (tap && (pointers.size > 1 || Math.hypot(e.clientX - tap[0], e.clientY - tap[1]) > 6)) tap = null;
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); const r = stage.getBoundingClientRect();
       if (pinch) zoomAt(d / pinch, (a[0] + b[0]) / 2 - r.left, (a[1] + b[1]) / 2 - r.top); pinch = d;
     } else { x += e.clientX - prev[0]; y += e.clientY - prev[1]; apply(); }
   });
   const up = (e) => { pointers.delete(e.pointerId); if (pointers.size < 2) pinch = 0; if (!pointers.size) stage.classList.remove("dragging"); };
-  stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+  stage.addEventListener("pointerup", (e) => { if (inline && tap && pointers.size === 1) follow(e); tap = null; up(e); }); stage.addEventListener("pointercancel", (e) => { tap = null; up(e); });
   stage.addEventListener("wheel", (e) => { e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
   document.querySelector("[data-act=theme]").onclick = () => { theme = theme === "light" ? "dark" : "light"; show(); };
   document.querySelector("[data-act=in]").onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(1.25, r.width / 2, r.height / 2); };
@@ -26301,9 +26942,9 @@ function erMermaid(model) {
   for (const e of model.edges) {
     if (!nodes.has(e.from) || !nodes.has(e.to)) continue;
     const card = cardOf(model, e);
-    const join20 = e.line === "dashed" || e.line === "dotted" ? ".." : "--";
+    const join21 = e.line === "dashed" || e.line === "dotted" ? ".." : "--";
     lines2.push(
-      `  ${id.get(e.from)} ${LEFT[card.from]}${join20}${RIGHT[card.to]} ${id.get(e.to)} : "${quoted(e.label ?? "")}"`
+      `  ${id.get(e.from)} ${LEFT[card.from]}${join21}${RIGHT[card.to]} ${id.get(e.to)} : "${quoted(e.label ?? "")}"`
     );
   }
   return `${lines2.join("\n")}
@@ -26451,6 +27092,11 @@ function ids2(nodes) {
   }
   return out;
 }
+function nextDay(day) {
+  if (!/^\d{4}-\d\d-\d\d$/.test(day)) return void 0;
+  const t = Date.parse(`${day}T00:00:00Z`);
+  return Number.isNaN(t) ? void 0 : new Date(t + 864e5).toISOString().slice(0, 10);
+}
 var TAG2 = { done: "done", active: "active", "at-risk": "crit" };
 var AXIS = {
   day: { format: "%b %d", tick: "1day" },
@@ -26476,10 +27122,20 @@ function timelineMermaid(model) {
     for (let i = 0; g?.parent && i < 64; i++) g = groups.get(g.parent) ?? g;
     return g?.id ?? "";
   };
+  const endOf5 = /* @__PURE__ */ new Map();
+  for (const n4 of dated) {
+    const w = n4.when;
+    if (!w) continue;
+    if (w.end === void 0 || n4.milestone) endOf5.set(n4.id, n4.milestone && w.end ? w.end : w.start);
+    else endOf5.set(n4.id, nextDay(w.end));
+  }
   const before = /* @__PURE__ */ new Map();
+  const afterOf = /* @__PURE__ */ new Map();
   for (const e of model.edges)
-    if (tid.has(e.from) && tid.has(e.to) && e.from !== e.to)
+    if (tid.has(e.from) && tid.has(e.to) && e.from !== e.to) {
       before.set(e.to, [...before.get(e.to) ?? [], tid.get(e.from) ?? ""]);
+      afterOf.set(e.to, [...afterOf.get(e.to) ?? [], e.from]);
+    }
   const lanes = ["", ...model.groups.filter((g) => !g.parent).map((g) => g.id)].filter(
     (id) => dated.some((n4) => top(n4) === id)
   );
@@ -26493,6 +27149,8 @@ function timelineMermaid(model) {
       const tag = n4.status ? TAG2[n4.status] : void 0;
       const tags = tag ? [tag] : [];
       const deps = before.get(n4.id) ?? [];
+      const ends3 = (afterOf.get(n4.id) ?? []).map((p) => endOf5.get(p));
+      const latest = ends3.every((d) => d) ? ends3.sort().at(-1) : void 0;
       const point3 = w.end === void 0 || n4.milestone;
       const at2 = n4.milestone && w.end !== void 0 ? w.end : w.start;
       let data;
@@ -26501,7 +27159,7 @@ function timelineMermaid(model) {
         data = [
           ...tags,
           tid.get(n4.id) ?? "",
-          deps.length ? `after ${deps.join(" ")}` : w.start,
+          deps.length && latest === w.start ? `after ${deps.join(" ")}` : w.start,
           w.end ?? w.start
         ];
       out.push(`    ${name(n4.label) || name(n4.id)} :${data.join(", ")}`);
@@ -26750,7 +27408,7 @@ function architecture(model, scene) {
   }
   for (const nd of model.nodes)
     out.push(
-      `  service ${id(nd.id)}(${mermaidLogo(nd.icon) ?? builtin(nd)})${title(nd.label)}${inside4(nd.parent)}`
+      `  service ${id(nd.id)}(${mermaidLogo(nd.icon) ?? builtin(nd)})${title(labelOf2(nd))}${inside4(nd.parent)}`
     );
   const parentGroup = new Map(groups.map((g) => [g.id, g.parent]));
   const holds2 = (g, nd) => {
@@ -26779,17 +27437,23 @@ function architecture(model, scene) {
     return { ref: junction, group: false, parent: at2, box: boxes.get(at2) };
   };
   const written2 = /* @__PURE__ */ new Set();
+  const dropped = [];
+  const drop = (e, why) => {
+    dropped.push(`  %% not drawn: ${flat3(e.from)} -> ${flat3(e.to)} (${why})`);
+    return [];
+  };
   const planned = model.edges.flatMap((e) => {
-    const from = end(e.from);
+    const from2 = end(e.from);
     const to = end(e.to);
-    if (!from || !to || from.ref === to.ref) return [];
-    let [a, b] = e.arrow === "start" ? [to, from] : [from, to];
+    if (!from2 || !to) return drop(e, "an end is not a service or group");
+    if (from2.ref === to.ref) return drop(e, "an edge from a service to itself");
+    let [a, b] = e.arrow === "start" ? [to, from2] : [from2, to];
     let arrow2 = e.arrow === "start" ? "end" : e.arrow;
     if (written2.has(`${a.ref}-${b.ref}`)) {
       [a, b] = [b, a];
       arrow2 = arrow2 === "end" ? "start" : arrow2;
     }
-    if (written2.has(`${a.ref}-${b.ref}`)) return [];
+    if (written2.has(`${a.ref}-${b.ref}`)) return drop(e, "a third edge between the same pair");
     written2.add(`${a.ref}-${b.ref}`);
     return [{ e, a, b, arrow: arrow2, sides: ["R", "L"], ...sideChoices(a.box, b.box) }];
   });
@@ -26808,15 +27472,16 @@ function architecture(model, scene) {
   };
   chooseSides(planned, [...model.nodes.map((nd) => id(nd.id)), ...junctions.values()], groupsOf);
   for (const { e, a, b, arrow: arrow2, sides } of planned) {
-    const crosses3 = a.parent !== b.parent;
+    const crosses4 = a.parent !== b.parent;
     const into = (side) => arrow2 === side || arrow2 === "both";
     const line2 = e.label ? `-${title(e.label)}-` : "--";
-    const left = `${a.ref}${a.group && crosses3 ? "{group}" : ""}`;
-    const right = `${b.ref}${b.group && crosses3 ? "{group}" : ""}`;
+    const left = `${a.ref}${a.group && crosses4 ? "{group}" : ""}`;
+    const right = `${b.ref}${b.group && crosses4 ? "{group}" : ""}`;
     out.push(
       `  ${left}:${sides[0]} ${into("start") ? "<" : ""}${line2}${into("end") ? ">" : ""} ${sides[1]}:${right}`
     );
   }
+  out.push(...dropped);
   return out;
 }
 var BRACKETS = {
@@ -26850,9 +27515,10 @@ var GATEWAY_MARK = {
   "event-based": "E",
   complex: "*"
 };
+var labelOf2 = (nd) => nd.badge ? `${nd.label} (${nd.badge})`.trim() : nd.label;
 function nodeText(nd) {
-  const text6 = nd.note && !nd.bpmn ? `${nd.label}
-${nd.note}` : nd.label;
+  const text6 = nd.note && !nd.bpmn ? `${labelOf2(nd)}
+${nd.note}` : labelOf2(nd);
   return label(text6 || (nd.bpmn ? GATEWAY_MARK[nd.bpmn] ?? "" : ""));
 }
 function flowNode(nd) {
@@ -26910,9 +27576,9 @@ function flowchart(model) {
     const a = landing(model, e.from);
     const b = landing(model, e.to);
     if (!known2.has(a) || !known2.has(b)) continue;
-    const [from, to] = e.arrow === "start" ? [b, a] : [a, b];
+    const [from2, to] = e.arrow === "start" ? [b, a] : [a, b];
     const text6 = e.label ? `|"${label(e.label)}"|` : "";
-    out.push(`  ${id(from)} ${link(e)}${text6} ${id(to)}`);
+    out.push(`  ${id(from2)} ${link(e)}${text6} ${id(to)}`);
   }
   return out;
 }
@@ -26930,7 +27596,7 @@ function stateDiagram(model) {
     const shape = nodes.get(x2)?.shape;
     return shape === "initial" || shape === "final";
   };
-  const scope = (a, b) => {
+  const scope2 = (a, b) => {
     if (pseudo(a)) return parentOf(a);
     if (pseudo(b)) return parentOf(b);
     return parentOf(a) === parentOf(b) ? parentOf(a) : void 0;
@@ -26939,8 +27605,8 @@ function stateDiagram(model) {
   const transitions = model.edges.map((e) => {
     const a = landing(model, e.from);
     const b = landing(model, e.to);
-    const [from, to] = e.arrow === "start" ? [b, a] : [a, b];
-    return { from, to, label: e.label, scope: scope(from, to) };
+    const [from2, to] = e.arrow === "start" ? [b, a] : [a, b];
+    return { from: from2, to, label: e.label, scope: scope2(from2, to) };
   }).filter(
     (t) => (nodes.has(t.from) || groupIds.has(t.from)) && (nodes.has(t.to) || groupIds.has(t.to))
   );
@@ -26962,7 +27628,7 @@ function stateDiagram(model) {
     }
     for (const nd of model.nodes.filter((x2) => parentOf(x2.id) === parent && !pseudo(x2.id))) {
       if (nd.shape === "diamond") out.push(`${pad2}state ${id(nd.id)} <<choice>>`);
-      else out.push(`${pad2}state "${label(nd.label || nd.id)}" as ${id(nd.id)}`);
+      else out.push(`${pad2}state "${label(labelOf2(nd) || nd.id)}" as ${id(nd.id)}`);
     }
     for (const t of transitions.filter((x2) => x2.scope === parent))
       out.push(`${pad2}${ref(t.from)} --> ${ref(t.to)}${t.label ? ` : ${lineEnd(t.label)}` : ""}`);
@@ -26986,9 +27652,9 @@ function mindmap(model) {
     parent.set(b, a);
     children.set(a, [...children.get(a) ?? [], b]);
   }
-  const roots = model.nodes.filter((nd) => !parent.has(nd.id));
-  const root = roots[0];
-  if (roots.length !== 1 || !root) return void 0;
+  const roots2 = model.nodes.filter((nd) => !parent.has(nd.id));
+  const root = roots2[0];
+  if (roots2.length !== 1 || !root) return void 0;
   const ids3 = idMap2(model.nodes.map((nd) => nd.id));
   const out = [...heading(model), "mindmap"];
   const seen = /* @__PURE__ */ new Set();
@@ -26997,7 +27663,7 @@ function mindmap(model) {
     if (!nd || seen.has(x2)) return;
     seen.add(x2);
     const [open, close] = depth === 1 ? ["((", "))"] : MIND_SHAPES[nd.shape] ?? ["(", ")"];
-    out.push(`${"  ".repeat(depth)}${ids3.get(x2)}${open}"${label(nd.label || x2)}"${close}`);
+    out.push(`${"  ".repeat(depth)}${ids3.get(x2)}${open}"${label(labelOf2(nd) || x2)}"${close}`);
     for (const c of children.get(x2) ?? []) visit2(c, depth + 1);
   };
   visit2(root.id, 1);
@@ -27034,21 +27700,21 @@ function journey2(model) {
 // src/render/png.ts
 import { existsSync as existsSync5, readFileSync as readFileSync6 } from "node:fs";
 import { createRequire as createRequire2 } from "node:module";
-import { join as join6 } from "node:path";
+import { join as join7 } from "node:path";
 import { pathToFileURL } from "node:url";
 var resvg;
 async function load2() {
-  const vendored = join6(vendorDir, "resvg", "index.mjs");
+  const vendored = join7(vendorDir, "resvg", "index.mjs");
   let mod;
   let wasm;
   if (existsSync5(vendored)) {
     mod = await import(pathToFileURL(vendored).href);
-    wasm = readFileSync6(join6(vendorDir, "resvg", "index_bg.wasm"));
+    wasm = readFileSync6(join7(vendorDir, "resvg", "index_bg.wasm"));
   } else {
     const require2 = createRequire2(import.meta.url);
     const entry = require2.resolve("@resvg/resvg-wasm");
-    mod = await import(pathToFileURL(join6(entry, "..", "index.mjs")).href);
-    wasm = readFileSync6(join6(entry, "..", "index_bg.wasm"));
+    mod = await import(pathToFileURL(join7(entry, "..", "index.mjs")).href);
+    wasm = readFileSync6(join7(entry, "..", "index_bg.wasm"));
   }
   await mod.initWasm(wasm);
   return mod;
@@ -27060,14 +27726,34 @@ function fontBuffers(extra) {
     "Inter-SemiBold.ttf",
     "GeistMono-Regular.ttf",
     "GeistMono-Bold.ttf"
-  ].map((f) => new Uint8Array(readFileSync6(join6(fontsDir, f))));
+  ].map((f) => new Uint8Array(readFileSync6(join7(fontsDir, f))));
   return [...fonts, ...extra.map((f) => new Uint8Array(readFileSync6(f)))];
 }
+var PNG_PIXEL_BUDGET = 4e7;
+function pngScale(width2, height, scale, shrink = false) {
+  const wanted = scale ?? 3;
+  const area = width2 * height;
+  if (!(area > 0) || area * wanted * wanted <= PNG_PIXEL_BUDGET) return wanted;
+  const fits3 = Math.floor(Math.sqrt(PNG_PIXEL_BUDGET / area) * 100) / 100;
+  if ((scale === void 0 || shrink) && fits3 >= 1) return fits3;
+  const at2 = scale === void 0 || shrink ? 1 : wanted;
+  const w = Math.round(width2 * at2);
+  const h = Math.round(height * at2);
+  const smaller = fits3 >= 0.1 ? `use --scale ${fits3} or less` : "export the SVG instead";
+  throw new Error(
+    `the PNG would be ${w}x${h} px (${Math.round(w * h / 1e6)} MP at scale ${at2}, over the ${PNG_PIXEL_BUDGET / 1e6} MP limit); ${smaller}`
+  );
+}
+function sizeOf2(svg) {
+  const m = /<svg\b[^>]*?\swidth="([\d.]+)"[^>]*?\sheight="([\d.]+)"/.exec(svg.slice(0, 2e3));
+  return m ? [Number(m[1]), Number(m[2])] : [0, 0];
+}
 async function renderPng(svg, opts = {}) {
+  const scale = pngScale(...sizeOf2(svg), opts.scale, opts.shrink);
   resvg ??= load2();
   const { Resvg } = await resvg;
   const r6 = new Resvg(svg, {
-    fitTo: { mode: "zoom", value: opts.scale ?? 3 },
+    fitTo: { mode: "zoom", value: scale },
     background: opts.background,
     font: {
       fontBuffers: fontBuffers(opts.fonts ?? []),
@@ -27208,7 +27894,10 @@ function editableSvg(svg, mxfile) {
 <!-- Do not edit this file with editors other than draw.io -->
 ${svg.replace(/^<svg\b/, `<svg content="${content}"`)}`;
 }
-async function renderModel(req) {
+function renderModel(req) {
+  return withLocalIcons(() => render(req));
+}
+async function render(req) {
   const model = {
     ...req.model,
     ...req.skin ? { skin: req.skin } : {},
@@ -27230,10 +27919,13 @@ async function renderModel(req) {
   for (const s of Object.values(scenes)) fitIcons(s);
   const first = scenes[req.themes[0] ?? model.theme] ?? Object.values(scenes)[0];
   const diagnostics = first ? checkScene(first, model) : [];
-  const idPrefix = (theme) => `${req.name}-${theme}`.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^(?=[^A-Za-z_])/, "sd-");
+  const hashed = { ...model, icons: model.icons?.map((i) => i.name) };
+  const hash = createHash3("sha256").update(JSON.stringify(hashed)).digest("hex").slice(0, 6);
+  const idPrefix = (theme, suffix = "") => `${req.name}-${theme}-${hash}${suffix}`.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^(?=[^A-Za-z_])/, "sd-");
   const svgOf2 = (theme, scene) => renderSvg(scene, { idPrefix: idPrefix(theme) });
   const stillOf = (theme, scene) => scene.animate !== "none" ? svgOf2(theme, { ...scene, animate: "none" }) : void 0;
   const artifacts = [];
+  const pngs = [];
   for (const theme of req.themes) {
     const scene = scenes[theme];
     if (!scene || !req.formats.length) continue;
@@ -27244,16 +27936,9 @@ async function renderModel(req) {
       const base = { format, theme, width: scene.width, height: scene.height };
       if (format === "svg") artifacts.push({ ...base, data: svg });
       if (format === "png") {
-        const still = stillOf(theme, scene) ?? svg;
-        artifacts.push({
-          ...base,
-          data: embedPngSpec(
-            await renderPng(still, { scale: req.scale, fonts: req.fonts }),
-            req.source
-          ),
-          width: Math.round(scene.width * (req.scale ?? 3)),
-          height: Math.round(scene.height * (req.scale ?? 3))
-        });
+        const artifact = { ...base, data: "" };
+        artifacts.push(artifact);
+        pngs.push({ artifact, scene, still: stillOf(theme, scene) ?? svg });
       }
       if (format === "drawio") artifacts.push({ ...base, data: drawio() });
       if (format === "drawio.svg") artifacts.push({ ...base, data: editableSvg(svg, drawio()) });
@@ -27261,7 +27946,7 @@ async function renderModel(req) {
         artifacts.push({ ...base, data: renderTsx(scene, componentName(model.title, req.name)) });
       if (format === "mmd") artifacts.push({ ...base, data: renderMermaid(model, scene) });
       if (format === "sequence.svg") {
-        const sq = renderSequence(scene, model, { idPrefix: idPrefix(theme) });
+        const sq = renderSequence(scene, model, { idPrefix: idPrefix(theme, "-seq") });
         artifacts.push({
           ...base,
           data: embedSvgSpec(sq.svg, req.source),
@@ -27276,19 +27961,51 @@ async function renderModel(req) {
       format: "html",
       data: renderHtml({
         title: model.title ?? req.name,
-        light: svgOf2("light", scenes.light),
-        dark: svgOf2("dark", scenes.dark),
+        // The downloads are these files, so they carry the spec like the ones written beside the page.
+        light: embedSvgSpec(svgOf2("light", scenes.light), req.source),
+        dark: embedSvgSpec(svgOf2("dark", scenes.dark), req.source),
         lightStill: stillOf("light", scenes.light),
         darkStill: stillOf("dark", scenes.dark),
         name: req.name,
-        // Both themes are in the page; it opens in the spec's own, dark unless the spec says light.
-        initial: model.theme
+        // Both themes are in the page; it opens in the one theme asked for, else the spec's own
+        // (dark unless the spec says light).
+        initial: req.themes.length === 1 && req.themes[0] ? req.themes[0] : model.theme,
+        width: scenes.light.width,
+        height: scenes.light.height,
+        // A node link only works in a page, not in an image.
+        inline: scenes.light.nodes.some((nd) => nd.url)
       }),
       width: scenes.light.width,
       height: scenes.light.height
     });
   }
-  return { artifacts, diagnostics, scenes };
+  const failed = /* @__PURE__ */ new Set();
+  for (const { artifact, scene, still } of pngs) {
+    try {
+      const shrink = !(req.scaleExplicit ?? (req.scale !== void 0 && req.scale !== 3));
+      const scale = pngScale(scene.width, scene.height, req.scale, shrink);
+      artifact.data = embedPngSpec(
+        await renderPng(still, { scale, shrink: true, fonts: req.fonts }),
+        req.source
+      );
+      artifact.width = Math.round(scene.width * scale);
+      artifact.height = Math.round(scene.height * scale);
+    } catch (e) {
+      if (/target size is zero/i.test(e?.message ?? "")) throw e;
+      failed.add(artifact);
+      diagnostics.push({
+        severity: "error",
+        code: "DG302",
+        message: `the ${artifact.theme} PNG was not written: ${e?.message ?? e}`,
+        subject: { format: "png", theme: artifact.theme }
+      });
+    }
+  }
+  return {
+    artifacts: failed.size ? artifacts.filter((a) => !failed.has(a)) : artifacts,
+    diagnostics,
+    scenes
+  };
 }
 
 // src/spec/index.ts
@@ -27456,14 +28173,16 @@ function newContext(raw, filename, diagnostics, report) {
     edges: [],
     tagStyles: {},
     pendingContains: [],
-    pendingAlign: []
+    pendingAlign: [],
+    badEnds: /* @__PURE__ */ new Set()
   };
 }
 function claim(ctx, id, kind) {
   if (!ID_RE.test(id)) {
+    const kept = id.replace(/[^A-Za-z0-9_.-]+/g, "-").replace(/^[.-]+|-+$/g, "");
     ctx.err("DG103", `id "${id}" may only use letters, digits, "_", "-" and "."`, {
       subject: { id },
-      fixes: [`rename to "${id.replace(/[^A-Za-z0-9_.-]+/g, "-")}"`]
+      fixes: [`rename to "${kept || `item-${ctx.ids.size + 1}`}"`]
     });
   }
   if (ctx.ids.has(id)) {
@@ -27480,7 +28199,8 @@ function entries2(ctx, value2, what) {
   if (value2 === void 0 || value2 === null) return [];
   if (Array.isArray(value2)) {
     return value2.map((item, i) => {
-      if (isObj(item) && typeof item.id === "string") return [item.id, item];
+      const id = isObj(item) ? itemId(item) : void 0;
+      if (id !== void 0) return [id, item];
       if (isObj(item) && Object.keys(item).length === 1) {
         const [k, v] = Object.entries(item)[0];
         return [k, v];
@@ -27501,9 +28221,9 @@ function entries2(ctx, value2, what) {
 }
 
 // src/spec/kinds.ts
-function outOfKind(ctx, code3, kind, key, where, subject) {
+function outOfKind(ctx, code4, kind, key, where, subject) {
   if (ctx.kind === kind) return false;
-  ctx.err(code3, `${where} ${key} only applies to kind: ${kind}`, {
+  ctx.err(code4, `${where} ${key} only applies to kind: ${kind}`, {
     subject,
     fixes: [`add kind: ${kind} at the top, or remove ${key}`]
   });
@@ -27619,7 +28339,7 @@ var CARD_ENDS = {
   "0..*": "zero-many",
   "*": "zero-many"
 };
-function edgeErKeys(ctx, where, from, to, raw) {
+function edgeErKeys(ctx, where, from2, to, raw) {
   const out = {};
   for (const [key, value2] of [
     ["card", raw.card],
@@ -27657,7 +28377,7 @@ function edgeErKeys(ctx, where, from, to, raw) {
     });
     return void 0;
   };
-  const fromField = field2("from_field", raw.fromField, from);
+  const fromField = field2("from_field", raw.fromField, from2);
   const toField = field2("to_field", raw.toField, to);
   if (fromField) out.fromField = fromField;
   if (toField) out.toField = toField;
@@ -27711,6 +28431,24 @@ function parseFragments(ctx) {
           }
         );
     }
+  for (const a of out)
+    for (const branch2 of a.else ?? [])
+      for (const b of out) {
+        const inside4 = b !== a && a.from <= b.from && b.to <= a.to;
+        if (!inside4 || branch2.at <= b.from || branch2.at > b.to) continue;
+        const held = b.from + 1 < b.to ? `messages ${b.from + 1} to ${b.to}` : `message ${b.to}`;
+        ctx.err(
+          "DG125",
+          `the ${a.type} (messages ${a.from}-${a.to}) has an else at message ${branch2.at}, inside the ${b.type} it holds (messages ${b.from}-${b.to})`,
+          {
+            subject: { where: "fragments" },
+            fixes: [
+              `end the ${b.type} before message ${branch2.at}, or start it there: from: ${branch2.at}`,
+              `move the else off ${held}`
+            ]
+          }
+        );
+      }
   return out;
 }
 function fragment(ctx, item, where, count) {
@@ -27733,18 +28471,18 @@ function fragment(ctx, item, where, count) {
   }
   const range3 = `1 to ${count}, the messages in edge order`;
   const message = (v) => typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= count ? v : void 0;
-  const from = message(item.from);
+  const from2 = message(item.from);
   const to = message(item.to);
-  if (from === void 0 || to === void 0)
+  if (from2 === void 0 || to === void 0)
     return bad(
       `from and to must be message numbers from ${range3}; got from: ${String(item.from)}, to: ${String(item.to)}`,
       [count ? `use from: 1, to: ${count}` : "add the messages as edges first"]
     );
-  if (from > to)
-    return bad(`starts at message ${from}, after its end at ${to}`, [
-      `swap them: from: ${to}, to: ${from}`
+  if (from2 > to)
+    return bad(`starts at message ${from2}, after its end at ${to}`, [
+      `swap them: from: ${to}, to: ${from2}`
     ]);
-  const f = { type, from, to };
+  const f = { type, from: from2, to };
   const label2 = str(item.label)?.trim();
   if (label2) f.label = label2;
   if (item.else === void 0 || item.else === null) return f;
@@ -27754,10 +28492,10 @@ function fragment(ctx, item, where, count) {
     ]);
   if (!Array.isArray(item.else))
     return bad("else must be a list of { at, label }", [
-      `write else: [{ at: ${Math.min(to, from + 1)}, label: otherwise }]`
+      `write else: [{ at: ${Math.min(to, from2 + 1)}, label: otherwise }]`
     ]);
   const branches = [];
-  let last = from;
+  let last = from2;
   for (const b of item.else) {
     const at2 = isObj(b) ? b.at : void 0;
     if (typeof at2 !== "number" || !Number.isInteger(at2) || at2 <= last || at2 > to)
@@ -27930,6 +28668,20 @@ function parseTimeline(ctx) {
     if (end) out.end = end.last;
   }
   if (today) out.today = today.first;
+  const before = today && out.start && today.first < out.start;
+  const after = today && out.end && today.first > out.end;
+  if (today && (before || after))
+    ctx.warn(
+      "DG126",
+      `timeline.today ${today.first} lies outside the axis (${out.start ?? "the first item"} to ${out.end ?? "the last item"}), so no today marker is drawn`,
+      {
+        subject: { where: "timeline.today", value: String(raw.today) },
+        fixes: [
+          before ? `start the axis earlier: start: ${String(raw.today)}` : `end the axis later: end: ${String(raw.today)}`,
+          "remove today"
+        ]
+      }
+    );
   return out;
 }
 
@@ -28187,10 +28939,10 @@ function parseEdgeExpression(expr) {
     if (typeof a !== "string" || typeof b !== "string" || typeof op === "string" || !op) {
       return `cannot read "${expr}"`;
     }
-    const from = a.split(",").map((s) => s.trim()).filter(Boolean);
+    const from2 = a.split(",").map((s) => s.trim()).filter(Boolean);
     const to = b.split(",").map((s) => s.trim()).filter(Boolean);
-    if (!from.length || !to.length) return `missing endpoint in "${expr}"`;
-    hops.push({ from, to, op });
+    if (!from2.length || !to.length) return `missing endpoint in "${expr}"`;
+    hops.push({ from: from2, to, op });
   }
   return { hops, label: label2 };
 }
@@ -28245,15 +28997,15 @@ function parseEdgeItem(ctx, item, where) {
     return;
   }
   unknownKeys(ctx, item, EDGE_KEYS, EDGE_SYNONYMS, where);
-  const from = pick(item, "from", EDGE_SYNONYMS);
+  const from2 = pick(item, "from", EDGE_SYNONYMS);
   const to = pick(item, "to", EDGE_SYNONYMS);
-  if (from === void 0 || to === void 0) {
+  if (from2 === void 0 || to === void 0) {
     ctx.err("DG109", `${where} needs "from" and "to"`, {
       fixes: ['add from: and to:, or write "a -> b"']
     });
     return;
   }
-  const froms = (Array.isArray(from) ? from : [from]).map(String);
+  const froms = (Array.isArray(from2) ? from2 : [from2]).map(String);
   const tos = (Array.isArray(to) ? to : [to]).map(String);
   const op = { line: "solid", arrow: "end" };
   for (const f of froms)
@@ -28280,24 +29032,53 @@ function expand(ctx, expr, label2, extra, where) {
     });
   }
 }
+var ITEM_EDGES = {
+  timeline: { code: "DG126", item: "item" },
+  journey: { code: "DG112", item: "step" }
+};
 var endpoint = (ctx, id, where) => {
-  if (ctx.kind === "sequence" && ctx.ids.get(id) === "group") {
+  const own = ITEM_EDGES[ctx.kind];
+  const group2 = ctx.ids.get(id) === "group";
+  if (ctx.ids.has(id) && !(group2 && (ctx.kind === "sequence" || own))) return true;
+  const key = `${where}\0${id}`;
+  if (ctx.badEnds.has(key)) return false;
+  ctx.badEnds.add(key);
+  if (group2 && ctx.kind === "sequence")
     ctx.err("DG125", `${where} sends a message to group "${id}", which has no lifeline`, {
       subject: { edge: where, id },
       fixes: ["send it to one of the participants in the group"]
     });
-    return false;
-  }
-  if (ctx.ids.has(id)) return true;
-  ctx.err("DG106", `${where} connects unknown id "${id}"`, {
-    subject: { edge: where, id },
-    fixes: suggestIds(id, ctx.ids).map((s) => `use "${s}"`)
-  });
+  else if (group2 && own)
+    ctx.err(
+      own.code,
+      `${where} connects lane "${id}"; a ${ctx.kind} links one ${own.item} to another`,
+      {
+        subject: { edge: where, id },
+        fixes: [`connect one of the ${own.item}s in "${id}" instead`]
+      }
+    );
+  else
+    ctx.err("DG106", `${where} connects unknown id "${id}"`, {
+      subject: { edge: where, id },
+      fixes: suggestIds(id, ctx.ids).map((s) => `use "${s}"`)
+    });
   return false;
 };
-function push2(ctx, from, to, op, label2, extra, where) {
+function push2(ctx, from2, to, op, label2, extra, where) {
   const { edges } = ctx;
-  if (!endpoint(ctx, from, where) || !endpoint(ctx, to, where)) return;
+  const fromOk = endpoint(ctx, from2, where);
+  if (!endpoint(ctx, to, where) || !fromOk) return;
+  const own = ITEM_EDGES[ctx.kind];
+  if (own && from2 === to) {
+    const key = `${where}\0${from2}\0self`;
+    if (!ctx.badEnds.has(key))
+      ctx.err(own.code, `${where} connects "${from2}" to itself; a ${ctx.kind} cannot draw that`, {
+        subject: { edge: where, id: from2 },
+        fixes: [`connect "${from2}" to another ${own.item}, or remove the edge`]
+      });
+    ctx.badEnds.add(key);
+    return;
+  }
   const reverse = op.arrow === "start";
   const lineRaw = pick(extra, "line", EDGE_SYNONYMS);
   const arrowRaw = pick(extra, "arrow", EDGE_SYNONYMS);
@@ -28322,7 +29103,7 @@ function push2(ctx, from, to, op, label2, extra, where) {
       fixes: ["write constraint: false to draw the edge after layout, outside it"]
     });
   const meta = metaOf(ctx, extra, where, { edge: where });
-  const written2 = edgeErKeys(ctx, where, from, to, {
+  const written2 = edgeErKeys(ctx, where, from2, to, {
     card: pick(extra, "card", EDGE_SYNONYMS),
     fromField: pick(extra, "from_field", EDGE_SYNONYMS),
     toField: pick(extra, "to_field", EDGE_SYNONYMS)
@@ -28331,8 +29112,8 @@ function push2(ctx, from, to, op, label2, extra, where) {
   const tag = tagged(ctx, meta.tags);
   edges.push({
     id: `e${edges.length + 1}`,
-    from: reverse ? to : from,
-    to: reverse ? from : to,
+    from: reverse ? to : from2,
+    to: reverse ? from2 : to,
     label: op.label ?? label2,
     line: lineRaw !== void 0 ? oneOf(ctx, lineRaw, EDGE_LINES, op.line, `${where} line`) : flowLine ?? (op.line === "solid" ? tag.line ?? op.line : op.line),
     arrow: arrowRaw !== void 0 ? oneOf(ctx, arrowRaw, ARROWS, "end", `${where} arrow`) : flow === "association" || er.card ? (
@@ -28524,6 +29305,12 @@ function parseStages(ctx, kind) {
       });
     else stages.push(...raw.stages.map((x2) => x2.trim()));
   }
+  for (const [i, name2] of stages.entries())
+    if (stages.indexOf(name2, stages.indexOf(name2) + 1) === i)
+      ctx.err("DG112", `stages lists "${name2}" twice`, {
+        subject: { where: "stages", stage: name2 },
+        fixes: [`rename one "${name2}" column, e.g. "${name2} 2", or remove the second`]
+      });
   if (kind === "journey" && !stages.length)
     ctx.err("DG112", "a journey needs stages: the columns its steps sit in", {
       subject: { where: "stages" },
@@ -28776,10 +29563,7 @@ function checkCycles(ctx) {
 }
 
 // src/spec/nodes.ts
-var hasControlChar = (s) => [...s].some((ch) => {
-  const c = ch.charCodeAt(0);
-  return c <= 31 || c === 127;
-});
+var UNSAFE_URL_CHAR = /[^\u0020-\u007e\u0080-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u;
 function parseNodes(ctx, settings) {
   for (const [id, value2] of entries2(ctx, ctx.raw.nodes, "nodes")) {
     if (id.startsWith("__invalid_")) continue;
@@ -28794,8 +29578,8 @@ function parseNode(ctx, settings, id, value2) {
   const form = nodeForm(ctx, id, n4, icon2, iconRaw, settings.defaultLook);
   const { shape, bpmn } = form;
   const fields = nodeFields(ctx, id, pick(n4, "fields", NODE_SYNONYMS));
-  const plain2 = pick(n4, "look", NODE_SYNONYMS) === void 0 && pick(n4, "shape", NODE_SYNONYMS) === void 0;
-  const look = settings.kind === "er" && (fields || plain2) ? "card" : form.look;
+  const plain3 = pick(n4, "look", NODE_SYNONYMS) === void 0 && pick(n4, "shape", NODE_SYNONYMS) === void 0;
+  const look = settings.kind === "er" && (fields || plain3) ? "card" : form.look;
   const time = nodeTimeKeys(ctx, id, n4);
   const stage = nodeStage(ctx, id, n4, settings.kind);
   const score = nodeScore(ctx, id, n4);
@@ -28804,7 +29588,7 @@ function parseNode(ctx, settings, id, value2) {
     node: id
   });
   const iconSize = nodeSize(ctx, id, n4, look);
-  const label2 = str(pick(n4, "label", NODE_SYNONYMS)) ?? (bpmn && (isBpmnEvent(bpmn) || isBpmnGateway(bpmn)) || !bpmn && (shape === "initial" || shape === "final") ? "" : void 0) ?? (icon2 ? iconInfo(icon2)?.name : void 0) ?? id;
+  const label2 = str(pick(n4, "label", NODE_SYNONYMS)) ?? (bpmn && (isBpmnEvent(bpmn) || isBpmnGateway(bpmn)) || !bpmn && (shape === "initial" || shape === "final") ? "" : void 0) ?? (icon2 ? (iconInfo(iconRaw ?? icon2) ?? iconInfo(icon2))?.name : void 0) ?? id;
   const { rank, align } = nodeRank(ctx, id, n4);
   const on = str(pick(n4, "on", NODE_SYNONYMS));
   const meta = metaOf(ctx, n4, `node "${id}"`, { node: id });
@@ -28898,8 +29682,8 @@ function nodeScore(ctx, id, n4) {
   const scoreRaw = pick(n4, "score", NODE_SYNONYMS);
   let score;
   if (scoreRaw !== void 0) {
-    const v = Number(scoreRaw);
-    if (typeof scoreRaw === "boolean" || !Number.isFinite(v) || v < -2 || v > 2)
+    const v = typeof scoreRaw === "number" || typeof scoreRaw === "string" && scoreRaw.trim() ? Number(scoreRaw) : Number.NaN;
+    if (!Number.isFinite(v) || v < -2 || v > 2)
       ctx.err("DG112", `node "${id}" score must be a number from -2 (very negative) to 2`, {
         subject: { node: id },
         fixes: ["use score: 1 for a good step, -2 for a painful one"]
@@ -28910,11 +29694,17 @@ function nodeScore(ctx, id, n4) {
 }
 function nodeUrl(ctx, id, n4) {
   const url = str(pick(n4, "url", NODE_SYNONYMS));
-  if (url && hasControlChar(url)) {
-    ctx.err("DG107", `node "${id}" url must not contain control characters (tab, newline ...)`, {
-      subject: { node: id, url },
-      fixes: ["use an https:// link on one line, without tabs or line breaks"]
-    });
+  if (url && UNSAFE_URL_CHAR.test(url)) {
+    ctx.err(
+      "DG107",
+      `node "${id}" url must not contain control characters (tab, newline ...) or characters XML cannot carry (U+FFFE, U+FFFF, lone surrogates)`,
+      {
+        subject: { node: id, url },
+        fixes: [
+          "use an https:// link on one line, without tabs, line breaks or invisible characters"
+        ]
+      }
+    );
   } else if (url) {
     const bare2 = url.replace(/\s/g, "");
     if (/^[a-z][a-z0-9+.-]*:/i.test(bare2) && !/^(https?|mailto):/i.test(bare2)) {
@@ -28977,9 +29767,12 @@ function checkAlign(ctx) {
 
 // src/spec/reuse.ts
 import { existsSync as existsSync7, statSync as statSync3 } from "node:fs";
-import { dirname as dirname5, relative as relative2, resolve as resolve3 } from "node:path";
+import { dirname as dirname5, extname as extname2, relative as relative2, resolve as resolve3 } from "node:path";
 var NAME = /^[a-z0-9][a-z0-9_-]*$/i;
-var fromDisk = (path) => existsSync7(path) && statSync3(path).isFile() ? readText(path) : void 0;
+var INCLUDE_EXT = /^\.(ya?ml|json)$/i;
+var SPEC_ITEMS = ["groups", "nodes", "edges", "classes", "tags", "include"];
+var isFile2 = (path) => existsSync7(path) && statSync3(path).isFile();
+var fromDisk = (path) => isFile2(path) ? readText(path) : void 0;
 function applyIncludes(raw, filename, r6, read = fromDisk) {
   const own = edgeItems(raw.edges).map((_, i) => `edges[${i}]`);
   if (raw.include === void 0 || raw.include === null) return { raw, edgeNames: own };
@@ -29038,6 +29831,13 @@ function includeList(value2, where, r6) {
 function readIncluded(path, name2, w) {
   const { r: r6 } = w;
   const subject = { where: "include", file: name2 };
+  if (!INCLUDE_EXT.test(extname2(path))) {
+    r6.err("DG122", `include ${name2} must be a .yaml, .yml or .json spec file`, {
+      subject,
+      fixes: ["include only orrery specs, such as shared/aws-frame.yaml"]
+    });
+    return void 0;
+  }
   const text6 = w.read(path);
   if (text6 === void 0) {
     r6.err("DG122", `include ${name2} not found`, {
@@ -29056,11 +29856,11 @@ function readIncluded(path, name2, w) {
     });
     return void 0;
   }
-  if (isObj(raw)) {
+  if (isObj(raw) && SPEC_ITEMS.some((k) => Object.hasOwn(raw, k))) {
     unknownKeys(r6, raw, TOP_KEYS, {}, `include ${name2}`);
     return raw;
   }
-  r6.err("DG122", `include ${name2} must be a spec: a mapping with groups, nodes or edges`, {
+  r6.err("DG122", `include ${name2} is not a spec: it needs groups, nodes, edges, classes or tags`, {
     subject,
     fixes: [`start ${name2} with groups: or nodes:`]
   });
@@ -29100,7 +29900,8 @@ function layer(base, top, name2, origin, r6) {
 function idEntries(value2) {
   if (Array.isArray(value2))
     return value2.map((item) => {
-      if (isObj(item) && typeof item.id === "string") return [item.id, item];
+      const id = isObj(item) ? itemId(item) : void 0;
+      if (id !== void 0) return [id, item];
       if (isObj(item) && Object.keys(item).length === 1) return [Object.keys(item)[0], item];
       return [void 0, item];
     });
@@ -29165,7 +29966,8 @@ function mapItems(value2, fn) {
   if (!Array.isArray(value2)) return void 0;
   return value2.map((item) => {
     if (!isObj(item)) return item;
-    if (typeof item.id === "string") return fn(item, item.id);
+    const own = itemId(item);
+    if (own !== void 0) return fn(item, own);
     const keys = Object.keys(item);
     const [id] = keys;
     const v = id === void 0 ? void 0 : item[id];
@@ -29214,7 +30016,7 @@ function includedFiles(raw, filename) {
     for (const entry of list) {
       if (typeof entry !== "string") continue;
       const path = resolve3(dirname5(file), entry.trim());
-      if (seen.has(path) || !existsSync7(path)) continue;
+      if (seen.has(path) || !INCLUDE_EXT.test(extname2(path)) || !isFile2(path)) continue;
       seen.add(path);
       try {
         const sub = parseText(readText(path), path);
@@ -29370,6 +30172,8 @@ function arrowOf(e) {
   return e.arrow === "none" ? `${head2.slice(0, -1)}${head2.charAt(0)}` : head2;
 }
 function describeData(scene, model) {
+  const drawnIds = new Set(scene.edges.map((e) => e.id));
+  const edges = model.kind === "timeline" || model.kind === "journey" ? model.edges.filter((e) => drawnIds.has(e.id)) : model.edges;
   const modelNodes = new Map(model.nodes.map((n4) => [n4.id, n4]));
   const modelGroups = new Map(model.groups.map((g) => [g.id, g]));
   const nodes = scene.nodes.filter((n4) => modelNodes.has(n4.id));
@@ -29398,7 +30202,7 @@ function describeData(scene, model) {
   };
   const links2 = /* @__PURE__ */ new Map();
   const add = (id, link2) => links2.set(id, [...links2.get(id) ?? [], link2]);
-  for (const e of model.edges) {
+  for (const e of edges) {
     const label2 = { ...e.label ? { label: e.label } : {}, edge: e.id };
     if (e.arrow === "both" || e.arrow === "none") {
       add(e.from, { dir: e.arrow, with: e.to, ...label2 });
@@ -29447,22 +30251,22 @@ function describeData(scene, model) {
       links: links2.get(n4.id) ?? []
     };
   }).sort((a, b) => a.row - b.row || a.col - b.col);
-  const stepped = model.edges.filter((e) => e.step !== void 0).sort((a, b) => (a.step ?? 0) - (b.step ?? 0));
+  const stepped = edges.filter((e) => e.step !== void 0).sort((a, b) => (a.step ?? 0) - (b.step ?? 0));
   const story = stepped.length ? stepped.map((e) => {
-    const [from, to] = ends2(e);
-    return { step: e.step, from, to, ...e.label ? { label: e.label } : {} };
+    const [from2, to] = ends2(e);
+    return { step: e.step, from: from2, to, ...e.label ? { label: e.label } : {} };
   }) : (model.story ?? []).slice(1).map((to, i) => {
-    const from = model.story?.[i] ?? "";
-    const e = model.edges.find(
-      (x2) => x2.from === from && x2.to === to || x2.from === to && x2.to === from
+    const from2 = model.story?.[i] ?? "";
+    const e = edges.find(
+      (x2) => x2.from === from2 && x2.to === to || x2.from === to && x2.to === from2
     );
-    return { from, to, ...e?.label ? { label: e.label } : {} };
+    return { from: from2, to, ...e?.label ? { label: e.label } : {} };
   });
   const sequence = model.kind === "sequence" ? {
     messages: model.edges.map((e, i) => {
-      const [from, to] = ends2(e);
+      const [from2, to] = ends2(e);
       const label2 = e.label ? { label: e.label } : {};
-      return { n: i + 1, from, to, arrow: arrowOf(e), ...label2, edge: e.id };
+      return { n: i + 1, from: from2, to, arrow: arrowOf(e), ...label2, edge: e.id };
     }),
     fragments: model.fragments ?? []
   } : {};
@@ -29488,7 +30292,7 @@ function describeData(scene, model) {
     kind: model.kind,
     direction: model.direction,
     size: { width: Math.round(scene.width), height: Math.round(scene.height) },
-    counts: { nodes: model.nodes.length, groups: model.groups.length, edges: model.edges.length },
+    counts: { nodes: model.nodes.length, groups: model.groups.length, edges: edges.length },
     groups,
     nodes: described,
     story,
@@ -29536,11 +30340,11 @@ function messagesText(messages2, fragments) {
   }
   return lines2;
 }
-function written(iso2, precision) {
-  if (precision === "year") return iso2.slice(0, 4);
+function written(iso3, precision) {
+  if (precision === "year") return iso3.slice(0, 4);
   if (precision === "quarter")
-    return `${iso2.slice(0, 4)}-Q${Math.ceil(Number(iso2.slice(5, 7)) / 3)}`;
-  return precision === "month" ? iso2.slice(0, 7) : iso2;
+    return `${iso3.slice(0, 4)}-Q${Math.ceil(Number(iso3.slice(5, 7)) / 3)}`;
+  return precision === "month" ? iso3.slice(0, 7) : iso3;
 }
 function describeScene(scene, model) {
   const d = describeData(scene, model);
@@ -29595,6 +30399,11 @@ async function cmdDescribe(args) {
   const model = parsed.model;
   if (!model || parsed.diagnostics.some((x2) => x2.severity === "error")) {
     printDiagnostics(parsed.diagnostics, false);
+    if (args.flags.json === true)
+      process.stdout.write(
+        `${JSON.stringify({ ok: false, diagnostics: parsed.diagnostics }, null, 2)}
+`
+      );
     process.exitCode = 1;
     return;
   }
@@ -29647,9 +30456,9 @@ function matchById(before, after, same4) {
 var SYMMETRIC = /* @__PURE__ */ new Set(["both", "none"]);
 function matchEdges(before, after, rename) {
   const key = (e, map = (id) => id) => {
-    let [from, to] = [map(e.from), map(e.to)];
-    if (SYMMETRIC.has(e.arrow) && from > to) [from, to] = [to, from];
-    return `${from} ${ARROW_OPS[e.arrow]} ${to}`;
+    let [from2, to] = [map(e.from), map(e.to)];
+    if (SYMMETRIC.has(e.arrow) && from2 > to) [from2, to] = [to, from2];
+    return `${from2} ${ARROW_OPS[e.arrow]} ${to}`;
   };
   const open = /* @__PURE__ */ new Map();
   for (const e of after) open.set(key(e), [...open.get(key(e)) ?? [], e]);
@@ -29673,9 +30482,13 @@ function matchEdges(before, after, rename) {
   added.sort((x2, y) => after.indexOf(x2) - after.indexOf(y));
   return { pairs, added, removed, renamed: [] };
 }
+var plain = (v) => {
+  if (v === void 0 || v === null) return null;
+  return typeof v === "object" || typeof v === "boolean" ? JSON.stringify(v) : v;
+};
 function fieldChanges(fields) {
   return fields.flatMap(
-    ([field2, b, a]) => (b ?? null) === (a ?? null) ? [] : [{ field: field2, before: b ?? null, after: a ?? null }]
+    ([field2, b, a]) => plain(b) === plain(a) ? [] : [{ field: field2, before: plain(b), after: plain(a) }]
   );
 }
 var groupIcon = (g) => g.icon === null ? "none" : g.icon;
@@ -29703,7 +30516,17 @@ function compare(before, after) {
         ["label", b.label, a.label],
         ["icon", b.icon, a.icon],
         ["group", mapped(b.parent), a.parent],
-        ["note", b.note, a.note]
+        ["note", b.note, a.note],
+        ["shape", b.shape, a.shape],
+        ["color", b.color, a.color],
+        ["badge", b.badge, a.badge],
+        ["url", b.url, a.url],
+        ["stage", b.stage, a.stage],
+        ["when", b.when, a.when],
+        ["milestone", b.milestone, a.milestone],
+        ["status", b.status, a.status],
+        ["tags", b.tags, a.tags],
+        ["evidence", b.evidence, a.evidence]
       ])
     );
   for (const [b, a] of groups.pairs)
@@ -29713,7 +30536,9 @@ function compare(before, after) {
         ["label", b.label, a.label],
         ["type", b.type, a.type],
         ["icon", groupIcon(b), groupIcon(a)],
-        ["group", mapped(b.parent), a.parent]
+        ["group", mapped(b.parent), a.parent],
+        ["color", b.color, a.color],
+        ["fill", b.fill, a.fill]
       ])
     );
   const edges = matchEdges(before.edges, after.edges, (id) => rename.get(id) ?? id);
@@ -29885,12 +30710,12 @@ function diffPicture(before, after, theme) {
   }
   const kept = [...edges];
   for (const e of c.edges.removed) {
-    const from = present(e.from);
+    const from2 = present(e.from);
     const to = present(e.to);
-    if (!from || !to) continue;
+    if (!from2 || !to) continue;
     const ghostEdge = {
       id: freshId(`removed-${e.id}`, taken),
-      from,
+      from: from2,
       to,
       label: e.label,
       line: "dashed",
@@ -29980,6 +30805,7 @@ function readSide(arg, cwd = process.cwd()) {
   const m = /^git:([^:]+):(.+)$/.exec(arg);
   if (!m) return readSpec(arg);
   const [, ref = "", path = ""] = m;
+  if (ref.startsWith("-")) usage(`cannot read ${arg}: a git ref cannot start with "-"`);
   const git2 = (...gitArgs) => execFileSync("git", gitArgs, {
     cwd,
     encoding: "utf8",
@@ -29987,12 +30813,12 @@ function readSide(arg, cwd = process.cwd()) {
     maxBuffer: 64 * 1024 * 1024
   });
   try {
-    const text6 = git2("show", `${ref}:${path}`);
+    const text6 = git2("show", "--end-of-options", `${ref}:${path}`);
     const root = git2("rev-parse", "--show-toplevel").trim();
     const include = (file) => {
       const at2 = relative3(root, file).replaceAll("\\", "/");
       try {
-        return at2.startsWith("../") ? void 0 : git2("show", `${ref}:${at2}`);
+        return at2.startsWith("../") ? void 0 : git2("show", "--end-of-options", `${ref}:${at2}`);
       } catch {
         return void 0;
       }
@@ -30012,6 +30838,10 @@ async function cmdDiff(args) {
   const [beforeArg, afterArg] = args._;
   if (!beforeArg || !afterArg) usage("diff needs two specs: before and after");
   const json2 = args.flags.json === true;
+  if (args.flags.scale !== void 0) {
+    const scale = Number(args.flags.scale);
+    if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
+  }
   const sides = [readSide(beforeArg), readSide(afterArg)];
   const [before, after] = sides.map(
     (s) => parseSpec(s.text, s.path, s.include ? { include: s.include } : {})
@@ -30024,6 +30854,11 @@ async function cmdDiff(args) {
     printDiagnostics(p?.diagnostics ?? [], false);
     failed = true;
   }
+  if (failed && json2)
+    process.stdout.write(
+      `${JSON.stringify({ ok: false, diagnostics: [before, after].flatMap((p) => p?.diagnostics ?? []) }, null, 2)}
+`
+    );
   if (failed || !before?.model || !after?.model) {
     process.exitCode = 1;
     return;
@@ -30070,7 +30905,7 @@ wrote ${out}` : ""}
 
 // src/doc/index.ts
 import { existsSync as existsSync10, readFileSync as readFileSync9, statSync as statSync6 } from "node:fs";
-import { basename as basename5, dirname as dirname6, extname as extname3, join as join7, resolve as resolve7 } from "node:path";
+import { basename as basename5, dirname as dirname6, extname as extname4, join as join9, resolve as resolve8 } from "node:path";
 
 // src/doc/zip.ts
 import { deflateRawSync } from "node:zlib";
@@ -30235,6 +31070,15 @@ function table(p, b) {
   const rows = b.rows.map((r6, k) => row(r6, false, k === b.rows.length - 1)).join("");
   return `<w:tbl><w:tblPr><w:tblStyle w:val="DocTable"/><w:tblW w:w="5000" w:type="pct"/></w:tblPr><w:tblGrid>${b.head.map(() => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${row(b.head, true, !b.rows.length)}${rows}</w:tbl>${para("", "")}`;
 }
+function code3(s, pPr = "") {
+  const lines2 = s.split("\n");
+  return lines2.map(
+    (l, k) => para(
+      `${style2("Code")}${k === lines2.length - 1 ? '<w:spacing w:after="160"/>' : ""}${pPr}`,
+      l ? run(l.replaceAll("	", "    ")) : ""
+    )
+  ).join("");
+}
 function block2(p, b, quote) {
   switch (b.t) {
     case "heading":
@@ -30246,20 +31090,21 @@ function block2(p, b, quote) {
         const left = 720 + it.depth * 360 + (quote ? 288 : 0);
         const mark = it.ordered ? `${it.num}.` : BULLETS[it.depth % BULLETS.length] ?? "";
         const end = k === b.items.length - 1 ? '<w:spacing w:after="160"/>' : "";
-        return para(
-          `${style2("ListParagraph")}${end}<w:ind w:left="${left}" w:hanging="360"/>`,
+        const more = it.more ?? [];
+        const item = para(
+          `${style2("ListParagraph")}${more.length ? "" : end}<w:ind w:left="${left}" w:hanging="360"/>`,
           `${run(mark)}<w:r><w:tab/></w:r>${runs(p, it.c)}`
         );
+        const ind = `<w:ind w:left="${left}"/>`;
+        const under = more.map((m, j) => {
+          const last = j === more.length - 1 ? end : "";
+          if (m.t === "code") return code3(m.s, ind);
+          return m.t === "para" ? para(`${style2("ListParagraph")}${last}${ind}`, runs(p, m.c)) : "";
+        });
+        return item + under.join("");
       }).join("");
-    case "code": {
-      const lines2 = b.s.split("\n");
-      return lines2.map(
-        (l, k) => para(
-          `${style2("Code")}${k === lines2.length - 1 ? '<w:spacing w:after="160"/>' : ""}`,
-          l ? run(l.replaceAll("	", "    ")) : ""
-        )
-      ).join("");
-    }
+    case "code":
+      return code3(b.s);
     case "table":
       return table(p, b);
     case "quote":
@@ -30303,39 +31148,183 @@ function renderDocx(input) {
 }
 
 // src/doc/figures.ts
-import { existsSync as existsSync8, readFileSync as readFileSync7, statSync as statSync4 } from "node:fs";
-import { basename as basename4, resolve as resolve5 } from "node:path";
+import { existsSync as existsSync9, readFileSync as readFileSync8, statSync as statSync5 } from "node:fs";
+import { basename as basename4, join as join8, resolve as resolve6 } from "node:path";
+
+// src/doc/images.ts
+import { execFileSync as execFileSync2 } from "node:child_process";
+import { existsSync as existsSync8, readFileSync as readFileSync7, realpathSync as realpathSync2, statSync as statSync4 } from "node:fs";
+import { extname as extname3, isAbsolute as isAbsolute3, relative as relative4, resolve as resolve5, sep } from "node:path";
+var MIME = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp"
+};
+function withinDir(path, dir) {
+  const rel2 = relative4(realpathSync2(dir), realpathSync2(path));
+  return !!rel2 && rel2 !== ".." && !rel2.startsWith(`..${sep}`) && !isAbsolute3(rel2);
+}
+var roots = /* @__PURE__ */ new Map();
+function docRoot(dir) {
+  const known2 = roots.get(dir);
+  if (known2) return known2;
+  let root = dir;
+  try {
+    const top = execFileSync2("git", ["rev-parse", "--show-toplevel"], {
+      cwd: dir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    }).trim();
+    if (top) root = top;
+  } catch {
+  }
+  roots.set(dir, root);
+  return root;
+}
+function warn(diagnostics, d) {
+  const image = d.subject?.image;
+  if (!diagnostics.some((o) => o.code === d.code && o.subject?.image === image))
+    diagnostics.push(d);
+}
+function localFile(src2, dir, diagnostics, embed = true) {
+  if (!src2 || /^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(src2)) return void 0;
+  let name2 = src2.split(/[?#]/)[0] ?? "";
+  try {
+    name2 = decodeURIComponent(name2);
+  } catch {
+  }
+  const path = resolve5(dir, name2);
+  if (!existsSync8(path) || !statSync4(path).isFile()) {
+    warn(diagnostics, {
+      severity: "warning",
+      code: "DG404",
+      message: `image ${src2} not found`,
+      subject: { image: src2 },
+      fixes: ["write the image path relative to the document's folder"]
+    });
+    return void 0;
+  }
+  if (!embed || withinDir(path, docRoot(dir))) return path;
+  warn(diagnostics, {
+    severity: "warning",
+    code: "DG403",
+    message: `image ${src2} is outside the document's repository, so it is not embedded`,
+    subject: { image: src2 },
+    fixes: ["copy the image into the repository that holds the document"]
+  });
+  return void 0;
+}
+function dataUri(src2, dir, diagnostics = []) {
+  const file = localFile(src2, dir, diagnostics);
+  const mime = file && MIME[extname3(file).toLowerCase()];
+  return file && mime ? `data:${mime};base64,${readFileSync7(file).toString("base64")}` : src2;
+}
+function wordImage(src2, dir, diagnostics) {
+  const file = localFile(src2, dir, diagnostics);
+  const img = file ? pngImage(readFileSync7(file)) : void 0;
+  if (file && !img)
+    warn(diagnostics, {
+      severity: "warning",
+      code: "DG403",
+      message: `image ${src2} is not a PNG; the Word file shows its alt text instead`,
+      subject: { image: src2 },
+      fixes: ["save the image as PNG, or link it instead of embedding it"]
+    });
+  return img;
+}
+function imagesOf(blocks) {
+  const out = [];
+  const walk = (list) => {
+    for (const n4 of list)
+      if (n4.t === "img") out.push(n4.src);
+      else if ("c" in n4) walk(n4.c);
+  };
+  for (const b of blocks) {
+    if (b.t === "heading" || b.t === "para") walk(b.c);
+    else if (b.t === "list")
+      for (const it of b.items) {
+        walk(it.c);
+        out.push(...imagesOf(it.more ?? []));
+      }
+    else if (b.t === "table") for (const row of [b.head, ...b.rows]) for (const c of row) walk(c);
+    else if (b.t === "quote") out.push(...imagesOf(b.c));
+  }
+  return out;
+}
+function checkImages(blocks, dir, diagnostics) {
+  for (const src2 of imagesOf(blocks)) localFile(src2, dir, diagnostics, false);
+}
+
+// src/doc/figures.ts
 var isError = (d) => d.severity === "error";
+var FENCE_KEYS = ["name", "caption", "theme"];
+var FENCE_THEMES = ["light", "dark", "both"];
+function fenceProblems(m) {
+  const keys = m.fence?.keys ?? {};
+  const out = [];
+  const problem = (message) => out.push({
+    severity: "error",
+    code: "DG405",
+    message: `figure ${m.n}: ${message}`,
+    subject: { figure: m.n, line: m.line + 1 },
+    fixes: ['open the fence as ```orrery name=checkout caption="The checkout path" theme=both']
+  });
+  for (const k of Object.keys(keys))
+    if (!FENCE_KEYS.includes(k))
+      problem(`the orrery fence has an unknown key "${k}"; it takes name=, caption= and theme=`);
+  const theme = keys.theme;
+  if (theme !== void 0 && !FENCE_THEMES.includes(theme))
+    problem(`theme=${theme} is not light, dark or both`);
+  return out;
+}
+function specOf(m, dir) {
+  const name2 = m.spec.replace(/[^A-Za-z0-9._-]+/g, "-");
+  if (m.fence) return { text: m.fence.source, path: join8(dir, `${name2}.yaml`) };
+  const path = resolve6(dir, m.spec);
+  const found = !!m.spec && existsSync9(path) && statSync5(path).isFile();
+  if (found && withinDir(path, docRoot(dir))) return { text: readFileSync8(path, "utf8"), path };
+  let message = `figure ${m.n}: the marker names no spec file`;
+  if (found) message = `figure ${m.n}: spec ${m.spec} is outside the document's repository`;
+  else if (m.spec) message = `figure ${m.n}: no such spec file ${m.spec}`;
+  return {
+    severity: "error",
+    code: "DG401",
+    message,
+    subject: { figure: m.n, line: m.line + 1, spec: m.spec },
+    fixes: [
+      "write the path relative to the document's folder, inside its repository: <!-- orrery: diagrams/system.yaml | Caption -->"
+    ]
+  };
+}
 async function renderFigure(m, dir, opts, diagnostics) {
   const tag = (d) => ({
     ...d,
     message: `figure ${m.n} (${m.spec}): ${d.message}`,
     subject: { ...d.subject, figure: m.n, line: m.line + 1 }
   });
-  const path = resolve5(dir, m.spec);
-  if (!m.spec || !existsSync8(path) || !statSync4(path).isFile()) {
-    diagnostics.push({
-      severity: "error",
-      code: "DG401",
-      message: m.spec ? `figure ${m.n}: no such spec file ${m.spec}` : `figure ${m.n}: the marker names no spec file`,
-      subject: { figure: m.n, line: m.line + 1, spec: m.spec },
-      fixes: [
-        "write the path relative to the document's folder: <!-- orrery: diagrams/system.yaml | Caption -->"
-      ]
-    });
-    return void 0;
-  }
-  const text6 = readFileSync7(path, "utf8");
+  const problems = fenceProblems(m);
+  diagnostics.push(...problems);
+  const spec = specOf(m, dir);
+  if ("severity" in spec) diagnostics.push(spec);
+  if (problems.length || "severity" in spec) return void 0;
+  const { text: text6, path } = spec;
   const parsed = parseSpec(text6, path);
   diagnostics.push(...parsed.diagnostics.map(tag));
   if (!parsed.model || parsed.diagnostics.some(isError)) return void 0;
-  const name2 = basename4(path).replace(/\.(ya?ml|json)$/i, "");
+  const name2 = m.fence ? m.spec : basename4(path).replace(/\.(ya?ml|json)$/i, "");
+  const asked = m.fence?.keys.theme;
+  const other = opts.theme === "light" ? "dark" : "light";
+  const themes = asked === "both" ? [opts.theme, other] : [asked ?? opts.theme];
+  const first = themes[0] ?? opts.theme;
   let result2;
   try {
     result2 = await renderModel({
       model: parsed.model,
       formats: opts.formats,
-      themes: [opts.theme],
+      themes,
       name: `fig${m.n}-${name2}`,
       scale: 2,
       skin: opts.skin,
@@ -30350,106 +31339,243 @@ async function renderFigure(m, dir, opts, diagnostics) {
   }
   diagnostics.push(...result2.diagnostics.map(tag));
   if (result2.diagnostics.some(isError)) return void 0;
-  const scene = result2.scenes[opts.theme];
-  const svg = result2.artifacts.find((a) => a.format === "svg")?.data;
-  const png2 = result2.artifacts.find((a) => a.format === "png")?.data;
+  const scene = result2.scenes[first];
+  const artifact = (format, theme) => result2.artifacts.find((a) => a.format === format && (a.theme ?? first) === theme)?.data;
+  const svg = artifact("svg", first);
+  const png2 = artifact("png", first);
+  const light = artifact("svg", "light");
+  const dark = artifact("svg", "dark");
+  const caption = m.caption ?? parsed.model.title ?? name2;
   return {
     n: m.n,
-    caption: m.caption ?? parsed.model.title ?? name2,
+    caption,
+    alt: m.caption ?? scene?.description ?? caption,
     stem: name2.replace(/[^A-Za-z0-9._-]+/g, "-"),
     svg: typeof svg === "string" ? svg : void 0,
     png: png2 instanceof Uint8Array ? png2 : void 0,
+    both: asked === "both" && typeof light === "string" && typeof dark === "string" ? { light, dark } : void 0,
     width: scene?.width ?? 1,
     height: scene?.height ?? 1
   };
 }
 
-// src/doc/images.ts
-import { existsSync as existsSync9, readFileSync as readFileSync8, statSync as statSync5 } from "node:fs";
-import { extname as extname2, resolve as resolve6 } from "node:path";
-var MIME = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
-  ".webp": "image/webp"
-};
-function localFile(src2, dir) {
-  if (/^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(src2)) return void 0;
-  const path = resolve6(dir, src2);
-  return existsSync9(path) && statSync5(path).isFile() ? path : void 0;
-}
-function dataUri(src2, dir) {
-  const file = localFile(src2, dir);
-  const mime = file && MIME[extname2(file).toLowerCase()];
-  return file && mime ? `data:${mime};base64,${readFileSync8(file).toString("base64")}` : src2;
-}
-function wordImage(src2, dir, diagnostics) {
-  const file = localFile(src2, dir);
-  const img = file ? pngImage(readFileSync8(file)) : void 0;
-  if (file && !img)
-    diagnostics.push({
-      severity: "warning",
-      code: "DG403",
-      message: `image ${src2} is not a PNG; the Word file shows its alt text instead`,
-      subject: { image: src2 },
-      fixes: ["save the image as PNG, or link it instead of embedding it"]
-    });
-  return img;
-}
-
 // src/doc/inline.ts
 var PUNCT = /[!-/:-@[-`{-~]/;
-var CODE_SPAN = /^(`+)(?!`)([\s\S]*?[^`])\1(?!`)/;
 var LINK = /^!?\[((?:[^[\]\\]|\\.|\[(?:[^[\]\\]|\\.)*\])*)\]\(\s*<?([^\s<>()]*(?:\([^\s()]*\)[^\s<>()]*)*)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/;
 var REF = /^!?\[((?:[^[\]\\]|\\.|\[(?:[^[\]\\]|\\.)*\])*)\](?:\[((?:[^[\]\\]|\\.)*)\])?/;
 var AUTOLINK = /^<((?:https?|mailto):[^\s<>]+)>/;
-var STRONG = /^(\*\*|__)(?!\s)([\s\S]+?)(?<!\s)\1/;
-var EM_STAR = /^\*(?![\s*])([\s\S]+?)(?<![\s*])\*(?!\*)/;
-var EM_UNDERSCORE = /^_(?![\s_])([\s\S]+?)(?<![\s_])_(?![\p{L}\p{N}_])/u;
+var BARE_URL = /^https?:\/\/[\p{L}\p{N}][^\s<>]*/iu;
+var URL_PREV = /^$|[\s*_~(]/;
+var ENTITY = /&(?:#[xX][\da-fA-F]{1,6}|#\d{1,7}|[A-Za-z][A-Za-z\d]{1,31});/y;
+var ESCAPE_OR_ENTITY = /\\([!-/:-@[-`{-~])|&(?:#[xX][\da-fA-F]{1,6}|#\d{1,7}|[A-Za-z][A-Za-z\d]{1,31});/g;
 var WORD = /[\p{L}\p{N}]/u;
+var WORD_OR_UNDERSCORE = /[\p{L}\p{N}_]/u;
+var SPACE = /\s/;
+var NAMED2 = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: "\xA0",
+  copy: "\xA9",
+  reg: "\xAE",
+  trade: "\u2122",
+  deg: "\xB0",
+  plusmn: "\xB1",
+  times: "\xD7",
+  divide: "\xF7",
+  middot: "\xB7",
+  sect: "\xA7",
+  para: "\xB6",
+  euro: "\u20AC",
+  pound: "\xA3",
+  yen: "\xA5",
+  cent: "\xA2",
+  hellip: "\u2026",
+  bull: "\u2022",
+  mdash: "\u2014",
+  ndash: "\u2013",
+  lsquo: "\u2018",
+  rsquo: "\u2019",
+  ldquo: "\u201C",
+  rdquo: "\u201D",
+  laquo: "\xAB",
+  raquo: "\xBB",
+  larr: "\u2190",
+  rarr: "\u2192",
+  uarr: "\u2191",
+  darr: "\u2193",
+  harr: "\u2194",
+  le: "\u2264",
+  ge: "\u2265",
+  ne: "\u2260",
+  check: "\u2713"
+};
 var NO_REFS = /* @__PURE__ */ new Map();
 var labelKey = (label2) => label2.trim().replace(/\s+/g, " ").toLowerCase();
-function linkAt(s, refs) {
-  const m = LINK.exec(s);
-  if (m) return { text: m[1] ?? "", href: m[2] ?? "", len: m[0].length };
-  const r6 = REF.exec(s);
-  const href = r6 ? refs.get(labelKey(r6[2] || r6[1] || "")) : void 0;
-  return r6 && href !== void 0 ? { text: r6[1] ?? "", href, len: r6[0].length } : void 0;
+function decode2(entity) {
+  const body = entity.slice(1, -1);
+  if (body[0] !== "#") return Object.hasOwn(NAMED2, body) ? NAMED2[body] : void 0;
+  const cp = /^#[xX]/.test(body) ? Number.parseInt(body.slice(2), 16) : Number.parseInt(body.slice(1), 10);
+  const bad = cp === 0 || cp > 1114111 || cp >= 55296 && cp <= 57343;
+  return String.fromCodePoint(bad ? 65533 : cp);
 }
-function inlineAt(s, prev, refs) {
-  const ch = s[0];
-  if (ch === "`") {
-    const m = CODE_SPAN.exec(s);
-    if (!m) return void 0;
-    const code3 = m[2] ?? "";
-    const trim2 = code3.length > 2 && code3.startsWith(" ") && code3.endsWith(" ") && code3.trim();
-    return { node: { t: "code", s: trim2 ? code3.slice(1, -1) : code3 }, len: m[0].length };
+var literal = (s) => s.replace(ESCAPE_OR_ENTITY, (m, escaped) => escaped ?? decode2(m) ?? m);
+function runLength(s, i) {
+  let j = i;
+  while (s[j] === "`") j++;
+  return j - i;
+}
+function backtickRuns(s) {
+  const runs2 = /* @__PURE__ */ new Map();
+  for (let i = s.indexOf("`"); i >= 0; ) {
+    const n4 = runLength(s, i);
+    const list = runs2.get(n4) ?? [];
+    list.push(i);
+    runs2.set(n4, list);
+    i = s.indexOf("`", i + n4);
   }
-  if (ch === "[" || ch === "!" && s[1] === "[") {
-    const link2 = linkAt(s, refs);
-    if (!link2) return void 0;
-    const { text: text6, href } = link2;
-    const node4 = ch === "!" ? { t: "img", src: href, alt: text6 } : { t: "link", href, c: inline(text6, refs) };
-    return { node: node4, len: link2.len };
+  return runs2;
+}
+function firstFrom(list, from2) {
+  let lo = 0;
+  let hi = list.length;
+  while (lo < hi) {
+    const mid = lo + hi >> 1;
+    if ((list[mid] ?? 0) < from2) lo = mid + 1;
+    else hi = mid;
   }
-  if (ch === "<") {
-    const m = AUTOLINK.exec(s);
-    const href = m?.[1] ?? "";
-    return m ? { node: { t: "link", href, c: [{ t: "text", s: href }] }, len: m[0].length } : void 0;
+  return list[lo] ?? -1;
+}
+function codeSpanEnd(s, i, runs2) {
+  const n4 = runLength(s, i);
+  const close = firstFrom(runs2.get(n4) ?? [], i + n4);
+  return close < 0 ? -1 : close + n4;
+}
+function bareUrlLength(s, i) {
+  const m = BARE_URL.exec(s.slice(i));
+  if (!m) return 0;
+  let url = m[0];
+  const open = url.split("(").length - 1;
+  let close = url.split(")").length - 1;
+  for (; ; ) {
+    const last = url.at(-1) ?? "";
+    if (`?!.,:*_~'"`.includes(last)) url = url.slice(0, -1);
+    else if (last === ")" && close > open) {
+      url = url.slice(0, -1);
+      close -= 1;
+    } else break;
   }
-  if (ch === "_" && WORD.test(prev)) return void 0;
-  if (ch === "*" || ch === "_") {
-    const strong = STRONG.exec(s);
-    if (strong && !(ch === "_" && WORD.test(s[strong[0].length] ?? "")))
-      return { node: { t: "strong", c: inline(strong[2] ?? "", refs) }, len: strong[0].length };
-    const em = (ch === "*" ? EM_STAR : EM_UNDERSCORE).exec(s);
-    if (em) return { node: { t: "em", c: inline(em[1] ?? "", refs) }, len: em[0].length };
+  return /^https?:\/\/./i.test(url) ? url.length : 0;
+}
+function scanOf(s, refs, links2) {
+  const runs2 = backtickRuns(s);
+  const locked = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; ) {
+    const ch = s[i];
+    let to = i + 1;
+    if (ch === "\\" && PUNCT.test(s[i + 1] ?? "")) to = i + 2;
+    else if (ch === "`") {
+      const end = codeSpanEnd(s, i, runs2);
+      to = end < 0 ? i + runLength(s, i) : end;
+      if (end >= 0) locked.fill(1, i, to);
+    } else if (ch === "<" && links2) {
+      const n4 = AUTOLINK.exec(s.slice(i))?.[0].length ?? 0;
+      locked.fill(1, i, i + n4);
+      to = i + Math.max(n4, 1);
+    } else if ((ch === "h" || ch === "H") && links2 && URL_PREV.test(s[i - 1] ?? "")) {
+      const n4 = bareUrlLength(s, i);
+      locked.fill(1, i, i + n4);
+      to = i + Math.max(n4, 1);
+    }
+    i = to;
+  }
+  return { s, refs, links: links2, runs: runs2, locked, closers: /* @__PURE__ */ new Map() };
+}
+function closesAt(scan, delim, j) {
+  const { s } = scan;
+  const c = delim[0] ?? "";
+  const before = s[j - 1] ?? " ";
+  const after = s[j + delim.length] ?? "";
+  if (scan.locked[j] || SPACE.test(before)) return false;
+  if (delim.length !== 2 && before === c) return false;
+  if (delim === "*") return after !== "*";
+  if (delim === "_" || delim === "___") return !WORD_OR_UNDERSCORE.test(after);
+  return true;
+}
+function closerAfter(scan, delim, from2) {
+  let list = scan.closers.get(delim);
+  if (!list) {
+    list = [];
+    for (let j = scan.s.indexOf(delim, 1); j >= 0; j = scan.s.indexOf(delim, j + 1))
+      if (closesAt(scan, delim, j)) list.push(j);
+    scan.closers.set(delim, list);
+  }
+  return firstFrom(list, from2);
+}
+function emphasisAt(scan, i) {
+  const { s } = scan;
+  const c = s[i] ?? "";
+  const sub = (from2, to) => inline(s.slice(from2, to), scan.refs, scan.links);
+  const opens = (n4) => s.startsWith(c.repeat(n4), i) && !SPACE.test(s[i + n4] ?? " ");
+  if (opens(3)) {
+    const j = closerAfter(scan, c.repeat(3), i + 4);
+    if (j >= 0)
+      return { node: { t: "em", c: [{ t: "strong", c: sub(i + 3, j) }] }, len: j + 3 - i };
+  }
+  if (opens(2)) {
+    const j = closerAfter(scan, c.repeat(2), i + 3);
+    if (j >= 0 && !(c === "_" && WORD.test(s[j + 2] ?? "")))
+      return { node: { t: "strong", c: sub(i + 2, j) }, len: j + 2 - i };
+  }
+  if (opens(1) && s[i + 1] !== c) {
+    const j = closerAfter(scan, c, i + 2);
+    if (j >= 0) return { node: { t: "em", c: sub(i + 1, j) }, len: j + 1 - i };
   }
   return void 0;
 }
-function inline(s, refs = NO_REFS) {
+function linkAt(s, refs) {
+  const m = LINK.exec(s);
+  if (m) return { text: m[1] ?? "", href: literal(m[2] ?? ""), len: m[0].length };
+  const r6 = REF.exec(s);
+  const href = r6 ? refs.get(labelKey(r6[2] || r6[1] || "")) : void 0;
+  return r6 && href !== void 0 ? { text: r6[1] ?? "", href: literal(href), len: r6[0].length } : void 0;
+}
+function inlineAt(scan, i) {
+  const { s, refs } = scan;
+  const ch = s[i];
+  if (ch === "`") {
+    const end = codeSpanEnd(s, i, scan.runs);
+    if (end < 0) return void 0;
+    const n4 = runLength(s, i);
+    const code4 = s.slice(i + n4, end - n4);
+    const trim2 = code4.length > 2 && code4.startsWith(" ") && code4.endsWith(" ") && code4.trim();
+    return { node: { t: "code", s: trim2 ? code4.slice(1, -1) : code4 }, len: end - i };
+  }
+  if (ch === "[" || ch === "!" && s[i + 1] === "[") {
+    const link2 = linkAt(s.slice(i), refs);
+    if (!link2 || ch === "[" && !scan.links) return void 0;
+    const { text: text6, href } = link2;
+    const node4 = ch === "!" ? { t: "img", src: href, alt: plain2(inline(text6, refs, false)) } : { t: "link", href, c: inline(text6, refs, false) };
+    return { node: node4, len: link2.len };
+  }
+  if (ch === "<") {
+    const m = scan.links ? AUTOLINK.exec(s.slice(i)) : null;
+    const href = m?.[1] ?? "";
+    return m ? { node: { t: "link", href, c: [{ t: "text", s: href }] }, len: m[0].length } : void 0;
+  }
+  if (ch === "h" || ch === "H") {
+    const n4 = scan.links && URL_PREV.test(s[i - 1] ?? "") ? bareUrlLength(s, i) : 0;
+    const href = s.slice(i, i + n4);
+    return n4 ? { node: { t: "link", href, c: [{ t: "text", s: href }] }, len: n4 } : void 0;
+  }
+  if (ch === "_" && WORD.test(s[i - 1] ?? "")) return void 0;
+  if (ch === "*" || ch === "_") return emphasisAt(scan, i);
+  return void 0;
+}
+function inline(s, refs = NO_REFS, links2 = true) {
+  const scan = scanOf(s, refs, links2);
   const out = [];
   let text6 = "";
   const push3 = (node4) => {
@@ -30473,42 +31599,57 @@ function inline(s, refs = NO_REFS) {
       i += ch === "\\" ? 2 : 1;
       continue;
     }
-    const found = "`[!<*_".includes(ch) ? inlineAt(s.slice(i), s[i - 1] ?? "", refs) : void 0;
+    if (ch === "&") {
+      ENTITY.lastIndex = i;
+      const entity = ENTITY.exec(s)?.[0];
+      const decoded2 = entity && decode2(entity);
+      if (entity && decoded2) {
+        text6 += decoded2;
+        i += entity.length;
+        continue;
+      }
+    }
+    const found = "`[!<*_hH".includes(ch) ? inlineAt(scan, i) : void 0;
     if (found) {
       push3(found.node);
       i += found.len;
     } else {
-      text6 += ch;
-      i += 1;
+      const n4 = ch === "`" ? runLength(s, i) : 1;
+      text6 += s.slice(i, i + n4);
+      i += n4;
     }
   }
   if (text6) out.push({ t: "text", s: text6 });
   return out;
 }
-function outsideCode(s) {
+function splitCode(s) {
+  const runs2 = backtickRuns(s);
   const pieces = [];
   let text6 = "";
   for (let i = 0; i < s.length; ) {
-    const span2 = s[i] === "`" ? CODE_SPAN.exec(s.slice(i)) : null;
-    if (span2) {
-      pieces.push(text6);
+    const end = s[i] === "`" ? codeSpanEnd(s, i, runs2) : -1;
+    if (end >= 0) {
+      pieces.push(text6, s.slice(i, end));
       text6 = "";
-      i += span2[0].length;
-    } else {
-      const step = s[i] === "\\" && PUNCT.test(s[i + 1] ?? "") ? 2 : 1;
-      text6 += s.slice(i, i + step);
-      i += step;
+      i = end;
+      continue;
     }
+    let step = 1;
+    if (s[i] === "\\" && PUNCT.test(s[i + 1] ?? "")) step = 2;
+    else if (s[i] === "`") step = runLength(s, i);
+    text6 += s.slice(i, i + step);
+    i += step;
   }
   pieces.push(text6);
   return pieces;
 }
-function plain(list) {
+var outsideCode = (s) => splitCode(s).filter((_, k) => k % 2 === 0);
+function plain2(list) {
   return list.map((n4) => {
     if (n4.t === "text" || n4.t === "code") return n4.s;
     if (n4.t === "img") return n4.alt;
     if (n4.t === "br") return " ";
-    return plain(n4.c);
+    return plain2(n4.c);
   }).join("");
 }
 
@@ -30540,7 +31681,7 @@ th{background:var(--soft);font-weight:600}
 hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
 img{max-width:100%;height:auto}
 figure{margin:1.75rem 0}
-figure svg{display:block;width:100%;height:auto}
+figure svg,figure img{display:block;width:100%;height:auto}
 figcaption{margin-top:.6rem;font-size:.875rem;color:var(--muted);text-align:center}
 @media print{
 body{background:#fff;color:#000;font-size:11pt}
@@ -30550,7 +31691,14 @@ h1,h2,h3,h4{break-after:avoid}
 figure,pre,table,blockquote{break-inside:avoid}
 pre,code,th{background:none}
 }`;
-var safeHref = (href) => /^\s*(?:javascript|vbscript|data):/i.test(href) ? "#" : href;
+var NOT_XML3 = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
+var SAFE_SCHEMES = ["http", "https", "mailto"];
+function safeHref2(href) {
+  const url = href.replace(NOT_XML3, "").replace(/[\t\n\r]/g, "").replace(/^[\0- ]+|[\0- ]+$/g, "");
+  const scheme = /^([a-z][a-z\d+.-]*):/i.exec(url)?.[1]?.toLowerCase();
+  return scheme && !SAFE_SCHEMES.includes(scheme) ? "#" : url;
+}
+var svgUri = (svg) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 function slug(text6, seen) {
   const base = text6.toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").trim().replace(/\s+/g, "-") || "section";
   const n4 = seen.get(base) ?? 0;
@@ -30569,7 +31717,7 @@ function inlineHtml(list, ctx) {
       case "em":
         return `<em>${inlineHtml(n4.c, ctx)}</em>`;
       case "link":
-        return `<a href="${esc(safeHref(n4.href))}">${inlineHtml(n4.c, ctx)}</a>`;
+        return `<a href="${esc(safeHref2(n4.href))}">${inlineHtml(n4.c, ctx)}</a>`;
       case "img":
         return `<img src="${esc(ctx.src(n4.src))}" alt="${esc(n4.alt)}">`;
       default:
@@ -30591,7 +31739,9 @@ function listHtml(items, ctx) {
       open.push(tag);
       out += it.ordered && it.num !== 1 ? `<ol start="${it.num}">` : `<${tag}>`;
     }
-    out += `<li>${inlineHtml(it.c, ctx)}`;
+    const more = (it.more ?? []).map((m) => `
+${blockHtml(m, ctx)}`).join("");
+    out += `<li>${inlineHtml(it.c, ctx)}${more}`;
   }
   while (open.length) out += `</li></${open.pop()}>`;
   return out;
@@ -30599,7 +31749,7 @@ function listHtml(items, ctx) {
 function blockHtml(b, ctx) {
   switch (b.t) {
     case "heading":
-      return `<h${b.level} id="${esc(slug(plain(b.c), ctx.ids))}">${inlineHtml(b.c, ctx)}</h${b.level}>`;
+      return `<h${b.level} id="${esc(slug(plain2(b.c), ctx.ids))}">${inlineHtml(b.c, ctx)}</h${b.level}>`;
     case "para":
       return `<p>${inlineHtml(b.c, ctx)}</p>`;
     case "list":
@@ -30626,15 +31776,20 @@ ${b.c.map((c) => blockHtml(c, ctx)).join("\n")}
     case "figure": {
       const f = ctx.figures.get(b.n);
       if (!f?.svg) return "";
+      const art = f.both ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${svgUri(f.both.dark)}"><img src="${svgUri(f.both.light)}" alt="${esc(f.alt)}" width="${Math.round(f.width)}" height="${Math.round(f.height)}"></picture>` : f.svg.trim();
       return `<figure class="orrery" id="figure-${b.n}">
-${f.svg.trim()}
+${art}
 <figcaption>Figure ${b.n}: ${esc(f.caption)}</figcaption>
 </figure>`;
     }
   }
 }
-function renderDocHtml(doc, figures, theme, dir) {
-  const ctx = { figures, ids: /* @__PURE__ */ new Map(), src: (src2) => dataUri(src2, dir) };
+function renderDocHtml(doc, figures, theme, dir, diagnostics = []) {
+  const ctx = {
+    figures,
+    ids: /* @__PURE__ */ new Map(),
+    src: (src2) => dataUri(src2, dir, diagnostics)
+  };
   return `<!doctype html>
 <html lang="en" data-theme="${theme}">
 <head>
@@ -30656,7 +31811,9 @@ ${doc.blocks.map((b) => blockHtml(b, ctx)).join("\n")}
 }
 
 // src/doc/markdown.ts
-var FENCE = /^ {0,3}(`{3,}(?![^`]*`)|~{3,})\s*([^\s`]*)/;
+var FENCE = /^ {0,3}(`{3,}(?![^`]*`)|~{3,})\s*([^\s`]*)(.*)$/;
+var INFO_KEY = /([^\s=]+)=(?:"([^"]*)"|'([^']*)'|(\S*))|(\S+)/g;
+var INDENT = /^(?: {4}| {0,3}\t)/;
 var FENCE_END = /^ {0,3}(`{3,}|~{3,})\s*$/;
 var HEADING = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/;
 var HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
@@ -30681,8 +31838,8 @@ function splitRow(line2) {
 }
 function tableAt(lines2, i) {
   const head2 = lines2[i] ?? "";
-  const sep3 = lines2[i + 1];
-  return head2.includes("|") && sep3 !== void 0 && TABLE_SEP.test(sep3) && splitRow(head2).length === splitRow(sep3).length;
+  const sep4 = lines2[i + 1];
+  return head2.includes("|") && sep4 !== void 0 && TABLE_SEP.test(sep4) && splitRow(head2).length === splitRow(sep4).length;
 }
 function startsBlock(lines2, i) {
   const line2 = lines2[i] ?? "";
@@ -30693,11 +31850,35 @@ function alignOf(cell) {
   if (cell.endsWith(":")) return "right";
   return cell.startsWith(":") ? "left" : void 0;
 }
-function parseList(lines2, from, refs) {
+function indentOf(line2) {
+  let w = 0;
+  for (const ch of line2) {
+    if (ch === " ") w += 1;
+    else if (ch === "	") w += 4 - w % 4;
+    else break;
+  }
+  return w;
+}
+function dedent(line2, n4) {
+  let w = 0;
+  let k = 0;
+  for (; k < line2.length && w < n4 && (line2[k] === " " || line2[k] === "	"); k++)
+    w += line2[k] === "	" ? 4 - w % 4 : 1;
+  return line2.slice(k);
+}
+function infoKeys(info) {
+  return Object.fromEntries(
+    [...info.matchAll(INFO_KEY)].map(
+      (m) => m[5] ? [m[5], ""] : [m[1] ?? "", m[2] ?? m[3] ?? m[4] ?? ""]
+    )
+  );
+}
+function parseList(lines2, from2, refs, { code: code4, at: at2 }) {
   const items = [];
   const indents = [];
   const last = [];
-  let i = from;
+  let gap2 = false;
+  let i = from2;
   while (i < lines2.length) {
     const line2 = lines2[i] ?? "";
     const m = HR.test(line2) ? null : ITEM.exec(line2);
@@ -30710,31 +31891,67 @@ function parseList(lines2, from, refs) {
       last.length = depth + 1;
       const prev = last[depth];
       const num3 = prev?.ordered ? prev.num + 1 : Number.parseInt(m[2] ?? "", 10) || 1;
-      const item = { depth, ordered, num: ordered ? num3 : 0, text: m[3] ?? "" };
+      const mark = (m[1] ?? "").length + (m[2] ?? "").length;
+      const space2 = m[3] === void 0 ? 1 : line2.length - mark - m[3].length;
+      const col = indent + (m[2] ?? "").length + space2;
+      const item = { depth, ordered, num: ordered ? num3 : 0, text: m[3] ?? "", col, more: [] };
       items.push(item);
       last[depth] = item;
+      gap2 = false;
       i += 1;
-    } else if (!line2.trim()) {
+      continue;
+    }
+    if (!line2.trim()) {
       let j = i + 1;
       while (j < lines2.length && !(lines2[j] ?? "").trim()) j++;
       const next = lines2[j] ?? "";
       if (!(ITEM.test(next) && !HR.test(next)) && !/^(?: {2,}|\t)\S/.test(next)) break;
+      gap2 = true;
       i = j;
+      continue;
+    }
+    const ind = indentOf(line2);
+    const owner = last.findLast((it) => it && ind >= it.col);
+    const fence = owner ? FENCE.exec(dedent(line2, owner.col)) : null;
+    if (owner && fence) {
+      const mark = fence[1] ?? "```";
+      const body = [];
+      code4?.add(at2 + i);
+      for (i += 1; i < lines2.length; i++) {
+        const l = dedent(lines2[i] ?? "", owner.col);
+        code4?.add(at2 + i);
+        if (fenceCloses(l, mark)) break;
+        body.push(l);
+      }
+      i += 1;
+      owner.more.push({ t: "code", lang: fence[2] ?? "", s: body.join("\n") });
     } else if (startsBlock(lines2, i)) break;
     else {
       const item = items.at(-1);
-      if (item) item.text += `
+      const tail = item?.more.at(-1);
+      if (gap2 && owner) owner.more.push({ t: "para", text: line2.trim() });
+      else if (tail?.t === "para") tail.text += `
+${line2.trim()}`;
+      else if (tail) item?.more.push({ t: "para", text: line2.trim() });
+      else if (item) item.text += `
 ${line2.trim()}`;
       i += 1;
     }
+    gap2 = false;
   }
-  return [items.map(({ text: text6, ...item }) => ({ ...item, c: inline(text6, refs) })), i];
+  const done = items.map(({ text: text6, col: _, more, ...item }) => {
+    const blocks = more.map(
+      (b) => b.t === "para" ? { t: "para", c: inline(b.text, refs) } : b
+    );
+    return { ...item, c: inline(text6, refs), ...blocks.length ? { more: blocks } : {} };
+  });
+  return [done, i];
 }
-function parseTable(lines2, from, refs) {
-  const head2 = splitRow(lines2[from] ?? "");
-  const align = splitRow(lines2[from + 1] ?? "").map(alignOf);
+function parseTable(lines2, from2, refs) {
+  const head2 = splitRow(lines2[from2] ?? "");
+  const align = splitRow(lines2[from2 + 1] ?? "").map(alignOf);
   const rows = [];
-  let i = from + 2;
+  let i = from2 + 2;
   for (; i < lines2.length; i++) {
     const line2 = lines2[i] ?? "";
     if (!line2.trim() || !line2.includes("|") || BLOCK_START.some((r6) => r6.test(line2))) break;
@@ -30743,9 +31960,13 @@ function parseTable(lines2, from, refs) {
   }
   return [{ t: "table", align, head: head2.map((c) => inline(c, refs)), rows }, i];
 }
-function parseBlocks(lines2, from, refs, markers) {
+var paragraphText = (line2) => !!line2.trim() && ![FENCE, HEADING, HR, COMMENT, INDENT].some((r6) => r6.test(line2));
+function parseBlocks(lines2, from2, refs, markers, code4 = { at: 0 }) {
   const blocks = [];
-  let i = from;
+  const codeLines = (start, end) => {
+    for (let k = start; k < Math.min(end, lines2.length); k++) code4.code?.add(code4.at + k);
+  };
+  let i = from2;
   while (i < lines2.length) {
     const line2 = lines2[i] ?? "";
     const fence = FENCE.exec(line2);
@@ -30753,14 +31974,37 @@ function parseBlocks(lines2, from, refs, markers) {
     const heading3 = HEADING.exec(line2);
     const def = DEF.exec(line2);
     if (!line2.trim()) i += 1;
-    else if (fence) {
+    else if (INDENT.test(line2)) {
+      const start = i;
+      let end = i;
+      for (; i < lines2.length && (INDENT.test(lines2[i] ?? "") || !(lines2[i] ?? "").trim()); i++)
+        if ((lines2[i] ?? "").trim()) end = i + 1;
+      const body = lines2.slice(start, end).map((l) => dedent(l, 4));
+      codeLines(start, end);
+      blocks.push({ t: "code", lang: "", s: body.join("\n") });
+      i = end;
+    } else if (fence) {
+      const start = i;
       const mark = fence[1] ?? "```";
       const indent = new RegExp(`^ {0,${line2.length - line2.trimStart().length}}`);
       const body = [];
       for (i += 1; i < lines2.length && !fenceCloses(lines2[i] ?? "", mark); i++)
         body.push((lines2[i] ?? "").replace(indent, ""));
+      codeLines(start, i + 1);
+      const lang = fence[2] ?? "";
+      if (markers && lang === "orrery") {
+        const keys = infoKeys(fence[3] ?? "");
+        const n4 = markers.length + 1;
+        markers.push({
+          n: n4,
+          spec: keys.name || `figure-${n4}`,
+          caption: keys.caption?.trim() || void 0,
+          line: start,
+          fence: { source: body.join("\n"), keys, end: Math.min(i, lines2.length - 1) }
+        });
+        blocks.push({ t: "figure", n: n4 });
+      } else blocks.push({ t: "code", lang, s: body.join("\n") });
       i += 1;
-      blocks.push({ t: "code", lang: fence[2] ?? "", s: body.join("\n") });
     } else if (marker && markers) {
       const [spec = "", ...caption] = (marker[1] ?? "").split("|");
       const n4 = markers.length + 1;
@@ -30783,11 +32027,24 @@ function parseBlocks(lines2, from, refs, markers) {
       blocks.push({ t: "hr" });
       i += 1;
     } else if (QUOTE.test(line2)) {
+      const start = i;
       const inner = [];
-      for (let q2 = QUOTE.exec(line2); q2; q2 = QUOTE.exec(lines2[++i] ?? "")) inner.push(q2[1] ?? "");
-      blocks.push({ t: "quote", c: parseBlocks(inner, 0, refs) });
+      let fenced = "";
+      for (; i < lines2.length; i++) {
+        const l = lines2[i] ?? "";
+        const q2 = QUOTE.exec(l);
+        const prev = inner.at(-1) ?? "";
+        const lazy = !q2 && !fenced && paragraphText(prev) && l.trim() && !startsBlock(lines2, i);
+        if (!q2 && !lazy) break;
+        const text6 = q2 ? q2[1] ?? "" : l;
+        if (fenced) fenced = fenceCloses(text6, fenced) ? "" : fenced;
+        else fenced = FENCE.exec(text6)?.[1] ?? "";
+        inner.push(text6);
+      }
+      const c = parseBlocks(inner, 0, refs, void 0, { code: code4.code, at: code4.at + start });
+      blocks.push({ t: "quote", c });
     } else if (ITEM.test(line2)) {
-      const [items, next] = parseList(lines2, i, refs);
+      const [items, next] = parseList(lines2, i, refs, code4);
       blocks.push({ t: "list", items });
       i = next;
     } else if (tableAt(lines2, i)) {
@@ -30814,7 +32071,7 @@ function parseBlocks(lines2, from, refs, markers) {
 }
 function parseDoc(text6) {
   const lines2 = text6.replace(/^\uFEFF/, "").split(/\r?\n/);
-  let from = 0;
+  let from2 = 0;
   let title2;
   if (lines2[0]?.trim() === "---") {
     const end = lines2.findIndex((l, k) => k > 0 && /^(?:---|\.\.\.)\s*$/.test(l));
@@ -30823,45 +32080,67 @@ function parseDoc(text6) {
         const m = /^title:\s*(.+?)\s*$/.exec(l);
         if (m) title2 = (m[1] ?? "").replace(/^(["'])(.*)\1$/, "$2");
       }
-      from = end + 1;
+      from2 = end + 1;
     }
   }
   const markers = [];
   const refs = /* @__PURE__ */ new Map();
-  parseBlocks(lines2, from, refs);
-  const blocks = parseBlocks(lines2, from, refs, markers);
+  parseBlocks(lines2, from2, refs);
+  const code4 = /* @__PURE__ */ new Set();
+  const blocks = parseBlocks(lines2, from2, refs, markers, { code: code4, at: 0 });
   const markerLines = [];
-  let fence = "";
-  for (let k = from; k < lines2.length; k++) {
-    const l = lines2[k] ?? "";
-    if (fence) {
-      if (fenceCloses(l, fence)) fence = "";
-    } else if (FENCE.test(l)) fence = FENCE.exec(l)?.[1] ?? "";
-    else if (outsideCode(l).some((t) => ANY_MARKER.test(t))) markerLines.push(k + 1);
-  }
+  for (let k = from2; k < lines2.length; k++)
+    if (!code4.has(k) && outsideCode(lines2[k] ?? "").some((t) => ANY_MARKER.test(t)))
+      markerLines.push(k + 1);
   const h1 = blocks.find((b) => b.t === "heading" && b.level === 1);
-  title2 ??= h1?.t === "heading" ? plain(h1.c) : void 0;
-  return { title: title2, blocks, markers, markerLines };
+  title2 ??= h1?.t === "heading" ? plain2(h1.c) : void 0;
+  return { title: title2, blocks, markers, markerLines, code: [...code4].sort((a, b) => a - b) };
 }
 
 // src/doc/md.ts
+import { relative as relative5, resolve as resolve7 } from "node:path";
 var mdEscape = (s) => s.replace(/([\\`*_[\]<>])/g, "\\$1");
-function renderDocMarkdown(text6, doc, figures) {
+var attr2 = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+var INLINE_TARGET = /(\]\(\s*<?)([^\s<>()]*(?:\([^\s()]*\)[^\s<>()]*)*)/g;
+var DEF_TARGET = /^( {0,3}\[(?!\^)(?:[^[\]\\]|\\.)+\]:[ \t]*<?)([^\s<>]+)/;
+function moveTarget(target, from2, to) {
+  if (!target || /^(?:[a-z][a-z\d+.-]*:|[/\\#])/i.test(target)) return target;
+  const cut = target.search(/[?#]/);
+  const path = cut < 0 ? target : target.slice(0, cut);
+  const moved = relative5(to, resolve7(from2, path)).replaceAll("\\", "/") || ".";
+  return moved + (cut < 0 ? "" : target.slice(cut));
+}
+function moveTargets(line2, from2, to) {
+  const def = DEF_TARGET.exec(line2);
+  if (def) return `${def[1]}${moveTarget(def[2] ?? "", from2, to)}${line2.slice(def[0].length)}`;
+  return splitCode(line2).map(
+    (piece, k) => k % 2 ? piece : piece.replace(INLINE_TARGET, (_, open, t) => open + moveTarget(t, from2, to))
+  ).join("");
+}
+function renderDocMarkdown(text6, doc, figures, from2 = "", to = from2) {
   const eol = text6.includes("\r\n") ? "\r\n" : "\n";
   const lines2 = text6.split(/\r?\n/);
   const files = [];
   const refs = [];
+  if (resolve7(from2) !== resolve7(to)) {
+    const code4 = new Set(doc.code);
+    for (const [k, line2] of lines2.entries())
+      if (line2 !== void 0 && !code4.has(k)) lines2[k] = moveTargets(line2, from2, to);
+  }
   for (const m of doc.markers) {
     const f = figures.get(m.n);
     if (!f?.svg || !f.png) continue;
     const stem = `figures/${String(m.n).padStart(2, "0")}-${f.stem}`;
     const caption = mdEscape(f.caption);
-    const ref = `![${caption}](${stem}.svg)`;
+    const ref = f.both ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${stem}-dark.svg"><img src="${stem}.svg" alt="${attr2(f.alt)}"></picture>` : `![${caption}](${stem}.svg)`;
     lines2[m.line] = `${ref}${eol}${eol}*Figure ${m.n}: ${caption}*`;
-    files.push([`${stem}.svg`, f.svg], [`${stem}.png`, f.png]);
+    for (let k = m.line + 1; k <= (m.fence?.end ?? m.line); k++) lines2[k] = void 0;
+    if (f.both) files.push([`${stem}.svg`, f.both.light], [`${stem}-dark.svg`, f.both.dark]);
+    else files.push([`${stem}.svg`, f.svg]);
+    files.push([`${stem}.png`, f.png]);
     refs.push(ref);
   }
-  const out = lines2.join(eol);
+  const out = lines2.filter((l) => l !== void 0).join(eol);
   return { text: out, files, figures: refs.filter((r6) => out.includes(r6)).length };
 }
 
@@ -30888,17 +32167,18 @@ function buildOutputs(b, figures) {
   const { req, text: text6, doc, dir, theme } = b;
   const want = new Set(req.formats);
   const title2 = doc.title ?? basename5(req.file).replace(/\.(md|markdown)$/i, "");
-  const pending = [];
+  const pending2 = [];
   if (want.has("html")) {
-    const html = renderDocHtml({ ...doc, title: title2 }, figures, theme, dir);
+    const html = renderDocHtml({ ...doc, title: title2 }, figures, theme, dir, b.diagnostics);
     const count = html.match(/<figure class="orrery"/g)?.length ?? 0;
-    pending.push({ path: `${req.base}.html`, data: html, format: "html", figures: count });
+    pending2.push({ path: `${req.base}.html`, data: html, format: "html", figures: count });
   }
   if (want.has("md")) {
-    const md = renderDocMarkdown(text6, doc, figures);
     const out = dirname6(`${req.base}.md`);
-    for (const [rel2, data] of md.files) pending.push({ path: join7(out, rel2), data, figures: 0 });
-    pending.push({ path: `${req.base}.md`, data: md.text, format: "md", figures: md.figures });
+    checkImages(doc.blocks, dir, b.diagnostics);
+    const md = renderDocMarkdown(text6, doc, figures, dir, out);
+    for (const [rel2, data] of md.files) pending2.push({ path: join9(out, rel2), data, figures: 0 });
+    pending2.push({ path: `${req.base}.md`, data: md.text, format: "md", figures: md.figures });
   }
   if (want.has("docx")) {
     const docx = renderDocx({
@@ -30907,27 +32187,28 @@ function buildOutputs(b, figures) {
       figures,
       image: (src2) => wordImage(src2, dir, b.diagnostics)
     });
-    pending.push({
+    pending2.push({
       path: `${req.base}.docx`,
       data: docx.data,
       format: "docx",
       figures: docx.figures
     });
   }
-  return pending;
+  return pending2;
 }
-function checkFigureCounts(b, pending) {
+function checkFigureCounts(b, pending2) {
   const { doc } = b;
   const taken = new Set(doc.markers.map((m) => m.line + 1));
   const stray = doc.markerLines.filter((l) => !taken.has(l));
-  for (const p of pending) {
-    if (!p.format || p.figures === doc.markerLines.length) continue;
+  const expected = doc.markers.length + stray.length;
+  for (const p of pending2) {
+    if (!p.format || p.figures === expected) continue;
     b.diagnostics.push({
       severity: "error",
       code: "DG402",
-      message: `the ${p.format} output has ${p.figures} figure(s) for ${doc.markerLines.length} marker(s)${stray.length ? `; the marker on line ${stray.join(", ")} is not on a line of its own at the top level` : ""}`,
+      message: `the ${p.format} output has ${p.figures} figure(s) for ${expected} marker(s)${stray.length ? `; the marker on line ${stray.join(", ")} is not on a line of its own at the top level` : ""}`,
       subject: { format: p.format },
-      evidence: { figures: p.figures, markers: doc.markerLines.length, lines: stray },
+      evidence: { figures: p.figures, markers: expected, lines: stray },
       fixes: [
         "put each <!-- orrery: spec.yaml | Caption --> marker on a line of its own, outside lists, quotes and code"
       ]
@@ -30950,14 +32231,14 @@ async function buildDoc(req) {
     outputs: [],
     files: [],
     diagnostics,
-    markers: doc.markerLines.length
+    markers: doc.markerLines.length + doc.markers.filter((m) => m.fence).length
   };
   const figures = await renderFigures(b);
   if (diagnostics.some(isError)) return result2;
-  const pending = buildOutputs(b, figures);
-  checkFigureCounts(b, pending);
+  const pending2 = buildOutputs(b, figures);
+  checkFigureCounts(b, pending2);
   if (diagnostics.some(isError)) return result2;
-  for (const p of pending) {
+  for (const p of pending2) {
     writeAtomic(p.path, p.data);
     const bytes = typeof p.data === "string" ? Buffer.byteLength(p.data) : p.data.length;
     if (p.format)
@@ -30970,13 +32251,13 @@ var samePath = (a, b) => process.platform === "win32" ? a.toLowerCase() === b.to
 async function cmdDoc(args) {
   const [docPath] = args._;
   if (!docPath) usage("doc needs a Markdown file");
-  const file = resolve7(docPath);
+  const file = resolve8(docPath);
   if (!existsSync10(file) || !statSync6(file).isFile()) usage(`no such file: ${docPath}`);
   const theme = String(args.flags.theme ?? "light");
   if (theme !== "light" && theme !== "dark") usage("--theme must be light or dark");
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
   const fmtFlag = typeof args.flags.format === "string" ? args.flags.format : void 0;
-  const outExt = outFlag ? extname3(outFlag).slice(1).toLowerCase() : "";
+  const outExt = outFlag ? extname4(outFlag).slice(1).toLowerCase() : "";
   const known2 = (f) => DOC_FORMATS.includes(f);
   let formats;
   if (fmtFlag) {
@@ -30987,11 +32268,11 @@ async function cmdDoc(args) {
   } else formats = known2(outExt) ? [outExt] : ["html"];
   const name2 = basename5(file).replace(/\.(md|markdown)$/i, "");
   let base;
-  if (!outFlag) base = join7(dirname6(file), name2);
+  if (!outFlag) base = join9(dirname6(file), name2);
   else if (outFlag.endsWith("/") || outFlag.endsWith("\\") || existsSync10(outFlag) && statSync6(outFlag).isDirectory())
-    base = join7(resolve7(outFlag), name2);
-  else base = resolve7(known2(outExt) ? outFlag.slice(0, -(outExt.length + 1)) : outFlag);
-  if (formats.includes("md") && samePath(resolve7(`${base}.md`), file))
+    base = join9(resolve8(outFlag), name2);
+  else base = resolve8(known2(outExt) ? outFlag.slice(0, -(outExt.length + 1)) : outFlag);
+  if (formats.includes("md") && samePath(resolve8(`${base}.md`), file))
     usage(`the md output would overwrite ${docPath}; pass -o, e.g. -o dist/${name2}.md`);
   const result2 = await buildDoc({
     file,
@@ -31016,6 +32297,114 @@ async function cmdDoc(args) {
 `
   );
   process.exitCode = errors2 ? 1 : 0;
+}
+
+// src/lsp/layout.ts
+import { realpathSync as realpathSync3 } from "node:fs";
+import { basename as basename6, resolve as resolve9 } from "node:path";
+import { isMainThread, parentPort, Worker, workerData } from "node:worker_threads";
+var MARK3 = "orreryLspLayout";
+async function layoutFindings(path, text6) {
+  const { model } = parseSpec(text6, path);
+  if (!model) return void 0;
+  const name2 = basename6(path).replace(/\.(ya?ml|json)$/i, "");
+  try {
+    return (await renderModel({ model, formats: [], themes: [model.theme], name: name2 })).diagnostics;
+  } catch (e) {
+    const failure = renderFailure(e);
+    if (failure) return [failure];
+    throw e;
+  }
+}
+var inlineLayout = {
+  run: async (_key, path, text6) => {
+    try {
+      return await layoutFindings(path, text6);
+    } catch (e) {
+      process.stderr.write(`orrery lsp: layout failed: ${e?.stack ?? e}
+`);
+      return void 0;
+    }
+  },
+  close() {
+  }
+};
+function workerLayout() {
+  let worker;
+  try {
+    worker = new Worker(realpathSync3(resolve9(process.argv[1] ?? "")), {
+      argv: ["lsp"],
+      workerData: { [MARK3]: true }
+    });
+    worker.unref();
+  } catch {
+    return inlineLayout;
+  }
+  const waiting2 = /* @__PURE__ */ new Map();
+  let running;
+  let nextId = 0;
+  let broken = false;
+  const fail = () => {
+    broken = true;
+    const jobs = [...running ? [running] : [], ...waiting2.values()];
+    running = void 0;
+    waiting2.clear();
+    for (const job of jobs)
+      void inlineLayout.run(job.key, job.path, job.text).then((found) => job.done(found));
+  };
+  const next = () => {
+    if (running || !worker) return;
+    const [key, job] = waiting2.entries().next().value ?? [];
+    if (!key || !job) return;
+    waiting2.delete(key);
+    running = job;
+    worker.postMessage({ id: job.id, path: job.path, text: job.text });
+  };
+  worker.on("message", (m) => {
+    if (m.id !== running?.id) return;
+    const job = running;
+    running = void 0;
+    if (m.error) process.stderr.write(`orrery lsp: layout failed: ${m.error}
+`);
+    job.done(m.found);
+    next();
+  });
+  worker.on("error", (e) => {
+    process.stderr.write(`orrery lsp: layout worker failed: ${e.stack ?? e}
+`);
+    fail();
+  });
+  worker.on("exit", () => {
+    if (!broken && worker) fail();
+  });
+  return {
+    run(key, path, text6) {
+      if (broken) return inlineLayout.run(key, path, text6);
+      return new Promise((done) => {
+        waiting2.get(key)?.done(void 0);
+        waiting2.set(key, { id: nextId++, key, path, text: text6, done });
+        next();
+      });
+    },
+    close() {
+      const w = worker;
+      worker = void 0;
+      for (const job of [...running ? [running] : [], ...waiting2.values()]) job.done(void 0);
+      running = void 0;
+      waiting2.clear();
+      void w?.terminate();
+    }
+  };
+}
+var isLayoutWorker = !isMainThread && !!workerData?.[MARK3];
+function serveLayout() {
+  parentPort?.on("message", async (job) => {
+    try {
+      parentPort?.postMessage({ id: job.id, found: await layoutFindings(job.path, job.text) });
+    } catch (e) {
+      parentPort?.postMessage({ id: job.id, error: String(e?.stack ?? e) });
+    }
+  });
 }
 
 // src/lsp/rpc.ts
@@ -31054,7 +32443,6 @@ function messageReader(onMessage, onBadJson) {
 }
 
 // src/lsp/server.ts
-import { basename as basename6 } from "node:path";
 import { fileURLToPath as fileURLToPath3 } from "node:url";
 
 // src/lsp/complete.ts
@@ -31291,8 +32679,12 @@ function replaceValue(v, map, pair, value2) {
   const text6 = inline2(value2, ctxOf(v, map));
   const node4 = pair.value;
   if (!node4) return { start: pair.key.range[1], end: pair.key.range[1], text: `: ${text6}` };
-  if ((0, import_yaml4.isScalar)(node4) && node4.range[0] === node4.range[1])
-    return { start: node4.range[0], end: node4.range[0], text: ` ${text6}` };
+  if ((0, import_yaml4.isScalar)(node4) && node4.range[0] === node4.range[1]) {
+    const colon = v.text.indexOf(":", pair.key.range[1]);
+    const rest = v.text.slice(colon + 1, v.text.indexOf("\n", colon));
+    const at2 = colon >= 0 && rest.includes("#") ? colon + 1 : node4.range[0];
+    return { start: at2, end: at2, text: ` ${text6}` };
+  }
   if (((0, import_yaml4.isMap)(node4) || (0, import_yaml4.isSeq)(node4)) && !node4.flow) {
     const colon = v.text.indexOf(":", pair.key.range[1]);
     return { start: colon, end: contentEnd(node4, v.text), text: `: ${text6}` };
@@ -31311,10 +32703,10 @@ ${Object.entries(value2).map(([k, x2]) => `  ${scalarText(k, "block")}: ${inline
   );
   return insertItem(v, map, text6, before < 0 ? void 0 : before);
 }
-function reorder(v, coll, from, to, after) {
+function reorder(v, coll, from2, to, after) {
   const spans2 = spansOf(v.text, coll, !coll.flow);
-  const order2 = spans2.map((_, i) => i).filter((i) => i !== from);
-  order2.splice(order2.indexOf(to) + (after ? 1 : 0), 0, from);
+  const order2 = spans2.map((_, i) => i).filter((i) => i !== from2);
+  order2.splice(order2.indexOf(to) + (after ? 1 : 0), 0, from2);
   let text6 = "";
   for (const [k, i] of order2.entries()) {
     const span2 = spans2[i];
@@ -31471,6 +32863,10 @@ function hopKey(h) {
   const ends3 = head2 === "both" || head2 === "none" ? [a, b].sort() : [a, b];
   return `${ends3[0]} ${h.line}-${head2} ${ends3[1]}`;
 }
+function directed(h) {
+  const [a, b, head2] = h.arrow === "start" ? [h.to, h.from, "end"] : [h.from, h.to, h.arrow];
+  return head2 === "both" || head2 === "none" ? [a, b].sort().join(" ~ ") : `${a} > ${b}`;
+}
 var signature = (hops) => [...new Set(hops.map(hopKey))].sort().join(" | ");
 var str2 = (v) => v === void 0 || v === null ? void 0 : String(v);
 function edgeShape(item) {
@@ -31500,10 +32896,10 @@ function edgeShape(item) {
   const flowLine = flow === "message" ? "dashed" : flow === "association" ? "dotted" : void 0;
   const written2 = [];
   const drawn2 = [];
-  const add = (from, to, opLine, opArrow) => {
-    written2.push({ from, to, line: opLine, arrow: opArrow });
+  const add = (from2, to, opLine, opArrow) => {
+    written2.push({ from: from2, to, line: opLine, arrow: opArrow });
     drawn2.push({
-      from,
+      from: from2,
       to,
       line: line2 ?? flowLine ?? opLine,
       arrow: arrow2 ?? (flow === "association" ? "none" : opArrow)
@@ -31521,16 +32917,17 @@ function edgeShape(item) {
           add(reverse ? t : f, reverse ? f : t, hop.op.line, reverse ? "end" : hop.op.arrow);
         }
   } else {
-    const from = extra.from ?? extra.source;
+    const from2 = extra.from ?? extra.source;
     const to = extra.to ?? extra.target;
-    if (from === void 0 || to === void 0) return 'an edge mapping needs "from" and "to"';
-    for (const f of (Array.isArray(from) ? from : [from]).map(String))
+    if (from2 === void 0 || to === void 0) return 'an edge mapping needs "from" and "to"';
+    for (const f of (Array.isArray(from2) ? from2 : [from2]).map(String))
       for (const t of (Array.isArray(to) ? to : [to]).map(String)) add(f, t, "solid", "end");
   }
   return {
     written: signature(written2),
     drawn: signature(drawn2),
     ends: written2.map((h) => [h.from, h.to].sort().join(" ~ ")),
+    dirs: drawn2.map(directed),
     ...label2 !== void 0 ? { label: label2.trim() } : {}
   };
 }
@@ -31558,7 +32955,7 @@ function opText(op) {
   if (op.label === void 0) return OPERATORS[op.line][op.arrow];
   return op.line === "dashed" ? `--[${op.label}]-->` : `-[${op.label}]->`;
 }
-var chainText = (run2) => run2.reduce((s, h) => `${s} ${opText(h.op)} ${h.to.join(", ")}`, run2[0]?.from.join(", ") ?? "");
+var chainText = (run3) => run3.reduce((s, h) => `${s} ${opText(h.op)} ${h.to.join(", ")}`, run3[0]?.from.join(", ") ?? "");
 function hopsOf(item) {
   let expr;
   let value2 = null;
@@ -31575,10 +32972,10 @@ function hopsOf(item) {
     const parsed = parseEdgeExpression(expr);
     if (typeof parsed === "string") return void 0;
     const tail = parsed.label === void 0 ? "" : `: ${parsed.label}`;
-    const line2 = (run2) => `${chainText(run2)}${tail}`;
+    const line2 = (run3) => `${chainText(run3)}${tail}`;
     return {
       hops: parsed.hops,
-      write: (run2) => value2 === null ? line2(run2) : { [line2(run2)]: value2 }
+      write: (run3) => value2 === null ? line2(run3) : { [line2(run3)]: value2 }
     };
   }
   const map = item;
@@ -31589,10 +32986,13 @@ function hopsOf(item) {
   const one = (x2 = []) => x2.length === 1 ? x2[0] : x2;
   return {
     hops: [{ from: ids3(map[fromKey]), to: ids3(map[toKey]), op: { line: "solid", arrow: "end" } }],
-    write: (run2) => ({ ...map, [fromKey]: one(run2[0]?.from), [toKey]: one(run2[0]?.to) })
+    write: (run3) => ({ ...map, [fromKey]: one(run3[0]?.from), [toKey]: one(run3[0]?.to) })
   };
 }
-function pairHits(list, want, plain2) {
+function readsAs(have, want) {
+  return have.dirs.length === want.dirs.length && have.dirs.every((d) => want.dirs.includes(d) || d.includes(" ~ ") && want.ends.includes(d));
+}
+function pairHits(list, want, plain3) {
   const exact = [];
   const loose = [];
   for (const [i, item] of list.entries()) {
@@ -31600,9 +33000,9 @@ function pairHits(list, want, plain2) {
     if (!read) continue;
     const pairs = read.hops.flatMap(
       (hop, k) => hop.from.flatMap(
-        (from, f) => hop.to.map((to, t) => ({
+        (from2, f) => hop.to.map((to, t) => ({
           at: [k, f, t],
-          have: edgeShape(read.write([{ from: [from], to: [to], op: hop.op }]))
+          have: edgeShape(read.write([{ from: [from2], to: [to], op: hop.op }]))
         }))
       )
     );
@@ -31612,10 +33012,10 @@ function pairHits(list, want, plain2) {
         continue;
       if (want.written === have.written || want.written === have.drawn)
         exact.push({ item: i, pair: at2 });
-      else if (plain2 && have.ends[0] === want.ends[0]) loose.push({ item: i, pair: at2 });
+      else if (plain3 && readsAs(have, want)) loose.push({ item: i, pair: at2 });
     }
   }
-  return exact.length ? exact : loose;
+  return { exact, loose };
 }
 function withoutPair(item, [k, f, t], match, source) {
   const read = hopsOf(item);
@@ -31636,7 +33036,7 @@ function withoutPair(item, [k, f, t], match, source) {
     throw new PatchError(
       `"${match}" is one pair of "${source}", which has lists at both ends; write one line per source first`
     );
-  return runs2.filter((run2) => run2.length).map((run2) => read.write(run2));
+  return runs2.filter((run3) => run3.length).map((run3) => read.write(run3));
 }
 function matchEdge(v, seq, list, match) {
   const want = edgeShape(match);
@@ -31655,17 +33055,19 @@ function matchEdge(v, seq, list, match) {
     else if (have.ends.some((e) => want.ends.includes(e))) near2.push(i);
   }
   const parsed = parseEdgeExpression(match);
-  const plain2 = typeof parsed !== "string" && parsed.hops.every((h) => h.op.line === "solid" && h.op.arrow === "end");
-  if (!hits5.length && plain2) {
-    const ends3 = new Set(want.ends);
+  const plain3 = typeof parsed !== "string" && parsed.hops.every((h) => h.op.line === "solid" && h.op.arrow === "end");
+  if (hits5.length === 1) return { item: hits5[0] };
+  const found = hits5.length || want.ends.length !== 1 ? void 0 : pairHits(list, want, plain3);
+  const exact = found?.exact ?? [];
+  if (exact.length === 1) return exact[0];
+  if (!hits5.length && !exact.length && plain3) {
     const loose = near2.filter((i) => {
       const have = edgeShape(list[i]);
-      return typeof have !== "string" && have.ends.length === ends3.size && have.ends.every((e) => ends3.has(e)) && (want.label === void 0 || want.label === have.label);
+      return typeof have !== "string" && have.ends.length === want.ends.length && have.ends.every((e) => want.ends.includes(e)) && readsAs(have, want) && (want.label === void 0 || want.label === have.label);
     });
     if (loose.length === 1) return { item: loose[0] };
   }
-  if (hits5.length === 1) return { item: hits5[0] };
-  const pairs = hits5.length || want.ends.length !== 1 ? [] : pairHits(list, want, plain2);
+  const pairs = exact.length ? exact : found?.loose ?? [];
   if (pairs.length === 1) return pairs[0];
   const quote = (ids3) => [...new Set(ids3)].slice(0, 3).map((i) => `"${source(i)}"`).join(", ");
   const many2 = hits5.length > 1 ? hits5 : pairs.map((p) => p.item);
@@ -31695,11 +33097,17 @@ function edgeOp(v, root, list, op) {
       return editMap(v, root, ["edges"], { kind: "set", value: [edge3] }, "");
     const item = `
   - ${edgeText(edge3, "block")}`;
-    if (seq) return [{ start: seq.range[0], end: seq.range[1], text: item }];
+    if (seq) {
+      const eol = v.text.indexOf("\n", seq.range[0]);
+      if (eol >= 0 && v.text.slice(seq.range[0], eol).includes("#"))
+        return [{ start: eol, end: eol, text: item }];
+      return [{ start: seq.range[0], end: seq.range[1], text: item }];
+    }
     const end2 = v.text.length;
     return [{ start: end2, end: end2, text: `edges:${item}
 ` }];
   }
+  if (seq && !(0, import_yaml6.isSeq)(seq)) throw new PatchError("edges must be a list to be patched");
   if (!(0, import_yaml6.isSeq)(seq) || !Array.isArray(list)) throw new PatchError(`no edge matches "${match}"`);
   const hit = matchEdge(v, seq, list, match);
   const node4 = seq.items[hit.item];
@@ -31709,9 +33117,9 @@ function edgeOp(v, root, list, op) {
   if (hit.pair) {
     const items = withoutPair(list[hit.item], hit.pair, match, v.text.slice(start, end));
     if (edge3 !== null) items.push(edge3);
-    const sep3 = ctx === "block" ? `
+    const sep4 = ctx === "block" ? `
 ${v.text.slice(lineStart(v.text, start), start)}` : ", ";
-    return [{ start, end, text: items.map((x2) => edgeText(x2, ctx)).join(sep3) }];
+    return [{ start, end, text: items.map((x2) => edgeText(x2, ctx)).join(sep4) }];
   }
   if (edge3 === null) return [removeItem(v, seq, hit.item)];
   return [{ start, end, text: edgeText(edge3, ctx) }];
@@ -31778,22 +33186,49 @@ function applyOne(text6, op, depth = 0) {
   if (check) throw new PatchError(`the edit made invalid YAML: ${check.message.split("\n")[0]}`);
   return step.again && depth === 0 ? applyOne(out, op, 1) : out;
 }
+var linesOf2 = (text6) => text6.split("\n").slice(0, -1);
+function carryEndings(before, after, endings, dominant) {
+  const old = linesOf2(before);
+  const now = linesOf2(after);
+  let head2 = 0;
+  while (head2 < old.length && head2 < now.length && old[head2] === now[head2]) head2 += 1;
+  let tail = 0;
+  while (tail < old.length - head2 && tail < now.length - head2 && old[old.length - 1 - tail] === now[now.length - 1 - tail])
+    tail += 1;
+  const spare = /* @__PURE__ */ new Map();
+  for (let i = head2; i < old.length - tail; i++)
+    spare.set(old[i], [...spare.get(old[i]) ?? [], endings[i]]);
+  const middle = now.slice(head2, now.length - tail).map((line2) => spare.get(line2)?.shift() ?? dominant);
+  return [...endings.slice(0, head2), ...middle, ...endings.slice(old.length - tail)];
+}
 function applyPatches(source, ops) {
   if (!ops.length) return source;
-  const crlf = source.includes("\r\n");
-  let text6 = crlf ? source.replace(/\r\n/g, "\n") : source;
-  if (!text6.endsWith("\n")) text6 += "\n";
+  const bom = source.startsWith("\uFEFF") ? "\uFEFF" : "";
+  const body = source.slice(bom.length);
+  const found = body.match(/\r?\n/g) ?? [];
+  const crlf = found.filter((e) => e === "\r\n").length;
+  const dominant = crlf > 0 && crlf >= found.length - crlf ? "\r\n" : "\n";
+  let text6 = body.replace(/\r\n/g, "\n");
+  let endings = found.slice();
+  if (!text6.endsWith("\n")) {
+    text6 += "\n";
+    endings.push(dominant);
+  }
   for (const [i, op] of ops.entries()) {
     try {
       checkOp(op);
-      text6 = applyOne(text6, op);
+      const next = applyOne(text6, op);
+      endings = carryEndings(text6, next, endings, dominant);
+      text6 = next;
     } catch (e) {
       if (e instanceof PatchError)
         throw new PatchError(`op ${i + 1} (${describeOp(op)}): ${e.message}`);
       throw e;
     }
   }
-  return crlf ? text6.replace(/\n/g, "\r\n") : text6;
+  let out = "";
+  for (const [i, line2] of linesOf2(text6).entries()) out += line2 + (endings[i] ?? dominant);
+  return bom + out;
 }
 
 // src/lsp/fixes.ts
@@ -31971,10 +33406,10 @@ function edgeCount(item) {
   const keys = Object.keys(item);
   const expr = keys.length === 1 ? hops(keys[0] ?? "") : -1;
   if (expr >= 0) return expr;
-  const from = pick(item, "from", EDGE_SYNONYMS);
+  const from2 = pick(item, "from", EDGE_SYNONYMS);
   const to = pick(item, "to", EDGE_SYNONYMS);
-  if (from === void 0 || to === void 0) return 0;
-  return (Array.isArray(from) ? from.length : 1) * (Array.isArray(to) ? to.length : 1);
+  if (from2 === void 0 || to === void 0) return 0;
+  return (Array.isArray(from2) ? from2.length : 1) * (Array.isArray(to) ? to.length : 1);
 }
 var INCLUDED = /^include .+ edges\[\d+\](?: \S+)?$/;
 function edgeHit(at2, name2) {
@@ -32047,11 +33482,11 @@ function findScalar(n4, value2, depth = 0) {
   }
   return void 0;
 }
-function tokenIn(text6, within4, id) {
+function tokenIn(text6, within5, id) {
   const idChar = (c) => !!c && /[A-Za-z0-9_.]/.test(c);
-  for (let i = text6.indexOf(id, within4.start); i >= 0; i = text6.indexOf(id, i + 1)) {
+  for (let i = text6.indexOf(id, within5.start); i >= 0; i = text6.indexOf(id, i + 1)) {
     const end = i + id.length;
-    if (end > within4.end) return void 0;
+    if (end > within5.end) return void 0;
     const before = text6[i - 1];
     const after = text6[end];
     if (idChar(before) || idChar(after)) continue;
@@ -32115,25 +33550,22 @@ function detail(at2, hit, kind, key, value2) {
   return found && scalarTarget(found, "value");
 }
 function subjectHit(at2, s) {
-  const str4 = (v) => typeof v === "string" ? v : void 0;
+  const str4 = (v) => typeof v === "string" ? v : typeof v === "number" && Number.isFinite(v) ? String(v) : void 0;
   const id = str4(s.id);
-  if (str4(s.where)) return { primary: "where", ...whereHit(at2, s.where) };
-  if (str4(s.edge))
-    return { primary: "edge", hit: edgeHit(at2, s.edge), kind: "edge" };
-  if (str4(s.node))
-    return { primary: "node", hit: entryOf(at2, "nodes", s.node), kind: "node" };
-  if (str4(s.group))
-    return {
-      primary: "group",
-      hit: entryOf(at2, "groups", s.group),
-      kind: "group"
-    };
+  const where = str4(s.where);
+  if (where) return { primary: "where", ...whereHit(at2, where) };
+  const edge3 = str4(s.edge);
+  if (edge3) return { primary: "edge", hit: edgeHit(at2, edge3), kind: "edge" };
+  const node4 = str4(s.node);
+  if (node4) return { primary: "node", hit: entryOf(at2, "nodes", node4), kind: "node" };
+  const group2 = str4(s.group);
+  if (group2) return { primary: "group", hit: entryOf(at2, "groups", group2), kind: "group" };
   if (str4(s.tag))
     return { primary: "tag", hit: pathHit(at2, ["tags", s.tag]), kind: "path" };
   if (id) {
-    const node4 = entryOf(at2, "nodes", id);
-    const hit = node4 ?? entryOf(at2, "groups", id);
-    return { primary: "id", hit, kind: node4 ? "node" : "group" };
+    const node5 = entryOf(at2, "nodes", id);
+    const hit = node5 ?? entryOf(at2, "groups", id);
+    return { primary: "id", hit, kind: node5 ? "node" : "group" };
   }
   for (const coll of ["nodes", "groups"]) {
     const v = s[coll];
@@ -32310,7 +33742,16 @@ function documentSymbols(at2, starts) {
 // src/lsp/server.ts
 var LAYOUT_DELAY_MS = 300;
 var ORIGIN = { line: 0, character: 0 };
-var isSpec = (text6) => /^["']?nodes["']?\s*:/m.test(text6);
+function isSpec(text6) {
+  if (/^#\s*yaml-language-server:\s*\$schema=\S*orrery\S*/im.test(text6)) return true;
+  const nodes = /^["']?nodes["']?\s*:[ \t]*([^\n]*)/m.exec(text6);
+  if (!nodes) return false;
+  if (/^["']?apiVersion["']?\s*:/m.test(text6)) return false;
+  const kind = /^["']?kind["']?\s*:[ \t]*["']?([\w-]+)/m.exec(text6)?.[1];
+  if (kind && !DIAGRAM_KINDS.includes(kind)) return false;
+  const value2 = (nodes[1] ?? "").trim();
+  return !value2 || /^[{[&*!|>#]/.test(value2);
+}
 function pathOf(uri) {
   try {
     if (uri.startsWith("file:")) return fileURLToPath3(uri);
@@ -32321,7 +33762,8 @@ function pathOf(uri) {
 function idsOf(data) {
   const ids3 = (v) => Array.isArray(v) ? v.flatMap((x2) => {
     if (!isObj(x2)) return [];
-    if (typeof x2.id === "string") return [x2.id];
+    const id = itemId(x2);
+    if (id !== void 0) return [id];
     const keys = Object.keys(x2);
     return keys.length === 1 ? keys : [];
   }) : isObj(v) ? Object.keys(v) : [];
@@ -32338,7 +33780,7 @@ fix: ${f}`).join("");
     message: `${d.message}${fixes}`
   };
 }
-function createServer(send, exit) {
+function createServer(send, exit, layout2 = inlineLayout) {
   const docs = /* @__PURE__ */ new Map();
   let initialized = false;
   let shutdown = false;
@@ -32359,22 +33801,8 @@ function createServer(send, exit) {
     });
   }
   async function runLayout2(doc, version) {
-    const model = doc.model;
-    if (!model) return;
-    let found;
-    try {
-      const name2 = basename6(doc.path).replace(/\.(ya?ml|json)$/i, "");
-      found = (await renderModel({ model, formats: [], themes: [model.theme], name: name2 })).diagnostics;
-    } catch (e) {
-      const failure = renderFailure(e);
-      if (!failure) {
-        process.stderr.write(`orrery lsp: layout failed: ${e?.stack ?? e}
-`);
-        return;
-      }
-      found = [failure];
-    }
-    if (closed || docs.get(doc.uri) !== doc || doc.version !== version) return;
+    const found = await layout2.run(doc.uri, doc.path, doc.text);
+    if (!found || closed || docs.get(doc.uri) !== doc || doc.version !== version) return;
     doc.layout = found;
     publish(doc);
   }
@@ -32545,6 +33973,7 @@ function createServer(send, exit) {
     exitCode: () => shutdown ? 0 : 1,
     close() {
       closed = true;
+      layout2.close();
       for (const doc of docs.values()) clearTimeout(doc.timer);
       docs.clear();
     }
@@ -32554,19 +33983,20 @@ function createServer(send, exit) {
 // src/lsp/index.ts
 async function cmdLsp(args) {
   if (args._.length) usage(`lsp takes no arguments (got ${args._.join(" ")})`);
+  if (isLayoutWorker) return serveLayout();
   const send = (msg) => process.stdout.write(frame(msg));
   await new Promise((done) => {
     let finished = false;
-    const finish = (code3) => {
+    const finish = (code4) => {
       if (finished) return;
       finished = true;
       server.close();
       process.stdin.off("data", read);
       process.stdin.destroy();
-      process.exitCode = code3;
+      process.exitCode = code4;
       done();
     };
-    const server = createServer(send, finish);
+    const server = createServer(send, finish, workerLayout());
     const read = messageReader(
       (msg) => server.handle(msg),
       () => send({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } })
@@ -32581,7 +34011,7 @@ import { createServer as createServer2 } from "node:http";
 
 // src/mcp/kit.ts
 import { existsSync as existsSync11, statSync as statSync7 } from "node:fs";
-import { isAbsolute as isAbsolute3, resolve as resolve8 } from "node:path";
+import { isAbsolute as isAbsolute4, resolve as resolve10 } from "node:path";
 var NAME2 = /^[a-z0-9][a-z0-9-]{0,62}$/;
 var ToolError = class extends Error {
 };
@@ -32612,6 +34042,8 @@ function num2(input, key, min, max, int = false) {
     throw new ToolError(`${key} must be ${int ? "an integer" : "a number"} from ${min} to ${max}`);
   return v;
 }
+var MAX_SPEC_BYTES2 = 1024 * 1024;
+var MAX_ELEMENTS2 = 2e3;
 function specInput(input, ctx) {
   const path = str3(input, "spec_path");
   const source = str3(input, "spec");
@@ -32627,15 +34059,19 @@ function specInput(input, ctx) {
       "name must be lowercase letters, digits and -, starting with a letter or digit"
     );
   if (path !== void 0) {
-    if (!isAbsolute3(path)) throw new ToolError(`spec_path must be an absolute path (got ${path})`);
+    if (!isAbsolute4(path)) throw new ToolError(`spec_path must be an absolute path (got ${path})`);
     if (!existsSync11(path) || !statSync7(path).isFile())
       throw new ToolError(`spec_path not found: ${path}`);
+    if (statSync7(path).size > MAX_SPEC_BYTES2)
+      throw new ToolError(`spec_path is over ${MAX_SPEC_BYTES2 / 1024 / 1024} MB: ${path}`);
     const spec = readSpec(path);
     return { text: spec.text, name: name2 ?? spec.name, path: spec.path };
   }
   if (!source?.trim()) throw new ToolError("spec is empty");
+  if (Buffer.byteLength(source) > MAX_SPEC_BYTES2)
+    throw new ToolError(`spec is over ${MAX_SPEC_BYTES2 / 1024 / 1024} MB`);
   const stem = name2 ?? "diagram";
-  return { text: source, name: stem, path: resolve8(`${stem}.yaml`) };
+  return { text: source, name: stem, path: ctx.http ? `${stem}.yaml` : resolve10(`${stem}.yaml`) };
 }
 function parse2(spec, ctx) {
   const parsed = parseSpec(spec.text, spec.path, ctx.http ? { include: false } : {});
@@ -32647,6 +34083,11 @@ function parse2(spec, ctx) {
   if (ctx.http && parsed.diagnostics.some((d) => d.subject?.where === "include"))
     throw new ToolError(
       "include: names spec files on the server's disk, which is refused over HTTP: paste the shared groups, nodes and edges into the spec, or run the server over stdio"
+    );
+  const size = (parsed.model?.nodes.length ?? 0) + (parsed.model?.edges.length ?? 0);
+  if (size > MAX_ELEMENTS2)
+    throw new ToolError(
+      `the spec has ${size} nodes and edges, over the limit of ${MAX_ELEMENTS2}: split it into several diagrams`
     );
   return parsed;
 }
@@ -32773,7 +34214,7 @@ var drawioLinkTool = {
 
 // src/mcp/tools/guide.ts
 import { readFileSync as readFileSync10 } from "node:fs";
-import { join as join8 } from "node:path";
+import { join as join10 } from "node:path";
 var authoringGuideTool = {
   name: "get_authoring_guide",
   title: "Authoring guide",
@@ -32784,13 +34225,14 @@ var authoringGuideTool = {
     additionalProperties: false
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
+  concurrent: true,
   async run(input) {
     const topic = oneOf2(input, "topic", ["diagram", "review"]) ?? "diagram";
-    const files = topic === "diagram" ? ["SKILL.md", join8("references", "spec.md")] : [join8("references", "review", "loop.md")];
+    const files = topic === "diagram" ? ["SKILL.md", join10("references", "spec.md")] : [join10("references", "review", "loop.md")];
     const note = "Over MCP the commands this guide names are tools: render, validate, review, icons_search (icons search), list_templates and get_template (init), try_patches (patch) and drawio_link. Where it says to run a command, call the tool instead, passing the spec as spec or spec_path. Paths such as references/... are inside the skill folder; get_authoring_guide topic review returns the review loop.";
     const body = files.map(
       (f) => `===== ${f.replaceAll("\\", "/")} =====
-${readFileSync10(join8(skillRoot, f), "utf8")}`
+${readFileSync10(join10(skillRoot, f), "utf8")}`
     );
     return [text4([note, ...body].join("\n\n"))];
   }
@@ -32817,6 +34259,7 @@ var iconsSearchTool = {
     additionalProperties: false
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
+  concurrent: true,
   async run(input) {
     const words2 = str3(input, "words")?.trim();
     if (!words2) throw new ToolError("words is required, for example 'load balancer'");
@@ -32971,7 +34414,7 @@ function orthogonalRuns(points) {
 var norm2 = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 var escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 var hasPhrase = (text6, phrase) => !!phrase && new RegExp(`(^| )${escapeRe(norm2(phrase))}s?( |$)`).test(text6);
-var edgeName2 = (e) => `${e.from} -> ${e.to}`;
+var edgeName2 = (e) => `${e.from} ${{ end: "->", start: "<-", both: "<->", none: "--" }[e.arrow ?? "end"]} ${e.to}`;
 var travel = (e) => e.arrow === "start" ? [e.to, e.from] : [e.from, e.to];
 
 // src/review/composition.ts
@@ -33003,7 +34446,7 @@ function measureComposition(c) {
   }
   const { zigs, bends } = zigZags(c);
   const frames2 = scene.groups.filter((g) => !g.overlay && !g.lane);
-  const beside3 = besideGroups(c, frames2);
+  const beside2 = besideGroups(c, frames2);
   const siblings = unevenSiblings(c, frames2);
   const { sparse, padded } = whitespace(c, frames2);
   Object.assign(c.metrics.grid, {
@@ -33012,7 +34455,7 @@ function measureComposition(c) {
     unevenSiblings: siblings,
     padding: padded
   });
-  Object.assign(c.metrics.layout, { sparseGroups: sparse, besideGroup: beside3 });
+  Object.assign(c.metrics.layout, { sparseGroups: sparse, besideGroup: beside2 });
 }
 function zigZags(c) {
   const { scene, add } = c;
@@ -33077,7 +34520,7 @@ function zigZags(c) {
 function besideGroups(c, frames2) {
   const { scene, add } = c;
   const W2 = scene.width;
-  let beside3 = 0;
+  let beside2 = 0;
   for (const n4 of scene.nodes) {
     const f = c.foot.get(n4.id) ?? n4.box;
     const hits5 = [];
@@ -33092,7 +34535,7 @@ function besideGroups(c, frames2) {
     }
     const hit = hits5.sort((x2, y) => x2.g.depth - y.g.depth)[0];
     if (!hit) continue;
-    beside3++;
+    beside2++;
     add(
       "layout.beside-group",
       "minor",
@@ -33106,11 +34549,11 @@ function besideGroups(c, frames2) {
       3
     );
   }
-  return beside3;
+  return beside2;
 }
 function unevenSiblings(c, frames2) {
   const { add } = c;
-  const role = (g) => g.label.lines.join(" ").replace(/\b[A-Za-z0-9]\b/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+  const role = (g) => g.label.lines.join(" ").replace(/\d+/g, "").replace(/\b[A-Za-z]\b/g, "").replace(/[\s-]+/g, " ").trim().toLowerCase();
   let siblings = 0;
   const typed = frames2.filter((g) => g.type.includes(":") && !TIER_GROUPS.has(g.type));
   for (let i = 0; i < typed.length; i++)
@@ -33255,8 +34698,8 @@ function framePadding(c, g, frames2, inner, boxes, labels2) {
 var many = (end) => end === "many" || end === "zero-many";
 function measureEr(c) {
   const { model, add } = c;
-  const entities = new Map(model.nodes.map((n4) => [n4.id, n4]));
-  const joins = model.edges.filter((e) => entities.has(e.from) && entities.has(e.to));
+  const entities2 = new Map(model.nodes.map((n4) => [n4.id, n4]));
+  const joins = model.edges.filter((e) => entities2.has(e.from) && entities2.has(e.to));
   const links2 = joins.filter((e) => e.from !== e.to);
   let keys = 0;
   for (const n4 of model.nodes) {
@@ -33342,7 +34785,7 @@ function measureEr(c) {
   for (const e of links2) {
     if (!e.card || !many(e.card.from) || !many(e.card.to)) continue;
     manyToMany++;
-    const join20 = `${e.from}_${e.to}`;
+    const join21 = `${e.from}_${e.to}`;
     add(
       "conventions.er-many-to-many",
       "minor",
@@ -33350,7 +34793,7 @@ function measureEr(c) {
       { edge: edgeName2(e), card: `${e.card.from}:${e.card.to}` },
       `${edgeName2(e)} is many to many drawn as one line; a table cannot hold it without a join entity`,
       [
-        `add a node "${join20}" with "${singular(e.from)}_id ... pk fk" and "${singular(e.to)}_id ... pk fk", then - ${e.from} -- ${join20}: { card: "1:0..n" } and - ${e.to} -- ${join20}: { card: "1:0..n" }`
+        `add a node "${join21}" with "${singular(e.from)}_id ... pk fk" and "${singular(e.to)}_id ... pk fk", then - ${e.from} -- ${join21}: { card: "1:0..n" } and - ${e.to} -- ${join21}: { card: "1:0..n" }`
       ],
       6
     );
@@ -33485,8 +34928,8 @@ function measureSequence(c) {
 }
 
 // src/review/notations-timeline.ts
-function dayAfter(iso2) {
-  const [y = 1970, m = 1, d = 1] = iso2.split("-").map(Number);
+function dayAfter(iso3) {
+  const [y = 1970, m = 1, d = 1] = iso3.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
 }
 var span = (n4) => n4.when ? { first: n4.when.start, last: n4.when.end ?? n4.when.start } : void 0;
@@ -33733,9 +35176,9 @@ function bpmnGateways(c, { outOf }) {
 function bpmnJoins(c, { bpmn, outOf }) {
   const { model, add } = c;
   let joins = 0;
-  const reach2 = (from) => {
-    const dist = /* @__PURE__ */ new Map([[from, 0]]);
-    for (let queue2 = [from]; queue2.length; ) {
+  const reach2 = (from2) => {
+    const dist = /* @__PURE__ */ new Map([[from2, 0]]);
+    for (let queue2 = [from2]; queue2.length; ) {
       const v = queue2.shift() ?? "";
       for (const e of outOf(v)) {
         const w = travel(e)[1];
@@ -34045,8 +35488,9 @@ function rubricsFor(c) {
 function legendAndTitle(c, c4) {
   const { model, add } = c;
   const sequence = model.kind === "sequence";
+  const dashedEr = model.kind === "er" && model.edges.every((e) => e.line === "dashed");
   const styled = model.edges.filter(
-    (e) => !(e.flow === "message" && e.line === "dashed") && !(e.flow === "association" && e.line === "dotted") && !(sequence && (e.line === "dashed" || e.line === "dotted"))
+    (e) => !(dashedEr && e.line === "dashed") && !(e.flow === "message" && e.line === "dashed") && !(e.flow === "association" && e.line === "dotted") && !(sequence && (e.line === "dashed" || e.line === "dotted"))
   );
   const used = [...new Set(styled.map((e) => e.line))].filter((l) => l !== "solid");
   const lines2 = (model.legend ?? []).filter((l) => !l.chip);
@@ -34398,7 +35842,9 @@ function serviceLabels(c) {
     count++;
     const rule = VENDOR_RULES.serviceLabel[info.pack];
     const product = aws2 ? info.name : info.pack === "azure" ? vendorFormsOf(info)[1] ?? info.name : info.name;
-    const rest = (n4.note ?? "").replace(new RegExp(escapeRe(info.name), "i"), "").replace(/^[\s,;:-]+|[\s,;:-]+$/g, "");
+    const trimmed = (n4.note ?? "").replace(new RegExp(escapeRe(info.name), "i"), "").replace(/^[\s,;:-]+|[\s,;:-]+$/g, "");
+    const dangling = /(^|\s)(on|in|of|for|with|by|via|to|at|from|and|or|the|a|an)$/i.test(trimmed);
+    const rest = aws2 || dangling ? n4.note ?? "" : trimmed;
     const note = aws2 ? rest ? `${n4.label}, ${rest}` : n4.label : rest ? `${product}, ${rest}` : product;
     add(
       "conventions.service-label",
@@ -35387,9 +36833,9 @@ function sideBySide(c, trunks) {
           const d = h ? Math.abs(p.y - u.y) : Math.abs(p.x - u.x);
           if (d < 1.5 || d > 12) continue;
           const [p0, p1, u0, u1] = h ? [p.x, q2.x, u.x, v.x] : [p.y, q2.y, u.y, v.y];
-          const shared = Math.min(Math.max(p0, p1), Math.max(u0, u1)) - Math.max(Math.min(p0, p1), Math.min(u0, u1));
-          if (shared > span2) {
-            span2 = shared;
+          const shared2 = Math.min(Math.max(p0, p1), Math.max(u0, u1)) - Math.max(Math.min(p0, p1), Math.min(u0, u1));
+          if (shared2 > span2) {
+            span2 = shared2;
             apart = d;
           }
         }
@@ -35418,20 +36864,19 @@ function stepOrder(c) {
     return { e, step: e.step, at: at2 };
   }).sort((a, b) => a.step - b.step);
   let inversions = 0;
+  const nums = [...new Set(stepped.map((x2) => x2.step))];
+  if (nums.some((n4, i) => n4 !== i + 1)) {
+    add(
+      "flow.step-numbering",
+      "minor",
+      stepped.map((x2) => x2.e.id),
+      { steps: nums.join(",") },
+      `step numbers ${nums.join(", ")} do not run 1 to ${nums.length}`,
+      ["renumber the steps from 1 without gaps"],
+      4
+    );
+  }
   if (stepped.length >= 2) {
-    const nums = [...new Set(stepped.map((x2) => x2.step))];
-    const gaps = nums.filter((n4, i) => n4 !== i + 1);
-    if (gaps.length) {
-      add(
-        "flow.step-numbering",
-        "minor",
-        stepped.map((x2) => x2.e.id),
-        { steps: nums.join(",") },
-        `step numbers ${nums.join(", ")} do not run 1 to ${nums.length}`,
-        ["renumber the steps from 1 without gaps"],
-        4
-      );
-    }
     const reps = nums.map((n4) => {
       const same4 = stepped.filter((x2) => x2.step === n4);
       return {
@@ -35492,8 +36937,8 @@ function arrowSemantics(c) {
   const { scene, model, add } = c;
   const both = scene.edges.filter((e) => e.arrow === "both");
   const keyed = new Set((model.legend ?? []).filter((l) => !l.chip).map((l) => l.line));
-  const plain2 = (e) => model.kind === "tree" || model.kind === "mindmap" || model.kind === "er" || e.flow === "association" || keyed.has(e.line);
-  const none = scene.edges.filter((e) => e.arrow === "none" && !plain2(e));
+  const plain3 = (e) => model.kind === "tree" || model.kind === "mindmap" || model.kind === "er" || e.flow === "association" || keyed.has(e.line);
+  const none = scene.edges.filter((e) => e.arrow === "none" && !plain3(e));
   for (const e of both)
     add(
       "flow.bidirectional",
@@ -35502,8 +36947,8 @@ function arrowSemantics(c) {
       { edge: edgeName2(e) },
       `${edgeName2(e)} has two heads, so it does not say who initiates`,
       [
-        `split it into ${edgeName2(e)} and ${e.to} -> ${e.from} with their own labels`,
-        `keep one direction (${edgeName2(e)}) from the caller to the dependency`
+        `split it into ${e.from} -> ${e.to} and ${e.to} -> ${e.from} with their own labels`,
+        `keep one direction (${e.from} -> ${e.to}) from the caller to the dependency`
       ],
       3
     );
@@ -35514,7 +36959,7 @@ function arrowSemantics(c) {
       [e.id],
       { edge: edgeName2(e) },
       `${edgeName2(e)} has no arrowhead`,
-      [`give it a direction (${edgeName2(e)}) or explain the plain line in the legend`],
+      [`give it a direction (${e.from} -> ${e.to}) or explain the plain line in the legend`],
       3
     );
   return { both, none };
@@ -35805,7 +37250,7 @@ function endSpread(c) {
       const wide = pitches.length ? Math.max(...pitches) : 0;
       const tight = pitches.length ? Math.min(...pitches) : 0;
       const uneven = wide - tight > 3;
-      const bad = lone && !pinned && off > ENDS.inset || !lone && (uneven || wide > 20 || tight < MIN_PITCH - EPS2 || !pinned && off > ENDS.pitch / 2 + EPS2);
+      const bad = lone && !pinned && off > ENDS.inset || !lone && (uneven || wide > 20 || tight < MIN_PITCH2 - EPS2 || !pinned && off > ENDS.pitch / 2 + EPS2);
       if (!bad) continue;
       count++;
       const [lo, hi] = window(face2);
@@ -36077,7 +37522,7 @@ function directionAgreement(c) {
     if (p > 8) forward++;
     if (e.arrow === "end" && p < -8) against.push(e);
   }
-  if (against.length && model.kind !== "state" && model.kind !== "mindmap") {
+  if (against.length && model.kind !== "state" && model.kind !== "mindmap" && model.kind !== "sequence" && model.kind !== "timeline") {
     const share = against.length / Math.max(1, edges.length);
     add(
       "layout.against-flow",
@@ -36153,15 +37598,21 @@ function edgeLengths(c) {
   const sorted = lens.map((l) => l.len).sort((a, b) => a - b);
   const mid = sorted.length >> 1;
   const median2 = sorted.length ? sorted.length % 2 ? sorted[mid] ?? 0 : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2 : 0;
-  const long = scene.kind === "timeline" ? [] : lens.filter((l) => l.len > 2.5 * median2 && l.len > 300);
+  const span2 = (l) => {
+    const a = l.e.points[0];
+    const z = l.e.points[l.e.points.length - 1];
+    return a && z ? Math.abs(z.x - a.x) + Math.abs(z.y - a.y) : l.len;
+  };
+  const detour2 = (l) => l.len > 100 && l.len > 3 * span2(l);
+  const long = scene.kind === "timeline" ? lens.filter(detour2) : scene.kind === "tree" || scene.kind === "mindmap" ? [] : lens.filter((l) => l.len > 2.5 * median2 && l.len > 300);
   for (const l of long)
     add(
       "layout.long-edge",
       "minor",
       [l.e.id],
       { edge: edgeName2(l.e), lengthPx: Math.round(l.len), medianPx: Math.round(median2) },
-      `${edgeName2(l.e)} is ${Math.round(l.len)}px, ${r1(l.len / (median2 || 1))}x the median edge`,
-      [`move "${l.e.from}" or "${l.e.to}" next to the other in the nodes list`],
+      scene.kind === "timeline" ? `${edgeName2(l.e)} detours: its route is ${Math.round(l.len)}px for ends ${Math.round(span2(l))}px apart` : `${edgeName2(l.e)} is ${Math.round(l.len)}px, ${r1(l.len / (median2 || 1))}x the median edge`,
+      scene.kind === "timeline" ? [`give "${l.e.from}" and "${l.e.to}" lanes next to each other, or drop the dependency`] : [`move "${l.e.from}" or "${l.e.to}" next to the other in the nodes list`],
       3
     );
   return { lens, median: median2, long };
@@ -36584,7 +38035,7 @@ var subjectIds = (d, keys) => keys.flatMap((k) => {
 function measureOverlap(c, diagnostics) {
   const { hard } = c;
   const m = c.metrics.overlap;
-  const count = (code3) => diagnostics.filter((d) => d.code === code3).length;
+  const count = (code4) => diagnostics.filter((d) => d.code === code4).length;
   mapDiagnostics(c, diagnostics);
   edgesThroughGroupIcons(c, diagnostics);
   edgesThroughStepsAndText(c);
@@ -36815,8 +38266,9 @@ function textItems(scene) {
     if (n4.badge) push3(n4.id, "badge", t.stepText, [t.stepFill], 10, 600);
   }
   const chipFill = scene.background === "transparent" ? t.background : scene.background ?? t.background;
+  const k = t.stage;
   for (const e of scene.edges) {
-    if (e.label && e.labelBox)
+    if (e.label && e.labelBox) {
       push3(
         e.id,
         "edge label",
@@ -36825,7 +38277,14 @@ function textItems(scene) {
         e.label.size,
         e.label.weight
       );
-    if (e.step !== void 0 && e.stepBox) push3(e.id, "step", t.stepText, [t.stepFill], 14, 600);
+      if (k)
+        push3(e.id, "lit edge label", litLabelInk({ k }, e), [k.tile], e.label.size, e.label.weight);
+    }
+    if (e.step !== void 0 && e.stepBox) {
+      push3(e.id, "step", t.stepText, [t.stepFill], 14, 600);
+      const pop2 = k && (e.color ?? k.tint);
+      if (k && pop2) push3(e.id, "lit step", litStepInk({ k }, pop2), [pop2], 14, 600);
+    }
   }
   for (const item of scene.legend?.items ?? [])
     push3("legend", `legend ${item.line}`, t.text, [t.surface], item.label.size, item.label.weight);
@@ -36837,6 +38296,22 @@ function measureQuality(c, scenes) {
   const { failures, worst, themes } = contrastFailures(c, scenes);
   c.hard.contrastFailures = failures;
   const n4 = storySize(c);
+  const stage = scenes[0]?.skin === "stage" && !OWN_LAYOUT.has(scenes[0].kind);
+  if (stage) {
+    const drawn2 = drawnSizes(c.scene);
+    const labels2 = c.scene.nodes.filter((nd) => nd.label.lines.length).map(drawn2.label);
+    const rest = [
+      ...c.scene.nodes.flatMap((nd) => nd.note ? [drawn2.note(nd)] : []),
+      ...c.scene.edges.flatMap((e) => [
+        ...e.label ? [drawn2.edge(e)] : [],
+        ...e.step !== void 0 ? [drawn2.step(e)] : []
+      ])
+    ];
+    Object.assign(m, {
+      stageNodeLabelPx: labels2.length ? r22(Math.min(...labels2) * c.s) : "none",
+      stageSmallestTextPx: rest.length ? r22(Math.min(...rest) * c.s) : "none"
+    });
+  }
   Object.assign(m, {
     nodeLabelPx: r22(nodeLabelPx),
     smallestTextPx: others ? r22(textPx) : "none",
@@ -36848,6 +38323,34 @@ function measureQuality(c, scenes) {
     edges: c.model.edges.length,
     groups: c.model.groups.length
   });
+}
+function drawnSizes(scene) {
+  const own = {
+    label: (n4) => n4.label.size,
+    note: (n4) => n4.note?.size ?? 0,
+    edge: (e) => e.label?.size ?? 0,
+    step: (_e) => 14
+  };
+  if (scene.skin !== "stage" || OWN_LAYOUT.has(scene.kind)) return own;
+  const labels2 = common(
+    scene.nodes.map((n4) => sizeFor(n4.label.lines, LABEL3, labelRoom(n4))),
+    LABEL3.size
+  );
+  const notes = common(
+    scene.nodes.flatMap((n4) => n4.note ? [sizeFor(n4.note.lines, NOTE2, labelRoom(n4))] : []),
+    NOTE2.size
+  );
+  const edgeFit = (e) => e.label && e.labelBox ? sizeFor(e.label.lines, EDGE2, e.labelBox.w - 8, 7) : EDGE2.size;
+  const edges = common(
+    scene.edges.flatMap((e) => e.label && e.labelBox ? [edgeFit(e)] : []),
+    EDGE2.size
+  );
+  return {
+    label: (n4) => Math.min(labels2, sizeFor(n4.label.lines, LABEL3, labelRoom(n4), 8)),
+    note: (n4) => n4.note ? Math.min(notes, sizeFor(n4.note.lines, NOTE2, labelRoom(n4), 8)) : 0,
+    edge: (e) => Math.min(edges, edgeFit(e)),
+    step: (e) => e.stepBox ? Math.min(DIGIT2.size, e.stepBox.w / 2) : DIGIT2.size
+  };
 }
 function legibility(c) {
   const { scene, add, s } = c;
@@ -37104,7 +38607,11 @@ function reviewScene(scene, model, diagnostics, opts) {
       ...(opts.themes ?? []).map((x2) => x2.theme).filter((t) => t !== scene.theme)
     ],
     canvas: { width: scene.width, height: scene.height },
-    display: { width: Math.round(scene.width * s), height: Math.round(scene.height * s) },
+    // A PNG cannot be zero pixels wide: resvg refuses a target of that size (review --width 2).
+    display: {
+      width: Math.max(1, Math.round(scene.width * s)),
+      height: Math.max(1, Math.round(scene.height * s))
+    },
     vendors,
     rubrics,
     score,
@@ -37164,11 +38671,14 @@ function reviewElements(scene, foot, s) {
     })
   ];
 }
+function droppedRubrics(before, after) {
+  return before.rubrics.filter((r6) => !after.rubrics.includes(r6));
+}
 function improves(before, after) {
   const keys = Object.keys(before.hard);
   const serious2 = (r6) => r6.findings.filter((f) => f.severity !== "minor").length;
   const nodes = (r6) => r6.elements.filter((e) => e.kind === "node").length;
-  return after.width === before.width && after.theme === before.theme && keys.every((k) => after.hard[k] <= before.hard[k]) && serious2(after) <= serious2(before) && nodes(after) >= nodes(before) && after.score > before.score;
+  return after.width === before.width && after.theme === before.theme && keys.every((k) => after.hard[k] <= before.hard[k]) && serious2(after) <= serious2(before) && nodes(after) >= nodes(before) && droppedRubrics(before, after).length === 0 && after.score > before.score;
 }
 var LOOK_MAX = 1568;
 async function reviewModel(req) {
@@ -37191,7 +38701,7 @@ async function reviewModel(req) {
     themes: themes.slice(1).flatMap((t) => rendered.scenes[t] ?? [])
   });
   const svg = rendered.artifacts.find((a) => a.format === "svg" && a.theme === theme)?.data;
-  const scale = report.display.width / scene.width;
+  const scale = Math.max(report.display.width / scene.width, 1 / scene.height);
   const png2 = req.png !== false && typeof svg === "string" ? await renderPng(svg, { scale, fonts: req.fonts }) : void 0;
   const { width: dw, height: dh } = report.display;
   const fit = Math.min(LOOK_MAX / scene.width, LOOK_MAX / scene.height) * (1 - 1e-6);
@@ -37225,6 +38735,9 @@ function whyNot(before, after) {
     return `blockers plus majors went up: ${serious(before)} -> ${serious(after)}`;
   if (nodeCount2(after) < nodeCount2(before))
     return `a node was removed: ${nodeCount2(before)} -> ${nodeCount2(after)} nodes`;
+  const dropped = droppedRubrics(before, after);
+  if (dropped.length)
+    return `the patched spec no longer gets the ${dropped.join(", ")} rubric${dropped.length > 1 ? "s" : ""}`;
   if (after.score <= before.score) return `score did not go up: ${before.score} -> ${after.score}`;
   return "reviewed at another width or theme";
 }
@@ -37355,9 +38868,9 @@ var tryPatchesTool = {
         throw e;
       }
     };
-    let run2;
+    let run3;
     try {
-      run2 = await tryCandidates({
+      run3 = await tryCandidates({
         source: spec.text,
         filename: spec.path,
         candidates: candidates4,
@@ -37373,17 +38886,17 @@ var tryPatchesTool = {
       return [json(verdict([...parsed.diagnostics, failure]))];
     }
     const summary = {
-      before: { score: run2.before.score, pass: run2.before.pass },
-      results: run2.results.map((r6) => ({
+      before: { score: run3.before.score, pass: run3.before.pass },
+      results: run3.results.map((r6) => ({
         index: r6.index,
         kept: r6.kept,
         score: r6.report?.score,
         pass: r6.report?.pass,
         reason: r6.reason
       })),
-      best: run2.best?.index ?? null
+      best: run3.best?.index ?? null
     };
-    return [json(summary), ...run2.best?.source ? [text4(run2.best.source)] : []];
+    return [json(summary), ...run3.best?.source ? [text4(run3.best.source)] : []];
   }
 };
 function candidatesOf2(v) {
@@ -37402,7 +38915,7 @@ function candidatesOf2(v) {
 }
 
 // src/mcp/tools/render.ts
-import { isAbsolute as isAbsolute4, join as join9 } from "node:path";
+import { isAbsolute as isAbsolute5, join as join11 } from "node:path";
 
 // src/mcp/viewer.ts
 var UI_EXTENSION = "io.modelcontextprotocol/ui";
@@ -37692,10 +39205,20 @@ main.dragging{cursor:grabbing}
 `;
 
 // src/mcp/tools/render.ts
+var MAX_INLINE = 8 * 1024 * 1024;
+var MIME2 = {
+  svg: "image/svg+xml",
+  "drawio.svg": "image/svg+xml",
+  "sequence.svg": "image/svg+xml",
+  html: "text/html",
+  drawio: "application/vnd.jgraph.mxfile",
+  tsx: "text/typescript-jsx",
+  mmd: "text/vnd.mermaid"
+};
 var renderTool = {
   name: "render",
   title: "Render a diagram",
-  description: "Render a spec to SVG, PNG, draw.io, editable draw.io SVG, a React TSX component or a standalone HTML page. Nothing renders while the spec has errors (see the diagnostics). With out_dir (stdio only) the files are written there and their paths returned; otherwise the result carries a JSON receipt, then each output in order: PNGs as images, the others as text.",
+  description: "Render a spec to SVG, PNG, draw.io, editable draw.io SVG, a React TSX component or a standalone HTML page. Nothing renders while the spec has errors (see the diagnostics). With out_dir (stdio only) the files are written there and their paths returned; otherwise the result carries a JSON receipt, then each output in order: PNGs as images, the others as text (as resources meant for the user, not the model, on clients that speak 2026-07-28). Inline results are capped at 8 MB in all.",
   inputSchema: {
     type: "object",
     properties: {
@@ -37742,7 +39265,7 @@ var renderTool = {
       throw new ToolError(
         "out_dir is refused over HTTP: leave it out and the outputs come back in the result"
       );
-    if (outDir !== void 0 && !isAbsolute4(outDir))
+    if (outDir !== void 0 && !isAbsolute5(outDir))
       throw new ToolError(`out_dir must be an absolute path (got ${outDir})`);
     const scale = num2(input, "scale", 0.1, 8) ?? (outDir ? 3 : 2);
     const parsed = parse2(spec, ctx);
@@ -37762,6 +39285,14 @@ var renderTool = {
       source: spec.text
     });
     diagnostics.push(...r6.diagnostics);
+    if (!outDir) {
+      const size = (d) => typeof d === "string" ? Buffer.byteLength(d) : Math.ceil(d.length / 3) * 4;
+      const inline3 = r6.artifacts.reduce((n4, a) => n4 + size(a.data), 0);
+      if (inline3 > MAX_INLINE)
+        throw new ToolError(
+          `the outputs total ${(inline3 / 1024 / 1024).toFixed(1)} MB, over the ${MAX_INLINE / 1024 / 1024} MB a result can carry: write them with out_dir (stdio only), ask for fewer formats, one theme or a lower scale`
+        );
+    }
     const content = [];
     const outputs = r6.artifacts.map((a) => {
       const file = `${spec.name}${themes.length > 1 && a.format !== "html" ? `-${a.theme}` : ""}.${a.format}`;
@@ -37774,11 +39305,11 @@ var renderTool = {
         height: a.height
       };
       if (outDir) {
-        const path = join9(outDir, file);
+        const path = join11(outDir, file);
         writeAtomic(path, a.data);
         return { path, ...meta };
       }
-      content.push(typeof a.data === "string" ? text4(a.data) : png(a.data));
+      content.push(inlined(a.data, file, ctx.modern ? MIME2[a.format] : void 0));
       return { file, content: content.length, ...meta };
     });
     const scene = r6.scenes[themes[0] ?? model.theme];
@@ -37797,6 +39328,15 @@ var renderTool = {
     return view ? { content: result2, _meta: view } : result2;
   }
 };
+function inlined(data, file, mimeType) {
+  if (typeof data !== "string") return png(data);
+  if (!mimeType) return text4(data);
+  return {
+    type: "resource",
+    resource: { uri: `orrery://render/${file}`, mimeType, text: data },
+    annotations: { audience: ["user"] }
+  };
+}
 function formatList(v) {
   const items = typeof v === "string" ? v.split(",").map((s) => s.trim()) : v;
   if (!Array.isArray(items) || !items.length || items.some((i) => typeof i !== "string" || !FORMATS.includes(i)))
@@ -37834,9 +39374,9 @@ var reviewTool = {
     const parsed = parse2(spec, ctx);
     const model = parsed.model;
     if (!model) return [json(verdict(parsed.diagnostics))];
-    let run2;
+    let run3;
     try {
-      run2 = await reviewModel({
+      run3 = await reviewModel({
         model: skin ? { ...model, skin } : model,
         name: spec.name,
         width: width2,
@@ -37848,14 +39388,14 @@ var reviewTool = {
       if (!failure) throw e;
       return [json(verdict([...parsed.diagnostics, failure]))];
     }
-    const look = "look" in run2 && run2.look instanceof Uint8Array ? run2.look : run2.png;
-    const content = [json(run2.report), ...look ? [png(look)] : []];
+    const look = "look" in run3 && run3.look instanceof Uint8Array ? run3.look : run3.png;
+    const content = [json(run3.report), ...look ? [png(look)] : []];
     const view = ctx.ui ? await viewerMeta({
       model,
       name: spec.name,
       theme: theme ?? model.theme,
       skin,
-      report: run2.report
+      report: run3.report
     }) : void 0;
     return view ? { content, _meta: view } : content;
   }
@@ -37863,7 +39403,7 @@ var reviewTool = {
 
 // src/mcp/tools/templates.ts
 import { existsSync as existsSync12, readdirSync, readFileSync as readFileSync11 } from "node:fs";
-import { join as join10, relative as relative4 } from "node:path";
+import { join as join12, relative as relative6 } from "node:path";
 function templates() {
   if (!existsSync12(examplesDir)) return [];
   return readdirSync(examplesDir).filter((f) => /\.ya?ml$/.test(f)).map((f) => f.replace(/\.ya?ml$/, "")).sort();
@@ -37875,11 +39415,12 @@ var listTemplatesTool = {
   description: "The bundled reference diagrams (AWS, Azure, Google Cloud, Kubernetes, C4, system design, flowcharts, BPMN, state machines, journeys), each with its title. Start from the closest one with get_template.",
   inputSchema: { type: "object", properties: {}, additionalProperties: false },
   annotations: { readOnlyHint: true, idempotentHint: true },
+  concurrent: true,
   async run() {
     return [
       json(
         templates().map((name2) => {
-          const yaml = readFileSync11(join10(examplesDir, `${name2}.yaml`), "utf8");
+          const yaml = readFileSync11(join12(examplesDir, `${name2}.yaml`), "utf8");
           return { name: name2, title: field(yaml, "title"), subtitle: field(yaml, "subtitle") };
         })
       )
@@ -37897,16 +39438,17 @@ var getTemplateTool = {
     additionalProperties: false
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
+  concurrent: true,
   async run(input, ctx) {
     const name2 = str3(input, "name");
     const list = templates();
     if (!name2 || !list.includes(name2))
       throw new ToolError(`no template "${name2 ?? ""}"; templates: ${list.join(", ")}`);
-    const file = join10(examplesDir, `${name2}.yaml`);
+    const file = join12(examplesDir, `${name2}.yaml`);
     const yaml = readFileSync11(file, "utf8");
     const icons = parseSpec(yaml, file).model?.icons ?? [];
     if (!icons.length) return [text4(yaml)];
-    const files = icons.map((i) => relative4(examplesDir, i.path).replaceAll("\\", "/"));
+    const files = icons.map((i) => relative6(examplesDir, i.path).replaceAll("\\", "/"));
     return [
       text4(yaml),
       text4(
@@ -37953,7 +39495,7 @@ var TOOLS = [
 var SERVER = {
   name: "orrery",
   title: "orrery",
-  version: true ? "0.12.3" : "dev"
+  version: true ? "0.13.0" : "dev"
 };
 var MODERN = ["2026-07-28"];
 var LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
@@ -37970,18 +39512,18 @@ var RpcError = class extends Error {
   code;
   status;
   data;
-  constructor(code3, message, status = 200, data) {
+  constructor(code4, message, status = 200, data) {
     super(message);
-    this.code = code3;
+    this.code = code4;
     this.status = status;
     this.data = data;
   }
 };
 var SERVER_META = { [`${META}serverInfo`]: SERVER };
-var rpcError = (id, code3, message, data) => ({
+var rpcError = (id, code4, message, data) => ({
   jsonrpc: "2.0",
   ...id === void 0 ? {} : { id },
-  error: { code: code3, message, ...data === void 0 ? {} : { data } }
+  error: { code: code4, message, ...data === void 0 ? {} : { data } }
 });
 function declaredVersion(params) {
   return isObj2(params._meta) ? params._meta[`${META}protocolVersion`] : void 0;
@@ -37994,10 +39536,19 @@ function logCall(tool, started, error) {
   );
 }
 var queue = Promise.resolve();
-function serial(job) {
-  const run2 = queue.then(job, job);
-  queue = run2.catch(() => void 0);
-  return run2;
+var waiting = 0;
+var MAX_WAITING = 4;
+function serial(job, http) {
+  if (http && waiting >= MAX_WAITING)
+    throw new RpcError(-32e3, "Server busy: too many calls are waiting, retry shortly", 503);
+  waiting++;
+  const start = () => {
+    waiting--;
+    return job();
+  };
+  const run3 = queue.then(start, start);
+  queue = run3.catch(() => void 0);
+  return run3;
 }
 var inFlight = /* @__PURE__ */ new WeakMap();
 async function callTool(params, ctx) {
@@ -38007,7 +39558,7 @@ async function callTool(params, ctx) {
   if (!isObj2(args)) throw new RpcError(-32602, "tools/call arguments must be an object");
   const started = performance.now();
   try {
-    const unknown = Object.keys(args).filter((k) => !(k in tool.inputSchema.properties));
+    const unknown = Object.keys(args).filter((k) => !Object.hasOwn(tool.inputSchema.properties, k));
     if (unknown.length)
       throw new ToolError(
         `unknown argument ${unknown.join(", ")}; ${tool.name} takes ${Object.keys(tool.inputSchema.properties).join(", ") || "none"}`
@@ -38042,9 +39593,11 @@ async function result(method, params, ctx, cancelled) {
     if (!isObj2(meta[`${META}clientCapabilities`]))
       throw new RpcError(-32602, `Invalid params: _meta needs ${META}clientCapabilities`, 400);
   }
-  const call = modern ? { ...ctx, ui: supportsUi(params._meta[`${META}clientCapabilities`]) } : ctx;
-  const done = (r6) => modern ? {
+  const call = modern ? { ...ctx, ui: supportsUi(params._meta[`${META}clientCapabilities`]), modern: true } : ctx;
+  const cacheable = { ttlMs: 36e5, cacheScope: "public" };
+  const done = (r6, cache = false) => modern ? {
     resultType: "complete",
+    ...cache ? cacheable : {},
     ...r6,
     _meta: { ...isObj2(r6._meta) ? r6._meta : {}, ...SERVER_META }
   } : r6;
@@ -38070,22 +39623,23 @@ async function result(method, params, ctx, cancelled) {
     case "ping":
       return done({});
     case "tools/list":
-      return done({ tools: TOOLS.map(({ run: run2, ...t }) => t) });
+      return done({ tools: TOOLS.map(({ run: run3, concurrent, ...t }) => t) }, true);
     case "tools/call": {
       const job = async () => cancelled() ? {} : callTool(params, call);
-      return done(await serial(job));
+      const tool = TOOLS.find((t) => t.name === params.name);
+      return done(await (tool?.concurrent ? job() : serial(job, call.http)));
     }
     case "resources/list":
-      return done({ resources: [VIEWER_RESOURCE] });
+      return done({ resources: [VIEWER_RESOURCE] }, true);
     case "resources/templates/list":
-      return done({ resourceTemplates: [] });
+      return done({ resourceTemplates: [] }, true);
     case "resources/read": {
       const contents = readViewer(params.uri);
       if (!contents)
         throw new RpcError(modern ? -32602 : -32002, "Resource not found", 200, {
           uri: params.uri
         });
-      return done({ contents });
+      return done({ contents }, true);
     }
     default:
       throw new RpcError(-32601, `Method not found: ${method}`, modern ? 404 : 200);
@@ -38145,12 +39699,12 @@ function readBody(req) {
     let size = 0;
     req.on("data", (c) => {
       size += c.length;
-      if (size <= MAX_BODY) chunks2.push(c);
+      if (size <= MAX_BODY) return void chunks2.push(c);
+      chunks2.length = 0;
+      req.pause();
+      fail(new TooLarge());
     });
-    req.on(
-      "end",
-      () => size > MAX_BODY ? fail(new TooLarge()) : done(Buffer.concat(chunks2).toString("utf8"))
-    );
+    req.on("end", () => done(Buffer.concat(chunks2).toString("utf8")));
     req.on("error", fail);
   });
 }
@@ -38159,7 +39713,7 @@ function header(req, name2) {
   return v === void 0 ? void 0 : String(v);
 }
 var decoded = (v) => /^=\?base64\?(.*)\?=$/.test(v) ? Buffer.from(v.slice(9, -2), "base64").toString("utf8") : v;
-var NAMED2 = /* @__PURE__ */ new Map([
+var NAMED3 = /* @__PURE__ */ new Map([
   ["tools/call", "name"],
   ["resources/read", "uri"]
 ]);
@@ -38180,7 +39734,7 @@ function headerProblem(req, msg) {
   const method = header(req, "mcp-method");
   if (method === void 0) return mismatch("the Mcp-Method header is missing");
   if (method !== msg.method) return mismatch(`Mcp-Method ${method} does not match ${msg.method}`);
-  const field2 = NAMED2.get(msg.method);
+  const field2 = NAMED3.get(msg.method);
   if (field2 !== void 0) {
     const name2 = header(req, "mcp-name");
     if (name2 === void 0) return mismatch("the Mcp-Name header is missing");
@@ -38216,6 +39770,8 @@ async function handleHttp(req, res) {
     raw = await readBody(req);
   } catch (e) {
     if (!(e instanceof TooLarge)) throw e;
+    res.setHeader("Connection", "close");
+    res.once("finish", () => req.destroy());
     return respond(res, 413, rpcError(void 0, -32600, "Request body is over 16 MB"));
   }
   let msg;
@@ -38264,16 +39820,16 @@ function serveHttp(port) {
 // src/mcp/install.ts
 import { existsSync as existsSync13, readFileSync as readFileSync12 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import { join as join11 } from "node:path";
+import { join as join13 } from "node:path";
 var PACKAGE = "@sagargupta1610/orrery";
 var SERVER2 = "orrery";
 var RUN2 = { command: "npx", args: ["-y", PACKAGE, "mcp"] };
 var BOM = "\uFEFF";
 var SCOPES = ["project", "user"];
 function appDir(p, app) {
-  if (p.platform === "win32") return join11(p.env.APPDATA ?? join11(p.home, "AppData", "Roaming"), app);
-  if (p.platform === "darwin") return join11(p.home, "Library", "Application Support", app);
-  return join11(p.env.XDG_CONFIG_HOME ?? join11(p.home, ".config"), app);
+  if (p.platform === "win32") return join13(p.env.APPDATA ?? join13(p.home, "AppData", "Roaming"), app);
+  if (p.platform === "darwin") return join13(p.home, "Library", "Application Support", app);
+  return join13(p.env.XDG_CONFIG_HOME ?? join13(p.home, ".config"), app);
 }
 var CLIENTS = {
   // https://code.claude.com/docs/en/mcp: .mcp.json at the project root; user scope is the
@@ -38281,7 +39837,7 @@ var CLIENTS = {
   "claude-code": {
     title: "Claude Code",
     scope: "project",
-    files: (p) => ({ project: join11(p.cwd, ".mcp.json"), user: join11(p.home, ".claude.json") }),
+    files: (p) => ({ project: join13(p.cwd, ".mcp.json"), user: join13(p.home, ".claude.json") }),
     key: "mcpServers",
     entry: { type: "stdio", ...RUN2 }
   },
@@ -38289,7 +39845,7 @@ var CLIENTS = {
   "claude-desktop": {
     title: "Claude Desktop",
     scope: "user",
-    files: (p) => ({ user: join11(appDir(p, "Claude"), "claude_desktop_config.json") }),
+    files: (p) => ({ user: join13(appDir(p, "Claude"), "claude_desktop_config.json") }),
     key: "mcpServers",
     entry: RUN2
   },
@@ -38298,8 +39854,8 @@ var CLIENTS = {
     title: "Cursor",
     scope: "project",
     files: (p) => ({
-      project: join11(p.cwd, ".cursor", "mcp.json"),
-      user: join11(p.home, ".cursor", "mcp.json")
+      project: join13(p.cwd, ".cursor", "mcp.json"),
+      user: join13(p.home, ".cursor", "mcp.json")
     }),
     key: "mcpServers",
     entry: { type: "stdio", ...RUN2 }
@@ -38310,8 +39866,8 @@ var CLIENTS = {
     title: "VS Code",
     scope: "project",
     files: (p) => ({
-      project: join11(p.cwd, ".vscode", "mcp.json"),
-      user: join11(appDir(p, "Code"), "User", "mcp.json")
+      project: join13(p.cwd, ".vscode", "mcp.json"),
+      user: join13(appDir(p, "Code"), "User", "mcp.json")
     }),
     key: "servers",
     entry: { type: "stdio", ...RUN2 }
@@ -38321,8 +39877,8 @@ var CLIENTS = {
     title: "Gemini CLI",
     scope: "project",
     files: (p) => ({
-      project: join11(p.cwd, ".gemini", "settings.json"),
-      user: join11(p.home, ".gemini", "settings.json")
+      project: join13(p.cwd, ".gemini", "settings.json"),
+      user: join13(p.home, ".gemini", "settings.json")
     }),
     key: "mcpServers",
     entry: RUN2
@@ -38334,8 +39890,8 @@ var CLIENTS = {
     title: "Codex",
     scope: "user",
     files: (p) => ({
-      project: join11(p.cwd, ".codex", "config.toml"),
-      user: join11(p.home, ".codex", "config.toml")
+      project: join13(p.cwd, ".codex", "config.toml"),
+      user: join13(p.home, ".codex", "config.toml")
     }),
     key: "mcp_servers",
     entry: { ...RUN2, startup_timeout_sec: 60 },
@@ -38346,8 +39902,8 @@ var CLIENTS = {
     title: "Kiro",
     scope: "project",
     files: (p) => ({
-      project: join11(p.cwd, ".kiro", "settings", "mcp.json"),
-      user: join11(p.home, ".kiro", "settings", "mcp.json")
+      project: join13(p.cwd, ".kiro", "settings", "mcp.json"),
+      user: join13(p.home, ".kiro", "settings", "mcp.json")
     }),
     key: "mcpServers",
     entry: RUN2
@@ -38364,14 +39920,14 @@ function client(name2) {
 function pasteable(c) {
   return c.toml ? tomlTable(c) : JSON.stringify({ [c.key]: { [SERVER2]: c.entry } }, null, 2);
 }
-function install(name2, scope, place2, force = false) {
+function install(name2, scope2, place2, force = false) {
   const c = client(name2);
-  const path = c.files(place2)[scope];
-  if (!path) throw new InstallError(`${c.title} has no ${scope} config; it reads only ${c.scope}`);
+  const path = c.files(place2)[scope2];
+  if (!path) throw new InstallError(`${c.title} has no ${scope2} config; it reads only ${c.scope}`);
   const text6 = existsSync13(path) ? readFileSync12(path, "utf8") : "";
   const merged = c.toml ? mergeToml(c, text6, path, force) : mergeJson(c, text6, path, force);
   if (merged.action !== "unchanged") writeAtomic(path, merged.text);
-  return { client: name2, title: c.title, scope, path, action: merged.action };
+  return { client: name2, title: c.title, scope: scope2, path, action: merged.action };
 }
 function mergeJson(c, raw, path, force) {
   const bom = raw.startsWith(BOM) ? BOM : "";
@@ -38419,6 +39975,27 @@ var keyPath = (key) => (key.match(/"(?:\\.|[^"\\])*"|'[^']*'|[^\s."']+/g) ?? [])
   (s) => s.replace(/^(["'])(.*)\1$/, "$2")
 );
 var startsKey = (key) => new RegExp(`^\\s*(?:${key}|"${key}"|'${key}')\\s*[.=]`);
+function openString(line2, open) {
+  let ml = open;
+  for (let i = 0; i < line2.length; i++) {
+    const ch = line2[i];
+    if (ml) {
+      if (ml === '"""' && ch === "\\") i++;
+      else if (line2.startsWith(ml, i)) {
+        while (line2[i + ml.length] === ml[0]) i++;
+        i += ml.length - 1;
+        ml = void 0;
+      }
+    } else if (ch === "#") break;
+    else if (line2.startsWith('"""', i) || line2.startsWith("'''", i)) {
+      ml = line2.slice(i, i + 3);
+      i += 2;
+    } else if (ch === '"' || ch === "'") {
+      for (i++; i < line2.length && line2[i] !== ch; i++) if (ch === '"' && line2[i] === "\\") i++;
+    }
+  }
+  return ml;
+}
 function mergeToml(c, raw, path, force) {
   const ours = `${c.key}.${SERVER2}`;
   const byHand = `; add this by hand:
@@ -38426,10 +40003,24 @@ ${tomlTable(c)}`;
   const keep = [];
   const found = [];
   let table2 = [];
+  let string;
   for (const line2 of raw.split(/\r?\n/)) {
+    const inString = string !== void 0;
+    string = openString(line2, string);
+    if (inString) {
+      (table2[0] === c.key && table2[1] === SERVER2 ? found : keep).push(line2);
+      continue;
+    }
     const header2 = line2.match(HEADER3)?.[1];
-    if (header2 !== void 0) table2 = keyPath(header2);
-    else if (!table2.length && startsKey(c.key).test(line2))
+    if (header2 !== void 0) {
+      const was = table2[0] === c.key && table2[1] === SERVER2;
+      table2 = keyPath(header2);
+      if (was && !(table2[0] === c.key && table2[1] === SERVER2)) {
+        let at2 = found.length;
+        while (at2 > 0 && (!found[at2 - 1]?.trim() || found[at2 - 1]?.trim().startsWith("#"))) at2--;
+        keep.push(...found.splice(at2));
+      }
+    } else if (!table2.length && startsKey(c.key).test(line2))
       throw new InstallError(`${path} sets ${c.key} with an inline or dotted key${byHand}`);
     else if (table2.length === 1 && table2[0] === c.key && startsKey(SERVER2).test(line2))
       throw new InstallError(`${path} sets ${ours} with an inline or dotted key${byHand}`);
@@ -38475,8 +40066,8 @@ async function cmdMcpInstall(args) {
 `);
     for (const c2 of list) {
       let first = true;
-      for (const [scope2, file] of Object.entries(c2.files)) {
-        const label2 = first ? `${scope2} (default)` : scope2;
+      for (const [scope3, file] of Object.entries(c2.files)) {
+        const label2 = first ? `${scope3} (default)` : scope3;
         process.stdout.write(`${(first ? c2.client : "").padEnd(16)}${label2.padEnd(19)}${file}
 `);
         first = false;
@@ -38491,11 +40082,11 @@ async function cmdMcpInstall(args) {
   if (extra.length) usage(`mcp install takes a client and a scope (got ${args._.join(" ")})`);
   if (scopeArg !== void 0 && !SCOPES.includes(scopeArg))
     usage(`the scope must be project or user (got "${scopeArg}")`);
-  const scope = scopeArg ?? c.scope;
-  const path = c.files(place2)[scope];
-  if (!path) usage(`${c.title} has no ${scope} config; it reads only ${c.scope}`);
+  const scope2 = scopeArg ?? c.scope;
+  const path = c.files(place2)[scope2];
+  if (!path) usage(`${c.title} has no ${scope2} config; it reads only ${c.scope}`);
   try {
-    const r6 = install(name2, scope, place2, args.flags.force === true);
+    const r6 = install(name2, scope2, place2, args.flags.force === true);
     if (json2) return void process.stdout.write(`${JSON.stringify({ ok: true, ...r6 }, null, 2)}
 `);
     const said = {
@@ -38503,7 +40094,7 @@ async function cmdMcpInstall(args) {
       replaced: `replaced ${SERVER2} in`,
       unchanged: `${SERVER2} is already in`
     }[r6.action];
-    process.stdout.write(`${said} ${r6.path} (${r6.title}, ${scope} config)
+    process.stdout.write(`${said} ${r6.path} (${r6.title}, ${scope2} config)
 `);
     if (r6.action !== "unchanged")
       process.stdout.write(`next: restart ${r6.title} or reload its MCP servers
@@ -38511,7 +40102,7 @@ async function cmdMcpInstall(args) {
   } catch (e) {
     if (!(e instanceof InstallError)) throw e;
     if (json2) {
-      const receipt = { ok: false, client: name2, scope, path, error: e.message };
+      const receipt = { ok: false, client: name2, scope: scope2, path, error: e.message };
       process.stdout.write(`${JSON.stringify(receipt, null, 2)}
 `);
     } else process.stderr.write(`orrery: ${e.message}
@@ -38521,12 +40112,12 @@ async function cmdMcpInstall(args) {
 }
 
 // src/mcp/stdio.ts
-var decode2 = (bytes) => bytes.toString("utf8").replace(/\r$/, "");
+var decode3 = (bytes) => bytes.toString("utf8").replace(/\r$/, "");
 function serveStdio() {
   const send = (body) => process.stdout.write(`${JSON.stringify(body)}
 `);
   const ctx = { http: false };
-  const pending = /* @__PURE__ */ new Set();
+  const pending2 = /* @__PURE__ */ new Set();
   return new Promise((done) => {
     const receive = (line2) => {
       if (!line2.trim()) return;
@@ -38546,22 +40137,22 @@ function serveStdio() {
         process.stderr.write(`orrery mcp: ${e?.stack ?? e}
 `);
         if (isObj2(msg) && "id" in msg) send(rpcError(msg.id, -32603, "Internal error"));
-      }).finally(() => pending.delete(job));
-      pending.add(job);
+      }).finally(() => pending2.delete(job));
+      pending2.add(job);
     };
     let head2 = [];
     process.stdin.on("data", (chunk2) => {
       let start = 0;
       for (let end = chunk2.indexOf(10); end !== -1; end = chunk2.indexOf(10, start)) {
-        receive(decode2(Buffer.concat([...head2, chunk2.subarray(start, end)])));
+        receive(decode3(Buffer.concat([...head2, chunk2.subarray(start, end)])));
         head2 = [];
         start = end + 1;
       }
       if (start < chunk2.length) head2.push(chunk2.subarray(start));
     });
     process.stdin.on("end", () => {
-      if (head2.length) receive(decode2(Buffer.concat(head2)));
-      void Promise.allSettled([...pending]).then(() => done());
+      if (head2.length) receive(decode3(Buffer.concat(head2)));
+      void Promise.allSettled([...pending2]).then(() => done());
     });
   });
 }
@@ -38579,7 +40170,7 @@ async function cmdMcp(args) {
 
 // src/patch/index.ts
 import { existsSync as existsSync14, readFileSync as readFileSync13 } from "node:fs";
-import { resolve as resolve9 } from "node:path";
+import { resolve as resolve11 } from "node:path";
 function readCandidates(path) {
   if (path !== "-" && !existsSync14(path)) usage(`no such candidates file: ${path}`);
   let data;
@@ -38594,9 +40185,9 @@ function readCandidates(path) {
   if (data.every((x2) => !Array.isArray(x2))) return [data];
   usage(`${shape}; this one mixes both`);
 }
-function formatRun(run2, name2) {
-  const b = run2.before;
-  const rows = run2.results.map((r6) => {
+function formatRun(run3, name2) {
+  const b = run3.before;
+  const rows = run3.results.map((r6) => {
     const a = r6.report;
     const hard = a ? HARD_KEYS.filter((k) => a.hard[k] !== b.hard[k]).map((k) => `${HARD[k]} ${b.hard[k]} -> ${a.hard[k]}`).join(", ") || "none" : "-";
     return {
@@ -38617,7 +40208,7 @@ function formatRun(run2, name2) {
   );
   const line2 = (cells) => cells.map((c, i) => i === cells.length - 1 ? c : c.padEnd(widths[i] ?? 0)).join("  ").trimEnd();
   const lines2 = [
-    `patch ${name2}: ${run2.results.length} candidate(s) at ${b.width}px (${b.theme}); before: score ${b.score}, ${serious(b)} blocker(s) plus major(s)`,
+    `patch ${name2}: ${run3.results.length} candidate(s) at ${b.width}px (${b.theme}); before: score ${b.score}, ${serious(b)} blocker(s) plus major(s)`,
     "",
     line2(head2)
   ];
@@ -38626,7 +40217,7 @@ function formatRun(run2, name2) {
     if (!r6.kept) lines2.push(`${" ".repeat((widths[0] ?? 1) + 2)}${r6.reason}`);
   }
   lines2.push("");
-  const best = run2.best;
+  const best = run3.best;
   lines2.push(
     best ? `best: candidate ${best.index + 1}, ${best.reason} (${best.ops.map(describeOp).join("; ")})` : "best: none; no candidate improved the diagram"
   );
@@ -38652,10 +40243,10 @@ async function cmdPatch(args) {
   if (theme !== "light" && theme !== "dark") usage("--theme must be light or dark");
   const fonts2 = typeof args.flags.font === "string" ? args.flags.font.split(",") : [];
   for (const f of fonts2) if (!existsSync14(f)) usage(`no such file: ${f} (from --font)`);
-  const out = typeof args.flags.out === "string" ? resolve9(args.flags.out) : void 0;
-  let run2;
+  const out = typeof args.flags.out === "string" ? resolve11(args.flags.out) : void 0;
+  let run3;
   try {
-    run2 = await tryCandidates({
+    run3 = await tryCandidates({
       source: spec.text,
       filename: spec.path,
       candidates: candidates4,
@@ -38671,15 +40262,15 @@ async function cmdPatch(args) {
     process.exitCode = 1;
     return;
   }
-  const best = run2.best;
+  const best = run3.best;
   if (out && best?.source !== void 0) writeAtomic(out, best.source);
-  if (args.flags.json === true) process.stdout.write(`${JSON.stringify(run2, null, 2)}
+  if (args.flags.json === true) process.stdout.write(`${JSON.stringify(run3, null, 2)}
 `);
   else {
     const wrote = out ? best ? `
 wrote ${out}` : `
 nothing written to ${out}` : best ? "\nadd -o <file> to write the best patched spec" : "";
-    process.stdout.write(`${formatRun(run2, spec.name)}
+    process.stdout.write(`${formatRun(run3, spec.name)}
 ${wrote}
 `);
   }
@@ -38688,9 +40279,9 @@ ${wrote}
 
 // src/verify.ts
 var import_yaml10 = __toESM(require_dist(), 1);
-import { execFileSync as execFileSync2 } from "node:child_process";
-import { existsSync as existsSync15, readdirSync as readdirSync2, readFileSync as readFileSync14, realpathSync, statSync as statSync8 } from "node:fs";
-import { basename as basename8, dirname as dirname7, extname as extname4, isAbsolute as isAbsolute5, join as join12, relative as relative5, resolve as resolve10, sep } from "node:path";
+import { execFileSync as execFileSync3 } from "node:child_process";
+import { existsSync as existsSync15, readdirSync as readdirSync2, readFileSync as readFileSync14, realpathSync as realpathSync4, statSync as statSync8 } from "node:fs";
+import { basename as basename8, dirname as dirname7, extname as extname5, isAbsolute as isAbsolute6, join as join14, relative as relative7, resolve as resolve12, sep as sep2 } from "node:path";
 var LINES = /^(.+):(\d+)(?:-(\d+))?(?:#(.*))?$/;
 var TF_RESOURCE = /^(?:module\.[\w-]+(?:\[[^\]]*\])?\.)*(?:(data)\.)?([a-z][a-z0-9]*_[a-z0-9_]+)\.([\w-]+)(?:\[[^\]]*\])?$/;
 var TF_MODULE = /^(?:module\.[\w-]+(?:\[[^\]]*\])?\.)*module\.([\w-]+)(?:\[[^\]]*\])?$/;
@@ -38712,7 +40303,7 @@ function parseEvidence(raw) {
 }
 function git(cwd, args) {
   try {
-    return execFileSync2("git", args, {
+    return execFileSync3("git", args, {
       cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
@@ -38724,7 +40315,7 @@ function git(cwd, args) {
 }
 function real8(path) {
   try {
-    return realpathSync.native(path);
+    return realpathSync4.native(path);
   } catch {
     return path;
   }
@@ -38733,7 +40324,7 @@ function openRepo(specPath) {
   const spec = real8(specPath);
   const specDir = dirname7(spec);
   const root = git(specDir, ["rev-parse", "--show-toplevel"]);
-  return { spec, specDir, ...root ? { root: real8(resolve10(root)) } : {}, lines: /* @__PURE__ */ new Map() };
+  return { spec, specDir, ...root ? { root: real8(resolve12(root)) } : {}, lines: /* @__PURE__ */ new Map() };
 }
 var SKIP_DIRS = /* @__PURE__ */ new Set(["node_modules", ".git", "dist", "out", "build", "vendor"]);
 function repoFiles(repo) {
@@ -38741,15 +40332,15 @@ function repoFiles(repo) {
   const root = repo.root;
   const listed = root ? git(root, ["ls-files", "-z", "--cached", "--others", "--exclude-standard"]) : void 0;
   if (root && listed !== void 0)
-    repo.files = listed.split("\0").filter(Boolean).map((f) => join12(root, f));
+    repo.files = listed.split("\0").filter(Boolean).map((f) => join14(root, f));
   else {
     const found = [];
     const walk = (dir, depth) => {
       if (depth > 12 || found.length > 2e4) return;
       for (const d of readdirSync2(dir, { withFileTypes: true })) {
         if (d.isDirectory() && !d.name.startsWith(".") && !SKIP_DIRS.has(d.name))
-          walk(join12(dir, d.name), depth + 1);
-        else if (d.isFile()) found.push(join12(dir, d.name));
+          walk(join14(dir, d.name), depth + 1);
+        else if (d.isFile()) found.push(join14(dir, d.name));
       }
     };
     walk(repo.specDir, 0);
@@ -38757,7 +40348,7 @@ function repoFiles(repo) {
   }
   return repo.files;
 }
-function linesOf2(repo, file, maxBytes = Number.POSITIVE_INFINITY) {
+function linesOf3(repo, file, maxBytes = Number.POSITIVE_INFINITY) {
   if (repo.lines.has(file)) return repo.lines.get(file) ?? null;
   let lines2 = null;
   try {
@@ -38775,16 +40366,37 @@ function linesOf2(repo, file, maxBytes = Number.POSITIVE_INFINITY) {
 }
 function display(repo, file) {
   const base = repo.root ?? repo.specDir;
-  const rel2 = relative5(base, file);
-  return rel2 && !rel2.startsWith("..") && !isAbsolute5(rel2) ? rel2.split(sep).join("/") : file;
+  const rel2 = relative7(base, file);
+  return rel2 && !rel2.startsWith("..") && !isAbsolute6(rel2) ? rel2.split(sep2).join("/") : file;
 }
+var within4 = (base, file) => {
+  const rel2 = relative7(base, file);
+  return rel2 !== ".." && !rel2.startsWith(`..${sep2}`) && !isAbsolute6(rel2);
+};
 function locate2(repo, path) {
-  const candidates4 = isAbsolute5(path) ? [path] : [resolve10(repo.specDir, path), ...repo.root ? [resolve10(repo.root, path)] : []];
+  const bound = repo.root ?? repo.specDir;
+  const candidates4 = isAbsolute6(path) ? [path] : [resolve12(repo.specDir, path), ...repo.root ? [resolve12(repo.root, path)] : []];
+  let outside2 = false;
   for (const file of candidates4) {
+    if (!within4(bound, resolve12(file))) {
+      outside2 = true;
+      continue;
+    }
     if (!existsSync15(file)) continue;
+    if (!within4(bound, real8(file))) {
+      outside2 = true;
+      continue;
+    }
     return { file, dir: statSync8(file).isDirectory() };
   }
-  return void 0;
+  return outside2 ? { outside: true } : void 0;
+}
+function outsideRepo(repo, path) {
+  return {
+    ok: false,
+    problem: `${path} is outside ${repo.root ? "the repo" : "the spec's folder"}, so it is not read`,
+    fix: `point at a file inside ${repo.root ? "the repo" : "the spec's folder"}, or remove this evidence`
+  };
 }
 function wordPattern(id) {
   const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -38797,8 +40409,8 @@ var SEARCH_LIMIT = 2 * 1024 * 1024;
 function elsewhere(repo, id, ext, skip2) {
   const re = wordPattern(id);
   for (const f of repoFiles(repo)) {
-    if (f === skip2 || extname4(f).toLowerCase() !== ext) continue;
-    const lines2 = linesOf2(repo, f, SEARCH_LIMIT);
+    if (f === skip2 || extname5(f).toLowerCase() !== ext) continue;
+    const lines2 = linesOf3(repo, f, SEARCH_LIMIT);
     const hit = lines2 ? hitsIn(lines2, re)[0] : void 0;
     if (hit) return `${display(repo, f)}:${hit}`;
   }
@@ -38818,9 +40430,10 @@ function checkLines(repo, ref, raw) {
   const rest = raw.slice(path.length);
   const at2 = locate2(repo, path);
   if (!at2) return missingFile(repo, path, rest);
+  if ("outside" in at2) return outsideRepo(repo, path);
   if (at2.dir)
     return { ok: false, problem: `${path} is a folder`, fix: `point at a file inside ${path}` };
-  const lines2 = linesOf2(repo, at2.file) ?? [];
+  const lines2 = linesOf3(repo, at2.file) ?? [];
   const n4 = lines2.length;
   const end = ref.end ?? line2;
   const id = ref.id;
@@ -38847,7 +40460,7 @@ function checkLines(repo, ref, raw) {
   const where = ref.end ? `in lines ${line2}-${end}` : `on line ${line2}`;
   if (found[0])
     return { ok: false, problem: `"${id}" is not ${where} of ${path}`, fix: moveTo2(found[0]) };
-  const other = elsewhere(repo, id, extname4(at2.file).toLowerCase(), at2.file);
+  const other = elsewhere(repo, id, extname5(at2.file).toLowerCase(), at2.file);
   return {
     ok: false,
     problem: `"${id}" is not in ${path} at all`,
@@ -38858,12 +40471,13 @@ function checkName(repo, ref) {
   const { path, id } = ref;
   const at2 = locate2(repo, path);
   if (!at2) return missingFile(repo, path, `#${id}`);
+  if ("outside" in at2) return outsideRepo(repo, path);
   if (at2.dir)
     return { ok: false, problem: `${path} is a folder`, fix: `point at a file inside ${path}` };
   if (!id) return { ok: false, problem: "nothing follows the #", fix: `write ${path}#<name>` };
-  const hit = hitsIn(linesOf2(repo, at2.file) ?? [], wordPattern(id))[0];
+  const hit = hitsIn(linesOf3(repo, at2.file) ?? [], wordPattern(id))[0];
   if (hit) return { ok: true, file: display(repo, at2.file), line: hit };
-  const other = elsewhere(repo, id, extname4(at2.file).toLowerCase(), at2.file);
+  const other = elsewhere(repo, id, extname5(at2.file).toLowerCase(), at2.file);
   return {
     ok: false,
     problem: `"${id}" does not appear in ${path}`,
@@ -38872,8 +40486,8 @@ function checkName(repo, ref) {
 }
 function* addressFiles(repo, test) {
   for (const f of repoFiles(repo)) {
-    if (!ADDRESS_FILES.test(f) || !test(f) || resolve10(f) === resolve10(repo.spec)) continue;
-    const lines2 = linesOf2(repo, f, SEARCH_LIMIT);
+    if (!ADDRESS_FILES.test(f) || !test(f) || resolve12(f) === resolve12(repo.spec)) continue;
+    const lines2 = linesOf3(repo, f, SEARCH_LIMIT);
     if (lines2 && !(/\.ya?ml$/i.test(f) && lines2.some((l) => /^nodes\s*:/.test(l))))
       yield { file: f, lines: lines2 };
   }
@@ -38968,6 +40582,7 @@ function checkKubernetes(repo, kind, name2) {
 }
 function checkBare(repo, text6) {
   const at2 = locate2(repo, text6);
+  if (at2 && "outside" in at2) return outsideRepo(repo, text6);
   if (at2) return { ok: true, file: display(repo, at2.file) };
   if (TF_MODULE.test(text6) || TF_RESOURCE.test(text6)) return checkTerraform(repo, text6);
   const k8s = K8S.exec(text6);
@@ -39015,7 +40630,24 @@ function evidenceOf(model) {
 }
 function parseRemote(url) {
   const m = /^[\w.-]+@([^:/]+):([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(url) ?? /^(?:https?|ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(url);
-  return m?.[1] && m[2] && m[3] ? { host: m[1], owner: m[2], repo: m[3] } : void 0;
+  if (!m?.[1] || !m[2] || !m[3]) return void 0;
+  return { host: realHost(m[1], /^(?:https?):/.test(url)), owner: m[2], repo: m[3] };
+}
+function realHost(host, web) {
+  let name2 = host;
+  if (!web && !host.includes(".")) {
+    try {
+      const out = execFileSync3("ssh", ["-G", host], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: 3e3
+      });
+      name2 = /^hostname\s+(\S+)/im.exec(out)?.[1] ?? host;
+    } catch {
+      name2 = host;
+    }
+  }
+  return name2 === "ssh.github.com" ? "github.com" : name2;
 }
 function permalink(remote, commit, result2) {
   const path = (result2.file ?? "").split("/").map(encodeURIComponent).join("/");
@@ -39089,11 +40721,26 @@ function verifyModel(model, specPath, opts = {}) {
   const base = `https://${remote.host}/${remote.owner}/${remote.repo}/blob/`;
   report.commit = commit;
   report.links = [];
+  report.skipped = [];
   for (const n4 of model.nodes) {
-    const first = results.find(
-      (r6) => r6.subject.kind === "node" && r6.subject.id === n4.id && r6.ok && r6.file && !isAbsolute5(r6.file)
+    const found = results.filter(
+      (r6) => r6.subject.kind === "node" && r6.subject.id === n4.id && r6.ok && r6.file && !isAbsolute6(r6.file)
     );
-    if (!first) continue;
+    if (!found.length) continue;
+    let why = "";
+    const first = found.find((r6) => {
+      const file = r6.file ?? "";
+      if (git(root, ["cat-file", "-e", `${commit}:${file}`]) === void 0)
+        why = `${file} is not in commit ${commit.slice(0, 12)}`;
+      else if (git(root, ["diff", "--quiet", commit, "--", file]) === void 0)
+        why = `${file} differs from commit ${commit.slice(0, 12)}; commit it or pass --commit`;
+      else return true;
+      return false;
+    });
+    if (!first) {
+      report.skipped.push({ node: n4.id, evidence: found[0]?.evidence, why });
+      continue;
+    }
     const url = permalink(remote, commit, first);
     const kept = !!n4.url && !n4.url.startsWith(base);
     report.links.push({
@@ -39123,6 +40770,7 @@ function formatReport(report, name2) {
     );
     for (const l of set) lines2.push(`  ${l.node}: ${l.url}`);
     for (const l of kept) lines2.push(`  ${l.node}: kept its own url ${l.url}`);
+    for (const s of report.skipped ?? []) lines2.push(`  ${s.node}: skipped, ${s.why}`);
   }
   return lines2.join("\n");
 }
@@ -39137,6 +40785,11 @@ async function cmdVerify(args) {
   const json2 = args.flags.json === true;
   if (!parsed.model) {
     printDiagnostics(parsed.diagnostics, false);
+    if (json2) {
+      const failed = { ok: false, diagnostics: parsed.diagnostics };
+      process.stdout.write(`${JSON.stringify(failed, null, 2)}
+`);
+    }
     process.exitCode = 1;
     return;
   }
@@ -39146,7 +40799,26 @@ async function cmdVerify(args) {
     ...typeof args.flags.commit === "string" ? { commit: args.flags.commit } : {}
   });
   if (report.links?.some((l) => !l.kept)) {
-    const next = linkText(spec.text, report.links);
+    let next = spec.text;
+    const own = [];
+    for (const l of report.links) {
+      if (l.kept) {
+        own.push(l);
+        continue;
+      }
+      try {
+        next = linkText(next, [l]);
+        own.push(l);
+      } catch (e) {
+        const why = e.message.split("\n")[0] ?? "";
+        report.skipped?.push({
+          node: l.node,
+          evidence: l.evidence,
+          why: `${l.node} is not defined in this spec's own text (${why})`
+        });
+      }
+    }
+    report.links = own;
     if (next !== spec.text) {
       writeAtomic(spec.path, next);
       report.wrote = true;
@@ -39161,7 +40833,7 @@ async function cmdVerify(args) {
 
 // src/watch.ts
 import { existsSync as existsSync16, statSync as statSync9, watch } from "node:fs";
-import { dirname as dirname8, join as join13, resolve as resolve11 } from "node:path";
+import { dirname as dirname8, join as join15, resolve as resolve13 } from "node:path";
 var DEBOUNCE_MS = 120;
 var REARM_MS = 50;
 var RETRIES = 20;
@@ -39169,6 +40841,7 @@ function watchOptions(args) {
   const [specPath] = args._;
   if (!specPath) usage("watch needs a spec file");
   if (specPath === "-") usage("watch needs a spec file it can watch, not stdin");
+  if (args._.length > 1) usage("watch takes one spec file; run one orrery watch per spec");
   const spec = readSpec(specPath);
   const themeFlag = args.flags.theme === void 0 ? void 0 : String(args.flags.theme);
   if (themeFlag !== void 0 && !["light", "dark", "both"].includes(themeFlag))
@@ -39186,8 +40859,8 @@ function watchOptions(args) {
   let base;
   if (!outFlag) base = spec.path.replace(/\.(ya?ml|json)$/i, "");
   else if (/[/\\]$/.test(outFlag) || existsSync16(outFlag) && statSync9(outFlag).isDirectory())
-    base = join13(resolve11(outFlag), spec.name);
-  else base = resolve11(outFormat ? outFlag.slice(0, -(outFormat.length + 1)) : outFlag);
+    base = join15(resolve13(outFlag), spec.name);
+  else base = resolve13(outFormat ? outFlag.slice(0, -(outFormat.length + 1)) : outFlag);
   const scale = args.flags.scale !== void 0 ? Number(args.flags.scale) : 3;
   if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
   const animate = args.flags.static === true ? "none" : args.flags.animate === true ? "packets" : args.flags.animate;
@@ -39197,11 +40870,11 @@ function watchOptions(args) {
   const review = args.flags.review === true;
   return { spec, theme: themeFlag, fonts: fonts2, formats, base, scale, animate, skin, width: width2, review };
 }
-async function renderSpec(opts, run2, written2, follow) {
+async function renderSpec(opts, run3, written2, follow) {
   const { spec, formats, base, scale, fonts: fonts2, animate, skin, width: width2 } = opts;
   const text6 = readText(spec.path);
   const parsed = parseSpec(text6, spec.path);
-  run2.diagnostics.push(...parsed.diagnostics);
+  run3.diagnostics.push(...parsed.diagnostics);
   let raw;
   try {
     raw = parseText(text6, spec.path);
@@ -39211,11 +40884,11 @@ async function renderSpec(opts, run2, written2, follow) {
   if (isObj(raw)) {
     const icons = isObj(raw.icons) ? Object.values(raw.icons) : [];
     const iconFiles = icons.flatMap(
-      (v) => typeof v === "string" ? [resolve11(dirname8(spec.path), v.trim())] : []
+      (v) => typeof v === "string" ? [resolve13(dirname8(spec.path), v.trim())] : []
     );
     follow([spec.path, ...iconFiles.filter(existsSync16), ...includedFiles(raw, spec.path)]);
   }
-  if (!parsed.model || run2.diagnostics.some((d) => d.severity === "error")) return;
+  if (!parsed.model || run3.diagnostics.some((d) => d.severity === "error")) return;
   const theme = opts.theme ?? parsed.model.theme;
   const themes = theme === "both" ? ["light", "dark"] : [theme];
   const result2 = await renderModel({
@@ -39229,13 +40902,13 @@ async function renderSpec(opts, run2, written2, follow) {
     skin,
     source: text6
   });
-  run2.diagnostics.push(...result2.diagnostics);
+  run3.diagnostics.push(...result2.diagnostics);
   for (const a of result2.artifacts) {
     const suffix = themes.length > 1 && a.format !== "html" ? `-${a.theme}` : "";
     const path = `${base}${suffix}.${a.format}`;
     written2.add(path);
     writeAtomic(path, a.data);
-    run2.outputs.push({
+    run3.outputs.push({
       path,
       bytes: typeof a.data === "string" ? Buffer.byteLength(a.data) : a.data.length
     });
@@ -39250,25 +40923,25 @@ async function renderSpec(opts, run2, written2, follow) {
       diagnostics: parsed.diagnostics,
       png: false
     });
-    run2.score = formatReview(reviewed.report).split("\n")[1];
+    run3.score = formatReview(reviewed.report).split("\n")[1];
   }
 }
 async function renderOnce(opts, written2, follow) {
   const started = performance.now();
-  const run2 = { diagnostics: [], outputs: [] };
+  const run3 = { diagnostics: [], outputs: [] };
   let crashed = false;
   try {
-    await renderSpec(opts, run2, written2, follow);
+    await renderSpec(opts, run3, written2, follow);
   } catch (e) {
     const failure = renderFailure(e);
-    if (failure) run2.diagnostics.push(failure);
+    if (failure) run3.diagnostics.push(failure);
     else {
       crashed = true;
       process.stderr.write(`error ${e?.message ?? e}
 `);
     }
   }
-  const { diagnostics, outputs, score } = run2;
+  const { diagnostics, outputs, score } = run3;
   printDiagnostics(diagnostics, false);
   const errors2 = diagnostics.filter((d) => d.severity === "error").length + (crashed ? 1 : 0);
   const warnings = diagnostics.filter((d) => d.severity !== "error").length;
@@ -39304,13 +40977,13 @@ function serialized(job) {
 }
 function fileWatcher(written2, changed) {
   const watched = /* @__PURE__ */ new Map();
-  const arm = (file, retries = RETRIES) => {
+  const arm = (file, retries = RETRIES, rearmed = false) => {
     if (!watched.has(file)) return;
     let watcher;
     try {
       watcher = watch(file);
     } catch {
-      if (retries > 0) setTimeout(() => arm(file, retries - 1), REARM_MS);
+      if (retries > 0) setTimeout(() => arm(file, retries - 1, rearmed), REARM_MS);
       else {
         watched.delete(file);
         process.stderr.write(`stopped watching ${shownPath(file)}: it no longer exists
@@ -39319,17 +40992,18 @@ function fileWatcher(written2, changed) {
       return;
     }
     watched.set(file, watcher);
-    const rearm = (left) => {
+    if (rearmed && !written2.has(file)) changed();
+    const rearm = (left, renamed) => {
       watcher.close();
       if (watched.get(file) !== watcher) return;
       watched.set(file, void 0);
-      setTimeout(() => arm(file, left), REARM_MS);
+      setTimeout(() => arm(file, left, renamed), REARM_MS);
     };
     watcher.on("change", (event) => {
       if (!written2.has(file)) changed();
-      if (event === "rename") rearm(RETRIES);
+      if (event === "rename") rearm(RETRIES, true);
     });
-    watcher.on("error", () => rearm(retries - 1));
+    watcher.on("error", () => rearm(retries - 1, true));
   };
   const follow = (files) => {
     const next = new Set(files);
@@ -39454,6 +41128,8 @@ function parseArgs(argv) {
         else if (key === "animate" && !ANIMATE_MODES.includes(next) && (next === void 0 || next.startsWith("-") || SPEC_FILE.test(next)))
           value2 = true;
         else {
+          if (next?.startsWith("-") && next !== "-" && !/^-\.?\d/.test(next))
+            usage(`--${key} needs a value (got ${next})`);
           value2 = next;
           i += 1;
         }
@@ -39477,32 +41153,35 @@ function parseArgs(argv) {
 
 // src/cli/doctor.ts
 import { existsSync as existsSync19, readFileSync as readFileSync17 } from "node:fs";
-import { join as join17, resolve as resolve15 } from "node:path";
+import { join as join19, resolve as resolve17 } from "node:path";
 
 // src/cli/templates.ts
-var import_yaml14 = __toESM(require_dist(), 1);
+var import_yaml15 = __toESM(require_dist(), 1);
 import { existsSync as existsSync18, readdirSync as readdirSync5, readFileSync as readFileSync16 } from "node:fs";
-import { basename as basename13, dirname as dirname12, join as join16, relative as relative7, resolve as resolve14 } from "node:path";
+import { basename as basename13, dirname as dirname12, join as join18, relative as relative9, resolve as resolve16 } from "node:path";
 
 // src/import/cloudformation.ts
 import { existsSync as existsSync17, readdirSync as readdirSync3, statSync as statSync10 } from "node:fs";
-import { basename as basename9, dirname as dirname9, join as join14 } from "node:path";
+import { basename as basename9, dirname as dirname9, join as join16 } from "node:path";
 
 // src/import/iac.ts
 var import_yaml11 = __toESM(require_dist(), 1);
-import { relative as relative6, resolve as resolve12, sep as sep2 } from "node:path";
+import { createHash as createHash4 } from "node:crypto";
+import { relative as relative8, resolve as resolve14, sep as sep3 } from "node:path";
 function slug2(text6) {
-  return text6.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "item";
+  const id = text6.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  if (id || !text6.trim()) return id || "item";
+  return `item-${createHash4("sha256").update(text6).digest("hex").slice(0, 6)}`;
 }
 function humanize(text6) {
   const words2 = text6.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").replace(/[_\-./]+/g, " ").split(/\s+/).filter(Boolean).map((w) => /^[A-Z0-9]{2,}$/.test(w) && /[A-Z]/.test(w) ? w : w.toLowerCase()).join(" ");
   return words2 ? (words2[0]?.toUpperCase() ?? "") + words2.slice(1) : text6;
 }
 function displayPath(file) {
-  const abs = resolve12(file);
-  const rel2 = relative6(process.cwd(), abs);
+  const abs = resolve14(file);
+  const rel2 = relative8(process.cwd(), abs);
   const shown = rel2 && !rel2.startsWith("..") && !rel2.includes(":") ? rel2 : file;
-  return shown.split(sep2).join("/");
+  return shown.split(sep3).join("/");
 }
 function at(path, line2, ident2) {
   return line2 ? `${path}:${line2}#${ident2}` : `${path}#${ident2}`;
@@ -39568,9 +41247,9 @@ var Draft = class {
     return key;
   }
   /** A flow from one node key to another; flows between the same pair merge their labels. */
-  edge(from, to, label2, evidence, opts = {}) {
-    if (from === to) return;
-    const key = `${from}\0${to}`;
+  edge(from2, to, label2, evidence, opts = {}) {
+    if (from2 === to) return;
+    const key = `${from2}\0${to}`;
     const existing = this.edges.get(key);
     if (existing) {
       if (label2 && !existing.labels.includes(label2)) existing.labels.push(label2);
@@ -39578,7 +41257,7 @@ var Draft = class {
       return;
     }
     this.edges.set(key, {
-      from,
+      from: from2,
       to,
       labels: label2 ? [label2] : [],
       dashed: opts.dashed === true,
@@ -39615,8 +41294,8 @@ var Draft = class {
       (e) => this.nodes.has(e.from) && this.nodes.has(e.to)
     );
     const laid = edges.map((e) => e.back ? { ...e, from: e.to, to: e.from } : e);
-    const { order: order2, layers, widest } = flowOrder([...this.nodes.keys()], laid);
-    const direction = opts.direction ?? (layers <= 3 && widest > layers ? "right" : "down");
+    const { order: order2, layers, widest: widest2 } = flowOrder([...this.nodes.keys()], laid);
+    const direction = opts.direction ?? (layers <= 3 && widest2 > layers ? "right" : "down");
     const depth = Math.max(0, ...[...this.groups.keys()].map((k) => this.ancestors(k).length));
     const used = /* @__PURE__ */ new Set();
     for (const n4 of this.nodes.values()) for (const g of this.ancestors(n4.parent)) used.add(g);
@@ -39800,9 +41479,32 @@ function accessOf(action, type) {
   const owners = type ? SERVICES.find(([re]) => re.test(type))?.[1] : void 0;
   if (owners && !owners.includes(service.toLowerCase())) return [];
   const rules = ACTIONS[service.toLowerCase()] ?? [];
-  const glob = name2.replace(/[^A-Za-z0-9*?-]/g, "").replace(/\*/g, ".*").replace(/\?/g, ".");
-  const pattern = new RegExp(`^${glob}$`, "i");
-  return rules.filter(([names2]) => names2.some((n4) => pattern.test(n4))).map(([, a]) => a);
+  const pattern = name2.replace(/[^A-Za-z0-9*?-]/g, "");
+  return rules.filter(([names2]) => names2.some((n4) => wildcardMatch(pattern, n4, true))).map(([, a]) => a);
+}
+function wildcardMatch(pattern, text6, ignoreCase = false) {
+  const p = ignoreCase ? pattern.toLowerCase() : pattern;
+  const t = ignoreCase ? text6.toLowerCase() : text6;
+  let pi = 0;
+  let ti = 0;
+  let star = -1;
+  let mark = 0;
+  while (ti < t.length) {
+    if (pi < p.length && p[pi] === "*") {
+      star = pi++;
+      mark = ti;
+    } else if (pi < p.length && (p[pi] === "?" || p[pi] === t[ti])) {
+      pi++;
+      ti++;
+    } else if (star >= 0) {
+      pi = star + 1;
+      ti = ++mark;
+    } else {
+      return false;
+    }
+  }
+  while (p[pi] === "*") pi++;
+  return pi === p.length;
 }
 var PORTS = {
   80: "HTTP",
@@ -39826,18 +41528,18 @@ var PORTS = {
   11211: "Memcached",
   27017: "MongoDB"
 };
-function portLabel(from, to = from, protocol = "tcp") {
+function portLabel(from2, to = from2, protocol = "tcp") {
   const lower = protocol.toLowerCase();
   const p = lower === "6" ? "tcp" : lower === "17" ? "udp" : lower;
-  if (p === "-1" || p === "all" || from <= 0 && to >= 65535) return "all traffic";
+  if (p === "-1" || p === "all" || from2 <= 0 && to >= 65535) return "all traffic";
   if (p === "icmp" || p === "icmpv6" || p === "1" || p === "58") return "ICMP";
-  if (!Number.isFinite(from) || !Number.isFinite(to)) return p === "udp" ? "UDP" : "TCP";
-  if (from !== to) return `${p === "udp" ? "UDP" : "TCP"} :${from}-${to}`;
-  const known2 = PORTS[from];
+  if (!Number.isFinite(from2) || !Number.isFinite(to)) return p === "udp" ? "UDP" : "TCP";
+  if (from2 !== to) return `${p === "udp" ? "UDP" : "TCP"} :${from2}-${to}`;
+  const known2 = PORTS[from2];
   if (known2) return known2;
-  if (p === "http" || p === "https") return `${p.toUpperCase()} :${from}`;
-  if (/^(8\d{3}|3000|5000|9000)$/.test(String(from))) return `HTTP :${from}`;
-  return `${p === "udp" ? "UDP" : "TCP"} :${from}`;
+  if (p === "http" || p === "https") return `${p.toUpperCase()} :${from2}`;
+  if (/^(8\d{3}|3000|5000|9000)$/.test(String(from2))) return `HTTP :${from2}`;
+  return `${p === "udp" ? "UDP" : "TCP"} :${from2}`;
 }
 var SCHEMES = {
   http: "HTTP",
@@ -39946,7 +41648,13 @@ function readSources(file, opts = {}) {
   for (const doc of list) {
     const first = doc.errors[0];
     if (first) throw new Error(`${file}: ${first.message.split("\n")[0]}`);
-    out.push({ doc, lines: lines2, data: doc.toJS({ maxAliasCount: -1 }) });
+    let data;
+    try {
+      data = doc.toJS();
+    } catch (e) {
+      throw new Error(`${file}: ${e.message.split("\n")[0]}`);
+    }
+    out.push({ doc, lines: lines2, data });
   }
   return out;
 }
@@ -40440,8 +42148,8 @@ async function importCloudFormation(path) {
   return new CloudFormation(stacks, path).run();
 }
 function readStacks(path) {
-  const files = statSync10(path).isDirectory() ? readdirSync3(path).filter((f) => f.endsWith(".template.json")).sort().map((f) => join14(path, f)) : [path];
-  const manifest = join14(statSync10(path).isDirectory() ? path : dirname9(path), "manifest.json");
+  const files = statSync10(path).isDirectory() ? readdirSync3(path).filter((f) => f.endsWith(".template.json")).sort().map((f) => join16(path, f)) : [path];
+  const manifest = join16(statSync10(path).isDirectory() ? path : dirname9(path), "manifest.json");
   const envs = existsSync17(manifest) ? environments(manifest) : {};
   const out = [];
   for (const file of files) {
@@ -40451,7 +42159,11 @@ function readStacks(path) {
     const name2 = basename9(file).replace(/\.template\.json$|\.(ya?ml|json|template)$/i, "");
     const env = envs[basename9(file)] ?? envs[name2];
     const transform = JSON.stringify(data.Transform ?? "");
-    const resources = data.Resources;
+    const resources = {};
+    const skipped = [];
+    for (const [id, r6] of Object.entries(data.Resources))
+      if (isObj4(r6)) resources[id] = r6;
+      else skipped.push(id);
     withGlobals(resources, data.Globals);
     out.push({
       name: name2,
@@ -40459,6 +42171,7 @@ function readStacks(path) {
       shown: displayPath(file),
       src: src2,
       resources,
+      skipped,
       ...env?.region ? { region: env.region } : {},
       ...env?.account ? { account: env.account } : {},
       sam: transform.includes("AWS::Serverless"),
@@ -40480,9 +42193,9 @@ function withGlobals(resources, globals) {
   };
   for (const r6 of Object.values(resources)) {
     const section2 = isObj4(r6) ? text5(r6.Type)?.match(/^AWS::Serverless::(\w+)$/)?.[1] : void 0;
-    const shared = section2 ? globals[section2] : void 0;
-    if (isObj4(r6) && isObj4(shared))
-      r6.Properties = merge(shared, isObj4(r6.Properties) ? r6.Properties : {});
+    const shared2 = section2 ? globals[section2] : void 0;
+    if (isObj4(r6) && isObj4(shared2))
+      r6.Properties = merge(shared2, isObj4(r6.Properties) ? r6.Properties : {});
   }
 }
 function environments(file) {
@@ -40529,6 +42242,9 @@ var CloudFormation = class {
         if (isObj4(r6)) this.res.set(this.key(stack, id), { stack, id, r: r6 });
   }
   run() {
+    for (const stack of this.stacks)
+      for (const id of stack.skipped)
+        this.draft.warn(`${this.key(stack, id)}: is not a mapping with a Type, so it is skipped`);
     for (const key of this.res.keys()) this.classify(key);
     this.foldParts();
     this.boundaries();
@@ -40543,7 +42259,7 @@ var CloudFormation = class {
     const flavor = first.sam ? "SAM template" : first.cdk ? "CDK app" : "CloudFormation template";
     const drawn2 = [...this.draft.nodes.keys()].filter((k) => k !== USERS).length;
     return this.draft.write({
-      title: titleOf3(this.path, first),
+      title: titleOf4(this.path, first),
       subtitle: `From a ${flavor}: ${drawn2} resources drawn, ${this.draft.leftOut.size} left out`,
       command: `orrery import cloudformation ${displayPath(this.path)}`,
       legend: { dashed: "Outbound through NAT" }
@@ -40617,6 +42333,10 @@ var CloudFormation = class {
       return this.draft.leave(key, "drawn as the flow it grants");
     const glue = GLUE.find(([re]) => re.test(type));
     if (glue) return this.draft.leave(key, glue[1]);
+    if (!type) {
+      this.draft.leave(key, "no Type");
+      return void this.draft.warn(`${key}: has no Type, so it is not drawn`);
+    }
     this.draft.leave(key, "no icon for this type in the import table");
     this.draft.warn(`${key}: ${type} is not in the import table, so it is not drawn`);
   }
@@ -40876,8 +42596,8 @@ var CloudFormation = class {
     return void 0;
   }
   // ---------------------------------------------------------------- flows
-  flow(from, to, label2, evidence) {
-    for (const f of this.nodesFor(from))
+  flow(from2, to, label2, evidence) {
+    for (const f of this.nodesFor(from2))
       for (const t of this.nodesFor(to)) this.draft.edge(f, t, label2, evidence);
   }
   fromUsers(to, label2, evidence) {
@@ -41164,8 +42884,8 @@ var CloudFormation = class {
    * Allow statements: each action's flow from every caller to every resource it references. The
    * evidence is the line the action is written on (`base` is the path to the statement list).
    */
-  statementFlows(stack, callers, statements, key, base) {
-    asList(statements).forEach((s, i) => {
+  statementFlows(stack, callers, statements2, key, base) {
+    asList(statements2).forEach((s, i) => {
       if (!isObj4(s) || (text5(s.Effect) ?? "Allow") !== "Allow") return;
       const targets = this.refs(stack, s.Resource);
       asList(s.Action).forEach((a, k) => {
@@ -41217,9 +42937,9 @@ var CloudFormation = class {
         const param = ref && isObj4(params) ? params[ref] : void 0;
         return Number(ref ? isObj4(param) ? param.Default : void 0 : v);
       };
-      const from = port(rule.FromPort ?? 0);
+      const from2 = port(rule.FromPort ?? 0);
       const to = port(rule.ToPort ?? rule.FromPort ?? 0);
-      const label2 = portLabel(from, to, text5(rule.IpProtocol));
+      const label2 = portLabel(from2, to, text5(rule.IpProtocol));
       const world = rule.CidrIp === "0.0.0.0/0" || rule.CidrIpv6 === "::/0";
       for (const t of members.get(target) ?? []) {
         if (world) this.fromUsers(t, label2, [ev]);
@@ -41284,7 +43004,7 @@ function verbFor(type) {
   if (/DynamoDB/.test(type)) return "writes";
   return "calls";
 }
-function titleOf3(path, stack) {
+function titleOf4(path, stack) {
   const generic = /^(template|packaged|cdk\.out|stack|main|infra)$/i;
   const name2 = basename9(path).replace(/\.template\.json$|\.(ya?ml|json)$/i, "");
   if (!generic.test(name2)) return humanize(name2);
@@ -41398,7 +43118,7 @@ function composeSpec(src2, data, path) {
     if (isObj4(data[kind]))
       for (const v of Object.keys(data[kind])) draft.leave(`${kind}.${v}`, why);
   return draft.write({
-    title: titleOf4(data, path),
+    title: titleOf5(data, path),
     subtitle: `From Docker Compose: ${Object.keys(services).length} services${drawNetworks ? `, ${declared2.length} networks` : ""}`,
     command: `orrery import compose ${shown}`
   });
@@ -41417,33 +43137,33 @@ function envOf(env, base) {
   return [];
 }
 function publishedPort(p) {
-  const plain2 = (v) => String(v ?? "").replace(/\$\{[A-Za-z_][A-Za-z0-9_]*:?-([^}]*)\}/g, "$1").replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)[^}]*\}/g, "$$$1");
+  const plain3 = (v) => String(v ?? "").replace(/\$\{[A-Za-z_][A-Za-z0-9_]*:?-([^}]*)\}/g, "$1").replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)[^}]*\}/g, "$$$1");
   let host;
   let target;
   if (isObj4(p)) {
-    host = plain2(p.published);
-    target = plain2(p.target);
+    host = plain3(p.published);
+    target = plain3(p.target);
   } else {
-    const parts = plain2(p).replace(/\/(tcp|udp)$/, "").split(":");
+    const parts = plain3(p).replace(/\/(tcp|udp)$/, "").split(":");
     if (parts.length < 2) return void 0;
     target = parts.at(-1)?.split("-")[0] ?? "";
     host = parts.at(-2)?.split("-")[0] ?? "";
   }
   const named2 = (s) => /^\$[A-Za-z_][A-Za-z0-9_]*$/.test(s);
-  const from = Number(host);
+  const from2 = Number(host);
   const to = Number(target);
-  if (!(from || named2(host)) || !(to || named2(target))) return void 0;
+  if (!(from2 || named2(host)) || !(to || named2(target))) return void 0;
   const unset = [...new Set([host, target].filter(named2).map((s) => s.slice(1)))];
   let label2;
-  if (from && to)
-    label2 = from === to ? portLabel(to) : `${portLabel(to).replace(/ :\d+$/, "")} :${from}`;
-  else if (from || to) label2 = portLabel(to || from);
-  return { host: from ? String(from) : host.slice(1), label: label2, unset };
+  if (from2 && to)
+    label2 = from2 === to ? portLabel(to) : `${portLabel(to).replace(/ :\d+$/, "")} :${from2}`;
+  else if (from2 || to) label2 = portLabel(to || from2);
+  return { host: from2 ? String(from2) : host.slice(1), label: label2, unset };
 }
 function shortImage(image) {
   return image.split("/").at(-1) ?? image;
 }
-function titleOf4(data, path) {
+function titleOf5(data, path) {
   const name2 = text5(data.name);
   if (name2) return humanize(name2);
   const stem = basename10(path).replace(/\.(ya?ml)$/i, "");
@@ -41454,7 +43174,7 @@ function titleOf4(data, path) {
 
 // src/import/kubernetes.ts
 import { readdirSync as readdirSync4, statSync as statSync11 } from "node:fs";
-import { basename as basename11, extname as extname5, join as join15 } from "node:path";
+import { basename as basename11, extname as extname6, join as join17 } from "node:path";
 var USERS3 = "users";
 var CLUSTER_SCOPED = /^(Namespace|StorageClass|ClusterRole|ClusterRoleBinding|PersistentVolume|CustomResourceDefinition|IngressClass|GatewayClass|PriorityClass|Node|ClusterIssuer)$/;
 var WORKLOADS = /* @__PURE__ */ new Set([
@@ -41474,7 +43194,7 @@ async function importKubernetes(path) {
 function manifestFiles(path) {
   if (!statSync11(path).isDirectory()) return [path];
   return readdirSync4(path).sort().flatMap((f) => {
-    const full = join15(path, f);
+    const full = join17(path, f);
     if (statSync11(full).isDirectory()) return manifestFiles(full);
     return /\.(ya?ml|json)$/i.test(f) ? [full] : [];
   });
@@ -41561,7 +43281,7 @@ var Kubernetes = class {
       [...this.draft.nodes.values()].map((n4) => n4.parent).filter((p) => p?.startsWith("ns:"))
     ).size;
     return this.draft.write({
-      title: titleOf5(this.path),
+      title: titleOf6(this.path),
       subtitle: `From Kubernetes manifests: ${drawn2} objects drawn${namespaces ? ` in ${namespaces} namespace${namespaces > 1 ? "s" : ""}` : ""}, ${this.draft.leftOut.size} left out`,
       command: `orrery import kubernetes ${shown}`
     });
@@ -41662,7 +43382,8 @@ var Kubernetes = class {
     for (const svc of this.services) {
       const spec = isObj4(svc.body.spec) ? svc.body.spec : {};
       const port = asList(spec.ports).find(isObj4);
-      const target = Number(port?.targetPort ?? port?.port);
+      const named2 = Number(port?.targetPort);
+      const target = Number.isFinite(named2) && named2 > 0 ? named2 : Number(port?.port);
       const label2 = target ? portLabel(target) : void 0;
       const ev = [this.where(svc, ["spec", "selector"], "selector")];
       for (const w of this.selected(spec.selector, svc.namespace))
@@ -41771,8 +43492,8 @@ var Kubernetes = class {
             const v = key ? text5(data[key]) : void 0;
             if (cm && key && v) this.hostFlows(w, name2, v, this.where(cm, ["data", key], key));
           });
-          for (const from of asList(c.envFrom)) {
-            const ref = isObj4(from) && isObj4(from.configMapRef) ? from.configMapRef : void 0;
+          for (const from2 of asList(c.envFrom)) {
+            const ref = isObj4(from2) && isObj4(from2.configMapRef) ? from2.configMapRef : void 0;
             const cm = ref && configMaps.find((m) => m.name === ref.name && m.namespace === w.namespace);
             if (!cm || !isObj4(cm.body.data)) continue;
             for (const [k, v] of Object.entries(cm.body.data))
@@ -41821,14 +43542,910 @@ var Kubernetes = class {
     }
   }
 };
-function titleOf5(path) {
-  const name2 = basename11(path, extname5(path));
+function titleOf6(path) {
+  const name2 = basename11(path, extname6(path));
   return /^(k8s|kubernetes|manifests?|deploy|base|all|resources|templates?)$/i.test(name2) ? "Kubernetes workloads" : humanize(name2);
 }
 
 // src/import/mermaid.ts
+var import_yaml14 = __toESM(require_dist(), 1);
+
+// src/import/mermaid-text.ts
 var import_yaml13 = __toESM(require_dist(), 1);
-var DIRECTIONS3 = {
+var FRONTMATTER = /^\s*---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;
+function frontmatter(source) {
+  const front = source.match(FRONTMATTER);
+  if (!front) return { body: source };
+  const title2 = (front[1] ?? "").match(/^title:[ \t]*(.+)$/m);
+  return {
+    title: title2 ? cleanLabel(title2[1] ?? "") : void 0,
+    body: source.slice(front[0].length)
+  };
+}
+function statements(body, split) {
+  return body.replace(/%%.*$/gm, "").split(/\r?\n/).flatMap(split).map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+}
+function semicolons(line2) {
+  const out = [];
+  let quoted3 = false;
+  let start = 0;
+  for (let i = 0; i < line2.length; i++) {
+    const c = line2[i];
+    if (c === '"') quoted3 = !quoted3;
+    else if (c === ";" && !quoted3 && !/#\w{1,8}$/.test(line2.slice(Math.max(start, i - 9), i))) {
+      out.push(line2.slice(start, i));
+      start = i + 1;
+    }
+  }
+  out.push(line2.slice(start));
+  return out;
+}
+function unquote(s) {
+  const t = s.trim();
+  if (t.startsWith('"') && t.endsWith('"') || t.startsWith("'") && t.endsWith("'"))
+    return t.slice(1, -1);
+  return t;
+}
+var NAMED4 = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " "
+};
+function entities(s) {
+  return s.replace(/#(\d{1,7}|[a-z]{2,8});/gi, (m, code4) => {
+    if (/^\d/.test(code4)) {
+      const n4 = Number(code4);
+      return n4 <= 1114111 ? String.fromCodePoint(n4) : m;
+    }
+    return NAMED4[code4.toLowerCase()] ?? m;
+  });
+}
+function stripTags(s) {
+  const out = [];
+  const open = [];
+  for (const c of s) {
+    if (c === "<") {
+      open.push(out.length);
+      out.push(c);
+    } else if (c === ">") {
+      const at2 = open.pop();
+      if (at2 !== void 0) out.length = at2;
+    } else out.push(c);
+  }
+  return out.filter((c) => c !== "<").join("");
+}
+function cleanLabel(s) {
+  const text6 = stripTags(entities(unquote(s)).replace(/<br\s*\/?>/gi, " "));
+  return text6.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+}
+var SPEC_ID = /^[A-Za-z0-9_][A-Za-z0-9_.-]*$/;
+function specIds(raw, fallback = "node", taken = []) {
+  const all = [...new Set(raw)];
+  const out = /* @__PURE__ */ new Map();
+  const used = new Set(taken);
+  for (const id of all) {
+    if (SPEC_ID.test(id) && !used.has(id)) {
+      out.set(id, id);
+      used.add(id);
+    }
+  }
+  for (const id of all) {
+    if (out.has(id)) continue;
+    const slug3 = id.normalize("NFKD").replace(new RegExp("\\p{M}+", "gu"), "").replace(/[^A-Za-z0-9_.-]+/g, "-");
+    let a = 0;
+    let b = slug3.length;
+    while (a < b && (slug3[a] === "-" || slug3[a] === ".")) a++;
+    while (b > a && slug3[b - 1] === "-") b--;
+    const base = slug3.slice(a, b) || fallback;
+    let unique2 = base;
+    for (let k = 2; used.has(unique2); k++) unique2 = `${base}-${k}`;
+    used.add(unique2);
+    out.set(id, unique2);
+  }
+  return out;
+}
+function writeSpec(doc, notes) {
+  const header2 = [
+    "# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/orrery/main/skills/orrery/references/diagram.schema.json",
+    ...notes.map((n4) => `# ${n4}`)
+  ];
+  return `${header2.join("\n")}
+${(0, import_yaml13.stringify)(doc, { lineWidth: 0 })}`;
+}
+
+// src/import/mermaid-er.ts
+var ENDS2 = {
+  "||": "1",
+  "|o": "0..1",
+  "o|": "0..1",
+  "}|": "1..n",
+  "|{": "1..n",
+  "}o": "0..n",
+  "o{": "0..n",
+  "only one": "1",
+  "1": "1",
+  "zero or one": "0..1",
+  "one or zero": "0..1",
+  "one or more": "1..n",
+  "one or many": "1..n",
+  "many(1)": "1..n",
+  "1+": "1..n",
+  "zero or more": "0..n",
+  "zero or many": "0..n",
+  "many(0)": "0..n",
+  "0+": "0..n"
+};
+var NAME3 = `("[^"]*"|[^\\s"{}[\\]|:]+)`;
+var SYMBOL = "(\\|\\||\\|o|o\\||\\}\\||\\|\\{|\\}o|o\\{)";
+var WORDS = "(only one|zero or one|one or zero|one or more|one or many|many\\(1\\)|1\\+|zero or more|zero or many|many\\(0\\)|0\\+|1)";
+var RELATION = new RegExp(`^${NAME3} ?${SYMBOL}(--|\\.\\.)${SYMBOL} ?${NAME3} ?: ?(.*)$`);
+var RELATION_WORDS = new RegExp(
+  `^${NAME3} ${WORDS} (to|optionally to) ${WORDS} ${NAME3} ?: ?(.*)$`,
+  "i"
+);
+var ENTITY2 = new RegExp(`^${NAME3}(?: ?\\[(.*)\\])?(?: ?(\\{) ?(\\})?)?$`);
+var KEYS = /* @__PURE__ */ new Set(["pk", "fk", "uk"]);
+var FLAGS = /* @__PURE__ */ new Set(["pk", "fk", "unique", "null"]);
+var DIRECTIONS3 = { LR: "right", RL: "left", TB: "down", BT: "up" };
+function importEr(body, frontTitle) {
+  const warnings = /* @__PURE__ */ new Set();
+  const entities2 = /* @__PURE__ */ new Map();
+  const relations2 = [];
+  let subtitle;
+  let direction;
+  let open;
+  const skipped = [];
+  const entity = (raw) => {
+    const name2 = unquote(raw);
+    let e = entities2.get(name2);
+    if (!e) {
+      e = { fields: [] };
+      entities2.set(name2, e);
+    }
+    return e;
+  };
+  for (const line2 of statements(body, (l) => [l])) {
+    if (open) {
+      if (line2 === "}") open = void 0;
+      else {
+        const field2 = attribute2(line2);
+        if (field2) open.fields.push(field2);
+        else skipped.push(line2);
+      }
+      continue;
+    }
+    if (/^erDiagram\b/i.test(line2)) continue;
+    const dir = line2.match(/^direction (TB|BT|LR|RL)$/i);
+    if (dir) {
+      direction = DIRECTIONS3[(dir[1] ?? "").toUpperCase()];
+      continue;
+    }
+    const descr = line2.match(/^accDescr ?: ?(.*)$/);
+    if (descr) {
+      subtitle = cleanLabel(descr[1] ?? "");
+      continue;
+    }
+    if (/^(accTitle|style|classDef|class)\b/.test(line2)) continue;
+    const rel2 = line2.match(RELATION);
+    const words2 = rel2 ? void 0 : line2.match(RELATION_WORDS);
+    if (rel2 || words2) {
+      const [, a = "", left = "", join21 = "", right = "", b = "", label2 = ""] = rel2 ?? [
+        words2?.[0],
+        words2?.[1],
+        words2?.[2]?.toLowerCase(),
+        words2?.[3]?.toLowerCase() === "to" ? "--" : "..",
+        words2?.[4]?.toLowerCase(),
+        words2?.[5],
+        words2?.[6]
+      ];
+      entity(a);
+      entity(b);
+      relations2.push({
+        from: unquote(a),
+        to: unquote(b),
+        card: `${ENDS2[left] ?? "0..n"}:${ENDS2[right] ?? "0..n"}`,
+        dashed: join21 === "..",
+        label: cleanLabel(label2)
+      });
+      continue;
+    }
+    const ent = line2.match(ENTITY2);
+    if (ent) {
+      const e = entity(ent[1] ?? "");
+      const alias = ent[2] === void 0 ? void 0 : cleanLabel(ent[2]);
+      if (alias) e.label = alias;
+      if (ent[3] && !ent[4]) open = e;
+      continue;
+    }
+    skipped.push(line2);
+  }
+  if (skipped.length)
+    warnings.add(`${skipped.length} line(s) not read, the first: ${skipped[0]?.slice(0, 60)}`);
+  if (!entities2.size) warnings.add("no entities found");
+  const ids3 = specIds(entities2.keys(), "entity");
+  const sid = (name2) => ids3.get(name2) ?? name2;
+  const nodes = {};
+  for (const [name2, e] of entities2) {
+    const label2 = e.label ?? (sid(name2) !== name2 ? cleanLabel(name2) : void 0);
+    nodes[sid(name2)] = {
+      ...label2 ? { label: label2 } : {},
+      ...e.fields.length ? { fields: e.fields.map(fieldEntry) } : {}
+    };
+  }
+  const edges = relations2.map((r6) => ({
+    [`${sid(r6.from)} ${r6.dashed ? "---" : "--"} ${sid(r6.to)}`]: {
+      card: r6.card,
+      ...r6.label ? { label: r6.label } : {}
+    }
+  }));
+  const doc = {};
+  if (frontTitle) doc.title = frontTitle;
+  if (subtitle) doc.subtitle = subtitle;
+  doc.kind = "er";
+  if (direction) doc.direction = direction;
+  doc.nodes = nodes;
+  doc.edges = edges;
+  if (relations2.some((r6) => r6.dashed)) doc.legend = { dashed: "Non-identifying relationship" };
+  const header2 = [
+    "Imported from a Mermaid erDiagram by orrery. Group related tables, mark foreign keys the",
+    "relationships join (from_field, to_field) and run orrery validate."
+  ];
+  return { yaml: writeSpec(doc, header2), warnings: [...warnings], guessed: {} };
+}
+function attribute2(line2) {
+  const quote = line2.indexOf('"');
+  const comment = quote < 0 ? "" : cleanLabel(line2.slice(quote));
+  const words2 = (quote < 0 ? line2 : line2.slice(0, quote)).replace(/,/g, " ").split(" ").filter(Boolean).map((w) => w.replace(/^`(.*)`$/, "$1"));
+  const [type, name2, ...keys] = words2;
+  if (!type || !name2) return void 0;
+  const has = (k) => keys.some((w) => w.toLowerCase() === k);
+  if (keys.some((w) => !KEYS.has(w.toLowerCase()))) return void 0;
+  const nullable = /^null\b/i.test(comment);
+  const note = (nullable ? comment.replace(/^null\b,? ?/i, "") : comment) || void 0;
+  return { name: name2, type, pk: has("pk"), fk: has("fk"), unique: has("uk"), nullable, note };
+}
+function fieldEntry(f) {
+  const plain3 = !f.note && ![f.name, f.type].some((w) => FLAGS.has(w.toLowerCase()) || /[\s"]/.test(w));
+  if (plain3) {
+    const flags = [f.pk && "pk", f.fk && "fk", f.unique && "unique", f.nullable && "null"];
+    return [f.name, f.type, ...flags.filter(Boolean)].join(" ");
+  }
+  return {
+    name: f.name,
+    type: f.type,
+    ...f.pk ? { pk: true } : {},
+    ...f.fk ? { fk: true } : {},
+    ...f.unique ? { unique: true } : {},
+    ...f.nullable ? { nullable: true } : {},
+    ...f.note ? { note: f.note } : {}
+  };
+}
+
+// src/import/mermaid-gantt.ts
+var DAY2 = 864e5;
+var TAGS = /* @__PURE__ */ new Set(["done", "active", "crit", "milestone", "vert"]);
+function importGantt(body, frontTitle) {
+  const warnings = /* @__PURE__ */ new Set();
+  const tasks = [];
+  const sections = [];
+  let title2 = frontTitle;
+  let subtitle;
+  let format = "YYYY-MM-DD";
+  let inclusive = false;
+  let tick;
+  let axis;
+  let section2;
+  const skipped = [];
+  for (const line2 of statements(body, (l) => [l])) {
+    const [word2 = "", ...words2] = line2.split(" ");
+    const rest = words2.join(" ");
+    const key = word2.toLowerCase();
+    if (key === "gantt") continue;
+    if (key === "title") title2 = cleanLabel(rest);
+    else if (key === "dateformat") format = rest;
+    else if (key === "inclusiveenddates") inclusive = true;
+    else if (key === "tickinterval") tick = rest;
+    else if (key === "axisformat") axis = rest;
+    else if (key === "section") {
+      section2 = cleanLabel(rest);
+      if (!sections.includes(section2)) sections.push(section2);
+    } else if (key === "excludes" || key === "includes")
+      warnings.add(`${key} is not applied: durations count every calendar day`);
+    else if (/^accdescr ?:/i.test(line2)) subtitle = cleanLabel(line2.replace(/^accDescr ?:/i, ""));
+    else if (/^(acctitle|todaymarker|weekday|weekend|topaxis|displaymode|click)\b/.test(key)) {
+    } else {
+      const colon = line2.indexOf(":");
+      if (colon <= 0) {
+        skipped.push(line2);
+        continue;
+      }
+      const data = line2.slice(colon + 1).split(",").map((d) => d.trim());
+      const tags = /* @__PURE__ */ new Set();
+      while (data.length > 1 && TAGS.has(data[0]?.toLowerCase() ?? "")) {
+        tags.add(data.shift()?.toLowerCase() ?? "");
+      }
+      const [id, start, end] = data.length >= 3 ? data : data.length === 2 ? [void 0, ...data] : [void 0, void 0, data[0]];
+      tasks.push({
+        label: cleanLabel(line2.slice(0, colon)),
+        section: section2,
+        tags,
+        id: id || ` task ${tasks.length + 1}`,
+        start: start || void 0,
+        end: end ?? ""
+      });
+    }
+  }
+  const parseDate = dateReader(format, warnings);
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  const index2 = new Map(tasks.map((t, i) => [t, i]));
+  const spans2 = /* @__PURE__ */ new Map();
+  const deps = /* @__PURE__ */ new Map();
+  const find = (t, id) => {
+    const other = byId.get(id);
+    if (!other) warnings.add(`task "${t.label}" names an unknown task "${id}"`);
+    return other;
+  };
+  const needs = /* @__PURE__ */ new Map();
+  for (const t of tasks) {
+    const after = t.start?.match(/^after (.+)$/i);
+    const until = t.end.match(/^until (.+)$/i);
+    const named2 = after ? (after[1] ?? "").split(" ").filter(Boolean) : void 0;
+    const need = {
+      after: named2?.map((n4) => find(t, n4)).filter((x2) => !!x2),
+      until: until ? find(t, (until[1] ?? "").trim()) : void 0,
+      before: t.start ? void 0 : tasks[(index2.get(t) ?? 0) - 1]
+    };
+    if (need.after) deps.set(t, need.after);
+    needs.set(t, need);
+  }
+  const place2 = (t) => {
+    const need = needs.get(t) ?? {};
+    let start;
+    if (need.after) {
+      const ends3 = need.after.map((x2) => spans2.get(x2)).filter((s) => !!s);
+      if (ends3.length) start = Math.max(...ends3.map((s) => s.end + 1));
+      else warnings.add(`task "${t.label}" waits only on tasks with no dates`);
+    } else if (t.start) {
+      start = parseDate(t.start);
+      if (start === void 0)
+        warnings.add(`task "${t.label}" has a start "${t.start}" not in ${format}`);
+    } else {
+      const prev = need.before ? spans2.get(need.before) : void 0;
+      if (prev) start = prev.end + 1;
+      else warnings.add(`task "${t.label}" has no start date`);
+    }
+    if (start === void 0) return void 0;
+    const last = /^until /i.test(t.end) ? ((need.until && spans2.get(need.until)?.start) ?? start) - 1 : endOf4(t.end, start, inclusive, parseDate);
+    if (last !== void 0) return { start, end: Math.max(start - 1, last) };
+    warnings.add(`task "${t.label}" has an end "${t.end}" that is not a date or duration`);
+    return void 0;
+  };
+  const waiting2 = /* @__PURE__ */ new Set();
+  for (const root of tasks) {
+    const stack = [root];
+    while (stack.length) {
+      const t = stack[stack.length - 1];
+      if (spans2.has(t)) {
+        stack.pop();
+        continue;
+      }
+      if (!waiting2.has(t)) {
+        waiting2.add(t);
+        const need = needs.get(t) ?? {};
+        const open = [...need.after ?? [], need.until, need.before].filter(
+          (x2) => !!x2 && !spans2.has(x2)
+        );
+        if (open.some((x2) => waiting2.has(x2)))
+          warnings.add(`task "${t.label}" waits on itself through after or until`);
+        const todo = open.filter((x2) => !waiting2.has(x2));
+        if (todo.length) {
+          stack.push(...todo);
+          continue;
+        }
+      }
+      spans2.set(t, place2(t));
+      waiting2.delete(t);
+      stack.pop();
+    }
+  }
+  const placed = tasks.filter((t) => spans2.get(t));
+  const taskIds = specIds(
+    placed.map((t) => t.id),
+    "task"
+  );
+  const tid = (t) => taskIds.get(t.id) ?? t.id;
+  const laneIds = specIds(
+    sections.map((s) => s.toLowerCase()),
+    "lane",
+    new Set(taskIds.values())
+  );
+  const lane = (s) => laneIds.get(s.toLowerCase()) ?? s;
+  const nodes = {};
+  for (const t of placed) {
+    const span2 = spans2.get(t);
+    if (!span2) continue;
+    const point3 = span2.end < span2.start || t.tags.has("milestone") || t.tags.has("vert");
+    const status = t.tags.has("done") ? "done" : t.tags.has("crit") ? "at-risk" : t.tags.has("active") ? "active" : void 0;
+    nodes[tid(t)] = {
+      label: t.label || t.id.trim(),
+      ...point3 ? {
+        date: iso2(span2.start),
+        ...t.tags.has("milestone") || t.tags.has("vert") ? { milestone: true } : {}
+      } : { start: iso2(span2.start), end: iso2(span2.end) },
+      ...t.section ? { in: lane(t.section) } : {},
+      ...status ? { status } : {}
+    };
+  }
+  const edges = [];
+  for (const [t, before] of deps)
+    for (const b of before) if (spans2.get(t) && spans2.get(b)) edges.push(`${tid(b)} -> ${tid(t)}`);
+  if (!tasks.length) warnings.add("no tasks found");
+  if (skipped.length)
+    warnings.add(`${skipped.length} line(s) not read, the first: ${skipped[0]?.slice(0, 60)}`);
+  const all = [...spans2.values()].filter((s) => !!s);
+  const scale = scaleOf3(tick, axis, all);
+  const doc = {};
+  if (title2) doc.title = title2;
+  if (subtitle) doc.subtitle = subtitle;
+  doc.kind = "timeline";
+  if (scale) doc.timeline = { scale };
+  const lanes = sections.filter((s) => placed.some((t) => t.section === s));
+  if (lanes.length) doc.groups = Object.fromEntries(lanes.map((s) => [lane(s), { label: s }]));
+  doc.nodes = nodes;
+  doc.edges = edges;
+  const header2 = [
+    "Imported from a Mermaid gantt by orrery. End dates are the last day of each item;",
+    "check timeline.scale and run orrery validate."
+  ];
+  return { yaml: writeSpec(doc, header2), warnings: [...warnings], guessed: {} };
+}
+function endOf4(text6, start, inclusive, parseDate) {
+  const d = text6.match(/^(\d+(?:\.\d+)?) ?(ms|[smhdwMy])$/);
+  if (d) {
+    const n4 = Number(d[1]);
+    const unit = d[2] ?? "d";
+    if (unit === "M" || unit === "y") {
+      const at2 = new Date(start * DAY2);
+      const months = unit === "M" ? n4 : n4 * 12;
+      return Date.UTC(at2.getUTCFullYear(), at2.getUTCMonth() + months, at2.getUTCDate()) / DAY2 - 1;
+    }
+    const days = { ms: 1 / DAY2, s: 1 / 86400, m: 1 / 1440, h: 1 / 24, d: 1, w: 7 }[unit] ?? 1;
+    return start + Math.ceil(n4 * days) - 1;
+  }
+  const date = parseDate(text6);
+  if (date === void 0) return void 0;
+  return inclusive ? date : date - 1;
+}
+function dateReader(format, warnings) {
+  const parts = [];
+  const order2 = [];
+  let known2 = true;
+  for (const [token] of format.matchAll(
+    /YYYY|YY|SSS|MM|DD|HH|hh|mm|ss|[MDHhms]|[A-Za-z]+|[^A-Za-z]+/g
+  )) {
+    if (/^(YYYY|YY|MM|M|DD|D)$/.test(token)) {
+      parts.push(token === "YYYY" ? "(\\d{4})" : token === "YY" ? "(\\d{2})" : "(\\d{1,2})");
+      order2.push(token[0] ?? "");
+    } else if (/^(HH|hh|mm|ss|SSS|H|h|m|s)$/.test(token)) parts.push("\\d{1,3}");
+    else if (/^[A-Za-z]/.test(token)) known2 = false;
+    else parts.push(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  }
+  if (!known2 || !order2.includes("Y") || !order2.includes("M")) {
+    warnings.add(`dateFormat ${format} is not read; dates are read as YYYY-MM-DD`);
+    return dateReader("YYYY-MM-DD", /* @__PURE__ */ new Set());
+  }
+  const re = new RegExp(`^${parts.join("")}$`);
+  return (s) => {
+    const m = s.trim().match(re);
+    if (!m) return void 0;
+    const value2 = (c) => Number(m[order2.indexOf(c) + 1] ?? 1);
+    let year = value2("Y");
+    if (year < 100) year += 2e3;
+    const month = value2("M");
+    const day = order2.includes("D") ? value2("D") : 1;
+    const time = Date.UTC(year, month - 1, day);
+    const back = new Date(time);
+    if (back.getUTCMonth() !== month - 1 || back.getUTCDate() !== day) return void 0;
+    return time / DAY2;
+  };
+}
+var iso2 = (day) => new Date(day * DAY2).toISOString().slice(0, 10);
+function scaleOf3(tick, axis, spans2) {
+  const t = tick?.match(/^(\d+)(millisecond|second|minute|hour|day|week|month)$/);
+  if (t) {
+    const n4 = Number(t[1]);
+    if (t[2] === "week") return "week";
+    if (t[2] === "month") return n4 >= 12 ? "year" : n4 >= 3 ? "quarter" : "month";
+    return "day";
+  }
+  if (axis?.trim() === "%Y") return "year";
+  if (!spans2.length) return void 0;
+  const days = Math.max(...spans2.map((s) => s.end)) - Math.min(...spans2.map((s) => s.start)) + 1;
+  if (days <= 31) return "day";
+  if (days <= 120) return "week";
+  if (days <= 730) return "month";
+  return days <= 2190 ? "quarter" : "year";
+}
+
+// src/import/mermaid-sequence.ts
+var ARROWS2 = ["<<-->>", "<<->>", "-->>", "->>", "--x", "-x", "--)", "-)", "-->", "->"];
+function arrowOf2(head2) {
+  for (let i = head2.indexOf("-"); i >= 0; i = head2.indexOf("-", i + 1)) {
+    for (const at2 of i >= 2 && head2.startsWith("<<", i - 2) ? [i - 2, i] : [i]) {
+      const text6 = ARROWS2.find((a) => head2.startsWith(a, at2));
+      if (text6) return { index: at2, text: text6 };
+    }
+  }
+  return void 0;
+}
+var EDGE3 = {
+  "->>": "->",
+  "-->>": "-->",
+  "->": "--",
+  "-->": "---",
+  "-x": "->",
+  "--x": "-->",
+  "-)": "..>",
+  "--)": "..>",
+  "<<->>": "<->",
+  "<<-->>": "<-->"
+};
+var FRAGMENTS = /* @__PURE__ */ new Set(["loop", "alt", "opt", "par", "break", "critical"]);
+var BOX_COLOR = /^(?:transparent|(?:rgba?|hsla?)\([^)]*\)|aqua|black|blue|brown|coral|cyan|fuchsia|gold|gray|grey|green|indigo|khaki|lavender|lightblue|lightgray|lightgreen|lightgrey|lightyellow|lime|magenta|maroon|navy|olive|orange|pink|purple|red|salmon|silver|teal|violet|white|yellow)(?: |$)/i;
+var TYPE_SHAPE = {
+  actor: "person",
+  database: "cylinder",
+  queue: "queue",
+  collections: "stack"
+};
+function importSequence(body, frontTitle) {
+  const warnings = /* @__PURE__ */ new Set();
+  const participants2 = /* @__PURE__ */ new Map();
+  const groups = [];
+  const messages2 = [];
+  const fragments = [];
+  const stack = [];
+  let title2 = frontTitle;
+  let subtitle;
+  let box2;
+  let notes = 0;
+  const skipped = [];
+  let next = 1;
+  let increment = 1;
+  let numbered = false;
+  const participant = (id) => {
+    let p = participants2.get(id);
+    if (!p) {
+      p = box2 ? { group: box2 } : {};
+      participants2.set(id, p);
+    }
+    return p;
+  };
+  for (const line2 of statements(body, semicolons)) {
+    const word2 = (line2.match(/^[A-Za-z]+/)?.[0] ?? "").toLowerCase();
+    const rest = line2.slice(word2.length).trim();
+    if (/^sequenceDiagram\b/i.test(line2)) continue;
+    const declared2 = line2.match(/^(?:create )?(participant|actor) (.+?)(?: as (.+))?$/i);
+    if (declared2) {
+      const [, keyword = "", named2 = ""] = declared2;
+      const data = named2.endsWith("}") ? named2.indexOf("@{") : -1;
+      const p = participant((data < 0 ? named2 : named2.slice(0, data)).trim());
+      const type = named2.match(/"type" ?: ?"(\w+)"/)?.[1]?.toLowerCase();
+      const shape = TYPE_SHAPE[keyword.toLowerCase() === "actor" ? "actor" : type ?? ""];
+      if (shape) p.shape = shape;
+      if (declared2[3]) p.label = cleanLabel(declared2[3]);
+      continue;
+    }
+    if (word2 === "box") {
+      const id = uniqueId("box", groups.length + 1, participants2);
+      const label2 = cleanLabel(rest.replace(BOX_COLOR, ""));
+      groups.push({ id, label: label2 });
+      box2 = id;
+      stack.push({ type: "box", label: label2, from: 0, else: [] });
+      continue;
+    }
+    if (FRAGMENTS.has(word2) || word2 === "rect") {
+      stack.push({ type: word2, label: cleanLabel(rest), from: messages2.length + 1, else: [] });
+      continue;
+    }
+    if (word2 === "else" || word2 === "and" || word2 === "option") {
+      const frame2 = stack[stack.length - 1];
+      const fits3 = word2 === "else" && frame2?.type === "alt" || word2 === "and" && frame2?.type === "par";
+      if (frame2 && fits3) frame2.else.push({ at: messages2.length + 1, label: cleanLabel(rest) });
+      else
+        warnings.add(
+          `"${word2}" branches outside alt and par are left out (orrery has no branches there)`
+        );
+      continue;
+    }
+    if (word2 === "end" && !rest) {
+      const frame2 = stack.pop();
+      if (frame2?.type === "box") box2 = void 0;
+      else if (frame2 && FRAGMENTS.has(frame2.type))
+        closeFragment(frame2, messages2.length, fragments, warnings);
+      continue;
+    }
+    if (word2 === "note") {
+      notes++;
+      continue;
+    }
+    if (word2 === "autonumber") {
+      const [start, step] = rest.split(" ");
+      if (start?.toLowerCase() === "off") numbered = false;
+      else {
+        numbered = true;
+        if (start && Number.isInteger(Number(start))) next = Number(start);
+        if (step && Number.isInteger(Number(step))) increment = Number(step);
+      }
+      continue;
+    }
+    if (word2 === "title") {
+      title2 = cleanLabel(rest.replace(/^:/, ""));
+      continue;
+    }
+    if (word2 === "accdescr" && rest.startsWith(":")) {
+      subtitle = cleanLabel(rest.slice(1));
+      continue;
+    }
+    if (/^(activate|deactivate|destroy|acctitle|accdescr|links?|properties|details)$/.test(word2))
+      continue;
+    const colon = line2.indexOf(":");
+    const head2 = colon < 0 ? line2 : line2.slice(0, colon);
+    const arrow2 = arrowOf2(head2);
+    const from2 = arrow2 ? head2.slice(0, arrow2.index).trim() : "";
+    const to = arrow2 ? head2.slice(arrow2.index + arrow2.text.length).replace(/^ ?[+-]/, "").trim() : "";
+    if (!arrow2 || !from2 || !to) {
+      skipped.push(line2);
+      continue;
+    }
+    participant(from2);
+    participant(to);
+    if (arrow2.text.endsWith("x"))
+      warnings.add("lost messages (-x) are drawn with a plain arrowhead");
+    messages2.push({
+      from: from2,
+      to,
+      op: EDGE3[arrow2.text] ?? "->",
+      label: colon < 0 ? "" : cleanLabel(line2.slice(colon + 1)),
+      step: numbered ? next : void 0
+    });
+    next += increment;
+  }
+  while (stack.length) {
+    const frame2 = stack.pop();
+    if (frame2 && FRAGMENTS.has(frame2.type))
+      closeFragment(frame2, messages2.length, fragments, warnings);
+  }
+  if (notes) warnings.add(`${notes} note(s) left out: a sequence spec has no notes`);
+  if (skipped.length)
+    warnings.add(`${skipped.length} line(s) not read, the first: ${skipped[0]?.slice(0, 60)}`);
+  if (!participants2.size) warnings.add("no participants or messages found");
+  const ids3 = specIds([...participants2.keys()], "p");
+  const sid = (id) => ids3.get(id) ?? id;
+  const nodes = {};
+  for (const [id, p] of participants2) {
+    const label2 = p.label ?? (sid(id) !== id ? cleanLabel(id) : void 0);
+    nodes[sid(id)] = {
+      ...label2 ? { label: label2 } : {},
+      ...p.shape ? { shape: p.shape } : {},
+      ...p.group ? { in: p.group } : {}
+    };
+  }
+  const edges = messages2.map((m) => {
+    const key = `${sid(m.from)} ${m.op} ${sid(m.to)}`;
+    if (m.step === void 0) return m.label ? `${key}: ${m.label}` : key;
+    return { [key]: { ...m.label ? { label: m.label } : {}, step: m.step } };
+  });
+  const doc = {};
+  if (title2) doc.title = title2;
+  if (subtitle) doc.subtitle = subtitle;
+  doc.kind = "sequence";
+  const used = groups.filter((g) => [...participants2.values()].some((p) => p.group === g.id));
+  if (used.length)
+    doc.groups = Object.fromEntries(used.map((g) => [g.id, g.label ? { label: g.label } : {}]));
+  doc.nodes = nodes;
+  doc.edges = edges;
+  if (fragments.length) {
+    doc.fragments = fragments.sort((a, b) => a.from - b.from || b.to - a.to).map((f) => ({
+      type: f.type,
+      ...f.label ? { label: f.label } : {},
+      from: f.from,
+      to: f.to,
+      ...f.else.length ? { else: f.else.map((e) => ({ at: e.at, ...e.label ? { label: e.label } : {} })) } : {}
+    }));
+  }
+  const header2 = [
+    "Imported from a Mermaid sequenceDiagram by orrery. Add icons to the participants",
+    "(orrery icons search <words>) and run orrery validate."
+  ];
+  return { yaml: writeSpec(doc, header2), warnings: [...warnings], guessed: {} };
+}
+function closeFragment(frame2, last, out, warnings) {
+  if (last < frame2.from) {
+    warnings.add(`an empty ${frame2.type} block is left out`);
+    return;
+  }
+  const branches = [];
+  for (const b of frame2.else) {
+    const before = branches[branches.length - 1]?.at ?? frame2.from;
+    if (b.at > before && b.at <= last) branches.push(b);
+    else warnings.add(`an empty branch of ${frame2.type} "${frame2.label}" is left out`);
+  }
+  out.push({ type: frame2.type, label: frame2.label, from: frame2.from, to: last, else: branches });
+}
+function uniqueId(base, start, taken) {
+  let k = start;
+  while (taken.has(`${base}-${k}`)) k++;
+  return `${base}-${k}`;
+}
+
+// src/import/mermaid-state.ts
+var DIRECTIONS4 = { LR: "right", RL: "left", TB: "down", BT: "up" };
+var SHAPE = {
+  state: "state",
+  initial: "initial",
+  final: "final",
+  choice: "diamond",
+  bar: "state"
+};
+var TRANSITION = /^([^\s:]+) ?--> ?([^\s:]+)(?: ?: ?(.*))?$/;
+var STATE = /^state (?:"([^"]*)" as )?([^\s{:"]+)(?: (<<\w+>>))?(?: ?(\{))?$/;
+var DESCRIPTION = /^([^\s:"]+) ?: ?(.*)$/;
+function importState(body, frontTitle) {
+  const warnings = /* @__PURE__ */ new Set();
+  const states = /* @__PURE__ */ new Map();
+  const groups = /* @__PURE__ */ new Map();
+  const transitions = [];
+  const scope2 = [];
+  let direction = "down";
+  let subtitle;
+  let inNote = false;
+  let notes = 0;
+  const skipped = [];
+  const here2 = () => scope2[scope2.length - 1];
+  const state = (id) => {
+    let s = states.get(id);
+    if (!s && !groups.has(id)) {
+      s = { kind: "state", parent: here2() };
+      states.set(id, s);
+    }
+    return s;
+  };
+  const end = (ref, as) => {
+    if (ref !== "[*]") {
+      state(ref);
+      return ref;
+    }
+    const id = `${here2() ? `${here2()} ` : ""}[*]${as === "initial" ? "start" : "end"}`;
+    if (!states.has(id)) states.set(id, { kind: as, parent: here2() });
+    return id;
+  };
+  for (const raw of statements(body, (l) => [l])) {
+    const line2 = raw.replace(/:::[\w-]+/g, "");
+    if (inNote) {
+      inNote = !/^end note$/i.test(line2);
+      continue;
+    }
+    if (/^stateDiagram(-v2)?\b/i.test(line2)) continue;
+    if (/^note /i.test(line2)) {
+      notes++;
+      inNote = !line2.includes(":");
+      continue;
+    }
+    const dir = line2.match(/^direction (TB|BT|LR|RL)$/i);
+    if (dir) {
+      if (!scope2.length) direction = DIRECTIONS4[(dir[1] ?? "").toUpperCase()] ?? direction;
+      continue;
+    }
+    const descr = line2.match(/^accDescr ?: ?(.*)$/);
+    if (descr) {
+      subtitle = cleanLabel(descr[1] ?? "");
+      continue;
+    }
+    if (/^(accTitle|classDef|class|style)\b/.test(line2)) continue;
+    if (line2 === "}") {
+      scope2.pop();
+      continue;
+    }
+    if (line2 === "--") {
+      warnings.add("concurrent regions (--) are drawn as one region");
+      continue;
+    }
+    const t = line2.match(TRANSITION);
+    if (t) {
+      const from2 = end(t[1] ?? "", "initial");
+      const to = end(t[2] ?? "", "final");
+      transitions.push({ from: from2, to, label: cleanLabel(t[3] ?? "") });
+      continue;
+    }
+    const s = line2.match(STATE);
+    if (s) {
+      const [, label2, id = "", stereo, open] = s;
+      if (open) {
+        const known2 = states.get(id);
+        states.delete(id);
+        const g = groups.get(id) ?? { label: known2?.label, parent: known2?.parent ?? here2() };
+        if (label2) g.label = cleanLabel(label2);
+        groups.set(id, g);
+        scope2.push(id);
+        continue;
+      }
+      const st = state(id);
+      if (st && label2) st.label = cleanLabel(label2);
+      if (st && stereo === "<<choice>>") st.kind = "choice";
+      else if (st && (stereo === "<<fork>>" || stereo === "<<join>>")) {
+        st.kind = "bar";
+        warnings.add("fork and join bars are drawn as states");
+      }
+      continue;
+    }
+    const d = line2.match(DESCRIPTION);
+    if (d) {
+      const id = d[1] ?? "";
+      const text6 = cleanLabel(d[2] ?? "");
+      const g = groups.get(id);
+      const target = g ?? state(id);
+      if (target) target.label = target.label ? `${target.label} ${text6}` : text6;
+      continue;
+    }
+    if (/^[^\s:"{}]+$/.test(line2)) {
+      state(line2);
+      continue;
+    }
+    skipped.push(line2);
+  }
+  if (notes) warnings.add(`${notes} note(s) left out: a state spec has no notes`);
+  if (skipped.length)
+    warnings.add(`${skipped.length} line(s) not read, the first: ${skipped[0]?.slice(0, 60)}`);
+  if (!states.size) warnings.add("no states found");
+  const ids3 = specIds([...groups.keys(), ...states.keys()], "state");
+  const sid = (id) => ids3.get(id) ?? id;
+  const doc = {};
+  if (frontTitle) doc.title = frontTitle;
+  if (subtitle) doc.subtitle = subtitle;
+  doc.kind = "state";
+  doc.direction = direction;
+  if (groups.size) {
+    doc.groups = Object.fromEntries(
+      [...groups].map(([id, g]) => [
+        sid(id),
+        {
+          type: "zone",
+          label: g.label || id,
+          ...g.parent ? { in: sid(g.parent) } : {}
+        }
+      ])
+    );
+  }
+  doc.nodes = Object.fromEntries(
+    [...states].map(([id, s]) => {
+      const pseudo = s.kind === "initial" || s.kind === "final";
+      const label2 = s.label || (pseudo || sid(id) === id ? void 0 : id);
+      return [
+        sid(id),
+        {
+          shape: SHAPE[s.kind],
+          ...label2 ? { label: label2 } : {},
+          ...s.parent ? { in: sid(s.parent) } : {}
+        }
+      ];
+    })
+  );
+  doc.edges = transitions.map(
+    (t) => `${sid(t.from)} -> ${sid(t.to)}${t.label ? `: ${t.label}` : ""}`
+  );
+  const header2 = [
+    "Imported from a Mermaid stateDiagram by orrery. Write transitions as event [guard] / action",
+    "and run orrery validate."
+  ];
+  return { yaml: writeSpec(doc, header2), warnings: [...warnings], guessed: {} };
+}
+
+// src/import/mermaid.ts
+var DIRECTIONS5 = {
   LR: "right",
   RL: "left",
   TB: "down",
@@ -41851,8 +44468,35 @@ var SHAPES2 = [
   ["{", "}", "diamond"],
   [">", "]", "note"]
 ];
-var ID = "[A-Za-z0-9_][A-Za-z0-9_.-]*";
-var FRONTMATTER = /^\s*---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;
+var NAMED_SHAPES = {};
+for (const [kind, names2] of [
+  ["box", "rect rectangle process proc fr-rect subprocess subproc subroutine framed-rectangle"],
+  ["box", "lean-r lean-right in-out lean-l lean-left out-in trap-b trapezoid-bottom priority"],
+  ["box", "trap-t trapezoid-top manual notch-rect card notched-rectangle lin-rect lined-rectangle"],
+  ["box", "lined-process shaded-process div-rect div-proc divided-rectangle divided-process"],
+  ["box", "win-pane internal-storage window-pane sl-rect manual-input sloped-rectangle"],
+  ["box", "tag-rect tag-proc tagged-rectangle tagged-process notch-pent loop-limit"],
+  ["box", "notched-pentagon curv-trap curved-trapezoid display bow-rect stored-data"],
+  ["box", "bow-tie-rectangle text flag paper-tape"],
+  ["rounded", "rounded event"],
+  ["pill", "stadium pill terminal"],
+  ["cylinder", "cyl cylinder database db das h-cyl horizontal-cylinder lin-cyl disk"],
+  ["cylinder", "lined-cylinder"],
+  ["circle", "circle circ start sm-circ small-circle dbl-circ double-circle stop"],
+  ["circle", "fr-circ framed-circle f-circ filled-circle junction cross-circ crossed-circle"],
+  ["circle", "summary"],
+  ["diamond", "diam diamond decision question"],
+  ["hexagon", "hex hexagon prepare"],
+  ["note", "odd asymmetric"],
+  ["document", "doc document lin-doc lined-document tag-doc tagged-document"],
+  ["stack", "docs documents st-doc stacked-document st-rect stacked-rectangle multi-process"],
+  ["delay", "delay half-rounded-rectangle"]
+])
+  for (const name2 of names2.split(" ")) NAMED_SHAPES[name2] = kind;
+var ID = "[\\p{L}\\p{N}_][\\p{L}\\p{N}_.-]*";
+var NODE = new RegExp(`^(${ID})(.*)$`, "u");
+var SUBGRAPH = new RegExp(`^(${ID}) ?\\[(.+)\\]$`, "u");
+var BARE_ID = new RegExp(`^${ID}$`, "u");
 function splitStatements(line2) {
   const out = [];
   let depth = 0;
@@ -41876,20 +44520,6 @@ function splitStatements(line2) {
   out.push(line2.slice(start));
   return out;
 }
-function unquote(s) {
-  const t = s.trim();
-  if (t.startsWith('"') && t.endsWith('"') || t.startsWith("'") && t.endsWith("'"))
-    return t.slice(1, -1);
-  return t;
-}
-function cleanLabel(s) {
-  let text6 = unquote(s).replace(/<br\s*\/?>/gi, " ");
-  for (let prev = ""; prev !== text6; ) {
-    prev = text6;
-    text6 = text6.replace(/<[^<>]*>/g, "");
-  }
-  return text6.replace(/[<>]/g, "").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
-}
 function maskNodeText(line2) {
   let out = "";
   let depth = 0;
@@ -41910,22 +44540,34 @@ function maskNodeText(line2) {
   }
   return out;
 }
-function readNodes(chunk2, nodes, mentioned) {
+function readNodes(chunk2, nodes, warnings, mentioned) {
   const ids3 = [];
-  for (const part of chunk2.split(/\s+&\s+/)) {
+  const masked = maskNodeText(chunk2);
+  const parts = [];
+  let start = 0;
+  for (let i = masked.indexOf("&"); i >= 0; i = masked.indexOf("&", i + 1)) {
+    parts.push(chunk2.slice(start, i));
+    start = i + 1;
+  }
+  parts.push(chunk2.slice(start));
+  for (const part of parts) {
     const text6 = part.trim();
     if (!text6) continue;
-    const m = text6.match(new RegExp(`^(${ID})(.*)$`));
+    const m = text6.match(NODE);
     if (!m) continue;
     const id = m[1] ?? "";
     const rest = (m[2] ?? "").trim().replace(/:::\w+$/, "");
     let label2;
     let shape;
-    for (const [open, close, kind] of SHAPES2) {
-      if (rest.startsWith(open) && rest.endsWith(close) && rest.length >= open.length + close.length) {
-        label2 = cleanLabel(rest.slice(open.length, rest.length - close.length));
-        shape = kind;
-        break;
+    if (rest.startsWith("@{") && rest.endsWith("}")) {
+      ({ label: label2, shape } = shapeData(rest.slice(1), warnings));
+    } else {
+      for (const [open, close, kind] of SHAPES2) {
+        if (rest.startsWith(open) && rest.endsWith(close) && rest.length >= open.length + close.length) {
+          label2 = cleanLabel(rest.slice(open.length, rest.length - close.length));
+          shape = kind;
+          break;
+        }
       }
     }
     const existing = nodes.get(id);
@@ -41938,9 +44580,42 @@ function readNodes(chunk2, nodes, mentioned) {
   }
   return ids3;
 }
-var EDGE_RE = /\s*--\s+(?<solid>[^-\s][^>]*?)\s+-{2,}(?<solidHead>>)?\s*|\s*==\s+(?<thick>[^=\s][^>]*?)\s+={2,}(?<thickHead>>)?\s*|\s*-\.\s+(?<dotted>[^.\s][^>]*?)\s+\.-(?<dottedHead>>)?\s*|\s*(?<back><)?(?<body>-{2,}|={2,}|-\.+-|-\.+)(?<head>>|o|x)?(?:\|(?<pipe>[^|]*)\|)?\s*/dg;
+function shapeData(text6, warnings) {
+  let data;
+  try {
+    data = (0, import_yaml14.parse)(text6);
+  } catch {
+    warnings.add(`could not read the shape data ${text6.slice(0, 40)}; the node keeps its id`);
+    return {};
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) return {};
+  const { label: label2, shape } = data;
+  const name2 = typeof shape === "string" ? shape.trim().toLowerCase() : void 0;
+  const kind = name2 && Object.hasOwn(NAMED_SHAPES, name2) ? NAMED_SHAPES[name2] : void 0;
+  if (name2 && !kind) warnings.add(`shape "${name2}" has no orrery shape; drawn rounded`);
+  const labelText = typeof label2 === "string" || typeof label2 === "number" ? String(label2) : "";
+  return { label: cleanLabel(labelText) || void 0, shape: kind };
+}
+var EDGE_RE = /--\s+(?<solid>[^-\s](?:[^->]|-(?!-))*?)\s+-{2,}(?<solidHead>>)?|==\s+(?<thick>[^=\s](?:[^=>]|=(?!=))*?)\s+={2,}(?<thickHead>>)?|-\.\s+(?<dotted>[^.\s](?:[^.>-]|\.(?!-)|-(?!\.))*?)\s+\.-(?<dottedHead>>)?|(?<back><)?(?<body>-{2,}|={2,}|-\.+-|-\.+)(?<head>>|o|x)?(?:\|(?<pipe>[^|]*)\|)?/dg;
 function importMermaid(source) {
-  const warnings = [];
+  const { title: title2, body } = frontmatter(source);
+  const first = statements(body, (l) => [l]).find((l) => l !== "---" && !/^title:/.test(l)) ?? "";
+  if (/^(flowchart|graph)\b/i.test(first)) return importFlowchart(body, title2);
+  if (/^sequenceDiagram\b/i.test(first)) return importSequence(body, title2);
+  if (/^erDiagram\b/i.test(first)) return importEr(body, title2);
+  if (/^stateDiagram(-v2)?\b/i.test(first)) return importState(body, title2);
+  if (/^gantt\b/i.test(first)) return importGantt(body, title2);
+  const kind = first.split(" ")[0] || "empty input";
+  return {
+    yaml: writeSpec({ ...title2 ? { title: title2 } : {}, nodes: {}, edges: [] }, []),
+    warnings: [
+      `only flowchart, graph, sequenceDiagram, erDiagram, stateDiagram and gantt diagrams can be imported; this is ${kind}`
+    ],
+    guessed: {}
+  };
+}
+function importFlowchart(body, frontTitle) {
+  const warnings = /* @__PURE__ */ new Set();
   const nodes = /* @__PURE__ */ new Map();
   const groups = [];
   const edges = [];
@@ -41954,39 +44629,26 @@ function importMermaid(source) {
     }
   };
   let direction = "right";
-  let title2;
-  const front = source.match(FRONTMATTER);
-  if (front) {
-    const frontTitle = (front[1] ?? "").match(/^title:[ \t]*(.+)$/m);
-    if (frontTitle) title2 = cleanLabel(frontTitle[1] ?? "");
-  }
-  const lines2 = (front ? source.slice(front[0].length) : source).replace(/%%.*$/gm, "").split(/\r?\n/).flatMap(splitStatements).map((l) => l.trim()).filter(Boolean);
-  const first = lines2.find((l) => l !== "---" && !/^title:/.test(l)) ?? "";
-  if (!/^(flowchart|graph)\b/i.test(first)) {
-    const kind = first.split(/\s/)[0] || "empty input";
-    warnings.push(`only flowchart and graph diagrams can be imported; this is ${kind}`);
-    lines2.length = 0;
-  }
-  for (const line2 of lines2) {
-    const head2 = line2.match(/^(flowchart|graph)\s*(LR|RL|TB|TD|BT)?/i);
+  let title2 = frontTitle;
+  for (const line2 of statements(body, splitStatements)) {
+    const head2 = line2.match(/^(flowchart|graph) ?(LR|RL|TB|TD|BT)?/i);
     if (head2) {
-      direction = DIRECTIONS3[(head2[2] ?? "TB").toUpperCase()] ?? "down";
+      direction = DIRECTIONS5[(head2[2] ?? "TB").toUpperCase()] ?? "down";
       continue;
     }
     if (/^---$/.test(line2)) continue;
-    const titleLine = line2.match(/^title:\s*(.+)$/);
+    const titleLine = line2.match(/^title: ?(.+)$/);
     if (titleLine) {
       title2 = cleanLabel(titleLine[1] ?? "");
       continue;
     }
     if (/^(classDef|class|style|linkStyle|click|direction|accTitle|accDescr)\b/.test(line2))
       continue;
-    const sub = line2.match(/^subgraph\s+(.+)$/);
+    const sub = line2.match(/^subgraph (.+)$/);
     if (sub) {
       const rest = (sub[1] ?? "").trim();
-      const withLabel = rest.match(new RegExp(`^(${ID})\\s*\\[(.+)\\]$`));
-      const bareId = new RegExp(`^${ID}$`).test(rest);
-      const id = withLabel?.[1] ?? (bareId ? rest : `group-${groups.length + 1}`);
+      const withLabel = rest.match(SUBGRAPH);
+      const id = withLabel?.[1] ?? (BARE_ID.test(rest) ? rest : `group-${groups.length + 1}`);
       const label2 = cleanLabel(withLabel?.[2] ?? rest);
       groups.push({ id, label: label2, parent: stack[stack.length - 1] });
       stack.push(id);
@@ -42007,11 +44669,11 @@ function importMermaid(source) {
         return range3 ? line2.slice(range3[0], range3[1]) : void 0;
       };
       const [solid, thick, dotted] = [at2("solid"), at2("thick"), at2("dotted")];
-      const body = at2("body") ?? "";
+      const body2 = at2("body") ?? "";
       const text6 = at2("pipe") ?? solid ?? thick ?? dotted;
       let lineStyle2 = "solid";
-      if (thick !== void 0 || body.startsWith("=")) lineStyle2 = "thick";
-      else if (dotted !== void 0 || body.includes(".")) lineStyle2 = "dotted";
+      if (thick !== void 0 || body2.startsWith("=")) lineStyle2 = "thick";
+      else if (dotted !== void 0 || body2.includes(".")) lineStyle2 = "dotted";
       const hasHead = at2("head") === ">" || at2("solidHead") !== void 0 || at2("thickHead") !== void 0 || at2("dottedHead") !== void 0;
       const lt = at2("back");
       parts.push({
@@ -42025,7 +44687,7 @@ function importMermaid(source) {
     }
     parts.push(line2.slice(last));
     if (parts.length === 1) {
-      readNodes(line2, nodes, mentioned);
+      readNodes(line2, nodes, warnings, mentioned);
       continue;
     }
     for (let i = 0; i + 2 < parts.length; i += 2) {
@@ -42033,70 +44695,88 @@ function importMermaid(source) {
       const op = parts[i + 1];
       const b = parts[i + 2];
       if (typeof a !== "string" || typeof b !== "string" || typeof op === "string" || !op) continue;
-      const froms = readNodes(a, nodes, mentioned);
-      const tos = readNodes(b, nodes, mentioned);
+      const froms = readNodes(a, nodes, warnings, mentioned);
+      const tos = readNodes(b, nodes, warnings, mentioned);
       for (const f of froms) for (const t of tos) edges.push({ ...op, from: f, to: t });
     }
   }
   while (stack.length) close();
+  const ids3 = specIds([...groups.map((g) => g.id), ...nodes.keys()]);
+  const sid = (id) => ids3.get(id) ?? id;
   const groupIds = new Set(groups.map((g) => g.id));
   const guessed = {};
+  const guesses = /* @__PURE__ */ new Map();
   const specNodes = {};
   for (const n4 of nodes.values()) {
     if (groupIds.has(n4.id)) continue;
     const entry = {};
-    const icon2 = guessIcon(n4.label);
+    const icon2 = guessIcon(n4.label, guesses);
     if (icon2) {
-      guessed[n4.id] = icon2;
+      guessed[sid(n4.id)] = icon2;
       entry.icon = icon2;
       entry.label = n4.label;
     } else {
       entry.label = n4.label;
       entry.shape = n4.shape ?? "rounded";
     }
-    if (n4.parent) entry.in = n4.parent;
-    specNodes[n4.id] = entry;
+    if (n4.parent) entry.in = sid(n4.parent);
+    specNodes[sid(n4.id)] = entry;
   }
   const specGroups = {};
   for (const g of groups) {
-    specGroups[g.id] = { type: "zone", label: g.label, ...g.parent ? { in: g.parent } : {} };
+    specGroups[sid(g.id)] = {
+      type: "zone",
+      label: g.label,
+      ...g.parent ? { in: sid(g.parent) } : {}
+    };
   }
   const specEdges = edges.map((e) => {
     const op = { solid: "->", dashed: "-->", dotted: "..>", thick: "==>" }[e.line];
     const arrow2 = e.arrow === "both" ? `<${op}` : e.arrow === "none" ? { solid: "--", dashed: "---", dotted: "...", thick: "===" }[e.line] : op;
-    return `${e.from} ${arrow2} ${e.to}${e.label ? `: ${e.label}` : ""}`;
+    return `${sid(e.from)} ${arrow2} ${sid(e.to)}${e.label ? `: ${e.label}` : ""}`;
   });
-  if (!nodes.size)
-    warnings.push("no flowchart nodes found; only flowchart/graph diagrams are supported");
+  if (!nodes.size) warnings.add("no flowchart nodes found");
   const doc = {};
   if (title2) doc.title = title2;
   doc.direction = direction;
   if (groups.length) doc.groups = specGroups;
   doc.nodes = specNodes;
   doc.edges = specEdges;
-  const header2 = [
-    "# yaml-language-server: $schema=https://raw.githubusercontent.com/Sagargupta16/orrery/main/skills/orrery/references/diagram.schema.json",
-    "# Imported from Mermaid by orrery. Replace shapes with official icons (orrery icons search <words>),",
-    "# turn zones into vendor groups (aws:vpc, gcp:project, azure:vnet...) and run orrery validate."
+  const notes = [
+    "Imported from Mermaid by orrery. Replace shapes with official icons (orrery icons search <words>),",
+    "turn zones into vendor groups (aws:vpc, gcp:project, azure:vnet...) and run orrery validate."
   ];
   if (Object.keys(guessed).length) {
-    header2.push(
-      `# Icons guessed from exact names, check them: ${Object.entries(guessed).map(([k, v]) => `${k}=${v}`).join(", ")}`
+    notes.push(
+      `Icons guessed from exact names, check them: ${Object.entries(guessed).map(([k, v]) => `${k}=${v}`).join(", ")}`
     );
   }
-  return { yaml: `${header2.join("\n")}
-${(0, import_yaml13.stringify)(doc, { lineWidth: 0 })}`, warnings, guessed };
+  return { yaml: writeSpec(doc, notes), warnings: [...warnings], guessed };
 }
-function guessIcon(label2) {
-  const collapsed = label2.toLowerCase().replace(/[^a-z0-9]/g, "");
+var collapse2 = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+var VENDOR_PREFIX2 = /^(aws|amazon|azure|microsoft|google|cloud)\s+/i;
+var productNames;
+function guessIcon(label2, cache) {
+  const collapsed = collapse2(label2);
   if (collapsed.length < 3) return void 0;
+  if (!productNames) {
+    productNames = /* @__PURE__ */ new Set();
+    for (const i of allIcons()) {
+      if (i.type !== "service" && i.type !== "logo") continue;
+      for (const n4 of [i.slug, i.name, i.name.replace(VENDOR_PREFIX2, "")])
+        productNames.add(collapse2(n4));
+    }
+  }
+  const named2 = productNames;
+  if (![collapsed, collapsed.replace(/icon$/, ""), `${collapsed}icon`].some((n4) => named2.has(n4)))
+    return void 0;
+  if (!cache.has(label2)) cache.set(label2, searchGuess(label2, collapsed));
+  return cache.get(label2);
+}
+function searchGuess(label2, collapsed) {
   const [top] = searchIcons(label2, { limit: 1 });
   if (!top || top.type !== "service" && top.type !== "logo") return void 0;
-  const names2 = [
-    top.slug,
-    top.name,
-    top.name.replace(/^(aws|amazon|azure|microsoft|google|cloud)\s+/i, "")
-  ].map((s) => s.toLowerCase().replace(/[^a-z0-9]/g, ""));
+  const names2 = [top.slug, top.name, top.name.replace(VENDOR_PREFIX2, "")].map(collapse2);
   if (!names2.includes(collapsed.replace(/icon$/, "")) && !names2.includes(collapsed)) {
     if (!names2.some((n4) => n4 === `${collapsed}icon`)) return void 0;
   }
@@ -42105,9 +44785,9 @@ function guessIcon(label2) {
 
 // src/import/picture.ts
 import { readFileSync as readFileSync15 } from "node:fs";
-import { resolve as resolve13 } from "node:path";
+import { resolve as resolve15 } from "node:path";
 async function importPicture(path) {
-  const yaml = extractSpec(readFileSync15(resolve13(path)));
+  const yaml = extractSpec(readFileSync15(resolve15(path)));
   if (yaml === void 0)
     usage(
       `${path} carries no orrery spec (another tool drew it, its spec says embed: false, or an optimizer stripped it); read it as any other picture (references/importing.md)`
@@ -42164,7 +44844,7 @@ function closeQuote(src2, i, q2, escapes = false) {
   }
   return src2.length;
 }
-function splitTop(text6, sep3) {
+function splitTop(text6, sep4) {
   const out = [];
   let depth = 0;
   let start = 0;
@@ -42185,7 +44865,7 @@ function splitTop(text6, sep3) {
     }
     if (c === "(") depth++;
     else if (c === ")") depth = Math.max(0, depth - 1);
-    else if (c === sep3 && depth === 0) {
+    else if (c === sep4 && depth === 0) {
       out.push({ part: text6.slice(start, i), at: start });
       start = i + 1;
     }
@@ -42194,7 +44874,7 @@ function splitTop(text6, sep3) {
   out.push({ part: text6.slice(start), at: start });
   return out;
 }
-var IDENT = String.raw`(?:"(?:[^"]|"")+"|\x60[^\x60]+\x60|\[[^\]]+\]|[A-Za-z_][\w$]*)`;
+var IDENT = String.raw`(?:"(?:[^"]|"")+"|\x60[^\x60]+\x60|\[[^\]]+\]|[A-Za-z_\u0080-\uFFFF][\w$\u0080-\uFFFF]*)`;
 var CHAIN = String.raw`${IDENT}(?:\s*\.\s*${IDENT})*`;
 var CONSTRAINT = String.raw`(?:constraint\s+${IDENT}\s+)?`;
 var unquote2 = (s) => {
@@ -42316,7 +44996,8 @@ function tableNamed(tables2, key, last) {
   if (new Set(same4.map((t) => t.key)).size === 1) return same4.at(-1);
   return same4.filter((t) => t.key === `public.${last}`).at(-1);
 }
-function readTables(src2) {
+var CREATE_TABLE = /^create\s+(?:or\s+replace\s+)?(?:(?:global|local)\s+)?(?:temp(?:orary)?\s+)?(?:unlogged\s+)?table\b/i;
+function readTables(src2, skipped) {
   const text6 = blankComments(src2);
   const starts = [0];
   for (let i = 0; i < text6.length; i++) if (text6[i] === "\n") starts.push(i + 1);
@@ -42344,7 +45025,10 @@ function readTables(src2) {
     if (create?.[1]) {
       const open = (create[0]?.length ?? 1) - 1;
       const body = inside3(stmt, open);
-      if (body === void 0) continue;
+      if (body === void 0) {
+        skipped?.push(describe5(stmt, off + lead, lineAt));
+        continue;
+      }
       const nameAt = off + lead + (create[0]?.lastIndexOf(create[1]) ?? 0);
       const read = readTable(body, off + lead + open + 1, lineAt);
       tables2.push({
@@ -42356,6 +45040,7 @@ function readTables(src2) {
       });
       continue;
     }
+    if (CREATE_TABLE.test(stmt)) skipped?.push(describe5(stmt, off + lead, lineAt));
     const alter = stmt.match(
       new RegExp(`^alter\\s+table\\s+(?:if\\s+exists\\s+)?(?:only\\s+)?(${CHAIN})\\s+(.*)$`, "is")
     );
@@ -42388,14 +45073,21 @@ function readTables(src2) {
   }
   return tables2;
 }
+function describe5(stmt, at2, lineAt) {
+  const words2 = stmt.replace(/\s+/g, " ").slice(0, 60);
+  return `line ${lineAt(at2)}: ${words2}${stmt.length > words2.length ? " ..." : ""}`;
+}
 function sqlWarnings(text6) {
   const written2 = (blankComments(text6).match(
     /(?:^|;)\s*create\s+(?:or\s+replace\s+)?(?:(?:global|local)\s+)?(?:temp(?:orary)?\s+)?(?:unlogged\s+)?table\b/gi
   ) ?? []).length;
-  const read = readTables(text6).length;
-  return read < written2 ? [
+  const skipped = [];
+  const read = readTables(text6, skipped).length;
+  const named2 = skipped.map((s) => `CREATE TABLE statement not read, so it is left out (${s})`);
+  return read + skipped.length < written2 ? [
+    ...named2,
     `read ${read} of ${written2} CREATE TABLE statements; look for a quote or parenthesis that does not close before the first table missing from the output`
-  ] : [];
+  ] : named2;
 }
 function inside3(stmt, open) {
   let depth = 0;
@@ -42421,19 +45113,19 @@ function fieldText(c) {
     ...c.unique && !c.pk ? ["unique"] : [],
     ...!c.notNull && !c.pk ? ["null"] : []
   ];
-  if (c.type && /\s/.test(c.type))
-    return `{ name: ${q(c.name)}, type: ${q(c.type)}${flags.map((f) => `, ${f === "null" ? "nullable" : f}: true`).join("")} }`;
+  if (/\s|: /.test(c.name) || c.type && /\s/.test(c.type))
+    return `{ name: ${q(c.name)}${c.type ? `, type: ${q(c.type)}` : ""}${flags.map((f) => `, ${f === "null" ? "nullable" : f}: true`).join("")} }`;
   return q([c.name, ...c.type ? [c.type] : [], ...flags].join(" "));
 }
 function importSql(text6, path) {
   const stdin = path === "-";
   const shown = stdin ? "standard input" : displayPath(path);
   const tables2 = readTables(text6);
-  const labelOf3 = (t) => new Set(tables2.filter((x2) => x2.last === t.last).map((x2) => x2.key)).size > 1 ? t.qualified : t.name;
+  const labelOf4 = (t) => new Set(tables2.filter((x2) => x2.last === t.last).map((x2) => x2.key)).size > 1 ? t.qualified : t.name;
   const ids3 = /* @__PURE__ */ new Map();
   const taken = /* @__PURE__ */ new Set();
   for (const t of tables2) {
-    const label2 = labelOf3(t);
+    const label2 = labelOf4(t);
     const base = ID2.test(label2) ? label2 : slug2(label2);
     let id = base;
     for (let k = 2; taken.has(id.toLowerCase()); k++) id = `${base}-${k}`;
@@ -42444,7 +45136,7 @@ function importSql(text6, path) {
   const columnName = (t, key) => t.columns.find((c) => c.key === key)?.name ?? key;
   const nodes = tables2.map((t) => ({
     id: idOf(t),
-    label: labelOf3(t),
+    label: labelOf4(t),
     look: "card",
     shape: "box",
     iconSize: ICON_SIZE,
@@ -42484,16 +45176,16 @@ function importSql(text6, path) {
       const card = `${nullable ? "0..1" : "1"}:${single ? "0..1" : "0..n"}`;
       const refKey = fk.refColumns[0] ?? parent.pk[0];
       const refColumn = refKey === void 0 ? "id" : columnName(parent, refKey);
-      const from = idOf(parent);
+      const from2 = idOf(parent);
       const to = idOf(t);
-      const edge3 = { id: "e", from, to, line: "solid", arrow: "none", constraint: true };
+      const edge3 = { id: "e", from: from2, to, line: "solid", arrow: "none", constraint: true };
       const inferred = joinedRows({ nodes }, edge3);
       const keys = [
         `card: ${q(card)}`,
         ...inferred.from?.name === refColumn && inferred.to?.name === column ? [] : [`from_field: ${q(refColumn)}`, `to_field: ${q(column)}`],
         ...stdin ? [] : [`evidence: ${q(at(shown, fk.line, fk.ref))}`]
       ];
-      lines2.push(`  - ${from} -- ${to}: { ${keys.join(", ")} }`);
+      lines2.push(`  - ${from2} -- ${to}: { ${keys.join(", ")} }`);
     }
   }
   const out = [
@@ -42508,7 +45200,7 @@ function importSql(text6, path) {
     out.push("nodes:");
     for (const t of tables2) {
       out.push(`  ${idOf(t)}:`);
-      if (idOf(t) !== labelOf3(t)) out.push(`    label: ${q(labelOf3(t))}`);
+      if (idOf(t) !== labelOf4(t)) out.push(`    label: ${q(labelOf4(t))}`);
       if (t.columns.length) {
         out.push("    fields:");
         for (const c of t.columns) out.push(`      - ${fieldText(c)}`);
@@ -42523,7 +45215,7 @@ function importSql(text6, path) {
 }
 
 // src/import/terraform.ts
-import { basename as basename12, dirname as dirname11, extname as extname6 } from "node:path";
+import { basename as basename12, dirname as dirname11, extname as extname7 } from "node:path";
 var USERS4 = "users";
 var INSTANCE_KEY = /\[(?:"(?:[^"\\]|\\.)*"|\d+)\]/g;
 var GENERIC_NAME = /^(this|main|default|primary|self|it|all|example|resource)$/;
@@ -42572,9 +45264,11 @@ var Terraform = class {
     this.shown = displayPath(path);
     this.plan = isObj4(json2.planned_values);
     const config = isObj4(json2.configuration) ? json2.configuration : {};
-    this.root = scopeOf(isObj4(config.root_module) ? config.root_module : {}, "");
     const values = this.plan ? json2.planned_values : json2.values;
     const rootModule = isObj4(values) && isObj4(values.root_module) ? values.root_module : void 0;
+    assertShallow(rootModule, path);
+    assertShallow(config.root_module, path);
+    this.root = scopeOf(isObj4(config.root_module) ? config.root_module : {}, "");
     if (!rootModule)
       throw new Error(
         `${path} has no resources: pass the output of terraform show -json for a plan or a state`
@@ -42583,22 +45277,22 @@ var Terraform = class {
     this.configOnly(this.root);
   }
   /** Data sources read at apply are only in the configuration; their statements still count. */
-  configOnly(scope) {
-    for (const [local3, r6] of scope.resources) {
-      const key = `${scope.prefix}${local3}`;
+  configOnly(scope2) {
+    for (const [local3, r6] of scope2.resources) {
+      const key = `${scope2.prefix}${local3}`;
       if (text5(r6.mode) !== "data" || this.blocks.has(key)) continue;
       this.blocks.set(key, {
         key,
         mode: "data",
         type: text5(r6.type) ?? "",
         name: text5(r6.name) ?? "",
-        module: scope.prefix.replace(/\.$/, ""),
+        module: scope2.prefix.replace(/\.$/, ""),
         instances: [],
         config: r6,
-        scope
+        scope: scope2
       });
     }
-    for (const child of scope.children.values()) this.configOnly(child);
+    for (const child of scope2.children.values()) this.configOnly(child);
   }
   run() {
     this.index();
@@ -42615,7 +45309,7 @@ var Terraform = class {
       this.draft.warn("flows between Azure resources are not read yet; add them by hand");
     const drawn2 = [...this.draft.nodes.keys()].filter((k) => k !== USERS4).length;
     return this.draft.write({
-      title: titleOf6(this.path),
+      title: titleOf7(this.path),
       subtitle: `From a Terraform ${this.plan ? "plan" : "state"}: ${drawn2} resources drawn, ${this.draft.leftOut.size} left out`,
       command: `orrery import terraform ${this.shown}`,
       legend: { dashed: "Outbound through NAT" }
@@ -42633,8 +45327,8 @@ var Terraform = class {
       const module = key.slice(0, Math.max(0, key.lastIndexOf(marker)));
       let block3 = this.blocks.get(key);
       if (!block3) {
-        const scope = findScope(this.root, module);
-        const config = scope?.resources.get(key.slice(module ? module.length + 1 : 0));
+        const scope2 = findScope(this.root, module);
+        const config = scope2?.resources.get(key.slice(module ? module.length + 1 : 0));
         block3 = {
           key,
           mode,
@@ -42642,7 +45336,7 @@ var Terraform = class {
           name: text5(r6.name) ?? "",
           module,
           instances: [],
-          ...scope ? { scope } : {},
+          ...scope2 ? { scope: scope2 } : {},
           ...config ? { config } : {}
         };
         this.blocks.set(key, block3);
@@ -42728,11 +45422,11 @@ var Terraform = class {
     }
     if (value2.startsWith("arn:")) {
       const bare2 = value2.replace(/(\/index|\/stream)?(\/\*|:\*)$/, "");
-      const glob = /[*?]/.test(bare2) ? globOf(bare2) : void 0;
+      const wild = /[*?]/.test(bare2);
       const hits5 = /* @__PURE__ */ new Set();
       for (const [v, keys] of this.values) {
         if (!v.startsWith("arn:")) continue;
-        const match = glob ? glob.test(v) : bare2 === v || bare2.startsWith(`${v}/`) || bare2.startsWith(`${v}:`);
+        const match = wild ? wildcardMatch(bare2, v) : bare2 === v || bare2.startsWith(`${v}/`) || bare2.startsWith(`${v}:`);
         if (match) for (const k of keys) hits5.add(k);
       }
       const found = want(hits5);
@@ -42850,7 +45544,7 @@ var Terraform = class {
     const hint2 = GENERIC_NAME.test(b.name) ? concept : twins.length > 1 ? `${b.name}-${concept}` : b.name;
     this.draft.node(b.key, {
       icon: kind.icon,
-      name: labelOf2(b),
+      name: labelOf3(b),
       what,
       hint: hint2,
       ...parent ? { parent } : {},
@@ -42905,7 +45599,7 @@ var Terraform = class {
       const cidr = text5(b.instances[0]?.values.cidr_block);
       this.draft.group(b.key, {
         type: "aws:vpc",
-        label: cidr ? `VPC ${cidr}` : `VPC (${labelOf2(b)})`,
+        label: cidr ? `VPC ${cidr}` : `VPC (${labelOf3(b)})`,
         parent: this.regionGroup(b),
         hint: GENERIC_NAME.test(b.name) ? "vpc" : `${b.name}-vpc`,
         evidence: [b.key]
@@ -43028,7 +45722,7 @@ var Terraform = class {
       const loc = text5(b.instances[0]?.values.location);
       this.draft.group(b.key, {
         type: "azure:resource-group",
-        label: `Resource group ${labelOf2(b)}${loc ? ` (${loc})` : ""}`,
+        label: `Resource group ${labelOf3(b)}${loc ? ` (${loc})` : ""}`,
         hint: `${b.name}-rg`,
         evidence: [b.key]
       });
@@ -43037,7 +45731,7 @@ var Terraform = class {
       const rg = this.targets(b, "resource_group_name", ["azurerm_resource_group"])[0];
       this.draft.group(b.key, {
         type: "azure:vnet",
-        label: `Virtual network ${labelOf2(b)}`,
+        label: `Virtual network ${labelOf3(b)}`,
         ...rg ? { parent: rg } : {},
         hint: `${b.name}-vnet`,
         evidence: [b.key]
@@ -43047,7 +45741,7 @@ var Terraform = class {
       const vnet = this.targets(b, "virtual_network_name", ["azurerm_virtual_network"])[0];
       this.draft.group(b.key, {
         type: "azure:subnet",
-        label: `Subnet ${labelOf2(b)}`,
+        label: `Subnet ${labelOf3(b)}`,
         ...vnet ? { parent: vnet } : {},
         hint: `${b.name}-subnet`,
         evidence: [b.key]
@@ -43066,7 +45760,7 @@ var Terraform = class {
       if (b.type === "google_compute_network")
         this.draft.group(b.key, {
           type: "gcp:vpc",
-          label: `VPC ${labelOf2(b)}`,
+          label: `VPC ${labelOf3(b)}`,
           ...project ? { parent: `project:${project}` } : {},
           hint: `${b.name}-vpc`,
           evidence: [b.key]
@@ -43077,7 +45771,7 @@ var Terraform = class {
       const region = text5(b.instances[0]?.values.region);
       this.draft.group(b.key, {
         type: "gcp:subnet",
-        label: `Subnet ${labelOf2(b)}${region ? ` (${region})` : ""}`,
+        label: `Subnet ${labelOf3(b)}${region ? ` (${region})` : ""}`,
         ...net ? { parent: net } : {},
         hint: `${b.name}-subnet`,
         evidence: [b.key]
@@ -43143,8 +45837,8 @@ var Terraform = class {
   }
   // ---------------------------------------------------------------- flows
   /** A flow between two blocks, drawn between the nodes each stands for. */
-  flow(from, to, label2, evidence, dashed = false) {
-    for (const f of this.nodesFor(from))
+  flow(from2, to, label2, evidence, dashed = false) {
+    for (const f of this.nodesFor(from2))
       for (const t of this.nodesFor(to))
         this.draft.edge(f, t, label2, evidence, { dashed, back: dashed });
   }
@@ -43292,10 +45986,10 @@ var Terraform = class {
   }
   /** Queues hand failed messages to their dead-letter queue. */
   queueFlows() {
-    const dlqOf = (b, attr2) => {
-      const arns = b.instances.map((i) => parseJson(i.values[attr2])).map((p) => isObj4(p) ? text5(p.deadLetterTargetArn) : void 0).filter(isText);
+    const dlqOf = (b, attr3) => {
+      const arns = b.instances.map((i) => parseJson(i.values[attr3])).map((p) => isObj4(p) ? text5(p.deadLetterTargetArn) : void 0).filter(isText);
       const found = arns.flatMap((a) => this.resolve(a, ["aws_sqs_queue"]));
-      return found.length ? found : refsAt(b, attr2).filter((k) => k.includes("aws_sqs_queue."));
+      return found.length ? found : refsAt(b, attr3).filter((k) => k.includes("aws_sqs_queue."));
     };
     for (const q2 of this.ofType("aws_sqs_queue"))
       for (const t of dlqOf(q2, "redrive_policy")) this.flow(q2.key, t, "dead letters", [q2.key]);
@@ -43438,9 +46132,9 @@ var Terraform = class {
     };
     const open = (cidrs) => cidrs.some((c) => c === "0.0.0.0/0" || c === "::/0");
     const ports = (v, proto = "protocol") => {
-      const from = typeof v.from_port === "number" ? v.from_port : 0;
-      const to = typeof v.to_port === "number" ? v.to_port : from;
-      return portLabel(from, to, text5(v[proto]));
+      const from2 = typeof v.from_port === "number" ? v.from_port : 0;
+      const to = typeof v.to_port === "number" ? v.to_port : from2;
+      return portLabel(from2, to, text5(v[proto]));
     };
     for (const b of this.ofType("aws_security_group")) {
       const named2 = refsAt(b, "ingress.security_groups").filter(
@@ -43509,8 +46203,25 @@ var Terraform = class {
     }
   }
 };
+var MAX_MODULE_DEPTH = 64;
+function assertShallow(root, path) {
+  let level2 = [root];
+  for (let depth = 0; level2.length; depth++) {
+    if (depth > MAX_MODULE_DEPTH)
+      throw new Error(`${path} nests modules more than ${MAX_MODULE_DEPTH} levels deep`);
+    const next = [];
+    for (const m of level2) {
+      if (!isObj4(m)) continue;
+      next.push(...asList(m.child_modules));
+      if (isObj4(m.module_calls)) {
+        for (const c of Object.values(m.module_calls)) if (isObj4(c)) next.push(c.module);
+      }
+    }
+    level2 = next;
+  }
+}
 function scopeOf(mod, prefix, parent, call) {
-  const scope = {
+  const scope2 = {
     prefix,
     resources: /* @__PURE__ */ new Map(),
     calls: isObj4(mod.module_calls) ? mod.module_calls : {},
@@ -43521,36 +46232,36 @@ function scopeOf(mod, prefix, parent, call) {
   };
   for (const r6 of asList(mod.resources)) {
     const address = isObj4(r6) ? text5(r6.address) : void 0;
-    if (address && isObj4(r6)) scope.resources.set(address, r6);
+    if (address && isObj4(r6)) scope2.resources.set(address, r6);
   }
-  for (const [name2, c] of Object.entries(scope.calls))
+  for (const [name2, c] of Object.entries(scope2.calls))
     if (isObj4(c) && isObj4(c.module))
-      scope.children.set(name2, scopeOf(c.module, `${prefix}module.${name2}.`, scope, name2));
-  return scope;
+      scope2.children.set(name2, scopeOf(c.module, `${prefix}module.${name2}.`, scope2, name2));
+  return scope2;
 }
 function findScope(root, module) {
-  let scope = root;
+  let scope2 = root;
   const names2 = module.split(".").filter((_, i) => i % 2 === 1);
-  for (const name2 of names2) scope = scope?.children.get(name2);
-  return scope;
+  for (const name2 of names2) scope2 = scope2?.children.get(name2);
+  return scope2;
 }
-function refsOf(scope, refs, depth = 0) {
+function refsOf(scope2, refs, depth = 0) {
   if (depth > 8) return [];
   const out = /* @__PURE__ */ new Set();
   for (const ref of refs) {
     const [head2 = "", second = "", third] = ref.replace(INSTANCE_KEY, "").split(".");
-    if (head2 === "var" && scope.parent && scope.call) {
-      const call = scope.parent.calls[scope.call];
+    if (head2 === "var" && scope2.parent && scope2.call) {
+      const call = scope2.parent.calls[scope2.call];
       const expr = isObj4(call) && isObj4(call.expressions) ? call.expressions[second] : void 0;
-      for (const k of refsOf(scope.parent, referencesIn(expr), depth + 1)) out.add(k);
+      for (const k of refsOf(scope2.parent, referencesIn(expr), depth + 1)) out.add(k);
     } else if (head2 === "module" && third) {
-      const child = scope.children.get(second);
+      const child = scope2.children.get(second);
       const output = child?.outputs[third];
       if (child && isObj4(output))
         for (const k of refsOf(child, referencesIn(output.expression), depth + 1)) out.add(k);
-    } else if (head2 === "data" && third) out.add(`${scope.prefix}data.${second}.${third}`);
+    } else if (head2 === "data" && third) out.add(`${scope2.prefix}data.${second}.${third}`);
     else if (second && !/^(var|local|each|count|path|terraform|self|module)$/.test(head2))
-      out.add(`${scope.prefix}${head2}.${second}`);
+      out.add(`${scope2.prefix}${head2}.${second}`);
   }
   return [...out];
 }
@@ -43590,10 +46301,6 @@ function allowed(doc) {
     refs: []
   }));
 }
-function globOf(pattern) {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^${escaped.replace(/\*/g, ".*").replace(/\?/g, ".")}$`);
-}
 function mostOf(counts) {
   let best;
   for (const [k, n4] of counts) if (!best || n4 > (counts.get(best) ?? 0)) best = k;
@@ -43609,7 +46316,7 @@ function verbFor2(type) {
   if (type === "aws_sfn_state_machine") return "starts";
   return "calls";
 }
-function labelOf2(b) {
+function labelOf3(b) {
   const [first, second] = b.instances;
   const nameOf3 = (v = {}) => text5(isObj4(v.tags) ? v.tags.Name : void 0) ?? ["name", "function_name", "bucket", "cluster_identifier", "replication_group_id", "identifier"].map((k) => text5(v[k])).find(Boolean);
   const name2 = nameOf3(first?.values);
@@ -43621,17 +46328,17 @@ function labelOf2(b) {
   if (other === name2) return name2;
   let n4 = 0;
   while (n4 < name2.length && name2[n4] === other[n4]) n4++;
-  const shared = /^\d/.test(name2.slice(n4)) ? name2.slice(0, n4).replace(/\d+$/, "") : name2.slice(0, n4);
-  return shared.replace(/[-_ .]+$/, "") || name2;
+  const shared2 = /^\d/.test(name2.slice(n4)) ? name2.slice(0, n4).replace(/\d+$/, "") : name2.slice(0, n4);
+  return shared2.replace(/[-_ .]+$/, "") || name2;
 }
 function keysOf2(b) {
   const keys = b.instances.map((i) => i.index).filter((k) => typeof k === "string");
   if (keys.length < 2) return void 0;
   return keys.length > 3 ? `${keys.slice(0, 3).join(", ")} +${keys.length - 3}` : keys.join(", ");
 }
-function titleOf6(path) {
+function titleOf7(path) {
   const generic = /^(plan|tfplan|state|terraform|show|main|default|out|infra)$/i;
-  let name2 = basename12(path, extname6(path)).replace(/\.(tfstate|tfplan|plan|state)$/i, "");
+  let name2 = basename12(path, extname7(path)).replace(/\.(tfstate|tfplan|plan|state)$/i, "");
   if (generic.test(name2)) name2 = basename12(dirname11(path));
   return !name2 || name2 === "." || generic.test(name2) ? "Terraform infrastructure" : humanize(name2);
 }
@@ -43667,9 +46374,10 @@ function cmdInit(args) {
     return;
   }
   const name2 = args._[0] ?? "starter";
-  const file = join16(examplesDir, `${name2}.yaml`);
+  const file = join18(examplesDir, `${name2}.yaml`);
   if (!existsSync18(file)) usage(`no template "${name2}" (templates: ${list.join(", ")})`);
-  const out = resolve14(typeof args.flags.out === "string" ? args.flags.out : "diagram.yaml");
+  const outFlag = typeof args.flags.out === "string" ? args.flags.out : "diagram.yaml";
+  const out = inFolder(outFlag, `${name2}.yaml`) ?? resolve16(outFlag);
   if (existsSync18(out) && args.flags.force !== true) {
     process.stderr.write(`${out} exists; pass --force to overwrite
 `);
@@ -43681,17 +46389,19 @@ function cmdInit(args) {
   process.stdout.write(`wrote ${out} from template ${name2}
 `);
   for (const icon2 of parseSpec(text6, file).model?.icons ?? []) {
-    const rel2 = relative7(examplesDir, icon2.path);
-    const dest = join16(dirname12(out), rel2);
+    const rel2 = relative9(examplesDir, icon2.path);
+    const dest = join18(dirname12(out), rel2);
     if (rel2.startsWith("..") || existsSync18(dest) && args.flags.force !== true) continue;
     writeAtomic(dest, readFileSync16(icon2.path));
     process.stdout.write(`wrote ${dest}
 `);
   }
-  process.stdout.write(`next: orrery render ${basename13(out)}
-`);
+  process.stdout.write(
+    `next: orrery render ${relative9(process.cwd(), out).replaceAll("\\", "/")}
+`
+  );
 }
-var inputText = (file) => readText(file === "-" ? 0 : resolve14(file));
+var inputText = (file) => readText(file === "-" ? 0 : resolve16(file));
 var IMPORTERS = {
   mermaid: (file) => importMermaid(inputText(file).replace(/^```mermaid\s*|```\s*$/gm, "")),
   terraform: importTerraform,
@@ -43709,7 +46419,7 @@ var IMPORTERS = {
 };
 var STDIN = /* @__PURE__ */ new Set(["mermaid", "sql"]);
 function hasNodes(yaml) {
-  const doc = (0, import_yaml14.parse)(yaml);
+  const doc = (0, import_yaml15.parse)(yaml);
   const nodes = isObj(doc) ? doc.nodes : void 0;
   return Array.isArray(nodes) ? nodes.length > 0 : isObj(nodes) && Object.keys(nodes).length > 0;
 }
@@ -43720,7 +46430,7 @@ async function cmdImport(args) {
   if (!file) usage(`import ${kind} needs a file${STDIN.has(kind) ? ", or - for stdin" : ""}`);
   if (file === "-" && !STDIN.has(kind))
     usage(`import ${kind} reads a file or folder; - (stdin) is only for mermaid and sql`);
-  if (file !== "-" && !existsSync18(resolve14(file))) usage(`no such file: ${file}`);
+  if (file !== "-" && !existsSync18(resolve16(file))) usage(`no such file: ${file}`);
   const result2 = await importer(file);
   for (const w of result2.warnings) process.stderr.write(`warn  ${w}
 `);
@@ -43730,7 +46440,9 @@ async function cmdImport(args) {
     process.exitCode = 1;
     return;
   }
-  const out = typeof args.flags.out === "string" ? resolve14(args.flags.out) : void 0;
+  const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
+  const stem = file === "-" ? "diagram" : basename13(resolve16(file)).replace(/\.[^.]+$/, "");
+  const out = outFlag ? inFolder(outFlag, `${stem}.yaml`) ?? resolve16(outFlag) : void 0;
   if (!out) return void process.stdout.write(result2.yaml);
   if (existsSync18(out) && args.flags.force !== true) {
     process.stderr.write(`${out} exists; pass --force to overwrite
@@ -43760,7 +46472,7 @@ async function cmdDoctor() {
     `${total} icons in ${Object.keys(packs2).length} packs`
   ]);
   const missing = Object.keys(packs2).filter(
-    (p) => !packs2[p]?.lib && !existsSync19(join17(skillRoot, "assets", "icons", `${p}.json`))
+    (p) => !packs2[p]?.lib && !existsSync19(join19(skillRoot, "assets", "icons", `${p}.json`))
   );
   checks.push([
     "bundled icon packs",
@@ -43802,11 +46514,11 @@ async function cmdDoctor() {
   process.exitCode = checks.every(([, p]) => p) ? 0 : 1;
 }
 async function cmdDemo(args) {
-  const dir = resolve15(args._[0] ?? "orrery-demo");
+  const dir = resolve17(args._[0] ?? "orrery-demo");
   let failed = 0;
   let libraryFixes;
   for (const t of templates2()) {
-    const file = join17(examplesDir, `${t}.yaml`);
+    const file = join19(examplesDir, `${t}.yaml`);
     const parsed = parseSpec(readFileSync17(file, "utf8"), file);
     if (!parsed.model) {
       failed += 1;
@@ -43831,7 +46543,7 @@ async function cmdDemo(args) {
 `);
       continue;
     }
-    for (const a of r6.artifacts) writeAtomic(join17(dir, `${t}.${a.format}`), a.data);
+    for (const a of r6.artifacts) writeAtomic(join19(dir, `${t}.${a.format}`), a.data);
     const scene = r6.scenes[parsed.model.theme];
     process.stdout.write(`${t}: ${scene?.width}x${scene?.height}
 `);
@@ -43845,7 +46557,7 @@ async function cmdDemo(args) {
 
 // src/cli/icons.ts
 import { existsSync as existsSync20, readFileSync as readFileSync18 } from "node:fs";
-import { basename as basename14, dirname as dirname13, extname as extname7, join as join18, resolve as resolve16 } from "node:path";
+import { basename as basename14, dirname as dirname13, extname as extname8, join as join20, resolve as resolve18 } from "node:path";
 async function cmdIcons(args) {
   const [sub, ...rest] = args._;
   const json2 = args.flags.json === true;
@@ -43880,10 +46592,10 @@ function iconPacks(json2) {
 `);
   for (const key of PACK_ORDER) {
     const p = packs2[key];
-    const from = p?.lib ? `npm ${p.lib.npm}@${p.lib.version}, loaded on first use` : "bundled";
+    const from2 = p?.lib ? `npm ${p.lib.npm}@${p.lib.version}, loaded on first use` : "bundled";
     if (p)
       process.stdout.write(
-        `${key.padEnd(7)} ${String(p.count).padStart(5)}  ${p.title} (${p.version}; ${from})
+        `${key.padEnd(7)} ${String(p.count).padStart(5)}  ${p.title} (${p.version}; ${from2})
         ${p.source}
 `
       );
@@ -43914,6 +46626,26 @@ async function iconFetch(rest) {
     );
   }
 }
+function iconFilters(args) {
+  const pack = typeof args.flags.pack === "string" ? args.flags.pack.trim().toLowerCase() : void 0;
+  const type = typeof args.flags.type === "string" ? args.flags.type.trim() : void 0;
+  if (pack !== void 0 && !Object.hasOwn(packInfo(), pack)) {
+    const near2 = closest2(pack, PACK_ORDER);
+    usage(
+      `unknown --pack "${pack}"${near2 ? ` (did you mean ${near2}?)` : ""}; packs: ${PACK_ORDER.join(", ")}`
+    );
+  }
+  if (type !== void 0) {
+    const types = [...new Set(allIcons().map((i) => i.type))].sort();
+    if (!types.includes(type)) {
+      const near2 = closest2(type, types);
+      usage(
+        `unknown --type "${type}"${near2 ? ` (did you mean ${near2}?)` : ""}; types: ${types.join(", ")}`
+      );
+    }
+  }
+  return { pack, type };
+}
 function iconSearch(args, rest, json2) {
   const query = rest.join(" ");
   if (!query) usage("icons search needs words, e.g. icons search load balancer");
@@ -43921,8 +46653,7 @@ function iconSearch(args, rest, json2) {
   if (limit !== void 0 && !/^[1-9]\d*$/.test(String(limit)))
     usage(`--limit must be a positive integer (got "${limit}")`);
   const results = searchIcons(query, {
-    pack: typeof args.flags.pack === "string" ? args.flags.pack : void 0,
-    type: typeof args.flags.type === "string" ? args.flags.type : void 0,
+    ...iconFilters(args),
     limit: limit === void 0 ? 15 : Number(limit)
   });
   if (json2) return void process.stdout.write(`${JSON.stringify(results, null, 2)}
@@ -43935,9 +46666,8 @@ function iconSearch(args, rest, json2) {
 `);
 }
 function iconList(args, json2) {
-  const pack = typeof args.flags.pack === "string" ? args.flags.pack : void 0;
+  const { pack, type } = iconFilters(args);
   const category = typeof args.flags.category === "string" ? args.flags.category.toLowerCase() : void 0;
-  const type = typeof args.flags.type === "string" ? args.flags.type : void 0;
   const list = allIcons().filter(
     (i) => (!pack || i.pack === pack) && (!category || i.category.toLowerCase().includes(category)) && (!type || i.type === type)
   );
@@ -43952,7 +46682,7 @@ async function iconShow(args, rest) {
   const [id] = rest;
   if (!id) usage("icons show needs an icon id");
   const out = typeof args.flags.out === "string" ? args.flags.out : void 0;
-  const ext = out ? extname7(out).toLowerCase() : "";
+  const ext = out ? extname8(out).toLowerCase() : "";
   if (ext && ext !== ".svg" && ext !== ".png")
     usage(`icons show -o needs an .svg or .png name (got "${out}")`);
   const info = iconInfo(id);
@@ -43972,16 +46702,16 @@ async function iconShow(args, rest) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="96" height="96" viewBox="${r6.viewBox.join(" ")}">${r6.body}</svg>
 `;
   if (out) {
-    writeAtomic(resolve16(out), ext === ".png" ? await renderPng(svg, { scale: 4 }) : svg);
-    process.stdout.write(`wrote ${resolve16(out)}
+    writeAtomic(resolve18(out), ext === ".png" ? await renderPng(svg, { scale: 4 }) : svg);
+    process.stdout.write(`wrote ${resolve18(out)}
 `);
   }
   process.stdout.write(`${JSON.stringify(info, null, 2)}
 `);
 }
 function iconTarget(args, name2) {
-  const file = join18(
-    resolve16(typeof args.flags.dir === "string" ? args.flags.dir : "icons"),
+  const file = join20(
+    resolve18(typeof args.flags.dir === "string" ? args.flags.dir : "icons"),
     `${name2}.svg`
   );
   if (existsSync20(file) && args.flags.force !== true) {
@@ -44020,14 +46750,14 @@ next:
 async function iconCheck(args, rest) {
   const [file] = rest;
   if (!file) usage("icons check needs an .svg file");
-  if (!existsSync20(file)) usage(`no such file: ${file}`);
-  process.exitCode = await checkIconFile(resolve16(file), sheetOut(args)) ? 0 : 1;
+  if (!isFile(file)) usage(`${existsSync20(file) ? "not a file" : "no such file"}: ${file}`);
+  process.exitCode = await checkIconFile(resolve18(file), sheetOut(args)) ? 0 : 1;
 }
 function sheetOut(args) {
   const out = typeof args.flags.out === "string" ? args.flags.out : void 0;
-  if (out && extname7(out) && extname7(out).toLowerCase() !== ".png")
+  if (out && extname8(out) && extname8(out).toLowerCase() !== ".png")
     usage(`-o is the contact sheet and needs a .png name (got "${out}")`);
-  return out === void 0 ? void 0 : resolve16(out);
+  return out === void 0 ? void 0 : resolve18(out);
 }
 async function iconAdopt(args, rest) {
   const [src2] = rest;
@@ -44035,16 +46765,16 @@ async function iconAdopt(args, rest) {
   if (!src2) usage("icons adopt needs an .svg file");
   if (typeof name2 !== "string" || !ICON_NAME2.test(name2))
     usage("icons adopt needs --name <name> of lowercase letters, digits and -");
-  if (!existsSync20(src2)) usage(`no such file: ${src2}`);
+  if (!isFile(src2)) usage(`${existsSync20(src2) ? "not a file" : "no such file"}: ${src2}`);
   const out = sheetOut(args);
   const file = iconTarget(args, name2);
   if (!file) return;
-  const from = shownPath(resolve16(src2));
+  const from2 = shownPath(resolve18(src2));
   let ok = false;
   try {
-    const adopted = adoptIcon(readFileSync18(resolve16(src2), "utf8"), from);
+    const adopted = adoptIcon(readFileSync18(resolve18(src2), "utf8"), from2);
     writeAtomic(file, adopted.svg);
-    process.stdout.write(`wrote ${shownPath(file)} from ${from}
+    process.stdout.write(`wrote ${shownPath(file)} from ${from2}
 `);
     for (const note of adopted.notes) process.stdout.write(`  ${note}
 `);
@@ -44086,7 +46816,7 @@ async function checkIconFile(path, out) {
 `
       );
   }
-  const sheet = out ? extname7(out) ? out : `${out}.png` : join18(dirname13(path), `${basename14(path, extname7(path))}.sheet.png`);
+  const sheet = out ? extname8(out) ? out : `${out}.png` : join20(dirname13(path), `${basename14(path, extname8(path))}.sheet.png`);
   let png2;
   try {
     png2 = await iconSheet(path);
@@ -44109,7 +46839,7 @@ ${failing ? `failed: ${failing} rule(s)` : "ok: every rule passes"}
   return !failing;
 }
 async function iconSheet(path) {
-  const name2 = basename14(path, extname7(path)).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "icon";
+  const name2 = basename14(path, extname8(path)).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "icon";
   const file = path.replaceAll("\\", "/").replaceAll("'", "''");
   const tiles = [];
   for (const skin of SKINS) {
@@ -44121,7 +46851,7 @@ async function iconSheet(path) {
       `  large: { icon: "local:${name2}", label: 48 px, size: 48 }`,
       `  small: { icon: "local:${name2}", label: 24 px, size: 24 }`
     ].join("\n");
-    const parsed = parseSpec(spec, join18(dirname13(path), "sheet.yaml"));
+    const parsed = parseSpec(spec, join20(dirname13(path), "sheet.yaml"));
     if (!parsed.model) throw new Error(parsed.diagnostics.map((d) => d.message).join("; "));
     const r6 = await renderModel({
       model: parsed.model,
@@ -44150,8 +46880,7 @@ async function iconSheet(path) {
 }
 
 // src/cli/render.ts
-import { existsSync as existsSync21, statSync as statSync12 } from "node:fs";
-import { extname as extname8, join as join19, resolve as resolve17 } from "node:path";
+import { extname as extname9, resolve as resolve19 } from "node:path";
 
 // src/views.ts
 function viewsOf(model, flag2) {
@@ -44169,7 +46898,8 @@ function viewsOf(model, flag2) {
 function viewModel(model, view) {
   const t = new Tree(model);
   const kept = t.select(view);
-  const fold = view.depth === void 0 ? /* @__PURE__ */ new Map() : t.fold(kept, view.depth);
+  const depth = model.kind === "timeline" || model.kind === "journey" ? void 0 : view.depth;
+  const fold = depth === void 0 ? /* @__PURE__ */ new Map() : t.fold(kept, depth);
   const at2 = (id) => fold.get(id) ?? id;
   const groups = model.groups.flatMap((g) => {
     if (!kept.has(g.id) || fold.has(g.id)) return [];
@@ -44211,27 +46941,27 @@ function messagesOf2(t, kept, view, at2, drawn2) {
   const dropped = new Set(t.tagged(view.exclude ?? []));
   return t.model.edges.flatMap((e) => {
     if (!kept.has(e.from) || !kept.has(e.to) || dropped.has(e.id)) return [];
-    const from = at2(e.from);
+    const from2 = at2(e.from);
     const to = at2(e.to);
-    if (from === to && e.from !== e.to || !drawn2.has(from) || !drawn2.has(to)) return [];
-    return [{ ...e, from, to }];
+    if (from2 === to && e.from !== e.to || !drawn2.has(from2) || !drawn2.has(to)) return [];
+    return [{ ...e, from: from2, to }];
   });
 }
 function fragmentsOf2(model, edges) {
   const index2 = new Map(model.edges.map((e, i) => [e.id, i + 1]));
   const renumber = new Map(edges.map((e, i) => [index2.get(e.id) ?? 0, i + 1]));
-  const within4 = (from, to) => [...renumber].filter(([old]) => old >= from && old <= to).map(([, now]) => now);
+  const within5 = (from2, to) => [...renumber].filter(([old]) => old >= from2 && old <= to).map(([, now]) => now);
   return (model.fragments ?? []).flatMap((f) => {
-    const last = within4(f.from, f.to).at(-1);
+    const last = within5(f.from, f.to).at(-1);
     const guards = [{ at: f.from, ...f.label ? { label: f.label } : {} }, ...f.else ?? []];
     const branches = guards.flatMap((b, i) => {
-      const at2 = within4(b.at, (guards[i + 1]?.at ?? f.to + 1) - 1)[0];
+      const at2 = within5(b.at, (guards[i + 1]?.at ?? f.to + 1) - 1)[0];
       return at2 === void 0 ? [] : [{ ...b, at: at2 }];
     });
     const [head2, ...rest] = branches;
     if (!head2 || last === void 0) return [];
-    const { at: from, ...guard2 } = head2;
-    return [{ type: f.type, ...guard2, from, to: last, ...rest.length ? { else: rest } : {} }];
+    const { at: from2, ...guard2 } = head2;
+    return [{ type: f.type, ...guard2, from: from2, to: last, ...rest.length ? { else: rest } : {} }];
   });
 }
 function edgesOf(t, kept, view, at2, drawn2) {
@@ -44239,14 +46969,14 @@ function edgesOf(t, kept, view, at2, drawn2) {
   const byEnds = /* @__PURE__ */ new Map();
   for (const e of t.model.edges) {
     if (!kept.has(e.from) || !kept.has(e.to) || dropped.has(e.id)) continue;
-    const from = at2(e.from);
+    const from2 = at2(e.from);
     const to = at2(e.to);
-    if (from === to || !drawn2.has(from) || !drawn2.has(to)) continue;
-    const key = `${from}
+    if (from2 === to || !drawn2.has(from2) || !drawn2.has(to)) continue;
+    const key = `${from2}
 ${to}`;
     const seen = byEnds.get(key);
     if (seen) seen.labels.add(e.label);
-    else byEnds.set(key, { edge: { ...e, from, to }, labels: /* @__PURE__ */ new Set([e.label]) });
+    else byEnds.set(key, { edge: { ...e, from: from2, to }, labels: /* @__PURE__ */ new Set([e.label]) });
   }
   return [...byEnds.values()].map(
     ({ edge: edge3, labels: labels2 }) => labels2.size > 1 ? { ...edge3, label: void 0 } : edge3
@@ -44368,29 +47098,48 @@ var Tree = class {
 
 // src/cli/render.ts
 async function cmdRender(args, validateOnly) {
-  const [specPath] = args._;
-  if (!specPath) usage(`${validateOnly ? "validate" : "render"} needs a spec file`);
+  if (!args._.length) usage(`${validateOnly ? "validate" : "render"} needs a spec file`);
   const json2 = args.flags.json === true;
+  const specs = args._.map(readSpec);
+  const fonts2 = fontFiles(args);
+  const targets = specs.map((spec) => outputTarget(args, spec));
+  if (specs.length > 1) {
+    const out = typeof args.flags.out === "string" ? args.flags.out : void 0;
+    if (out && !inFolder(out, "x"))
+      usage("-o must be a folder (end it with /) for more than one spec");
+    const seen = /* @__PURE__ */ new Map();
+    specs.forEach((spec, i) => {
+      const base = targets[i]?.base ?? "";
+      const other = seen.get(base);
+      if (other) usage(`${other} and ${spec.path} would both write ${base}.*; render them apart`);
+      seen.set(base, spec.path);
+    });
+  }
+  const receipts = [];
+  for (const [i, spec] of specs.entries())
+    receipts.push(await renderSpec2(args, spec, validateOnly, targets[i], fonts2));
+  printReceipts(receipts, json2);
+  process.exitCode = receipts.every((r6) => r6.ok) ? 0 : 1;
+}
+async function renderSpec2(args, spec, validateOnly, target, fonts2) {
   const strict = args.flags.strict === true;
-  const spec = readSpec(specPath);
   const parsed = parseSpec(spec.text, spec.path);
   const diagnostics = [...parsed.diagnostics];
   const themes = themesOf(args, parsed.model?.theme);
-  const fonts2 = fontFiles(args);
-  const { formats, base } = outputTarget(args, spec);
-  let ok = !diagnostics.some((d) => d.severity === "error");
+  const { formats, base } = target ?? outputTarget(args, spec);
   const receipt = {
-    ok,
+    ok: !diagnostics.some((d) => d.severity === "error"),
     spec: { path: spec.path, sha256: sha(spec.text) },
     outputs: [],
     diagnostics
   };
-  if (parsed.model && ok) {
+  if (parsed.model && receipt.ok) {
     const scale = args.flags.scale !== void 0 ? Number(args.flags.scale) : 3;
     if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
     const animateFlag = args.flags.static === true ? "none" : args.flags.animate === true ? "packets" : args.flags.animate;
     const views = viewsOf(parsed.model, args.flags.view);
     if (!validateOnly) clashingPaths(views, themes, formats, base);
+    const drawn2 = [];
     for (const view of views) {
       const result2 = await renderOrFail(
         {
@@ -44399,6 +47148,8 @@ async function cmdRender(args, validateOnly) {
           themes: validateOnly ? [themes[0] ?? "light"] : themes,
           name: view.name ? `${spec.name}.${view.name}` : spec.name,
           scale,
+          // Only the default scale may be lowered to keep a large PNG inside the pixel budget.
+          scaleExplicit: args.flags.scale !== void 0,
           fonts: fonts2,
           animate: animateFlag,
           skin: args.flags.skin,
@@ -44406,19 +47157,25 @@ async function cmdRender(args, validateOnly) {
         },
         diagnostics
       );
-      diagnostics.push(...result2.diagnostics);
+      diagnostics.push(
+        ...result2.diagnostics.map(
+          (d) => view.name ? { ...d, subject: { view: view.name, ...d.subject } } : d
+        )
+      );
       receipt.stats ??= renderStats(view.model, result2.scenes[themes[0] ?? "light"]);
-      const blocked = strict && diagnostics.some((d) => d.severity === "warning");
-      if (!validateOnly && (!blocked || args.flags.force === true))
-        receipt.outputs.push(
-          ...writeArtifacts(result2.artifacts, themes, view.name ? `${base}.${view.name}` : base)
-        );
-      ok = ok && !blocked;
+      drawn2.push({ name: view.name, result: result2 });
     }
+    const blocked = strict && diagnostics.some((d) => d.severity === "warning");
+    const force = !validateOnly && args.flags.force === true;
+    if (!validateOnly && (!blocked || force))
+      for (const { name: name2, result: result2 } of drawn2)
+        receipt.outputs.push(
+          ...writeArtifacts(result2.artifacts, themes, name2 ? `${base}.${name2}` : base)
+        );
+    receipt.ok = !blocked || force;
   }
-  receipt.ok = ok && !diagnostics.some((d) => d.severity === "error");
-  printReceipt(receipt, json2);
-  process.exitCode = receipt.ok ? 0 : 1;
+  receipt.ok = receipt.ok && !diagnostics.some((d) => d.severity === "error");
+  return receipt;
 }
 function themesOf(args, specTheme) {
   const themeFlag = String(args.flags.theme ?? specTheme ?? "dark");
@@ -44429,7 +47186,7 @@ function outputTarget(args, spec) {
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
   let formats;
   const fmtFlag = typeof args.flags.format === "string" ? args.flags.format : void 0;
-  const outExt = outFlag ? formatOf(outFlag) ?? extname8(outFlag).slice(1).toLowerCase() : "";
+  const outExt = outFlag ? formatOf(outFlag) ?? extname9(outFlag).slice(1).toLowerCase() : "";
   if (fmtFlag) {
     formats = fmtFlag === "all" ? [...FORMATS] : fmtFlag.split(",").map((f) => f.trim());
     for (const f of formats)
@@ -44438,11 +47195,9 @@ function outputTarget(args, spec) {
   else formats = ["svg", "png"];
   let base;
   if (!outFlag)
-    base = spec.path === "stdin.yaml" ? resolve17("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
-  else if (outFlag.endsWith("/") || outFlag.endsWith("\\") || existsSync21(outFlag) && statSync12(outFlag).isDirectory())
-    base = join19(resolve17(outFlag), spec.name);
+    base = spec.path === "stdin.yaml" ? resolve19("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
   else
-    base = resolve17(
+    base = inFolder(outFlag, spec.name) ?? resolve19(
       FORMATS.includes(outExt) ? outFlag.slice(0, -(outExt.length + 1)) : outFlag
     );
   return { formats, base };
@@ -44509,18 +47264,22 @@ function writeArtifacts(artifacts, themes, base) {
   }
   return outputs;
 }
-function printReceipt(receipt, json2) {
-  const { diagnostics } = receipt;
-  printDiagnostics(diagnostics, json2);
-  if (json2) process.stdout.write(`${JSON.stringify(receipt, null, 2)}
+function printReceipts(receipts, json2) {
+  const many2 = receipts.length > 1;
+  for (const r6 of receipts) printDiagnostics(r6.diagnostics, json2);
+  if (json2) {
+    const body = many2 ? receipts : receipts[0];
+    process.stdout.write(`${JSON.stringify(body, null, 2)}
 `);
-  else {
-    const errors2 = diagnostics.filter((d) => d.severity === "error").length;
-    const warnings = diagnostics.length - errors2;
-    for (const o of receipt.outputs) process.stdout.write(`wrote ${o.path} (${o.bytes} bytes)
+    return;
+  }
+  for (const r6 of receipts) {
+    const errors2 = r6.diagnostics.filter((d) => d.severity === "error").length;
+    const warnings = r6.diagnostics.length - errors2;
+    for (const o of r6.outputs) process.stdout.write(`wrote ${o.path} (${o.bytes} bytes)
 `);
     process.stdout.write(
-      `${receipt.ok ? "ok" : "failed"}: ${errors2} error(s), ${warnings} warning(s)
+      `${many2 ? `${r6.spec.path}: ` : ""}${r6.ok ? "ok" : "failed"}: ${errors2} error(s), ${warnings} warning(s)
 `
     );
   }
@@ -44528,16 +47287,26 @@ function printReceipt(receipt, json2) {
 
 // src/cli/review.ts
 import { rmSync as rmSync2 } from "node:fs";
-import { resolve as resolve18 } from "node:path";
+import { resolve as resolve20 } from "node:path";
+var MIN_WIDTH = 200;
 async function cmdReview(args) {
-  const [specPath] = args._;
+  const [specPath, ...extra] = args._;
   if (!specPath) usage("review needs a spec file");
+  if (extra.length) usage("review takes one spec file at a time");
   const width2 = args.flags.width === void 0 ? DEFAULT_REVIEW_WIDTH : Number(args.flags.width);
-  if (!(width2 >= 1)) usage("--width must be a number of px, at least 1");
+  if (!(width2 >= MIN_WIDTH)) usage(`--width must be a number of px, at least ${MIN_WIDTH}`);
+  const json2 = args.flags.json === true;
   const spec = readSpec(specPath);
   const parsed = parseSpec(spec.text, spec.path);
   if (!parsed.model) {
-    printDiagnostics(parsed.diagnostics, false);
+    printDiagnostics(parsed.diagnostics, json2);
+    if (json2) {
+      const failed = { ok: false, spec: { path: spec.path, sha256: sha(spec.text) } };
+      process.stdout.write(
+        `${JSON.stringify({ ...failed, diagnostics: parsed.diagnostics }, null, 2)}
+`
+      );
+    }
     process.exitCode = 1;
     return;
   }
@@ -44545,47 +47314,62 @@ async function cmdReview(args) {
   if (theme !== "light" && theme !== "dark") usage("--theme must be light or dark");
   const fonts2 = fontFiles(args);
   const outFlag = typeof args.flags.out === "string" ? args.flags.out : void 0;
-  const base = outFlag ? resolve18(outFlag) : spec.path === "stdin.yaml" ? resolve18("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
+  const base = outFlag ? inFolder(outFlag, spec.name) ?? resolve20(outFlag) : spec.path === "stdin.yaml" ? resolve20("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
   const skin = args.flags.skin;
-  let run2;
-  try {
-    run2 = await reviewModel({
-      model: skin ? { ...parsed.model, skin } : parsed.model,
-      name: spec.name,
-      width: width2,
-      theme,
-      fonts: fonts2,
-      diagnostics: parsed.diagnostics
-    });
-  } catch (e) {
-    const failure = renderFailure(e);
-    if (!failure) throw e;
-    printDiagnostics([failure], false);
-    process.exitCode = 1;
-    return;
-  }
-  writeAtomic(`${base}.review.json`, `${JSON.stringify(run2.report, null, 2)}
+  const views = viewsOf(parsed.model, args.flags.view);
+  const reports = [];
+  const texts = [];
+  for (const view of views) {
+    const viewBase = view.name ? `${base}.${view.name}` : base;
+    let run3;
+    try {
+      run3 = await reviewModel({
+        model: skin ? { ...view.model, skin } : view.model,
+        name: view.name ? `${spec.name}.${view.name}` : spec.name,
+        width: width2,
+        theme,
+        fonts: fonts2,
+        diagnostics: parsed.diagnostics
+      });
+    } catch (e) {
+      const failure = renderFailure(e);
+      if (!failure) throw e;
+      printDiagnostics([failure], false);
+      process.exitCode = 1;
+      return;
+    }
+    writeAtomic(`${viewBase}.review.json`, `${JSON.stringify(run3.report, null, 2)}
 `);
-  if (run2.png) writeAtomic(`${base}.review.png`, run2.png);
-  if (run2.look) writeAtomic(`${base}.review.look.png`, run2.look);
-  else rmSync2(`${base}.review.look.png`, { force: true });
-  const pngs = [run2.png && `${base}.review.png`, run2.look && `${base}.review.look.png`].filter(
-    Boolean
-  );
-  if (args.flags.json === true) process.stdout.write(`${JSON.stringify(run2.report, null, 2)}
-`);
-  else
-    process.stdout.write(
-      `${formatReview(run2.report)}
+    if (run3.png) writeAtomic(`${viewBase}.review.png`, run3.png);
+    if (run3.look) writeAtomic(`${viewBase}.review.look.png`, run3.look);
+    else rmSync2(`${viewBase}.review.look.png`, { force: true });
+    const pngs = [run3.png && `${viewBase}.review.png`, run3.look && `${viewBase}.review.look.png`];
+    reports.push(run3.report);
+    texts.push(
+      `${view.name ? `view ${view.name}
+` : ""}${formatReview(run3.report)}
 
-wrote ${[`${base}.review.json`, ...pngs].join(", ")}
+wrote ${[`${viewBase}.review.json`, ...pngs.filter(Boolean)].join(", ")}
 `
     );
-  process.exitCode = args.flags.strict === true && !run2.report.pass ? 1 : 0;
+  }
+  if (json2)
+    process.stdout.write(`${JSON.stringify(reports.length > 1 ? reports : reports[0], null, 2)}
+`);
+  else process.stdout.write(texts.join("\n"));
+  process.exitCode = args.flags.strict === true && reports.some((r6) => !r6.pass) ? 1 : 0;
 }
 
 // src/cli/index.ts
 async function main(argv = process.argv.slice(2)) {
+  try {
+    return await run2(argv);
+  } catch (e) {
+    if (e instanceof FolderTargetError) usage(e.message);
+    throw e;
+  }
+}
+async function run2(argv) {
   const args = parseArgs(argv);
   const [cmd, ...rest] = args._;
   args._ = rest;

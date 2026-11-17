@@ -72,23 +72,69 @@ function applyOne(text: string, op: PatchOp, depth = 0): string {
   return step.again && depth === 0 ? applyOne(out, op, 1) : out;
 }
 
+/** The lines of text, split at "\n"; text ends with a newline, so the empty last piece is dropped. */
+const linesOf = (text: string) => text.split("\n").slice(0, -1);
+
+/**
+ * The line endings after an op: lines the op left alone keep theirs (a common head and tail, and
+ * moved lines by content), new lines take the dominant ending.
+ */
+function carryEndings(
+  before: string,
+  after: string,
+  endings: string[],
+  dominant: string,
+): string[] {
+  const old = linesOf(before);
+  const now = linesOf(after);
+  let head = 0;
+  while (head < old.length && head < now.length && old[head] === now[head]) head += 1;
+  let tail = 0;
+  while (
+    tail < old.length - head &&
+    tail < now.length - head &&
+    old[old.length - 1 - tail] === now[now.length - 1 - tail]
+  )
+    tail += 1;
+  const spare = new Map<string, string[]>();
+  for (let i = head; i < old.length - tail; i++)
+    spare.set(old[i] as string, [...(spare.get(old[i] as string) ?? []), endings[i] as string]);
+  const middle = now
+    .slice(head, now.length - tail)
+    .map((line) => spare.get(line)?.shift() ?? dominant);
+  return [...endings.slice(0, head), ...middle, ...endings.slice(old.length - tail)];
+}
+
 /** The spec text with the ops applied in order, comments and key order kept. Throws PatchError. */
 export function applyPatches(source: string, ops: PatchOp[]): string {
   if (!ops.length) return source;
-  // Edits work on "\n" lines; a CRLF spec (a Windows checkout) gets its CRLF back at the end.
-  const crlf = source.includes("\r\n");
-  let text = crlf ? source.replace(/\r\n/g, "\n") : source;
+  // Edits work on "\n" lines with no byte order mark; a CRLF spec (a Windows checkout) gets its
+  // CRLF back at the end, line by line, so a file that mixes both endings keeps each line's own.
+  const bom = source.startsWith("\uFEFF") ? "\uFEFF" : "";
+  const body = source.slice(bom.length);
+  const found = body.match(/\r?\n/g) ?? [];
+  const crlf = found.filter((e) => e === "\r\n").length;
+  const dominant = crlf > 0 && crlf >= found.length - crlf ? "\r\n" : "\n";
+  let text = body.replace(/\r\n/g, "\n");
+  let endings = found.slice();
   // Moves and appends work on whole lines, so the last line needs its newline.
-  if (!text.endsWith("\n")) text += "\n";
+  if (!text.endsWith("\n")) {
+    text += "\n";
+    endings.push(dominant);
+  }
   for (const [i, op] of ops.entries()) {
     try {
       checkOp(op);
-      text = applyOne(text, op);
+      const next = applyOne(text, op);
+      endings = carryEndings(text, next, endings, dominant);
+      text = next;
     } catch (e) {
       if (e instanceof PatchError)
         throw new PatchError(`op ${i + 1} (${describeOp(op)}): ${e.message}`);
       throw e;
     }
   }
-  return crlf ? text.replace(/\n/g, "\r\n") : text;
+  let out = "";
+  for (const [i, line] of linesOf(text).entries()) out += line + (endings[i] ?? dominant);
+  return bom + out;
 }

@@ -68,15 +68,25 @@ export async function layoutCore(model: Model, opts: LayoutOptions = {}): Promis
   clearOverlayBorders(routed);
 
   const next = secondPass(routed);
-  const again = next ? layoutCore(model, next) : undefined;
+  // A second pass that fails (ELK throws on the changed graph) leaves this one's scene, noted as
+  // a fallback (DG218).
+  let failed = "";
+  const again = next
+    ? layoutCore(model, next).catch((e: unknown) => {
+        failed = (e as Error)?.message ?? String(e);
+        return undefined;
+      })
+    : undefined;
   // Without (or with flipped) rerouted edges ELK may close the gap a label needs: the second pass
   // wins unless it covers more than this one, which is finished below to compare.
-  if (again && !rerouted.size) return again;
+  const early = again && !rerouted.size ? await again : undefined;
+  if (early) return early;
 
   const scene = assemble(routed, hooked.routing, sizeCanvas(routed));
   // The skin only recolors: every box and point above is the same for classic and stage.
   const done = model.skin === "stage" ? stageColors(scene) : scene;
   if (!again) return done;
   const second = await again;
+  if (!second) return { ...done, layoutFallback: `first pass only (the second failed: ${failed})` };
   return sceneDefects(second) > sceneDefects(done) ? done : second;
 }

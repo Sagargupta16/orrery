@@ -11,12 +11,22 @@ import { parseArgs } from "./args.ts";
 import { cmdDemo, cmdDoctor } from "./doctor.ts";
 import { HELP, VERSION } from "./help.ts";
 import { cmdIcons } from "./icons.ts";
-import { usage } from "./io.ts";
+import { FolderTargetError, usage } from "./io.ts";
 import { cmdRender } from "./render.ts";
 import { cmdReview } from "./review.ts";
 import { cmdImport, cmdInit, cmdStyles } from "./templates.ts";
 
 export async function main(argv = process.argv.slice(2)) {
+  try {
+    return await run(argv);
+  } catch (e) {
+    // An -o that names a folder where a file belongs is a bad command line, not a crash.
+    if (e instanceof FolderTargetError) usage(e.message);
+    throw e;
+  }
+}
+
+async function run(argv: string[]) {
   const args = parseArgs(argv);
   const [cmd, ...rest] = args._;
   args._ = rest;

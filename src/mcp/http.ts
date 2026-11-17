@@ -24,11 +24,13 @@ function readBody(req: IncomingMessage): Promise<string> {
     let size = 0;
     req.on("data", (c: Buffer) => {
       size += c.length;
-      if (size <= MAX_BODY) chunks.push(c);
+      if (size <= MAX_BODY) return void chunks.push(c);
+      // Stop at the limit: the rest of the upload is never read or kept (the caller destroys the socket).
+      chunks.length = 0;
+      req.pause();
+      fail(new TooLarge());
     });
-    req.on("end", () =>
-      size > MAX_BODY ? fail(new TooLarge()) : done(Buffer.concat(chunks).toString("utf8")),
-    );
+    req.on("end", () => done(Buffer.concat(chunks).toString("utf8")));
     req.on("error", fail);
   });
 }
@@ -109,6 +111,8 @@ async function handleHttp(req: IncomingMessage, res: ServerResponse) {
     raw = await readBody(req);
   } catch (e) {
     if (!(e instanceof TooLarge)) throw e;
+    res.setHeader("Connection", "close");
+    res.once("finish", () => req.destroy());
     return respond(res, 413, rpcError(undefined, -32600, "Request body is over 16 MB"));
   }
   let msg: unknown;

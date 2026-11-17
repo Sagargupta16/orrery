@@ -96,8 +96,13 @@ function fromNodeModules(src: LibrarySource): Buffer | undefined {
 function fromCache(src: LibrarySource): Buffer | undefined {
   const path = cachePath(src);
   if (!existsSync(path)) return undefined;
-  const buf = readFileSync(path);
-  return sha256(buf) === src.sha256 ? buf : undefined;
+  // An unreadable entry (a folder, no permission) is a miss, so the library downloads again.
+  try {
+    const buf = readFileSync(path);
+    return sha256(buf) === src.sha256 ? buf : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 async function download(src: LibrarySource): Promise<Buffer> {
@@ -112,7 +117,10 @@ async function download(src: LibrarySource): Promise<Buffer> {
       }
       buf = Buffer.from(await res.arrayBuffer());
     } catch (e) {
-      problems.push(`${url}: ${(e as Error).message}`);
+      // fetch reports every network failure as "fetch failed"; the reason is in the cause.
+      const cause = (e as { cause?: { code?: string; message?: string } }).cause;
+      const why = cause?.code ?? cause?.message;
+      problems.push(`${url}: ${(e as Error).message}${why ? ` (${why})` : ""}`);
       continue;
     }
     if (sha256(buf) !== src.sha256) {
@@ -137,6 +145,7 @@ async function download(src: LibrarySource): Promise<Buffer> {
     `icon library ${src.npm}@${src.version} could not be downloaded (${problems.join("; ")})`,
     [
       "connect to the internet once; the library is cached after the first download",
+      "behind a proxy: set NODE_USE_ENV_PROXY=1 with HTTPS_PROXY so fetch uses it",
       `prefetch where there is network: orrery icons fetch, then copy ${cacheDir()} (or set ORRERY_CACHE)`,
       "use icons from the bundled official packs (aws, azure, gcp, k8s) instead",
     ],
@@ -150,9 +159,21 @@ export function librarySource(src: LibrarySource): "node_modules" | "cache" | un
   return undefined;
 }
 
-export async function loadLibrary(pack: string, src: LibrarySource): Promise<IconifySet> {
+/** Loads in flight, so overlapping renders (MCP, watch) fetch a pack once. */
+const pending = new Map<string, Promise<IconifySet>>();
+
+export function loadLibrary(pack: string, src: LibrarySource): Promise<IconifySet> {
   const done = loaded.get(pack);
-  if (done) return done;
+  if (done) return Promise.resolve(done);
+  let load = pending.get(pack);
+  if (!load) {
+    load = readLibrary(pack, src).finally(() => pending.delete(pack));
+    pending.set(pack, load);
+  }
+  return load;
+}
+
+async function readLibrary(pack: string, src: LibrarySource): Promise<IconifySet> {
   const buf = fromNodeModules(src) ?? fromCache(src) ?? (await download(src));
   const json = JSON.parse(buf.toString("utf8"));
   const set = src.format === "octicons" ? fromOcticons(json) : (json as IconifySet);

@@ -2,6 +2,7 @@
 import { basename } from "node:path";
 import {
   DEFAULT_REVIEW_WIDTH,
+  droppedRubrics,
   type HardCounts,
   improves,
   type ReviewReport,
@@ -66,6 +67,9 @@ function whyNot(before: ReviewReport, after: ReviewReport): string {
     return `blockers plus majors went up: ${serious(before)} -> ${serious(after)}`;
   if (nodeCount(after) < nodeCount(before))
     return `a node was removed: ${nodeCount(before)} -> ${nodeCount(after)} nodes`;
+  const dropped = droppedRubrics(before, after);
+  if (dropped.length)
+    return `the patched spec no longer gets the ${dropped.join(", ")} rubric${dropped.length > 1 ? "s" : ""}`;
   if (after.score <= before.score) return `score did not go up: ${before.score} -> ${after.score}`;
   return "reviewed at another width or theme";
 }

@@ -2,7 +2,7 @@
 //
 // Called from: src/render/drawio.ts node() for every node with fields. Returns the cells that
 // replace the node's own cell, or undefined to draw it as usual. The table's own cell keeps the
-// id `n-<node id>` and the parent `cellParent(nd.parent)`, so edges still attach to it; drawio.ts
+// id `n-<node id>` and the parent `cellParent(ctx, nd.parent)`, so edges still attach to it; drawio.ts
 // edge() maps SceneEdge.card to draw.io's own ER arrows, so nothing here draws the ends.
 //
 // The cells are the ones draw.io's Entity Relation sidebar inserts for a table (shape=table with
@@ -14,7 +14,7 @@ import { columnsOf, headerOf, rowsOf, tagsOf, typeText } from "../layout/er/inde
 import { BODY_PAD, NAME_SIZE, TYPE_SIZE } from "../layout/er/table.ts";
 import type { SceneNode } from "../types.ts";
 import { type Ctx, cellParent, FONT, geometry, htmlLabel, iconData, n, style } from "./drawio.ts";
-import { esc } from "./svg.ts";
+import { esc, safeHref } from "./svg.ts";
 
 /** A cell's geometry inside its parent, with the bounds draw.io keeps for a collapsed cell. */
 const local = (x: number, y: number, w: number, h: number) =>
@@ -62,10 +62,11 @@ export function erDrawio(ctx: Ctx, nd: SceneNode): string[] | undefined {
     spacingLeft: Math.round(nd.labelBox.x - b.x - 2),
     resizeLast: 1,
   });
+  const link = nd.url ? safeHref(nd.url) : undefined;
   const cells = [
-    nd.url
-      ? `<UserObject id="${id}" label="${esc(value)}" link="${esc(nd.url)}"><mxCell style="${table}" vertex="1" parent="${cellParent(nd.parent)}">${geometry(b, nd.parent, ctx)}</mxCell></UserObject>`
-      : `<mxCell id="${id}" value="${esc(value)}" style="${table}" vertex="1" parent="${cellParent(nd.parent)}">${geometry(b, nd.parent, ctx)}</mxCell>`,
+    link
+      ? `<UserObject id="${id}" label="${esc(value)}" link="${link}"><mxCell style="${table}" vertex="1" parent="${cellParent(ctx, nd.parent)}">${geometry(b, nd.parent, ctx)}</mxCell></UserObject>`
+      : `<mxCell id="${id}" value="${esc(value)}" style="${table}" vertex="1" parent="${cellParent(ctx, nd.parent)}">${geometry(b, nd.parent, ctx)}</mxCell>`,
   ];
   rows.forEach((row, i) => {
     const rid = `${id}:r${i}`;
@@ -105,7 +106,7 @@ export function erDrawio(ctx: Ctx, nd: SceneNode): string[] | undefined {
   // The header icon sits beside the table, over its header: a cell inside would be a row.
   if (nd.icon && nd.iconBox && iconW)
     cells.push(
-      `<mxCell id="${id}:icon" value="" style="${style({ shape: "image", image: iconData(ctx, nd.icon, undefined, band), imageAspect: 1, aspect: "fixed", html: 1 })}" vertex="1" parent="${cellParent(nd.parent)}">${geometry(nd.iconBox, nd.parent, ctx)}</mxCell>`,
+      `<mxCell id="${id}:icon" value="" style="${style({ shape: "image", image: iconData(ctx, nd.icon, undefined, band), imageAspect: 1, aspect: "fixed", html: 1 })}" vertex="1" parent="${cellParent(ctx, nd.parent)}">${geometry(nd.iconBox, nd.parent, ctx)}</mxCell>`,
     );
   return cells;
 }

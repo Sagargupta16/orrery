@@ -9,7 +9,7 @@ import type {
   TagStyle,
 } from "../types.ts";
 import { ID_RE } from "./keys.ts";
-import { isObj, type Obj, type Reporter } from "./values.ts";
+import { isObj, itemId, type Obj, type Reporter } from "./values.ts";
 
 /** Everything the steps of one parse read and fill, in the order parseSpec runs them. */
 export interface Ctx extends Reporter {
@@ -30,6 +30,8 @@ export interface Ctx extends Reporter {
   pendingContains: [string, string[]][];
   /** Node `align` targets, checked once every node exists. */
   pendingAlign: [string, string][];
+  /** Edge item and end id pairs already reported, so a fan or a chain names a bad end once. */
+  badEnds: Set<string>;
 }
 
 export function newContext(
@@ -53,15 +55,19 @@ export function newContext(
     tagStyles: {},
     pendingContains: [],
     pendingAlign: [],
+    badEnds: new Set(),
   };
 }
 
 /** Registers an id; false (and DG103) when another node or group already has it. */
 export function claim(ctx: Ctx, id: string, kind: "node" | "group"): boolean {
   if (!ID_RE.test(id)) {
+    // An id with no ASCII letter or digit (one written in Japanese, say) has nothing to keep, so
+    // the fix names it by its place instead; a renamed id may not start with "-" or ".".
+    const kept = id.replace(/[^A-Za-z0-9_.-]+/g, "-").replace(/^[.-]+|-+$/g, "");
     ctx.err("DG103", `id "${id}" may only use letters, digits, "_", "-" and "."`, {
       subject: { id },
-      fixes: [`rename to "${id.replace(/[^A-Za-z0-9_.-]+/g, "-")}"`],
+      fixes: [`rename to "${kept || `item-${ctx.ids.size + 1}`}"`],
     });
   }
   if (ctx.ids.has(id)) {
@@ -80,7 +86,8 @@ export function entries(ctx: Ctx, value: unknown, what: string): [string, unknow
   if (value === undefined || value === null) return [];
   if (Array.isArray(value)) {
     return value.map((item, i): [string, unknown] => {
-      if (isObj(item) && typeof item.id === "string") return [item.id, item];
+      const id = isObj(item) ? itemId(item) : undefined;
+      if (id !== undefined) return [id, item];
       if (isObj(item) && Object.keys(item).length === 1) {
         const [k, v] = Object.entries(item)[0] as [string, unknown];
         return [k, v];

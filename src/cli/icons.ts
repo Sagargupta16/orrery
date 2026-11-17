@@ -25,7 +25,7 @@ import { parseSpec } from "../spec/index.ts";
 import { THEME_TOKENS } from "../themes.ts";
 import { SKINS, type ThemeName } from "../types.ts";
 import { type Args, closest } from "./args.ts";
-import { usage, writeAtomic } from "./io.ts";
+import { isFile, usage, writeAtomic } from "./io.ts";
 
 export async function cmdIcons(args: Args) {
   const [sub, ...rest] = args._;
@@ -95,6 +95,32 @@ async function iconFetch(rest: string[]) {
   }
 }
 
+/**
+ * --pack and --type as filters: the pack lowercased, both checked against what the catalog has,
+ * so a typo is a usage error with a suggestion and not an empty result.
+ */
+function iconFilters(args: Args): { pack?: string; type?: string } {
+  const pack =
+    typeof args.flags.pack === "string" ? args.flags.pack.trim().toLowerCase() : undefined;
+  const type = typeof args.flags.type === "string" ? args.flags.type.trim() : undefined;
+  if (pack !== undefined && !Object.hasOwn(packInfo(), pack)) {
+    const near = closest(pack, PACK_ORDER);
+    usage(
+      `unknown --pack "${pack}"${near ? ` (did you mean ${near}?)` : ""}; packs: ${PACK_ORDER.join(", ")}`,
+    );
+  }
+  if (type !== undefined) {
+    const types = [...new Set(allIcons().map((i) => i.type))].sort();
+    if (!types.includes(type)) {
+      const near = closest(type, types);
+      usage(
+        `unknown --type "${type}"${near ? ` (did you mean ${near}?)` : ""}; types: ${types.join(", ")}`,
+      );
+    }
+  }
+  return { pack, type };
+}
+
 function iconSearch(args: Args, rest: string[], json: boolean) {
   const query = rest.join(" ");
   if (!query) usage("icons search needs words, e.g. icons search load balancer");
@@ -102,8 +128,7 @@ function iconSearch(args: Args, rest: string[], json: boolean) {
   if (limit !== undefined && !/^[1-9]\d*$/.test(String(limit)))
     usage(`--limit must be a positive integer (got "${limit}")`);
   const results = searchIcons(query, {
-    pack: typeof args.flags.pack === "string" ? args.flags.pack : undefined,
-    type: typeof args.flags.type === "string" ? args.flags.type : undefined,
+    ...iconFilters(args),
     limit: limit === undefined ? 15 : Number(limit),
   });
   if (json) return void process.stdout.write(`${JSON.stringify(results, null, 2)}\n`);
@@ -114,10 +139,9 @@ function iconSearch(args: Args, rest: string[], json: boolean) {
 }
 
 function iconList(args: Args, json: boolean) {
-  const pack = typeof args.flags.pack === "string" ? args.flags.pack : undefined;
+  const { pack, type } = iconFilters(args);
   const category =
     typeof args.flags.category === "string" ? args.flags.category.toLowerCase() : undefined;
-  const type = typeof args.flags.type === "string" ? args.flags.type : undefined;
   const list = allIcons().filter(
     (i) =>
       (!pack || i.pack === pack) &&
@@ -191,7 +215,7 @@ function iconNew(args: Args, rest: string[]) {
 async function iconCheck(args: Args, rest: string[]) {
   const [file] = rest;
   if (!file) usage("icons check needs an .svg file");
-  if (!existsSync(file)) usage(`no such file: ${file}`);
+  if (!isFile(file)) usage(`${existsSync(file) ? "not a file" : "no such file"}: ${file}`);
   process.exitCode = (await checkIconFile(resolve(file), sheetOut(args))) ? 0 : 1;
 }
 
@@ -209,7 +233,7 @@ async function iconAdopt(args: Args, rest: string[]) {
   if (!src) usage("icons adopt needs an .svg file");
   if (typeof name !== "string" || !ICON_NAME.test(name))
     usage("icons adopt needs --name <name> of lowercase letters, digits and -");
-  if (!existsSync(src)) usage(`no such file: ${src}`);
+  if (!isFile(src)) usage(`${existsSync(src) ? "not a file" : "no such file"}: ${src}`);
   const out = sheetOut(args);
   const file = iconTarget(args, name);
   if (!file) return;

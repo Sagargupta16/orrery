@@ -167,15 +167,17 @@ export function placeRows(
 
   let cursor = headBottom + S.firstGap;
   msgs.forEach((m, k) => {
-    for (const f of frags.filter((x) => x.first === k).sort((p, q) => p.depth - q.depth)) {
-      f.top = cursor;
-      cursor += Math.max(S.tagH, (f.label?.height ?? 0) + 4) + S.tagGap;
-    }
+    // Dividers before headers: a fragment that starts on a branch's first message nests inside
+    // that branch, so its box opens under the divider, not across it.
     for (const f of frags)
       for (const d of f.dividers.filter((x) => x.k === k)) {
         d.y = cursor + 2;
         cursor = d.y + (d.label ? 4 + d.label.height + 6 : 8);
       }
+    for (const f of frags.filter((x) => x.first === k).sort((p, q) => p.depth - q.depth)) {
+      f.top = cursor;
+      cursor += Math.max(S.tagH, (f.label?.height ?? 0) + 4) + S.tagGap;
+    }
     const lbh = m.label ? m.label.height + S.chipY : 0;
     const half = m.step !== undefined ? S.step / 2 : 0;
     m.top = cursor;

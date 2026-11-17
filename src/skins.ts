@@ -1,6 +1,30 @@
-import { ensureContrast, mixHex } from "./color.ts";
-import { tokensFor } from "./themes.ts";
-import type { Scene } from "./types.ts";
+import { contrast, ensureContrast, luminance, mixHex } from "./color.ts";
+import { resolveGroupStyle, serviceGroupStroke } from "./styles.ts";
+import { THEME_TOKENS, tokensFor } from "./themes.ts";
+import type { Scene, SceneGroup } from "./types.ts";
+
+/**
+ * The frame color and fill the spec itself set on a group (`color`, `fill`), read back from the
+ * scene: layout paints the type's own look unless the spec overrides it (layout/groups.ts), so a
+ * stroke or fill that differs from that default is the spec's.
+ */
+function ownLook(g: SceneGroup, scene: Scene): { color?: string; fill?: string } {
+  const style = resolveGroupStyle(g.type);
+  if (!style) return {};
+  const t = THEME_TOKENS[scene.theme];
+  const base = serviceGroupStroke(g.type, g.icon) ?? style.stroke;
+  const strokes = [base];
+  let fill = style.fill ?? "none";
+  if (scene.theme === "dark") {
+    if (luminance(base) < 0.04) strokes.push("#c9d1d9");
+    else if (contrast(base, t.background) < 2) strokes.push(mixHex(base, "#ffffff", 0.55));
+    if (fill !== "none") fill = mixHex(fill, t.background, 0.14);
+  }
+  return {
+    ...(strokes.includes(g.stroke) ? {} : { color: g.stroke }),
+    ...(g.overlay || g.fill === "none" || g.fill === fill ? {} : { fill: g.fill }),
+  };
+}
 
 /**
  * Recolors a laid-out scene for the stage skin. Geometry is untouched (layout never reads the
@@ -17,10 +41,15 @@ export function stageColors(scene: Scene): Scene {
     scene.background && scene.background !== "transparent" ? scene.background : t.background;
   const panel = mixHex(s.line, canvas, s.panel);
   for (const g of scene.groups) {
-    g.fill = g.dash || g.overlay ? "none" : panel;
-    g.stroke = mixHex(s.line, canvas, s.frame);
+    // A color or fill the spec set stays: the frame and header take the color (held to the
+    // contrast floors against what is under them) and the fill tints the panel faintly.
+    const own = ownLook(g, scene);
+    const open = g.dash || g.overlay;
+    const shown = own.fill ? mixHex(open ? canvas : panel, own.fill, 0.2) : panel;
+    g.fill = own.fill || !open ? shown : "none";
+    g.stroke = own.color ? ensureContrast(own.color, shown, 3) : mixHex(s.line, canvas, s.frame);
     if (g.inner) g.inner.fill = panel;
-    g.labelColor = ensureContrast(g.depth === 0 ? s.header : t.text, panel);
+    g.labelColor = ensureContrast(own.color ?? (g.depth === 0 ? s.header : t.text), shown);
   }
   for (const nd of scene.nodes) {
     nd.ink = undefined;

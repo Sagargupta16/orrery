@@ -15,6 +15,7 @@ export const authoringGuideTool: Tool = {
     additionalProperties: false,
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
+  concurrent: true,
   async run(input) {
     const topic = oneOf(input, "topic", ["diagram", "review"]) ?? "diagram";
     const files =

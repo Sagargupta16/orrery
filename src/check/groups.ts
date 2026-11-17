@@ -2,7 +2,7 @@
 // in or beside a group's title.
 import type { Box, Point, SceneGroup } from "../types.ts";
 import type { CheckContext } from "./context.ts";
-import { boxOf, EPS, headerChip, pointOf, segmentHitsBox, tenth } from "./geometry.ts";
+import { boxOf, EPS, headerChip, pointOf, segmentHitsBox, tenth, titleBox } from "./geometry.ts";
 
 /**
  * Within this many canvas px of a border line a run reads as on it (DG224), and a run through a
@@ -160,10 +160,10 @@ export function edgeAlongBorder({ scene, warn }: CheckContext): void {
  */
 export function edgeNearTitle({ scene, warn }: CheckContext): void {
   for (const g of scene.groups) {
-    const chip = headerChip(g);
+    const chip = headerChip(scene, g);
     if (!framed(g) || !chip) continue;
     const r = g.box;
-    const t = g.labelBox;
+    const t = titleBox(scene, g);
     const band = Math.max(TITLE_BAND, t.y + t.h - r.y);
     for (const e of scene.edges) {
       const b = e.labelBox;

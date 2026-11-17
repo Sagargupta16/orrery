@@ -3,7 +3,7 @@
 import { textBlock } from "../../text.ts";
 import type { Box, LegendEntry, Model, SceneLegend, TextBlock } from "../../types.ts";
 import { SIZES } from "../sizes.ts";
-import { type Grid, round } from "./grid.ts";
+import { type Card, type Grid, round } from "./grid.ts";
 import type { JourneyCurve } from "./index.ts";
 
 export interface Canvas {
@@ -81,7 +81,12 @@ function placeLegend(entries: LegendEntry[], width: number, height: number): Sce
 }
 
 /** Alt text: the stages, the rows, the emotion at each stage and the links. */
-export function describe(model: Model, rows: TextBlock[], curve: JourneyCurve | undefined): string {
+export function describe(
+  model: Model,
+  rows: TextBlock[],
+  curve: JourneyCurve | undefined,
+  scored: Card[],
+): string {
   const name = (id: string) => model.nodes.find((n) => n.id === id)?.label ?? id;
   const stages = model.stages ?? [];
   const parts: string[] = [];
@@ -90,12 +95,11 @@ export function describe(model: Model, rows: TextBlock[], curve: JourneyCurve | 
     `Customer journey in ${stages.length} stages (${stages.join(", ")}) and ${rows.length} rows (${rows.map((r) => r.lines.join(" ")).join(", ")}), ${model.nodes.length} steps.`,
   );
   if (curve?.scores.length) {
-    const scored = stages.filter((st) =>
-      model.nodes.some((n) => n.stage === st && n.score !== undefined),
-    );
+    // By column, as emotionCurve takes them: two stages of one name are still two columns.
+    const cols = [...new Set(scored.map((c) => c.col))].sort((a, b) => a - b);
     const sign = (v: number) => (v > 0 ? `+${v}` : String(v));
     parts.push(
-      `Emotion from -2 to 2 by stage: ${scored.map((st, i) => `${st} ${sign(curve.scores[i] ?? 0)}`).join(", ")}.`,
+      `Emotion from -2 to 2 by stage: ${cols.map((c, i) => `${stages[c] ?? ""} ${sign(curve.scores[i] ?? 0)}`).join(", ")}.`,
     );
   }
   const flows = model.edges

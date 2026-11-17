@@ -1,6 +1,5 @@
 // render and validate: spec in, files and a receipt (text or --json) out.
-import { existsSync, statSync } from "node:fs";
-import { extname, join, resolve } from "node:path";
+import { extname, resolve } from "node:path";
 import {
   type Artifact,
   FORMATS,
@@ -16,6 +15,7 @@ import { viewsOf } from "../views.ts";
 import type { Args } from "./args.ts";
 import {
   fontFiles,
+  inFolder,
   printDiagnostics,
   readSpec,
   renderFailure,
@@ -45,25 +45,52 @@ interface Receipt {
 type Spec = ReturnType<typeof readSpec>;
 
 export async function cmdRender(args: Args, validateOnly: boolean) {
-  const [specPath] = args._;
-  if (!specPath) usage(`${validateOnly ? "validate" : "render"} needs a spec file`);
+  if (!args._.length) usage(`${validateOnly ? "validate" : "render"} needs a spec file`);
   const json = args.flags.json === true;
+  // Every spec is read and every target settled before the first is drawn, so a bad path or two
+  // specs aiming at one file stops the run before anything is written.
+  const specs = args._.map(readSpec);
+  const fonts = fontFiles(args);
+  const targets = specs.map((spec) => outputTarget(args, spec));
+  if (specs.length > 1) {
+    const out = typeof args.flags.out === "string" ? args.flags.out : undefined;
+    if (out && !inFolder(out, "x"))
+      usage("-o must be a folder (end it with /) for more than one spec");
+    const seen = new Map<string, string>();
+    specs.forEach((spec, i) => {
+      const base = targets[i]?.base ?? "";
+      const other = seen.get(base);
+      if (other) usage(`${other} and ${spec.path} would both write ${base}.*; render them apart`);
+      seen.set(base, spec.path);
+    });
+  }
+  const receipts: Receipt[] = [];
+  for (const [i, spec] of specs.entries())
+    receipts.push(await renderSpec(args, spec, validateOnly, targets[i], fonts));
+  printReceipts(receipts, json);
+  process.exitCode = receipts.every((r) => r.ok) ? 0 : 1;
+}
+
+async function renderSpec(
+  args: Args,
+  spec: Spec,
+  validateOnly: boolean,
+  target: ReturnType<typeof outputTarget> | undefined,
+  fonts: string[],
+): Promise<Receipt> {
   const strict = args.flags.strict === true;
-  const spec = readSpec(specPath);
   const parsed = parseSpec(spec.text, spec.path);
   const diagnostics: Diagnostic[] = [...parsed.diagnostics];
   const themes = themesOf(args, parsed.model?.theme);
-  const fonts = fontFiles(args);
-  const { formats, base } = outputTarget(args, spec);
+  const { formats, base } = target ?? outputTarget(args, spec);
 
-  let ok = !diagnostics.some((d) => d.severity === "error");
   const receipt: Receipt = {
-    ok,
+    ok: !diagnostics.some((d) => d.severity === "error"),
     spec: { path: spec.path, sha256: sha(spec.text) },
     outputs: [],
     diagnostics,
   };
-  if (parsed.model && ok) {
+  if (parsed.model && receipt.ok) {
     const scale = args.flags.scale !== undefined ? Number(args.flags.scale) : 3;
     if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
     const animateFlag =
@@ -75,6 +102,7 @@ export async function cmdRender(args: Args, validateOnly: boolean) {
     // The whole diagram, or with --view one figure per named view (`<base>.<view>.<format>`).
     const views = viewsOf(parsed.model, args.flags.view);
     if (!validateOnly) clashingPaths(views, themes, formats, base);
+    const drawn: { name: string | undefined; result: RenderResult }[] = [];
     for (const view of views) {
       const result = await renderOrFail(
         {
@@ -83,6 +111,8 @@ export async function cmdRender(args: Args, validateOnly: boolean) {
           themes: validateOnly ? [themes[0] ?? "light"] : themes,
           name: view.name ? `${spec.name}.${view.name}` : spec.name,
           scale,
+          // Only the default scale may be lowered to keep a large PNG inside the pixel budget.
+          scaleExplicit: args.flags.scale !== undefined,
           fonts,
           animate: animateFlag as AnimateMode | undefined,
           skin: args.flags.skin as Skin | undefined,
@@ -90,19 +120,28 @@ export async function cmdRender(args: Args, validateOnly: boolean) {
         },
         diagnostics,
       );
-      diagnostics.push(...result.diagnostics);
+      // A warning from one of several views says which view it came from.
+      diagnostics.push(
+        ...result.diagnostics.map((d) =>
+          view.name ? { ...d, subject: { view: view.name, ...d.subject } } : d,
+        ),
+      );
       receipt.stats ??= renderStats(view.model, result.scenes[themes[0] ?? "light"]);
-      const blocked = strict && diagnostics.some((d) => d.severity === "warning");
-      if (!validateOnly && (!blocked || args.flags.force === true))
-        receipt.outputs.push(
-          ...writeArtifacts(result.artifacts, themes, view.name ? `${base}.${view.name}` : base),
-        );
-      ok = ok && !blocked;
+      drawn.push({ name: view.name, result });
     }
+    // --strict stops every view before any file is written; --force writes anyway and the
+    // warnings stay listed, so a run that wrote its files is not reported as one that wrote none.
+    const blocked = strict && diagnostics.some((d) => d.severity === "warning");
+    const force = !validateOnly && args.flags.force === true;
+    if (!validateOnly && (!blocked || force))
+      for (const { name, result } of drawn)
+        receipt.outputs.push(
+          ...writeArtifacts(result.artifacts, themes, name ? `${base}.${name}` : base),
+        );
+    receipt.ok = !blocked || force;
   }
-  receipt.ok = ok && !diagnostics.some((d) => d.severity === "error");
-  printReceipt(receipt, json);
-  process.exitCode = receipt.ok ? 0 : 1;
+  receipt.ok = receipt.ok && !diagnostics.some((d) => d.severity === "error");
+  return receipt;
 }
 
 /** --theme (or the spec's theme, or dark) as the list of themes to draw. */
@@ -129,16 +168,12 @@ function outputTarget(args: Args, spec: Spec): { formats: Format[]; base: string
   if (!outFlag)
     base =
       spec.path === "stdin.yaml" ? resolve("diagram") : spec.path.replace(/\.(ya?ml|json)$/i, "");
-  else if (
-    outFlag.endsWith("/") ||
-    outFlag.endsWith("\\") ||
-    (existsSync(outFlag) && statSync(outFlag).isDirectory())
-  )
-    base = join(resolve(outFlag), spec.name);
   else
-    base = resolve(
-      FORMATS.includes(outExt as Format) ? outFlag.slice(0, -(outExt.length + 1)) : outFlag,
-    );
+    base =
+      inFolder(outFlag, spec.name) ??
+      resolve(
+        FORMATS.includes(outExt as Format) ? outFlag.slice(0, -(outExt.length + 1)) : outFlag,
+      );
   return { formats, base };
 }
 
@@ -223,16 +258,21 @@ function writeArtifacts(artifacts: Artifact[], themes: ThemeName[], base: string
   return outputs;
 }
 
-function printReceipt(receipt: Receipt, json: boolean) {
-  const { diagnostics } = receipt;
-  printDiagnostics(diagnostics, json);
-  if (json) process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
-  else {
-    const errors = diagnostics.filter((d) => d.severity === "error").length;
-    const warnings = diagnostics.length - errors;
-    for (const o of receipt.outputs) process.stdout.write(`wrote ${o.path} (${o.bytes} bytes)\n`);
+/** One receipt prints as itself; several print as an array (--json) or one line each. */
+function printReceipts(receipts: Receipt[], json: boolean) {
+  const many = receipts.length > 1;
+  for (const r of receipts) printDiagnostics(r.diagnostics, json);
+  if (json) {
+    const body = many ? receipts : receipts[0];
+    process.stdout.write(`${JSON.stringify(body, null, 2)}\n`);
+    return;
+  }
+  for (const r of receipts) {
+    const errors = r.diagnostics.filter((d) => d.severity === "error").length;
+    const warnings = r.diagnostics.length - errors;
+    for (const o of r.outputs) process.stdout.write(`wrote ${o.path} (${o.bytes} bytes)\n`);
     process.stdout.write(
-      `${receipt.ok ? "ok" : "failed"}: ${errors} error(s), ${warnings} warning(s)\n`,
+      `${many ? `${r.spec.path}: ` : ""}${r.ok ? "ok" : "failed"}: ${errors} error(s), ${warnings} warning(s)\n`,
     );
   }
 }

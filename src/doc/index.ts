@@ -1,5 +1,6 @@
-// Builds a design document from Markdown whose `<!-- orrery: spec.yaml | caption -->` markers
-// become numbered figures: inline SVG in HTML, image files next to Markdown, PNGs in Word.
+// Builds a design document from Markdown whose `<!-- orrery: spec.yaml | caption -->` markers and
+// ```orrery fences become numbered figures: inline SVG in HTML, image files next to Markdown,
+// PNGs in Word.
 //
 // doc/inline.ts and doc/markdown.ts parse the Markdown, doc/figures.ts renders the figures, and
 // doc/html.ts, doc/md.ts and doc/docx.ts (with doc/zip.ts) write the formats; this file builds
@@ -13,7 +14,7 @@ import type { Diagnostic, Skin, ThemeName } from "../types.ts";
 import { renderDocx } from "./docx.ts";
 import { type DocFigure, isError, renderFigure } from "./figures.ts";
 import { renderDocHtml } from "./html.ts";
-import { wordImage } from "./images.ts";
+import { checkImages, wordImage } from "./images.ts";
 import { type Inline, inline, plain } from "./inline.ts";
 import {
   type Align,
@@ -65,7 +66,7 @@ export interface DocResult {
   /** Figure files written next to the Markdown output. */
   files: string[];
   diagnostics: Diagnostic[];
-  /** Marker comments found outside code. */
+  /** Figures the document asks for: marker comments outside code and `orrery` fences. */
   markers: number;
 }
 
@@ -113,13 +114,15 @@ function buildOutputs(b: Build, figures: Map<number, DocFigure>): Pending[] {
   const title = doc.title ?? basename(req.file).replace(/\.(md|markdown)$/i, "");
   const pending: Pending[] = [];
   if (want.has("html")) {
-    const html = renderDocHtml({ ...doc, title }, figures, theme, dir);
+    const html = renderDocHtml({ ...doc, title }, figures, theme, dir, b.diagnostics);
     const count = html.match(/<figure class="orrery"/g)?.length ?? 0;
     pending.push({ path: `${req.base}.html`, data: html, format: "html", figures: count });
   }
   if (want.has("md")) {
-    const md = renderDocMarkdown(text, doc, figures);
     const out = dirname(`${req.base}.md`);
+    // The copy links its images instead of embedding them, so only a missing one is worth a word.
+    checkImages(doc.blocks, dir, b.diagnostics);
+    const md = renderDocMarkdown(text, doc, figures, dir, out);
     for (const [rel, data] of md.files) pending.push({ path: join(out, rel), data, figures: 0 });
     pending.push({ path: `${req.base}.md`, data: md.text, format: "md", figures: md.figures });
   }
@@ -140,19 +143,20 @@ function buildOutputs(b: Build, figures: Map<number, DocFigure>): Pending[] {
   return pending;
 }
 
-/** DG402 for every output that holds fewer figures than the document has markers. */
+/** DG402 for every output that holds fewer figures than the document has markers and fences. */
 function checkFigureCounts(b: Build, pending: Pending[]): void {
   const { doc } = b;
   const taken = new Set(doc.markers.map((m) => m.line + 1));
   const stray = doc.markerLines.filter((l) => !taken.has(l));
+  const expected = doc.markers.length + stray.length;
   for (const p of pending) {
-    if (!p.format || p.figures === doc.markerLines.length) continue;
+    if (!p.format || p.figures === expected) continue;
     b.diagnostics.push({
       severity: "error",
       code: "DG402",
-      message: `the ${p.format} output has ${p.figures} figure(s) for ${doc.markerLines.length} marker(s)${stray.length ? `; the marker on line ${stray.join(", ")} is not on a line of its own at the top level` : ""}`,
+      message: `the ${p.format} output has ${p.figures} figure(s) for ${expected} marker(s)${stray.length ? `; the marker on line ${stray.join(", ")} is not on a line of its own at the top level` : ""}`,
       subject: { format: p.format },
-      evidence: { figures: p.figures, markers: doc.markerLines.length, lines: stray },
+      evidence: { figures: p.figures, markers: expected, lines: stray },
       fixes: [
         "put each <!-- orrery: spec.yaml | Caption --> marker on a line of its own, outside lists, quotes and code",
       ],
@@ -177,7 +181,7 @@ export async function buildDoc(req: DocRequest): Promise<DocResult> {
     outputs: [],
     files: [],
     diagnostics,
-    markers: doc.markerLines.length,
+    markers: doc.markerLines.length + doc.markers.filter((m) => m.fence).length,
   };
   const figures = await renderFigures(b);
   if (diagnostics.some(isError)) return result;

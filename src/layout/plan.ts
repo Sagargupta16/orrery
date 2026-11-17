@@ -1,14 +1,15 @@
 // Author-controlled placement: which rank, align and cols hints the layout can honor (and why not
 // when it cannot), the cell grid of a cols group, and layers read back from a scene.
 
-import type {
-  Box,
-  Direction,
-  IgnoredSetting,
-  Model,
-  ModelEdge,
-  ModelNode,
-  Point,
+import {
+  type Box,
+  type Direction,
+  type IgnoredSetting,
+  type Model,
+  type ModelEdge,
+  type ModelNode,
+  OWN_LAYOUT,
+  type Point,
 } from "../types.ts";
 import { round } from "./geometry.ts";
 
@@ -66,6 +67,8 @@ export function planPlacement(model: Model, hidden: Set<string>): Plan {
   };
 
   for (const g of model.groups) {
+    // A kind with its own layout draws no overlays: they are drawn around ELK's placement.
+    if (g.around && own && OWN_LAYOUT.has(model.kind)) ignore(g.id, "around", own);
     if (g.cols === undefined) continue;
     if (own) ignore(g.id, "cols", own);
     else if (hidden.has(g.id))
@@ -87,7 +90,8 @@ export function planPlacement(model: Model, hidden: Set<string>): Plan {
   for (const n of model.nodes) {
     const g = n.on === undefined ? undefined : groups.get(n.on);
     if (!g) continue;
-    const grid = g.parent && plan.grids.has(g.parent) ? g.parent : undefined;
+    // Any grid above the group: the cells are laid out on their own, without the seat's stand-in.
+    const grid = above(g.parent).find((id) => plan.grids.has(id));
     if (own) ignore(n.id, "on", own);
     else if (g.around)
       ignore(n.id, "on", `"${g.id}" is drawn around its members, so it has no border of its own`);

@@ -7,6 +7,7 @@ import type { Box, Point, SceneEdge } from "../types.ts";
 import type { Placed } from "./context.ts";
 import { alongBorder, borderHug, HEAD_ROOM, nearTitle } from "./elbows.ts";
 import { collinear, meet, round, type Seg, segmentHits, segmentsOf, union } from "./geometry.ts";
+import { headerText } from "./groups.ts";
 
 /** Lanes tried on each side of the border line, in px off it, the edge's own side first. */
 const OFFSETS = [12, 10, 8, 16, 20, 24];
@@ -105,7 +106,7 @@ function moveOff(
     ...others.flatMap(tags).map((b) => grow(b, 2)),
     ...(carry ? [] : own.map((b) => grow(b, 2))),
   ];
-  const titles = groups.filter((g) => !g.overlay && g.label.lines.length).map((g) => g.labelBox);
+  const titles = groups.filter((g) => !g.overlay && g.label.lines.length).map(headerText);
   const holds = (gid: string) => [...ends].some((id) => id === gid || rel.above(id).includes(gid));
   const strangers = groups.filter((g) => !g.overlay && !holds(g.id)).map((g) => g.box);
   // A run inside a group that holds both ends stays inside it, rather than leave and come back.

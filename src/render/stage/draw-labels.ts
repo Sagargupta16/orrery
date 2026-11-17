@@ -1,10 +1,19 @@
 // Edge label chips, the numbered step badges that pop as their packet leaves, and the legend.
 
+import { ensureContrast } from "../../color.ts";
 import type { SceneEdge } from "../../types.ts";
 import { n } from "../svg.ts";
 import { type Ctx, fill, rect, stroke } from "./ctx.ts";
 import { block, DIGIT, EDGE, KEY, mono, monoWidth, sizeFor } from "./text.ts";
 import { kt, lit, loop, RAMP } from "./timing.ts";
+
+/** The ink of a lit edge label on its chip: the edge's color (or the tint), held to 4.5:1. */
+export const litLabelInk = (ctx: Pick<Ctx, "k">, e: Pick<SceneEdge, "color">): string =>
+  ensureContrast(e.color ?? ctx.k.tint, ctx.k.tile);
+
+/** The ink of a popped step digit on its badge of `pop` color, held to 4.5:1. */
+export const litStepInk = (ctx: Pick<Ctx, "k">, pop: string): string =>
+  ensureContrast(ctx.k.onTint, pop);
 
 export function edgeLabel(ctx: Ctx, e: SceneEdge): string {
   const { k, h, story } = ctx;
@@ -19,7 +28,9 @@ export function edgeLabel(ctx: Ctx, e: SceneEdge): string {
     parts.push(rect(chip, 3, `${fill(k.tile)} ${stroke(k.line, k.hair, h)}`));
     parts.push(block(e.label, b, EDGE, size, ctx.t.edgeLabel));
     if (runs) {
-      const color = e.color ?? k.tint;
+      // A spec's edge color is held to 4.5:1 on the chip, so a lit label stays readable in both
+      // themes; the wire keeps the color as written.
+      const color = litLabelInk(ctx, e);
       parts.push(
         lit(
           ctx,
@@ -49,7 +60,8 @@ export function edgeLabel(ctx: Ctx, e: SceneEdge): string {
       `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" ${fill(k.tile)} ${stroke(k.line, k.frame, h)}/>`,
     );
     parts.push(digit(ctx.t.text, cx, cy));
-    const pop = `<circle r="${n(r)}" ${fill(e.color ?? k.tint)}/>${digit(k.onTint, 0, 0)}`;
+    const popColor = e.color ?? k.tint;
+    const pop = `<circle r="${n(r)}" ${fill(popColor)}/>${digit(litStepInk(ctx, popColor), 0, 0)}`;
     const at = story.badges.get(e.id);
     if (!story.animated) parts.push(`<g transform="translate(${n(cx)} ${n(cy)})">${pop}</g>`);
     else if (at !== undefined) {

@@ -1,17 +1,15 @@
 // The language server: the documents as the editor holds them, diagnostics published on every
 // change (parseSpec at once, layout's checkScene warnings once typing stops for 300 ms), and the
-// requests. Only YAML with a top-level `nodes:` is treated as a spec; other YAML gets nothing.
-import { basename } from "node:path";
+// requests. Only YAML that looks like a spec (see isSpec) is treated as one; other YAML gets nothing.
 import { fileURLToPath } from "node:url";
 import { VERSION } from "../cli/help.ts";
-import { renderFailure } from "../cli/io.ts";
-import { renderModel } from "../render/index.ts";
 import { parseSpec } from "../spec/index.ts";
-import { isObj } from "../spec/values.ts";
-import type { Diagnostic, Model } from "../types.ts";
+import { isObj, itemId } from "../spec/values.ts";
+import { DIAGRAM_KINDS, type Diagnostic, type Model } from "../types.ts";
 import { complete, type Ids } from "./complete.ts";
 import { fixesFor } from "./fixes.ts";
 import { hover } from "./hover.ts";
+import { inlineLayout, type LayoutRunner } from "./layout.ts";
 import { locate, locator, type Target } from "./locate.ts";
 import type { Message } from "./rpc.ts";
 import { documentSymbols } from "./symbols.ts";
@@ -47,7 +45,22 @@ interface Params {
 
 const ORIGIN: Position = { line: 0, character: 0 };
 
-const isSpec = (text: string) => /^["']?nodes["']?\s*:/m.test(text);
+/**
+ * Whether YAML is an orrery spec, read from its text so that it stays cheap on every keystroke:
+ * the schema modeline says so; otherwise a top-level `nodes:` whose value is not a plain scalar,
+ * with no `apiVersion` (a Kubernetes or kind config, whose `nodes:` is a list of roles) and a
+ * `kind` that is absent or one of orrery's own.
+ */
+function isSpec(text: string): boolean {
+  if (/^#\s*yaml-language-server:\s*\$schema=\S*orrery\S*/im.test(text)) return true;
+  const nodes = /^["']?nodes["']?\s*:[ \t]*([^\n]*)/m.exec(text);
+  if (!nodes) return false;
+  if (/^["']?apiVersion["']?\s*:/m.test(text)) return false;
+  const kind = /^["']?kind["']?\s*:[ \t]*["']?([\w-]+)/m.exec(text)?.[1];
+  if (kind && !(DIAGRAM_KINDS as readonly string[]).includes(kind)) return false;
+  const value = (nodes[1] ?? "").trim();
+  return !value || /^[{[&*!|>#]/.test(value);
+}
 
 function pathOf(uri: string): string {
   try {
@@ -62,7 +75,8 @@ function idsOf(data: Record<string, unknown>): Ids {
     Array.isArray(v)
       ? v.flatMap((x) => {
           if (!isObj(x)) return [];
-          if (typeof x.id === "string") return [x.id];
+          const id = itemId(x);
+          if (id !== undefined) return [id];
           const keys = Object.keys(x);
           return keys.length === 1 ? keys : [];
         })
@@ -91,8 +105,15 @@ export interface Server {
   close(): void;
 }
 
-/** A server that writes every response and notification with `send`, and calls `exit` once. */
-export function createServer(send: (msg: unknown) => void, exit: (code: number) => void): Server {
+/**
+ * A server that writes every response and notification with `send`, and calls `exit` once. The
+ * layout pass runs through `layout`: on the calling thread unless the caller gives a worker.
+ */
+export function createServer(
+  send: (msg: unknown) => void,
+  exit: (code: number) => void,
+  layout: LayoutRunner = inlineLayout,
+): Server {
   const docs = new Map<string, Doc>();
   let initialized = false;
   let shutdown = false;
@@ -116,22 +137,9 @@ export function createServer(send: (msg: unknown) => void, exit: (code: number) 
   }
 
   async function runLayout(doc: Doc, version: number) {
-    const model = doc.model;
-    if (!model) return;
-    let found: Diagnostic[];
-    try {
-      const name = basename(doc.path).replace(/\.(ya?ml|json)$/i, "");
-      found = (await renderModel({ model, formats: [], themes: [model.theme], name })).diagnostics;
-    } catch (e) {
-      const failure = renderFailure(e);
-      if (!failure) {
-        process.stderr.write(`orrery lsp: layout failed: ${(e as Error)?.stack ?? e}\n`);
-        return;
-      }
-      found = [failure];
-    }
+    const found = await layout.run(doc.uri, doc.path, doc.text);
     // A newer text has its own run coming.
-    if (closed || docs.get(doc.uri) !== doc || doc.version !== version) return;
+    if (!found || closed || docs.get(doc.uri) !== doc || doc.version !== version) return;
     doc.layout = found;
     publish(doc);
   }
@@ -309,6 +317,7 @@ export function createServer(send: (msg: unknown) => void, exit: (code: number) 
     exitCode: () => (shutdown ? 0 : 1),
     close() {
       closed = true;
+      layout.close();
       for (const doc of docs.values()) clearTimeout(doc.timer);
       docs.clear();
     },
