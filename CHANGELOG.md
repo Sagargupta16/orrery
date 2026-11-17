@@ -6,7 +6,7 @@ All notable changes to this project are documented here. Follows [Semantic Versi
 
 ### Changed
 
-- The Azure pack is rebuilt from Microsoft's Azure Architecture Icons V25 (was V24): 643 icons, up from 636, pinned by the V25 download's SHA-256. The total is 18,307 official icons, and the six Azure examples are re-rendered with it.
+- The Azure pack is rebuilt from Microsoft's Azure Architecture Icons V25 (was V24): 643 icons, up from 636, pinned by the V25 download's SHA-256. The total is 18,307 official icons, and the six Azure examples are re-rendered with it. One new icon, `azure:app-service-builder`, ships as Microsoft drew it: its SVG references a gradient id it never defines, so that one shape draws without it.
 
 ### Security
 
