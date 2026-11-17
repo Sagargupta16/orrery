@@ -47,6 +47,7 @@ function watchOptions(args: Args): WatchOptions {
   const [specPath] = args._;
   if (!specPath) usage("watch needs a spec file");
   if (specPath === "-") usage("watch needs a spec file it can watch, not stdin");
+  if (args._.length > 1) usage("watch takes one spec file; run one orrery watch per spec");
   const spec = readSpec(specPath);
   const themeFlag = args.flags.theme === undefined ? undefined : String(args.flags.theme);
   if (themeFlag !== undefined && !["light", "dark", "both"].includes(themeFlag))
@@ -219,13 +220,17 @@ function serialized(job: () => Promise<void>): () => Promise<void> {
 function fileWatcher(written: Set<string>, changed: () => void) {
   /** The watched files; a file's handle is undefined while it is being re-armed. */
   const watched = new Map<string, FSWatcher | undefined>();
-  const arm = (file: string, retries = RETRIES): void => {
+  /**
+   * `rearmed` is a re-arm after a rename: the file may have been deleted and written again while
+   * no handle was open, and that write fires no event, so the new content is rendered once.
+   */
+  const arm = (file: string, retries = RETRIES, rearmed = false): void => {
     if (!watched.has(file)) return;
     let watcher: FSWatcher;
     try {
       watcher = watch(file);
     } catch {
-      if (retries > 0) setTimeout(() => arm(file, retries - 1), REARM_MS);
+      if (retries > 0) setTimeout(() => arm(file, retries - 1, rearmed), REARM_MS);
       else {
         watched.delete(file);
         process.stderr.write(`stopped watching ${shownPath(file)}: it no longer exists\n`);
@@ -233,17 +238,18 @@ function fileWatcher(written: Set<string>, changed: () => void) {
       return;
     }
     watched.set(file, watcher);
-    const rearm = (left: number) => {
+    if (rearmed && !written.has(file)) changed();
+    const rearm = (left: number, renamed: boolean) => {
       watcher.close();
       if (watched.get(file) !== watcher) return;
       watched.set(file, undefined);
-      setTimeout(() => arm(file, left), REARM_MS);
+      setTimeout(() => arm(file, left, renamed), REARM_MS);
     };
     watcher.on("change", (event) => {
       if (!written.has(file)) changed();
-      if (event === "rename") rearm(RETRIES);
+      if (event === "rename") rearm(RETRIES, true);
     });
-    watcher.on("error", () => rearm(retries - 1));
+    watcher.on("error", () => rearm(retries - 1, true));
   };
   /** Watches exactly these files: the spec and the icon files its last good parse names. */
   const follow = (files: string[]) => {

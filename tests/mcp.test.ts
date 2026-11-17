@@ -255,7 +255,9 @@ describe("mcp over stdio", () => {
     // The content the model reads is what it was: a receipt and the outputs asked for.
     expect(receipt.outputs.map((o) => o.format)).toEqual(["png"]);
     expect(apps.content).toHaveLength(2);
-    expect(plain.content.map((c) => c.type)).toEqual(legacy.content.map((c) => c.type));
+    // A 2026-07-28 client gets the SVG as a resource for the user; an older one still gets text.
+    expect(plain.content.map((c) => c.type)).toEqual(["text", "resource", "image"]);
+    expect(legacy.content.map((c) => c.type)).toEqual(["text", "text", "image"]);
     const review = await call("review", { spec_path: STARTER }, appsMeta);
     const scored = review._meta?.[VIEWER_KEY] as ViewerData;
     const report = jsonOf<{ score: number; pass: boolean }>(review);

@@ -40,7 +40,10 @@ export function viewsOf(model: Model, flag?: string | boolean): ViewModel[] {
 export function viewModel(model: Model, view: ModelView): Model {
   const t = new Tree(model);
   const kept = t.select(view);
-  const fold = view.depth === undefined ? new Map<string, string>() : t.fold(kept, view.depth);
+  // A timeline's lanes and a journey's rows are its layout, not detail: folded into one node each
+  // they would have no date or stage, so depth does not apply to those kinds.
+  const depth = model.kind === "timeline" || model.kind === "journey" ? undefined : view.depth;
+  const fold = depth === undefined ? new Map<string, string>() : t.fold(kept, depth);
   // Every id as the view draws it: itself, or the folded group that stands for it.
   const at = (id: string) => fold.get(id) ?? id;
   const groups = model.groups.flatMap((g): ModelGroup[] => {

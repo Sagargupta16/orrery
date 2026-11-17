@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { titleBox } from "../src/check/geometry.ts";
 import { type CheckOptions, checkScene } from "../src/check/index.ts";
 import { layout } from "../src/layout/index.ts";
 import type { Box, Scene } from "../src/types.ts";
@@ -230,7 +231,8 @@ edges:
 
   it("DG225 flags a vertical run just right of a group title; DG209 owns one through it", async () => {
     const f = await framed();
-    const t = f.g.labelBox;
+    // The title as drawn: the stage skin's header text, narrower than the classic label box here.
+    const t = titleBox(f.scene, f.g);
     const at = (gap: number) => {
       const x = t.x + t.w + gap;
       f.bc.points = [

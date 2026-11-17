@@ -74,6 +74,10 @@ function embeddedCss(fonts: string): Promise<string> {
       return `@font-face{font-family:"${family}";font-weight:${weight};src:url(data:font/ttf;base64,${btoa(binary)}) format("truetype")}`;
     }),
   ).then((rules) => rules.join(""));
+  // A failed fetch must not stay cached, or one network blip breaks every later download.
+  embedded.catch(() => {
+    embedded = undefined;
+  });
   return embedded;
 }
 

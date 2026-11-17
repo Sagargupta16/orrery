@@ -21,10 +21,33 @@ export function circleHitsBox(c: Box, b: Box): boolean {
   return Math.hypot(cx - nx, cy - ny) < r - EPS;
 }
 
-/** What the header chip of a group covers: the label, plus an overlay legend's icon on its row. */
-export function headerChip(g: Scene["groups"][number]): Box | undefined {
-  if (!g.label.lines.length) return undefined;
+/**
+ * Where a group's title is drawn: its labelBox, or in the stage skin the Geist Mono caps it draws
+ * there, at up to 11px and shrunk to the room up to the group's right side. The math copies
+ * stageHeaderBox in render/stage/draw-groups.ts (with sizeFor and monoWidth of
+ * render/stage/text.ts), the source of truth: render imports check, so check does not import it.
+ * The room is measured in display pixels at the 880px README width, as the renderer's is.
+ */
+export function titleBox(scene: Pick<Scene, "skin" | "width">, g: Scene["groups"][number]): Box {
   const b = g.labelBox;
+  if (scene.skin !== "stage" || !g.label.lines.length) return b;
+  const h = 1 / Math.min(1, 880 / Math.max(1, scene.width));
+  const room = Math.max(b.w, g.box.x + g.box.w - b.x - 10 * h);
+  const chars = g.label.lines.map((l) => [...l].length);
+  // HEADER: 11px, 0.1em tracking; every Geist Mono glyph advances 0.6em.
+  const fit = (room + 11 * 0.1) / (Math.max(1, ...chars) * 0.7);
+  const size = Math.max(8.5, Math.floor(Math.min(11, fit) * 4) / 4);
+  const w = Math.max(...chars.map((c) => (c ? size * (c * 0.7 - 0.1) : 0)));
+  return { x: b.x, y: b.y, w, h: b.h };
+}
+
+/** What the header chip of a group covers: the title, plus an overlay legend's icon on its row. */
+export function headerChip(
+  scene: Pick<Scene, "skin" | "width">,
+  g: Scene["groups"][number],
+): Box | undefined {
+  if (!g.label.lines.length) return undefined;
+  const b = titleBox(scene, g);
   const icon = g.overlay ? g.iconBox : undefined;
   const parts = icon && icon.y < b.y + b.h && b.y < icon.y + icon.h ? [b, icon] : [b];
   const x = Math.min(...parts.map((b) => b.x));

@@ -26,6 +26,7 @@ export const listTemplatesTool: Tool = {
     "The bundled reference diagrams (AWS, Azure, Google Cloud, Kubernetes, C4, system design, flowcharts, BPMN, state machines, journeys), each with its title. Start from the closest one with get_template.",
   inputSchema: { type: "object", properties: {}, additionalProperties: false },
   annotations: { readOnlyHint: true, idempotentHint: true },
+  concurrent: true,
   async run() {
     return [
       json(
@@ -50,6 +51,7 @@ export const getTemplateTool: Tool = {
     additionalProperties: false,
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
+  concurrent: true,
   async run(input, ctx) {
     const name = str(input, "name");
     const list = templates();

@@ -2,6 +2,108 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.13.0] - 2026-11-17
+
+A second sweep of every subsystem, with new features where the audit found gaps. 130 fixes are counted from the lanes that reported a number (icon sync 5, icons 9, importers 9, site 12, review 11, diff and verify 10, patch 6, CLI 12, spec 11, render 14, MCP 8, CI 10, kind layouts 9, Mermaid import 4); the stage skin, LSP, `orrery doc` and integration fixes below come on top of that count.
+
+### Added
+
+- **Figures written in the document.** `orrery doc` turns a fenced block whose language is `orrery` into a numbered figure: the fence holds the spec, and its info string takes `name=`, `caption=` and `theme=light|dark|both` (`both` puts a light and a dark picture in one `<picture>`, in HTML and in Markdown). An unknown key or theme is DG405; a missing image is the new DG404 warning. A figure with no caption takes the diagram's own description as its alt text.
+- **Mermaid import of four more types.** `orrery import mermaid` reads `sequenceDiagram` into `kind: sequence` (participants, messages, `autonumber` as steps, loop, alt, opt, par, break and critical as fragments), `erDiagram` into `kind: er` (attributes as fields, cardinality as `card:`), `stateDiagram` and `stateDiagram-v2` into `kind: state` (`[*]`, composites as groups, `<<choice>>`) and `gantt` into `kind: timeline` (sections as lanes, `after` as dependencies, done, active and crit as status, milestones). Seven example round trips validate with `--strict` and no findings. `classDiagram` and the other types still exit 1.
+- **Best of K drafts, a kind router and a gate for authors.** `/orrery:draw` launches the new `orrery:kind-router` agent on every request: it picks the kind of each figure, the closest template and up to three framings, and lists asks no kind can draw with a workaround. A figure of more than 8 nodes is drafted three times (never more than four), one framing per `diagram-author`, and the draft with the fewest overlaps, crossings and edges through nodes, then the best score, is kept by measurement alone (loop.md, Best of K). A new hook, `hooks/subagent-gate.mjs` on SubagentStop (and on PreToolUse for SubagentHandback), sends `diagram-author` and `image-importer` back to work, at most twice, until the spec in their `spec:` line passes `validate --strict` and, for `diagram-author`, the measured review. Nine trigger evals cover the kinds (BPMN, journey, ER, flowchart, mind map, org chart, sequence, state machine, roadmap).
+- **MCP cache hints and resources.** For clients on protocol `2026-07-28`, the tool and resource lists and resource reads carry `ttlMs: 3600000` and `cacheScope: "public"`, and a render returns its SVG, HTML, draw.io, TSX and Mermaid outputs as embedded resources annotated for the user, so the markup reaches the person without filling the model's context.
+- **The language server lays out in a worker.** `orrery lsp` runs the layout pass in a `worker_threads` worker that re-runs its own entry file, so completion and hover answer while ELK works: completion on a large spec went from 214 ms to 7 ms.
+- **Several specs per run.** `orrery validate` and `orrery render` take more than one spec (with `-o` a folder); every spec is read and every target settled before the first is drawn, and `--json` prints one receipt per spec in an array. `orrery review` takes `--view <name>` or `--view all`.
+- **Engine.** Layout is several times faster on large diagrams: the bend search indexes the other edges' segments once and stops at the first failing count, so a 100-node spec validates in 2.3 s (was 35.5 s), a 200-node one in 18 s (was over 3 minutes) and a 300-edge one in 11 s (was 57 s). Past 150 edges ELK keeps its first order (DG206 says so) instead of laying the graph out again. Cycles break depth first, with the greedy breaker tried on specs with a loop and kept when its first backward edge comes later in the spec, so only real back edges run against the flow. `layout.aspect` keeps the layout as written when no candidate gets within a quarter of the target, and refuses candidates that are over 2400 px wide, stretch the longest edge, add header crossings or turn arrowheads against the flow. Group headers keep lines and labels clear of the wider stage header text in both skins (edge-through-header findings over the examples 30 to 0, title-band 9 to 0), and column frames are not stretched when that would push their content off center. Over the 77 examples the review mean, measured with the stage-aware header check, goes from 97.97 to 98.65 (24 examples higher, none lower).
+
+### Security
+
+- Release and icon-refresh workflows are split so dependency code never holds a write or OIDC token; actions are pinned by SHA; Renovate waits 3 days for new releases; Renovate branches no longer re-pin vendor icon packs; the action runs npx from an empty folder and escapes file names in comments and annotations; npm and MCPB packs ship tracked files only.
+- `orrery doc` reads specs and images only inside the document's git repository (else its folder): a spec outside is DG401, an image outside is not embedded (DG403).
+- `orrery verify` reads evidence only inside the repository (else the spec's folder), and a path outside fails without saying whether the file exists. A git ref that starts with `-` is refused, and refs are passed after `--end-of-options`, so a ref cannot become a git option.
+- Outputs are written through a randomly named, exclusively created temporary file; an existing symlink is written through, and the replaced file keeps its mode on POSIX (on Windows only the read-only bit survives).
+- A node `url` with a character XML cannot carry (U+FFFE, U+FFFF, a lone surrogate) is refused before its scheme is read, since the renderers strip those characters and would join `java<U+FFFE>script:` into a live scheme. Every output writes only `http`, `https`, `mailto` and relative links, and the HTML viewer cleans an inline SVG (no script, `foreignObject`, event handlers or other links) before it shows it.
+- The local icon sanitizer refuses CSS `src()`, elements in a namespace that is neither SVG nor an editor's, and an icon path that is not a file; an upper-case `ID=` never reaches the output.
+- `include:` reads only `.yaml`, `.yml` and `.json` files, checked before the file is opened, and a file that is not a spec is refused without quoting its keys.
+- The MCP server caps a spec at 1 MB and 2000 nodes and edges and a result at 8 MB of outputs; over HTTP a body over 16 MB gets 413 and its socket is closed, and past 4 waiting calls the next gets 503.
+- A PNG's embedded spec inflates to at most 8 MB, so a crafted picture cannot expand to gigabytes in `orrery import picture`.
+- Icon sync refuses a vendor download with scripts or other active content and caches a file only after its checksum matches.
+
+### Fixed
+
+- **Spec.**
+  - A list item's `id: 1` (a YAML number) names node "1", and an id with no ASCII letter or digit gets a DG103 fix that names it by its place (`item-3`).
+  - DG106 names both unknown ends of an edge and reports each unknown id once per fan or chain.
+  - A timeline or journey edge that ends on a group or runs from an item to itself is an error (DG126, DG112) instead of a broken drawing, and a journey that lists a stage twice is DG112.
+  - An `else` line that cuts through a fragment nested inside it is DG125.
+  - A timeline `today` outside the axis gets a DG126 warning instead of a marker that silently vanishes.
+  - `nodeScore` reads only numbers, and a node with a `generic:` or `ph:` weight icon is labelled with the name as written (`generic:queue` reads "Queue").
+- **Layout and kinds.**
+  - A timeline axis of more than 20000 columns is a DG126 error naming a scale that would fit, instead of overflowing the stack.
+  - A sequence `else` divider sits above a nested fragment's header.
+  - ER ends that would share one point on a row or a header part 14 px apart, foreign keys named as the other table's own key (`date_key`) and tables prefixed `dim_`, `fact_`, `fct_`, `stg_` or `tbl_` are matched, and `direction: down` and `up` route row to row.
+  - In a tree or mind map, pools and lanes are drawn as plain frames, siblings in one group stay together, and a mind map keeps a group's branches on one half.
+  - A chain inside one lane stays straight whatever line styles the other edges use.
+  - `describe` names a journey's scores by column.
+- **Stage skin.**
+  - Edge labels and sequence messages keep their case, and so do identifiers (`SlackNotifier`) and every label of an ER diagram.
+  - A group's `color:` and `fill:` set its frame, header and a faint panel tint, and an edge's color draws its unlit wire and arrowhead too.
+  - A lit edge label and a popped step digit are held to 4.5:1, and the review scores that contrast.
+- **Rendering and exports.**
+  - A PNG is kept under 40 MP: the default scale is lowered to fit, and an asked-for `--scale` that does not fit fails that PNG with DG302 while the other formats are still written. A spec nested 100 groups deep took 119 s and now takes 14 s.
+  - The HTML viewer opens in the theme `--theme` asks for, its downloads carry the spec, and a diagram with node links is shown inline so a tap opens the link.
+  - draw.io parents that point nowhere are gone (0 of 77 examples), and node badges reach draw.io and Mermaid as `(x3)` after the name.
+  - `architecture-beta` names each edge it cannot hold in a `%% not drawn:` comment, a gantt writes `after` only when the item starts where its predecessors end, and BPMN `arrow: start` gets its marker.
+  - Reading the spec out of an SVG is linear on a file full of unclosed tags.
+- **Icons.**
+  - Azure Architecture Icons V25 (636 to 643 icons, 18,307 in all): aca-sandboxes, ai-manager, app-service-builder, azure-confidential-clean-rooms, azure-device-registry, azure-encrypted-transport and azure-horizondb.
+  - Icon sync drops `href` and `url(#id)` references to ids an icon does not have, and warns when it refreshes a pin.
+  - `icons search` takes 368 ms instead of 1056 ms with the same results.
+  - A library download names the network error, a proxy hint is in the fix (`NODE_USE_ENV_PROXY=1` with `HTTPS_PROXY`), an unreadable cache entry is downloaded again, and overlapping renders fetch a pack once.
+  - Percent lengths in a local icon are read against the viewBox, and `<s:path>` bound to the SVG namespace is a path.
+  - Local icons are scoped to their own render, so two specs in one process (MCP, doc, LSP) never draw each other's icons.
+- **Importers.**
+  - Mermaid import is linear on long whitespace, nested tags and long link text (a 50 KB file took 23 s, now 0.6 s); non-ASCII ids become slugs with their text as the label instead of being dropped; Mermaid 11 `@{ shape, label }` keeps its label and shape; icon guessing no longer searches the whole catalog for every node (500 nodes took about 26 s, now under 1 s).
+  - Terraform refuses modules nested more than 64 levels deep; wildcard matching is linear (77 ms on the worst CloudFormation case); CloudFormation warns about items it skips and resources with no `Type`; Kubernetes reads a named `targetPort`; SQL reads the mapping form, warns about statements it does not read and keeps non-ASCII table names as `item-<hash>` ids with their label.
+- **CLI.**
+  - `--strict --force` writes the files, keeps the warnings in the receipt and exits 0.
+  - A flag that needs a value no longer takes the next flag as one (`--out --json`).
+  - `-o` naming an existing folder works the same in `render`, `review`, `init` and `import`, and a file target that is a folder is a usage error.
+  - `icons --pack` and `--type` refuse an unknown value with the closest one, and `icons check` and `adopt` say when a path is not a file.
+  - `review --json` prints a receipt when the spec fails, and `review --width` must be at least 200.
+  - `help` lists `import cdk`.
+- **Diff, verify, watch, describe and views.**
+  - `diff` compares and prints list and date fields, takes `--scale`, and `--json` prints a receipt on failure, as `verify` and `describe` now do.
+  - `verify --link` skips a node from an include or a file that is not in the commit or differs from it, lists what it skipped, and reads `ssh.github.com` and ssh config aliases as GitHub.
+  - `watch` renders again after a save that replaces the file while it was being re-armed.
+  - `describe` lists only the edges that were drawn.
+  - A view's `depth` is ignored in a timeline or journey, whose lanes and rows are their layout.
+- **Review and patch.**
+  - Step numbering counts from one edge, AZ1 and AZ2 count as one role, an all-dashed ER legend is the notation itself, the display PNG never rounds to 0 px, `against-flow` is off for sequences and timelines, a long edge is exempt in trees and mind maps, and a timeline dependency that detours is a finding.
+  - `improves()` refuses a candidate that drops a rubric (a kind switch, "C4" removed from the title), and `orrery patch` says why.
+  - Patches match edges by direction with exact pairs first, keep a comment on `edges:` and on an empty key they fill (`title: # later`), read the map form of a message, and keep a byte order mark once and each line's own line ending.
+- **LSP and VS Code.**
+  - Kubernetes and other YAML files that are not specs get no diagnostics, and numeric ids complete and locate.
+  - The extension runs the CLI without a shell, from its own storage folder, with a machine-scoped path setting.
+- **MCP.**
+  - The authoring guide, icon search and templates no longer wait behind a render, `mcp install` keeps TOML multi-line strings and comments, and over HTTP the path in a diagnostic is the bare spec name.
+- **Doc.**
+  - List items keep their indented paragraphs and code, link targets are read as a browser reads them (so `\u0001javascript:` is refused), entities and backslash escapes resolve, and inline parsing is linear on unmatched backticks and emphasis.
+- **Site.**
+  - Tab in the playground indents one line, a shared link inflates at most 1 MB and 5,000 lines, the preview keeps the diagram's aspect, every tap target on the home, gallery, example and playground pages is at least 44 px, and the social card is a PNG.
+
+### Changed
+
+- **SVG ids carry a hash of the model**: `<name>-<theme>-<hash>-` (6 hex; `-f sequence.svg` adds `-seq`), so two specs that share a name can sit on one page. Every SVG id changes, so every gallery picture is regenerated; absolute local icon paths stay out of the hash, so a picture is the same on every machine.
+- In the stage skin, 72 of the 77 gallery examples change: edge labels keep their case and sit a little lower on their chips.
+- `orrery doc` reads only inside the document's git repository (else its folder): a spec or image above it, which used to be read, is now DG401 or DG403.
+- `orrery watch` takes exactly one spec; run one watch per spec.
+- `review --width` under 200 is a usage error (it used to accept 1).
+- An asked-for `--scale` that would make a PNG over 40 MP is an error for that PNG instead of a long render.
+- Timeline and journey edges to a group or to the same item, and a journey stage listed twice, are now errors.
+- `include:` refuses files that are not `.yaml`, `.yml` or `.json`.
+- Renovate branches run `sync-icons` without `--latest`: vendor packs move only by hand or with the Refresh icons workflow's `latest` input.
+
 ## [0.12.2] - 2026-10-27
 
 ### Fixed

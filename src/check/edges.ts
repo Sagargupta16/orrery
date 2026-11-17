@@ -43,7 +43,7 @@ export function edgeThroughNode({ scene, nodeBoxes, warn }: CheckContext): void 
  */
 export function edgeThroughHeader({ scene, warn }: CheckContext): void {
   for (const g of scene.groups) {
-    const chip = g.lane ? g.lane.header : headerChip(g);
+    const chip = g.lane ? g.lane.header : headerChip(scene, g);
     if (!chip) continue;
     const what = g.lane ? "the name strip of" : "the header label of group";
     for (const e of scene.edges) {

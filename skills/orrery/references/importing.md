@@ -30,11 +30,19 @@ Deterministic: the same input gives the same spec, so CI can redraw a diagram wi
 | Kubernetes | `orrery import kubernetes manifests/` (a file or a folder; render Helm and Kustomize first) | workloads, Services and their selectors, Ingress and Gateway routes, NetworkPolicies, environment values that hold another Service's name |
 | Docker Compose | `orrery import compose docker-compose.yml` | services, networks, environment values that hold another service's URL |
 
-Each importer follows [planning.md](planning.md): flows only from what moves data, glue left out and listed in a comment, counts as `badge: xN`, every item with `evidence:` so `orrery verify` can check it. Treat the result as a first draft: check the guessed icons it lists, then validate and review.
+Each importer follows [planning.md](planning.md): flows only from what moves data, glue left out and listed in a comment, counts as `badge: xN`, every item with `evidence:` so `orrery verify` can check it. Treat the result as a first draft: check the guessed icons it lists, then validate and review. A name with no ASCII letter or digit (a table called `用户`, say) gets the id `item-<hash>`, six hex of the name, and keeps the name as its label. A Terraform plan whose modules nest more than 64 levels deep is refused.
 
 ## Mermaid
 
-`orrery import mermaid flow.mmd -o docs/architecture.yaml` converts a flowchart's nodes, subgraphs, edge styles and shapes, and sets an official icon where a label is exactly a product name. `orrery render -f mmd` goes the other way, for places that render Mermaid natively.
+`orrery import mermaid flow.mmd -o diagram.yaml` reads the diagram type from its first line.
+
+- A flowchart keeps its nodes, subgraphs, edge styles and shapes (including Mermaid 11 `id@{ shape: cyl, label: ... }`) and gets an official icon where a label is exactly a product name.
+- A `sequenceDiagram` becomes `kind: sequence`: participants, messages, `autonumber` as steps, and `loop`, `alt`, `opt`, `par`, `break` and `critical` as fragments.
+- An `erDiagram` becomes `kind: er`: attributes as fields, crow's foot cardinality as `card:`.
+- A `stateDiagram` (or `stateDiagram-v2`) becomes `kind: state`: `[*]`, composite states as groups, `<<choice>>`.
+- A `gantt` becomes `kind: timeline`: sections as lanes, `after` as dependencies, `done`, `active` and `crit` as status, and milestones.
+
+Ids with letters the spec does not accept become ASCII slugs and keep their text as the label. Notes and styling are left out with a warning. Any other type exits 1. `orrery render -f mmd` goes the other way, for places that render Mermaid natively.
 
 ## Any other picture
 

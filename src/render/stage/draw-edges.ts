@@ -68,18 +68,20 @@ export function wireOf(ctx: Ctx, e: SceneEdge): Wire | undefined {
 
 export function edgeBase(ctx: Ctx, e: SceneEdge, w: Wire): string {
   const { k } = ctx;
+  // An edge's own color shows on its dim wire too, not only in the lit trace and the legend.
+  const ink = e.color ?? k.line;
   const flow =
     ctx.scene.animate === "flow"
       ? ` class="sdw-flow${e.line === "solid" || e.line === "thick" ? " sdw-solid" : ""}"`
       : "";
   const heads = [w.heads.end, w.heads.start]
-    .map((hd) => (hd ? chevron(ctx, hd[0], hd[1], k.line, k.arrow) : ""))
+    .map((hd) => (hd ? chevron(ctx, hd[0], hd[1], ink, k.arrow) : ""))
     .join("");
   const marks = e.flow
     ? flowMarks(e, mixHex(k.line, ctx.t.background, k.arrow), w.width, k.tile)
     : "";
   const ends = e.card ? erEndsStage(ctx, e) : "";
-  return `<path d="${w.d}" fill="none" ${stroke(k.line, k.wire, w.width)} stroke-linecap="round" stroke-linejoin="round"${w.dash}${flow}/>${heads}${marks}${ends}`;
+  return `<path d="${w.d}" fill="none" ${stroke(ink, k.wire, w.width)} stroke-linecap="round" stroke-linejoin="round"${w.dash}${flow}/>${heads}${marks}${ends}`;
 }
 
 /** The story's lit trace over one edge: it grows behind the packet and holds until the fade. */

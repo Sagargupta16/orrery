@@ -16,6 +16,8 @@ const NAMESPACE = "https://sagargupta.online/orrery/spec";
 /** The embedding's own format, raised if the markup or the chunk layout ever changes. */
 const VERSION = 1;
 const KEYWORD = "orrery-spec";
+/** The most a PNG's spec chunk may inflate to. */
+const MAX_SPEC_BYTES = 8 * 1024 * 1024;
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 const NOT_XML = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u;
 const ENTITIES: Record<string, string> = { lt: "<", gt: ">", amp: "&", quot: '"', apos: "'" };
@@ -80,9 +82,16 @@ export function extractSpec(file: string | Uint8Array): string | undefined {
     }
     return undefined;
   }
-  const m = /<orrery:spec\b([^>]*)>([\s\S]*?)<\/orrery:spec>/.exec(file);
-  if (!m) return undefined;
-  const [, attrs = "", body = ""] = m;
+  // The first open tag, then one search for its close: a lazy regex that retries from every
+  // unclosed tag is quadratic on a file full of them.
+  let at = file.indexOf("<orrery:spec");
+  while (at >= 0 && !/[\s>]/.test(file[at + 12] ?? "")) at = file.indexOf("<orrery:spec", at + 1);
+  if (at < 0) return undefined;
+  const openEnd = file.indexOf(">", at);
+  const bodyEnd = openEnd < 0 ? -1 : file.indexOf("</orrery:spec>", openEnd);
+  if (bodyEnd < 0) return undefined;
+  const attrs = file.slice(at + 12, openEnd);
+  const body = file.slice(openEnd + 1, bodyEnd);
   if (/\sencoding="base64"/.test(attrs)) return Buffer.from(body, "base64").toString("utf8");
   return body.replace(/&(lt|gt|amp|quot|apos|#\d+|#x[\da-fA-F]+);/g, (_, name: string) =>
     name.startsWith("#")
@@ -100,7 +109,14 @@ function readItxt(data: Uint8Array): string | undefined {
   const translatedEnd = data.indexOf(0, languageEnd + 1);
   if (languageEnd < 0 || translatedEnd < 0) return undefined;
   const text = data.subarray(translatedEnd + 1);
-  return new TextDecoder().decode(compressed ? inflateSync(text) : text);
+  if (!compressed) return new TextDecoder().decode(text);
+  try {
+    // A spec is a few KB; the cap stops a PNG whose chunk inflates to gigabytes.
+    return new TextDecoder().decode(inflateSync(text, { maxOutputLength: MAX_SPEC_BYTES }));
+  } catch (e) {
+    if (e instanceof RangeError) return undefined;
+    throw e;
+  }
 }
 
 interface Chunk {

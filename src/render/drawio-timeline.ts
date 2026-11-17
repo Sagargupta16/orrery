@@ -15,7 +15,7 @@ import type { TimelineItem } from "../layout/timeline/index.ts";
 import type { Box, Point, Scene, SceneNode } from "../types.ts";
 import type { Ctx } from "./drawio.ts";
 import { FONT, geometry, htmlLabel, iconData, n, style } from "./drawio.ts";
-import { esc } from "./svg.ts";
+import { esc, safeHref } from "./svg.ts";
 import { canvasOf, classicPaint, laneColor, TODAY } from "./timeline.ts";
 
 type Entries = Record<string, string | number | null | undefined>;
@@ -212,9 +212,10 @@ export function timelineItemDrawio(ctx: Ctx, nd: SceneNode): string[] | undefine
     fontFamily: FONT,
     ...labelSide(it),
   });
+  const link = nd.url ? safeHref(nd.url) : undefined;
   const cells = [
-    nd.url
-      ? `<UserObject id="n-${nd.id}" label="${esc(value)}" link="${esc(nd.url)}"><mxCell style="${s}" vertex="1" parent="1">${geometry(nd.box)}</mxCell></UserObject>`
+    link
+      ? `<UserObject id="n-${nd.id}" label="${esc(value)}" link="${link}"><mxCell style="${s}" vertex="1" parent="1">${geometry(nd.box)}</mxCell></UserObject>`
       : `<mxCell id="n-${nd.id}" value="${esc(value)}" style="${s}" vertex="1" parent="1">${geometry(nd.box)}</mxCell>`,
   ];
   if (nd.icon && nd.iconBox)

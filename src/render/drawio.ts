@@ -23,7 +23,7 @@ import { erDrawio } from "./drawio-er.ts";
 import { sequenceDrawio } from "./drawio-sequence.ts";
 import { timelineDrawio, timelineItemDrawio } from "./drawio-timeline.ts";
 import { moodColor } from "./journey.ts";
-import { esc } from "./svg.ts";
+import { esc, safeHref } from "./svg.ts";
 
 export const n = (v: number) => String(Math.round(v * 100) / 100);
 
@@ -67,7 +67,9 @@ export function geometry(box: Box, parent?: string, ctx?: Ctx): string {
   return `<mxGeometry x="${n(x)}" y="${n(y)}" width="${n(box.w)}" height="${n(box.h)}" as="geometry"/>`;
 }
 
-export const cellParent = (parent?: string) => (parent ? `g-${parent}` : "1");
+/** The cell a child sits in: its group's cell when one was written (journey lanes have none), else the page. */
+export const cellParent = (ctx: Ctx, parent?: string) =>
+  parent && ctx.groupBox.has(parent) ? `g-${parent}` : "1";
 
 export function htmlLabel(label: string[], note?: string[], noteColor?: string): string {
   const main = label.map(esc).join("<br>");
@@ -106,7 +108,7 @@ function group(ctx: Ctx, g: SceneGroup) {
       recursiveResize: 0,
     });
     ctx.cells.push(
-      `<mxCell id="g-${g.id}" value="${esc(esc(g.label.lines.join(" ")))}" style="${lane}" vertex="1" parent="${cellParent(g.parent)}">${geometry(g.box, g.parent, ctx)}</mxCell>`,
+      `<mxCell id="g-${g.id}" value="${esc(esc(g.label.lines.join(" ")))}" style="${lane}" vertex="1" parent="${cellParent(ctx, g.parent)}">${geometry(g.box, g.parent, ctx)}</mxCell>`,
     );
     return;
   }
@@ -135,7 +137,7 @@ function group(ctx: Ctx, g: SceneGroup) {
     pointerEvents: 0,
   });
   ctx.cells.push(
-    `<mxCell id="g-${g.id}" value="${esc(esc(g.label.lines.join(" ")))}" style="${s}" vertex="1" parent="${cellParent(g.parent)}">${geometry(g.box, g.parent, ctx)}</mxCell>`,
+    `<mxCell id="g-${g.id}" value="${esc(esc(g.label.lines.join(" ")))}" style="${s}" vertex="1" parent="${cellParent(ctx, g.parent)}">${geometry(g.box, g.parent, ctx)}</mxCell>`,
   );
   if (g.inner) {
     ctx.cells.push(
@@ -278,8 +280,12 @@ function node(ctx: Ctx, nd: SceneNode) {
     return;
   }
   const id = `n-${nd.id}`;
-  const parent = cellParent(nd.parent);
-  const value = htmlLabel(nd.label.lines, nd.note?.lines, nd.inkMuted ?? ctx.t.muted);
+  const parent = cellParent(ctx, nd.parent);
+  // draw.io has no corner badge, so it goes after the name: "Web service (x3)".
+  const lines = nd.badge
+    ? [...nd.label.lines.slice(0, -1), `${nd.label.lines.at(-1) ?? ""} (${nd.badge})`]
+    : nd.label.lines;
+  const value = htmlLabel(lines, nd.note?.lines, nd.inkMuted ?? ctx.t.muted);
   const bg =
     ctx.scene.background && ctx.scene.background !== "transparent"
       ? ctx.scene.background
@@ -379,9 +385,10 @@ function node(ctx: Ctx, nd: SceneNode) {
     });
     geom = geometry(sym ?? nd.box, nd.parent, ctx);
   }
+  const link = nd.url ? safeHref(nd.url) : undefined;
   ctx.cells.push(
-    nd.url
-      ? `<UserObject id="${id}" label="${esc(value)}" link="${esc(nd.url)}"><mxCell style="${s}" vertex="1" parent="${parent}">${geom}</mxCell></UserObject>`
+    link
+      ? `<UserObject id="${id}" label="${esc(value)}" link="${link}"><mxCell style="${s}" vertex="1" parent="${parent}">${geom}</mxCell></UserObject>`
       : `<mxCell id="${id}" value="${esc(value)}" style="${s}" vertex="1" parent="${parent}">${geom}</mxCell>`,
   );
 }

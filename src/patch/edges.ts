@@ -49,6 +49,12 @@ function hopKey(h: Hop): string {
   return `${ends[0]} ${h.line}-${head} ${ends[1]}`;
 }
 
+/** The ends of a hop with its direction; a line with two heads or none has no direction. */
+function directed(h: Hop): string {
+  const [a, b, head] = h.arrow === "start" ? [h.to, h.from, "end"] : [h.from, h.to, h.arrow];
+  return head === "both" || head === "none" ? [a, b].sort().join(" ~ ") : `${a} > ${b}`;
+}
+
 const signature = (hops: Hop[]) => [...new Set(hops.map(hopKey))].sort().join(" | ");
 
 interface EdgeShape {
@@ -58,6 +64,8 @@ interface EdgeShape {
   drawn: string;
   /** The endpoint pairs alone, for a hint when only the arrow differs. */
   ends: string[];
+  /** The drawn pairs with their direction ("a > b"); an undirected or two-headed line sorts its ends. */
+  dirs: string[];
   label?: string;
 }
 
@@ -123,6 +131,7 @@ function edgeShape(item: unknown): EdgeShape | string {
     written: signature(written),
     drawn: signature(drawn),
     ends: written.map((h) => [h.from, h.to].sort().join(" ~ ")),
+    dirs: drawn.map(directed),
     ...(label !== undefined ? { label: label.trim() } : {}),
   };
 }
@@ -210,8 +219,19 @@ interface Hit {
   pair?: PairAt;
 }
 
+/**
+ * Whether an edge is drawn between the match's ends in the match's direction, whatever its line
+ * or arrow is written as. A reversed edge is another edge unless it has no direction.
+ */
+function readsAs(have: EdgeShape, want: EdgeShape): boolean {
+  return (
+    have.dirs.length === want.dirs.length &&
+    have.dirs.every((d) => want.dirs.includes(d) || (d.includes(" ~ ") && want.ends.includes(d)))
+  );
+}
+
 /** Pairs of fan and chain items that a one-pair match names: as written or drawn, else by ends. */
-function pairHits(list: unknown[], want: EdgeShape, plain: boolean): Hit[] {
+function pairHits(list: unknown[], want: EdgeShape, plain: boolean) {
   const exact: Hit[] = [];
   const loose: Hit[] = [];
   for (const [i, item] of list.entries()) {
@@ -232,10 +252,10 @@ function pairHits(list: unknown[], want: EdgeShape, plain: boolean): Hit[] {
         continue;
       if (want.written === have.written || want.written === have.drawn)
         exact.push({ item: i, pair: at });
-      else if (plain && have.ends[0] === want.ends[0]) loose.push({ item: i, pair: at });
+      else if (plain && readsAs(have, want)) loose.push({ item: i, pair: at });
     }
   }
-  return exact.length ? exact : loose;
+  return { exact, loose };
 }
 
 /**
@@ -290,25 +310,29 @@ function matchEdge(v: View, seq: PSeq, list: unknown[], match: string): Hit {
   const plain =
     typeof parsed !== "string" &&
     parsed.hops.every((h) => h.op.line === "solid" && h.op.arrow === "end");
-  if (!hits.length && plain) {
+  if (hits.length === 1) return { item: hits[0] as number };
+  // One hop of a fan or chain: "api -> logs" in "api, fn -> logs". An exact pair outranks the
+  // loose reading of a whole item, so "a -> c" is the hop of "a -> b, c", not the edge "c -> a".
+  const found = hits.length || want.ends.length !== 1 ? undefined : pairHits(list, want, plain);
+  const exact = found?.exact ?? [];
+  if (exact.length === 1) return exact[0] as Hit;
+  if (!hits.length && !exact.length && plain) {
     // Measured findings name an edge by its ends ("a -> b") whatever arrow or line the spec
-    // wrote; the one edge between exactly those nodes is that edge. A match that spells out
-    // another style ("a --> b") still names only that style.
-    const ends = new Set(want.ends);
+    // wrote; the one edge between exactly those nodes in that direction is that edge. A match
+    // that spells out another style ("a --> b") still names only that style.
     const loose = near.filter((i) => {
       const have = edgeShape(list[i]);
       return (
         typeof have !== "string" &&
-        have.ends.length === ends.size &&
-        have.ends.every((e) => ends.has(e)) &&
+        have.ends.length === want.ends.length &&
+        have.ends.every((e) => want.ends.includes(e)) &&
+        readsAs(have, want) &&
         (want.label === undefined || want.label === have.label)
       );
     });
     if (loose.length === 1) return { item: loose[0] as number };
   }
-  if (hits.length === 1) return { item: hits[0] as number };
-  // The same goes for one hop of a fan or chain: "api -> logs" in "api, fn -> logs".
-  const pairs: Hit[] = hits.length || want.ends.length !== 1 ? [] : pairHits(list, want, plain);
+  const pairs = exact.length ? exact : (found?.loose ?? []);
   if (pairs.length === 1) return pairs[0] as Hit;
   const quote = (ids: number[]) =>
     [...new Set(ids)]
@@ -351,10 +375,17 @@ export function edgeOp(
       return editMap(v, root, ["edges"], { kind: "set", value: [edge] }, "");
     const item = `\n  - ${edgeText(edge, "block")}`;
     // `edges:` with nothing after it gets its first item; no edges key gets one at the end.
-    if (seq) return [{ start: seq.range[0], end: seq.range[1], text: item }];
+    if (seq) {
+      // A comment on the key line (`edges: # todo`) stays there; the item goes on the next line.
+      const eol = v.text.indexOf("\n", seq.range[0]);
+      if (eol >= 0 && v.text.slice(seq.range[0], eol).includes("#"))
+        return [{ start: eol, end: eol, text: item }];
+      return [{ start: seq.range[0], end: seq.range[1], text: item }];
+    }
     const end = v.text.length;
     return [{ start: end, end, text: `edges:${item}\n` }];
   }
+  if (seq && !isSeq(seq)) throw new PatchError("edges must be a list to be patched");
   if (!isSeq(seq) || !Array.isArray(list)) throw new PatchError(`no edge matches "${match}"`);
   const hit = matchEdge(v, seq, list, match);
   const node = seq.items[hit.item] as ParsedNode;

@@ -270,7 +270,9 @@ class Kubernetes {
     for (const svc of this.services) {
       const spec = isObj(svc.body.spec) ? svc.body.spec : {};
       const port = asList(spec.ports).find(isObj);
-      const target = Number(port?.targetPort ?? port?.port);
+      // A named targetPort (http) is a container port's name, so the service port labels the edge.
+      const named = Number(port?.targetPort);
+      const target = Number.isFinite(named) && named > 0 ? named : Number(port?.port);
       const label = target ? portLabel(target) : undefined;
       const ev = [this.where(svc, ["spec", "selector"], "selector")];
       for (const w of this.selected(spec.selector, svc.namespace))

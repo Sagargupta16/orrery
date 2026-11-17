@@ -1,28 +1,66 @@
 // The scene measures the aspect search and the hint fallbacks compare: crossings, edges through
-// nodes, and the hard defects the review counts (sceneDefects).
+// nodes, arrowheads against the flow, the longest edge, and the hard defects the review counts
+// (sceneDefects).
 
 import type { Box, Point, Scene } from "../types.ts";
 import { clip, meet, type Seg, segmentHits, segmentsOf } from "./geometry.ts";
 import { horizontalFlow } from "./plan.ts";
 
-function properCross(a: Point, b: Point, c: Point, d: Point): boolean {
-  const o = (p: Point, q: Point, r: Point) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
-  return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+/**
+ * Whether segments pq and st cross more than 1.5px inside both, as the review's layout.crossings
+ * counts them (review/layout.ts edgeCrossings): two edges that share a node cross too when their
+ * lines do, away from the shared end.
+ */
+function crosses(p: Point, q: Point, s: Point, t: Point): boolean {
+  const rx = q.x - p.x;
+  const ry = q.y - p.y;
+  const sx = t.x - s.x;
+  const sy = t.y - s.y;
+  const den = rx * sy - ry * sx;
+  if (Math.abs(den) < 1e-9) return false;
+  const u = ((s.x - p.x) * sy - (s.y - p.y) * sx) / den;
+  const v = ((s.x - p.x) * ry - (s.y - p.y) * rx) / den;
+  const e1 = 1.5 / (Math.hypot(rx, ry) || 1);
+  const e2 = 1.5 / (Math.hypot(sx, sy) || 1);
+  return u > e1 && u < 1 - e1 && v > e2 && v < 1 - e2;
 }
 
-/** Segment pairs that cross, between edges that share no endpoint. */
+/** Segment pairs of two edges that cross, counted as the review counts them. */
 export function sceneCrossings(scene: Scene): number {
   let count = 0;
-  const lines = scene.edges.map((e) => ({ ends: [e.from, e.to], segs: segmentsOf(e.points) }));
+  const lines = scene.edges.map((e) => segmentsOf(e.points));
   for (let i = 0; i < lines.length; i++)
-    for (let j = i + 1; j < lines.length; j++) {
-      const a = lines[i];
-      const b = lines[j];
-      if (!a || !b || a.ends.some((x) => b.ends.includes(x))) continue;
-      for (const [p, q] of a.segs)
-        for (const [r, t] of b.segs) if (properCross(p, q, r, t)) count++;
-    }
+    for (let j = i + 1; j < lines.length; j++)
+      for (const [p, q] of lines[i] ?? [])
+        for (const [s, t] of lines[j] ?? []) if (crosses(p, q, s, t)) count++;
   return count;
+}
+
+/** Arrowheads that point back against the flow by more than 8px, as layout.against-flow counts. */
+export function againstFlow(scene: Scene): number {
+  const along = (dx: number, dy: number) =>
+    scene.direction === "right"
+      ? dx
+      : scene.direction === "left"
+        ? -dx
+        : scene.direction === "down"
+          ? dy
+          : -dy;
+  return scene.edges.filter((e) => {
+    const a = e.points[0];
+    const b = e.points.at(-1);
+    return e.arrow === "end" && !!a && !!b && along(b.x - a.x, b.y - a.y) < -8;
+  }).length;
+}
+
+/** The length of the longest edge route, in px. */
+export function longestEdge(scene: Scene): number {
+  return Math.max(
+    0,
+    ...scene.edges.map((e) =>
+      segmentsOf(e.points).reduce((t, [p, q]) => t + Math.hypot(q.x - p.x, q.y - p.y), 0),
+    ),
+  );
 }
 
 /** Edges that run through a node they do not connect (DG201 reads the box shrunk by 3px). */

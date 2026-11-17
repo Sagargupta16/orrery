@@ -110,9 +110,7 @@ describe("Mermaid import", () => {
   });
 
   it("warns when the input is not a flowchart", () => {
-    expect(importMermaid("sequenceDiagram\n  Alice->>Bob: hi\n").warnings.length).toBeGreaterThan(
-      0,
-    );
+    expect(importMermaid("classDiagram\n  Animal <|-- Duck\n").warnings.length).toBeGreaterThan(0);
   });
 
   it("runs from the CLI and prints YAML", async () => {

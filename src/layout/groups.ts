@@ -181,6 +181,23 @@ function headerAt(
   return { iconBox, labelX, labelY };
 }
 
+/**
+ * A group's header label as wide as the wider skin draws it. The stage skin sets it in Geist Mono
+ * caps (11px, 0.1em tracking, every glyph 0.6em) shrunk only to the room up to the group's right
+ * side (render/stage/draw-groups.ts stageHeaderBox, at a display pixel of 1, its widest), often
+ * wider than the classic text labelBox was measured for. One layout serves both skins, so lines
+ * and labels keep clear of the wider of the two, as seats do (seats.ts).
+ */
+export function headerText(g: SceneGroup): Box {
+  const b = g.labelBox;
+  if (!g.label.lines.length) return b;
+  const room = Math.max(b.w, g.box.x + g.box.w - b.x - 10);
+  const chars = g.label.lines.map((l) => [...l].length);
+  const fit = (room + 11 * 0.1) / (Math.max(1, ...chars) * 0.7);
+  const size = Math.max(8.5, Math.floor(Math.min(11, fit) * 4) / 4);
+  return { ...b, w: Math.max(b.w, ...chars.map((c) => (c ? size * (c * 0.7 - 0.1) : 0))) };
+}
+
 /** How far past its inset a header may slide when no free stretch fits (the chip stays inside). */
 const HEADER_SLACK = 4;
 
@@ -197,7 +214,7 @@ export function clearHeader(
   edges: SceneEdge[],
 ): boolean {
   const icon = room.moveIcon ? g.iconBox : undefined;
-  const u = union([g.labelBox, icon]);
+  const u = union([headerText(g), icon]);
   // The renderer's 4px chip plus 2px, so a line beside it keeps its whole stroke.
   const chip = { x: u.x - 6, y: u.y - 1, w: u.w + 12, h: u.h + 2 };
   const inBand = (b: Box) => b.y < chip.y + chip.h - 0.5 && b.y + b.h > chip.y + 0.5;
@@ -210,7 +227,7 @@ export function clearHeader(
     ...segments,
     ...nodes.flatMap((n) => [n.box, n.iconBox, n.labelBox, n.noteBox, n.badgeBox]),
     ...edges.flatMap((e) => [e.labelBox, e.stepBox]),
-    ...groups.filter((o) => o !== g).flatMap((o) => [o.labelBox, o.iconBox]),
+    ...groups.filter((o) => o !== g).flatMap((o) => [headerText(o), o.iconBox]),
   ].filter((b): b is Box => !!b && inBand(b));
   // An overlay's legend sits over other content, so it also steps off nodes and headers.
   if (!(g.overlay ? others : segments).some((b) => hit(b, 0))) return true;

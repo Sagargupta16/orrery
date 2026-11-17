@@ -52,9 +52,11 @@ afterAll(() => {
 /** Writes a document into its own folder (so outputs never collide) and builds it. */
 async function build(name: string, text: string, formats: DocFormat[]) {
   const sub = join(dir, name);
-  mkdirSync(sub, { recursive: true });
+  // Specs must sit inside the document's folder, so each document gets its own copy.
+  mkdirSync(join(sub, "diagrams"), { recursive: true });
+  writeFileSync(join(sub, "diagrams", "tiny.yaml"), TINY);
   const file = join(sub, "design.md");
-  writeFileSync(file, text.replaceAll("diagrams/", "../diagrams/"));
+  writeFileSync(file, text);
   const result = await buildDoc({ file, base: join(sub, "out", "design"), formats });
   return { ...result, out: join(sub, "out") };
 }
@@ -172,7 +174,7 @@ describe("orrery doc", () => {
     );
     expect(md).toContain("![Two boxes](figures/02-tiny.svg)\n\n*Figure 2: Two boxes*");
     expect(md).toContain("<!-- orrery: not-a-figure.yaml -->");
-    expect(md).not.toContain("<!-- orrery: ../diagrams/");
+    expect(md).not.toContain("<!-- orrery: diagrams/");
     expect(r.files.map((f) => f.slice(r.out.length + 1).replaceAll("\\", "/"))).toEqual([
       "figures/01-tiny.svg",
       "figures/01-tiny.png",

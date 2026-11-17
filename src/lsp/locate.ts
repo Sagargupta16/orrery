@@ -336,19 +336,18 @@ function detail(
 
 /** What the finding is about, from the first subject key that names something in the spec. */
 function subjectHit(at: Located, s: Record<string, unknown>) {
-  const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+  // A subject may carry a numeric id (`id: 1` in YAML), which names node "1" as the spec does.
+  const str = (v: unknown) =>
+    typeof v === "string" ? v : typeof v === "number" && Number.isFinite(v) ? String(v) : undefined;
   const id = str(s.id);
-  if (str(s.where)) return { primary: "where", ...whereHit(at, s.where as string) };
-  if (str(s.edge))
-    return { primary: "edge", hit: edgeHit(at, s.edge as string), kind: "edge" as const };
-  if (str(s.node))
-    return { primary: "node", hit: entryOf(at, "nodes", s.node as string), kind: "node" as const };
-  if (str(s.group))
-    return {
-      primary: "group",
-      hit: entryOf(at, "groups", s.group as string),
-      kind: "group" as const,
-    };
+  const where = str(s.where);
+  if (where) return { primary: "where", ...whereHit(at, where) };
+  const edge = str(s.edge);
+  if (edge) return { primary: "edge", hit: edgeHit(at, edge), kind: "edge" as const };
+  const node = str(s.node);
+  if (node) return { primary: "node", hit: entryOf(at, "nodes", node), kind: "node" as const };
+  const group = str(s.group);
+  if (group) return { primary: "group", hit: entryOf(at, "groups", group), kind: "group" as const };
   if (str(s.tag))
     return { primary: "tag", hit: pathHit(at, ["tags", s.tag as string]), kind: "path" as const };
   if (id) {

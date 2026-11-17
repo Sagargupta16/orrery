@@ -239,6 +239,14 @@ export function parseStages(ctx: Ctx, kind: DiagramKind) {
       });
     else stages.push(...raw.stages.map((x: string) => x.trim()));
   }
+  // A step's stage: names one column, which a name listed twice cannot do; the name is reported
+  // once, at its second place, however often it repeats.
+  for (const [i, name] of stages.entries())
+    if (stages.indexOf(name, stages.indexOf(name) + 1) === i)
+      ctx.err("DG112", `stages lists "${name}" twice`, {
+        subject: { where: "stages", stage: name },
+        fixes: [`rename one "${name}" column, e.g. "${name} 2", or remove the second`],
+      });
   if (kind === "journey" && !stages.length)
     ctx.err("DG112", "a journey needs stages: the columns its steps sit in", {
       subject: { where: "stages" },

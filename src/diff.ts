@@ -142,11 +142,17 @@ function matchEdges(
   return { pairs, added, removed, renamed: [] };
 }
 
-type Value = string | number | null | undefined;
+type Value = string | number | boolean | object | null | undefined;
+
+/** Arrays and objects (tags, evidence, a timeline date) compare and print as JSON. */
+const plain = (v: Value): string | number | null => {
+  if (v === undefined || v === null) return null;
+  return typeof v === "object" || typeof v === "boolean" ? JSON.stringify(v) : v;
+};
 
 function fieldChanges(fields: [string, Value, Value][]): FieldChange[] {
   return fields.flatMap(([field, b, a]) =>
-    (b ?? null) === (a ?? null) ? [] : [{ field, before: b ?? null, after: a ?? null }],
+    plain(b) === plain(a) ? [] : [{ field, before: plain(b), after: plain(a) }],
   );
 }
 
@@ -187,6 +193,16 @@ function compare(before: Model, after: Model): Comparison {
         ["icon", b.icon, a.icon],
         ["group", mapped(b.parent), a.parent],
         ["note", b.note, a.note],
+        ["shape", b.shape, a.shape],
+        ["color", b.color, a.color],
+        ["badge", b.badge, a.badge],
+        ["url", b.url, a.url],
+        ["stage", b.stage, a.stage],
+        ["when", b.when, a.when],
+        ["milestone", b.milestone, a.milestone],
+        ["status", b.status, a.status],
+        ["tags", b.tags, a.tags],
+        ["evidence", b.evidence, a.evidence],
       ]),
     );
   for (const [b, a] of groups.pairs)
@@ -197,6 +213,8 @@ function compare(before: Model, after: Model): Comparison {
         ["type", b.type, a.type],
         ["icon", groupIcon(b), groupIcon(a)],
         ["group", mapped(b.parent), a.parent],
+        ["color", b.color, a.color],
+        ["fill", b.fill, a.fill],
       ]),
     );
   const edges = matchEdges(before.edges, after.edges, (id) => rename.get(id) ?? id);
@@ -529,6 +547,8 @@ export function readSide(
   const m = /^git:([^:]+):(.+)$/.exec(arg);
   if (!m) return readSpec(arg);
   const [, ref = "", path = ""] = m;
+  // A ref that starts with a dash would be read by git as an option (`--output=<file>` writes one).
+  if (ref.startsWith("-")) usage(`cannot read ${arg}: a git ref cannot start with "-"`);
   const git = (...gitArgs: string[]) =>
     execFileSync("git", gitArgs, {
       cwd,
@@ -537,12 +557,12 @@ export function readSide(
       maxBuffer: 64 * 1024 * 1024,
     });
   try {
-    const text = git("show", `${ref}:${path}`);
+    const text = git("show", "--end-of-options", `${ref}:${path}`);
     const root = git("rev-parse", "--show-toplevel").trim();
     const include = (file: string): string | undefined => {
       const at = relative(root, file).replaceAll("\\", "/");
       try {
-        return at.startsWith("../") ? undefined : git("show", `${ref}:${at}`);
+        return at.startsWith("../") ? undefined : git("show", "--end-of-options", `${ref}:${at}`);
       } catch {
         return undefined;
       }
@@ -564,6 +584,10 @@ export async function cmdDiff(args: Args): Promise<void> {
   const [beforeArg, afterArg] = args._;
   if (!beforeArg || !afterArg) usage("diff needs two specs: before and after");
   const json = args.flags.json === true;
+  if (args.flags.scale !== undefined) {
+    const scale = Number(args.flags.scale);
+    if (!(scale > 0 && scale <= 8)) usage("--scale must be between 0 and 8");
+  }
   const sides = [readSide(beforeArg), readSide(afterArg)] as const;
   const [before, after] = sides.map((s) =>
     parseSpec(s.text, s.path, s.include ? { include: s.include } : {}),
@@ -575,6 +599,11 @@ export async function cmdDiff(args: Args): Promise<void> {
     printDiagnostics(p?.diagnostics ?? [], false);
     failed = true;
   }
+  if (failed && json)
+    process.stdout.write(
+      `${JSON.stringify({ ok: false, diagnostics: [before, after].flatMap((p) => p?.diagnostics ?? []) }, null, 2)}
+`,
+    );
   if (failed || !before?.model || !after?.model) {
     process.exitCode = 1;
     return;

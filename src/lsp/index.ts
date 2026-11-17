@@ -4,14 +4,17 @@
 //
 // lsp/rpc.ts frames the messages, lsp/server.ts answers them, lsp/locate.ts places a finding
 // in the YAML, lsp/fixes.ts turns its fixes into edits, and complete, hover and symbols serve
-// the requests of those names.
+// the requests of those names. lsp/layout.ts runs the slow layout pass in a worker thread that
+// starts this same command again and serves layout jobs instead of the protocol.
 import type { Args } from "../cli/args.ts";
 import { usage } from "../cli/io.ts";
+import { isLayoutWorker, serveLayout, workerLayout } from "./layout.ts";
 import { frame, messageReader } from "./rpc.ts";
 import { createServer } from "./server.ts";
 
 export async function cmdLsp(args: Args): Promise<void> {
   if (args._.length) usage(`lsp takes no arguments (got ${args._.join(" ")})`);
+  if (isLayoutWorker) return serveLayout();
   const send = (msg: unknown) => process.stdout.write(frame(msg));
   await new Promise<void>((done) => {
     let finished = false;
@@ -24,7 +27,7 @@ export async function cmdLsp(args: Args): Promise<void> {
       process.exitCode = code;
       done();
     };
-    const server = createServer(send, finish);
+    const server = createServer(send, finish, workerLayout());
     const read = messageReader(
       (msg) => server.handle(msg),
       () => send({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }),

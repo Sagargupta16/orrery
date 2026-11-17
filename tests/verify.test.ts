@@ -252,16 +252,15 @@ nodes:
     writeFileSync(spec("linked.yaml"), LINKED);
     const r = verifyModel(model(LINKED, spec("linked.yaml")), spec("linked.yaml"), {
       link: true,
-      commit: "0123456789abcdef0123456789abcdef01234567",
+      // A pinned commit must hold the evidence file (verify checks it with git cat-file).
+      commit: head,
     });
     const out = linkText(LINKED, r.links ?? []);
     for (const comment of ["# Shop: what runs where", "# The API", "# the Lambda"])
       expect(out).toContain(comment);
     const m = model(out, spec("linked.yaml"));
     const url = (id: string) => m.nodes.find((n) => n.id === id)?.url;
-    expect(url("api")).toBe(
-      "https://github.com/acme/shop/blob/0123456789abcdef0123456789abcdef01234567/src/api.ts#L2",
-    );
+    expect(url("api")).toBe(`https://github.com/acme/shop/blob/${head}/src/api.ts#L2`);
     expect(url("docs")).toBe("https://docs.example.com/api");
     expect(url("broken")).toBeUndefined();
     expect(url("plain")).toBeUndefined();

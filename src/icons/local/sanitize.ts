@@ -44,6 +44,13 @@ const ALLOWED = new Set([
 /** Editor and document data that draws nothing. */
 const DROP = new Set(["metadata", "title", "desc", "sodipodi:namedview"]);
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+/** Namespaces of editors and metadata formats, whose elements draw nothing. */
+const EDITOR_NS =
+  /inkscape|sodipodi|sketch|adobe|illustrator|serif\.com|creativecommons|purl\.org|rdf-syntax|figma|affinity/i;
+/** Prefixes editors use without declaring them, which an XML reader would refuse. */
+const EDITOR_PREFIX = /^(?:inkscape|sodipodi|sketch|adobe|i|x|xap|rdf|cc|dc|serif|figma)$/i;
+
 /** Properties a style="" declaration may carry; each becomes a presentation attribute. */
 const PRESENTATION = new Set(
   "fill fill-opacity fill-rule stroke stroke-width stroke-linecap stroke-linejoin stroke-miterlimit stroke-dasharray stroke-dashoffset stroke-opacity opacity color display visibility clip-path clip-rule mask mask-type filter stop-color stop-opacity flood-color flood-opacity lighting-color color-interpolation color-interpolation-filters mix-blend-mode isolation transform-origin transform-box font-family font-size font-weight font-style text-anchor dominant-baseline letter-spacing paint-order vector-effect shape-rendering marker-start marker-mid marker-end".split(
@@ -52,12 +59,12 @@ const PRESENTATION = new Set(
 );
 
 /**
- * CSS reads u\72l( as url( and image-set('a.png' 1x) (or image(), cross-fade(), element()) as
- * an image to load, so a value with a backslash escape or one of those functions may point
+ * CSS reads u\72l( as url( and image-set('a.png' 1x) (or image(), cross-fade(), element(), src())
+ * as an image to load, so a value with a backslash escape or one of those functions may point
  * outside the file. An icon needs neither.
  */
 const hidesUrl = (value: string) =>
-  value.includes("\\") || /\b(?:image-set|image|cross-fade|element)\s*\(/i.test(value);
+  value.includes("\\") || /\b(?:image-set|image|cross-fade|element|src)\s*\(/i.test(value);
 
 /** url(#id) as CSS reads it, quoted or not, with spaces: url(#g), url('#g'), url( " #g " ). */
 export const LOCAL_URL = /url\(\s*(["']?)\s*#([^)"'\s]+)\s*\1\s*\)/gi;
@@ -132,9 +139,9 @@ export function sanitize(root: XNode, bad: Bad, adopt = false): XNode {
   const hidden = (key: string, el: string) =>
     bad(
       `points outside the file in ${key} on <${el}>`,
-      "an icon may only reference its own ids, url(#id); write the value without a backslash escape, image-set(), image(), cross-fade() or element()",
+      "an icon may only reference its own ids, url(#id); write the value without a backslash escape, image-set(), image(), cross-fade(), element() or src()",
     );
-  const visit = (n: XNode, depth: number): XNode | undefined => {
+  const visit = (n: XNode, depth: number, scope: Map<string, string>): XNode | undefined => {
     if (n.name === "#text") return n;
     if (n.name === "#style") return undefined;
     if (depth > MAX_DEPTH)
@@ -145,7 +152,22 @@ export function sanitize(root: XNode, bad: Bad, adopt = false): XNode {
     const tag = local(n.name);
     const unsafe = UNSAFE[tag];
     if (unsafe) throw bad(unsafe[0], unsafe[1]);
-    if (DROP.has(n.name.toLowerCase()) || DROP.has(tag) || n.name.includes(":")) return undefined;
+    // Prefixes mean what the file's xmlns declarations say: <s:path> bound to the SVG namespace is
+    // a <path>, an editor's elements draw nothing, and any other namespace is not SVG.
+    const declared = new Map(scope);
+    for (const [k, v] of n.attrs) if (k.startsWith("xmlns:")) declared.set(k.slice(6), v);
+    const colon = n.name.indexOf(":");
+    const prefix = colon < 0 ? "" : n.name.slice(0, colon);
+    const space = prefix ? declared.get(prefix) : undefined;
+    if (prefix && space !== SVG_NS) {
+      if (space ? EDITOR_NS.test(space) : EDITOR_PREFIX.test(prefix)) return undefined;
+      throw bad(
+        `contains <${n.name}>, an element in ${space ? `the namespace ${space}` : `the undeclared namespace prefix "${prefix}"`}`,
+        "delete it, or write the shapes as plain SVG elements",
+      );
+    }
+    const name = prefix ? n.name.slice(colon + 1) : n.name;
+    if (DROP.has(name.toLowerCase())) return undefined;
     if (!ALLOWED.has(tag))
       throw bad(
         `contains an unsupported <${n.name}> element`,
@@ -177,6 +199,9 @@ export function sanitize(root: XNode, bad: Bad, adopt = false): XNode {
         attrs.set("href", value.trim());
         continue;
       }
+      // XML names are case-sensitive, so ID="x" is no id here, but an HTML page lowercases it into
+      // one and it would collide with the prefixed ids; it never reaches the output.
+      if (key === "id" && rawKey !== "id") continue;
       if (key === "style") {
         styled.push(...declarations(value));
         continue;
@@ -201,15 +226,17 @@ export function sanitize(root: XNode, bad: Bad, adopt = false): XNode {
         throw hidden(k, n.name);
       attrs.set(k, v);
     }
-    const children = n.children.map((c) => visit(c, depth + 1)).filter((c): c is XNode => !!c);
+    const children = n.children
+      .map((c) => visit(c, depth + 1, declared))
+      .filter((c): c is XNode => !!c);
     const keepText = tag === "text" || tag === "tspan" || tag === "textpath";
     return {
-      name: n.name,
+      name,
       attrs,
       children: keepText ? children : children.filter((c) => c.name !== "#text"),
     };
   };
-  const clean = visit(root, 0);
+  const clean = visit(root, 0, new Map());
   if (!clean) throw bad("draws nothing", "draw two to six shapes on a 24 grid (IC06)");
   checkUses(clean, bad);
   return clean;

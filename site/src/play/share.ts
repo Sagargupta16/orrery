@@ -33,8 +33,36 @@ export async function packSpec(spec: string): Promise<string> {
   return toBase64url(await through(new TextEncoder().encode(spec), new CompressionStream("deflate-raw")));
 }
 
+/** A link that inflates past these is a compression bomb, not a spec anyone drew. */
+const MAX_UNPACKED_BYTES = 1_000_000;
+const MAX_UNPACKED_LINES = 5000;
+
 export async function unpackSpec(packed: string): Promise<string> {
-  return new TextDecoder().decode(await through(fromBase64url(packed), new DecompressionStream("deflate-raw")));
+  const stream = new Blob([fromBase64url(packed) as BlobPart]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.length;
+    if (total > MAX_UNPACKED_BYTES) {
+      await reader.cancel();
+      throw new Error("shared spec is too large");
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, at);
+    at += chunk.length;
+  }
+  const text = new TextDecoder().decode(bytes);
+  let lines = 1;
+  for (let i = text.indexOf("\n"); i >= 0; i = text.indexOf("\n", i + 1)) lines++;
+  if (lines > MAX_UNPACKED_LINES) throw new Error("shared spec has too many lines");
+  return text;
 }
 
 /** The fragment for a state: the example's name while it is unedited, else the packed spec. */

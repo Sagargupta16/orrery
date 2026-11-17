@@ -136,8 +136,11 @@ function rubricsFor(c: Ctx): {
 function legendAndTitle(c: Ctx, c4: boolean): number {
   const { model, add } = c;
   const sequence = model.kind === "sequence";
+  // Every relationship dashed is the non-identifying notation itself; a mix of styles still needs a key.
+  const dashedEr = model.kind === "er" && model.edges.every((e) => e.line === "dashed");
   const styled = model.edges.filter(
     (e) =>
+      !(dashedEr && e.line === "dashed") &&
       !(e.flow === "message" && e.line === "dashed") &&
       !(e.flow === "association" && e.line === "dotted") &&
       !(sequence && (e.line === "dashed" || e.line === "dotted")),
@@ -614,9 +617,14 @@ function serviceLabels(c: Ctx): number {
       : info.pack === "azure"
         ? (vendorFormsOf(info)[1] ?? info.name)
         : info.name;
-    const rest = (n.note ?? "")
+    // The note keeps the words it has: cutting the service name out of "Amazon ECS on AWS Fargate"
+    // leaves "Amazon ECS on". Only a note that still reads whole without the name is trimmed, and
+    // an AWS label moves into the note as it is.
+    const trimmed = (n.note ?? "")
       .replace(new RegExp(escapeRe(info.name), "i"), "")
       .replace(/^[\s,;:-]+|[\s,;:-]+$/g, "");
+    const dangling = /(^|\s)(on|in|of|for|with|by|via|to|at|from|and|or|the|a|an)$/i.test(trimmed);
+    const rest = aws || dangling ? (n.note ?? "") : trimmed;
     const note = aws
       ? rest
         ? `${n.label}, ${rest}`

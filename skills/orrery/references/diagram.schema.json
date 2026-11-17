@@ -129,7 +129,7 @@
     "tagList": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$" } }], "description": "Names for views and tag styles." },
     "evidence": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Where it comes from: path:line, path:line#identifier or a resource address; checked by orrery verify." },
     "classList": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Classes from the top-level classes mapping, applied before the item's own keys." },
-    "id": { "type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*$" },
+    "id": { "oneOf": [{ "type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*$" }, { "type": "number", "minimum": 0, "description": "A YAML number names the item by its text: id: 1 is node \"1\"." }] },
     "node": {
       "type": "object",
       "additionalProperties": false,

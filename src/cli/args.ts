@@ -100,6 +100,10 @@ export function parseArgs(argv: string[]): Args {
         )
           value = true;
         else {
+          // Another flag is not a value (`--out --json`); a negative number still is, so the
+          // flag's own range check can name it.
+          if (next?.startsWith("-") && next !== "-" && !/^-\.?\d/.test(next))
+            usage(`--${key} needs a value (got ${next})`);
           value = next;
           i += 1;
         }

@@ -19,14 +19,15 @@ import {
   window,
 } from "./faces.ts";
 import {
-  collinear,
   dropStraightPoints,
   meet,
   round,
+  type Seg,
   segmentHits,
   segmentsOf,
   union,
 } from "./geometry.ts";
+import { headerText } from "./groups.ts";
 import { labelSpot } from "./labels.ts";
 import { ENDS } from "./sizes.ts";
 
@@ -373,13 +374,15 @@ export function probe(
   return a && b ? prober(view, e, a, b, ref) : undefined;
 }
 
-function prober(
-  view: RouteView,
-  e: SceneEdge,
-  a: Item,
-  b: Item,
-  ref: Point[] = e.points,
-): (points: Point[]) => Defects {
+/** One count of Defects, read from the path and its segments. */
+type Counters = Record<keyof Defects, (points: Point[], segs: readonly Seg[]) => number>;
+
+/**
+ * The counts of Defects as separate tests over what they read, built once per edge. The key
+ * order is the order the tester runs them in, cheapest and most often failed first, so most
+ * candidates stop at the first one.
+ */
+function counters(view: RouteView, e: SceneEdge, a: Item, b: Item, ref: Point[]): Counters {
   const ends = new Set([e.from, e.to]);
   const others = view.edges.filter((o) => o !== e);
   const related = (o: SceneEdge) => ends.has(o.from) || ends.has(o.to);
@@ -398,7 +401,7 @@ function prober(
     ...view.nodes.flatMap((n) => (real(n.badgeBox) ? [grow(n.badgeBox, 2)] : [])),
     ...others.flatMap((o) => [o.labelBox, o.stepBox].filter(real).map((x) => grow(x, 2))),
     ...view.groups.flatMap((g) =>
-      [g.label.lines.length ? g.labelBox : undefined, g.iconBox]
+      [g.label.lines.length ? headerText(g) : undefined, g.iconBox]
         .filter(real)
         .map((x) => ({ x: x.x - 4, y: x.y - 1, w: x.w + 8, h: x.h + 2 })),
     ),
@@ -416,32 +419,172 @@ function prober(
   ];
   const frames = view.groups.filter((g) => !g.overlay && !g.lane);
   const borders = frames.map((g) => g.box);
-  const titles = frames.filter((g) => g.label.lines.length).map((g) => g.labelBox);
+  const titles = frames.filter((g) => g.label.lines.length).map(headerText);
   const counted = frames.filter((g) => !ends.has(g.id));
   const crossedBefore = counted.map((g) => borderCrossings(ref, g.box));
-  const otherSegs = others.flatMap((o) => segmentsOf(o.points).map((s) => ({ o, s })));
-  return (points) => {
-    const segs = segmentsOf(points);
-    const hits = (boxes: Box[], inset: number) =>
-      segs.filter(([p, q]) => boxes.some((w) => segmentHits(p, q, w, inset))).length;
-    let lines = 0;
-    for (const { o, s } of otherSegs)
-      if (collinear(points, s[0], s[1]) || (!related(o) && beside(segs, s))) lines++;
-    return {
-      hard: segs.filter(([p, q]) => hard.some(([w, inset]) => segmentHits(p, q, w, inset))).length,
-      headers: crossedHeaders(view, points).length,
-      own: hits(own, 1),
-      walls: hits(walls, 0),
-      frames:
-        (clearOfFrames(points, borders, titles) ? 0 : 1) + (alongBorder(points, borders) ? 1 : 0),
-      borders: counted.reduce(
+  const index = indexLines(others, related);
+  const hardRow = rowOf(hard);
+  const wallRow = rowOf(walls.map((w): [Box, number] => [w, 0]));
+  const hits = (row: Row, segs: readonly Seg[]) =>
+    segs.filter(([p, q]) => hitsRow(row, p, q)).length;
+  return {
+    own: (_, segs) => segs.filter(([p, q]) => own.some((w) => segmentHits(p, q, w, 1))).length,
+    walls: (_, segs) => hits(wallRow, segs),
+    hard: (_, segs) => hits(hardRow, segs),
+    lines: (_, segs) => linesHit(segs, index),
+    frames: (points) =>
+      (clearOfFrames(points, borders, titles) ? 0 : 1) + (alongBorder(points, borders) ? 1 : 0),
+    headers: (points) => crossedHeaders(view, points).length,
+    borders: (points) =>
+      counted.reduce(
         (n, g, i) => n + Math.max(0, borderCrossings(points, g.box) - (crossedBefore[i] ?? 0)),
         0,
       ),
-      lines,
-      crossings: crossings(points, otherSegs),
+    crossings: (_, segs) => crossings(segs, index),
+  };
+}
+
+function prober(
+  view: RouteView,
+  e: SceneEdge,
+  a: Item,
+  b: Item,
+  ref: Point[] = e.points,
+): (points: Point[]) => Defects {
+  const count = counters(view, e, a, b, ref);
+  return (points) => {
+    const segs = segmentsOf(points);
+    return {
+      hard: count.hard(points, segs),
+      headers: count.headers(points, segs),
+      own: count.own(points, segs),
+      walls: count.walls(points, segs),
+      frames: count.frames(points, segs),
+      borders: count.borders(points, segs),
+      lines: count.lines(points, segs),
+      crossings: count.crossings(points, segs),
     };
   };
+}
+
+/** Boxes with the inset each is tested at, sorted by left side, and the widest one's width. */
+interface Row {
+  boxes: [Box, number][];
+  widest: number;
+}
+
+function rowOf(boxes: [Box, number][]): Row {
+  return {
+    boxes: [...boxes].sort((m, n) => m[0].x - n[0].x),
+    widest: Math.max(0, ...boxes.map(([b]) => b.w)),
+  };
+}
+
+/**
+ * Whether segment pq runs through any box of the row. Only boxes whose x span meets the
+ * segment's can, so the search starts at the first one that could still reach it.
+ */
+function hitsRow(row: Row, p: Point, q: Point): boolean {
+  const x0 = Math.min(p.x, q.x);
+  const x1 = Math.max(p.x, q.x);
+  const y0 = Math.min(p.y, q.y);
+  const y1 = Math.max(p.y, q.y);
+  const { boxes } = row;
+  let lo = 0;
+  let hi = boxes.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if ((boxes[mid] as [Box, number])[0].x < x0 - row.widest) lo = mid + 1;
+    else hi = mid;
+  }
+  for (let k = lo; k < boxes.length; k++) {
+    const [b, inset] = boxes[k] as [Box, number];
+    if (b.x > x1) break;
+    if (b.x + b.w < x0 || b.y > y1 || b.y + b.h < y0) continue;
+    if (segmentHits(p, q, b, inset)) return true;
+  }
+  return false;
+}
+
+/** Another edge's segment, keyed by the coordinate it runs at. */
+interface Run {
+  /** x of an upright segment, y of a level one: where it sorts. */
+  at: number;
+  s: Seg;
+  /** Which segment of the other edges it is, so one counts once however many parts touch it. */
+  i: number;
+  /** Not on either end of the edge searched: only these count as close beside it. */
+  free: boolean;
+}
+
+/**
+ * The other edges' segments sorted by where they run, once per edge searched: every candidate
+ * then reads only the few near each of its own segments, which keeps a dense diagram from testing
+ * every segment of every edge for every candidate. `upright` and `flat` follow collinear() and
+ * beside() (upright first); `level` and `steep` follow crossings() (level first, diagonals steep).
+ */
+interface LineIndex {
+  upright: Run[];
+  flat: Run[];
+  level: Run[];
+  steep: Run[];
+}
+
+function indexLines(others: SceneEdge[], related: (o: SceneEdge) => boolean): LineIndex {
+  const index: LineIndex = { upright: [], flat: [], level: [], steep: [] };
+  let i = 0;
+  for (const o of others) {
+    const free = !related(o);
+    for (const s of segmentsOf(o.points)) {
+      const [p, q] = s;
+      if (Math.abs(p.x - q.x) < 0.5) index.upright.push({ at: p.x, s, i, free });
+      else if (Math.abs(p.y - q.y) < 0.5) index.flat.push({ at: p.y, s, i, free });
+      if (Math.abs(p.y - q.y) < 0.5) index.level.push({ at: p.y, s, i, free });
+      else index.steep.push({ at: p.x, s, i, free });
+      i++;
+    }
+  }
+  for (const list of Object.values(index) as Run[][]) list.sort((m, n) => m.at - n.at);
+  return index;
+}
+
+/** The first run in a sorted list at or past `v`. */
+function from(list: Run[], v: number): number {
+  let lo = 0;
+  let hi = list.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if ((list[mid] as Run).at < v) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/**
+ * How many other segments the path runs on top of (parallel, within 6px, overlapping), or close
+ * beside when unrelated (within BESIDE, overlapping by more than BESIDE_ALONG).
+ */
+function linesHit(segs: readonly Seg[], index: LineIndex): number {
+  const hit = new Set<number>();
+  for (const [r, s] of segs) {
+    const v = Math.abs(r.x - s.x) < 0.5;
+    if (!v && Math.abs(r.y - s.y) >= 0.5) continue;
+    const list = v ? index.upright : index.flat;
+    const at = v ? r.x : r.y;
+    const [a0, a1] = (v ? [r.y, s.y] : [r.x, s.x]).sort((m, n) => m - n) as [number, number];
+    for (let k = from(list, at - BESIDE); k < list.length; k++) {
+      const run = list[k] as Run;
+      if (run.at >= at + BESIDE) break;
+      if (hit.has(run.i)) continue;
+      const [p, q] = run.s;
+      const [b0, b1] = (v ? [p.y, q.y] : [p.x, q.x]).sort((m, n) => m - n) as [number, number];
+      const off = Math.abs(at - run.at);
+      const over = Math.min(a1, b1) - Math.max(a0, b0);
+      if ((off < 6 && over > 0.5) || (run.free && off < BESIDE && over > BESIDE_ALONG))
+        hit.add(run.i);
+    }
+  }
+  return hit.size;
 }
 
 /** What an edge's tag keeps off: nodes with their text, badges, other tags, headers, borders. */
@@ -452,7 +595,7 @@ function tagAvoid(view: RouteView, e: SceneEdge): Box[] {
     ...view.nodes.map((n) => union([n.box, n.iconBox, n.labelBox, n.noteBox])),
     ...view.nodes.flatMap((n) => (real(n.badgeBox) ? [n.badgeBox] : [])),
     ...others.flatMap((o) => [o.labelBox, o.stepBox].filter(real)),
-    ...view.groups.flatMap((g) => [g.label.lines.length ? g.labelBox : undefined, g.iconBox]),
+    ...view.groups.flatMap((g) => [g.label.lines.length ? headerText(g) : undefined, g.iconBox]),
     ...frames.flatMap((g) => [
       { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
       { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
@@ -502,12 +645,13 @@ function tester(
   b: Item,
   tag: Tag | undefined,
 ): (points: Point[]) => Box | boolean {
-  const count = prober(view, e, a, b);
-  const before = count(e.points).crossings;
+  const count = counters(view, e, a, b, e.points);
+  const before = count.crossings(e.points, segmentsOf(e.points));
+  const tests = Object.entries(count) as [keyof Defects, Counters[keyof Defects]][];
   return (points) => {
-    const d = count(points);
-    const bad = d.hard || d.headers || d.own || d.walls || d.frames || d.borders || d.lines;
-    if (bad || d.crossings > before) return false;
+    const segs = segmentsOf(points);
+    for (const [key, test] of tests)
+      if (test(points, segs) > (key === "crossings" ? before : 0)) return false;
     return tag ? (tagSpot(view, e, points, tag) ?? false) : true;
   };
 }
@@ -516,7 +660,7 @@ function tester(
 export function crossedHeaders(view: RouteView, points: Point[]): SceneGroup[] {
   const segs = segmentsOf(points);
   return view.groups.filter((g) => {
-    const x = g.label.lines.length ? g.labelBox : undefined;
+    const x = g.label.lines.length ? headerText(g) : undefined;
     if (!real(x)) return false;
     const chip = { x: x.x - 4, y: x.y - 1, w: x.w + 8, h: x.h + 2 };
     return segs.some(([p, q]) => segmentHits(p, q, chip, 0.5));
@@ -540,40 +684,26 @@ export function borderCrossings(points: Point[], b: Box): number {
   return n;
 }
 
-/** Crossings of a path with other edges' segments, each one strictly inside both. */
-function crossings(points: Point[], others: { s: readonly [Point, Point] }[]): number {
+/**
+ * Crossings of a path with other edges' segments, each one strictly inside both: a level part
+ * against the steep ones whose x falls inside it, a steep part against the level ones whose y does.
+ */
+function crossings(segs: readonly Seg[], index: LineIndex): number {
   let n = 0;
-  for (const [a, b] of segmentsOf(points)) {
+  for (const [a, b] of segs) {
     const flat = Math.abs(a.y - b.y) < 0.5;
-    for (const {
-      s: [p, q],
-    } of others) {
-      const level = Math.abs(p.y - q.y) < 0.5;
-      if (level === flat) continue;
-      const [h0, h1, v0, v1] = flat ? [a, b, p, q] : [p, q, a, b];
-      const x = v0.x;
-      const y = h0.y;
-      if (
-        x > Math.min(h0.x, h1.x) + 0.5 &&
-        x < Math.max(h0.x, h1.x) - 0.5 &&
-        y > Math.min(v0.y, v1.y) + 0.5 &&
-        y < Math.max(v0.y, v1.y) - 0.5
-      )
-        n++;
+    const list = flat ? index.steep : index.level;
+    const lo = (flat ? Math.min(a.x, b.x) : Math.min(a.y, b.y)) + 0.5;
+    const hi = (flat ? Math.max(a.x, b.x) : Math.max(a.y, b.y)) - 0.5;
+    for (let k = from(list, lo); k < list.length; k++) {
+      const run = list[k] as Run;
+      if (run.at >= hi) break;
+      if (run.at <= lo) continue;
+      const [p, q] = run.s;
+      const across = flat ? a.y : a.x;
+      const [c0, c1] = flat ? [p.y, q.y] : [p.x, q.x];
+      if (across > Math.min(c0, c1) + 0.5 && across < Math.max(c0, c1) - 0.5) n++;
     }
   }
   return n;
-}
-
-/** Whether a segment of the path runs parallel to pq closer than BESIDE over BESIDE_ALONG. */
-function beside(segs: readonly (readonly [Point, Point])[], [p, q]: readonly [Point, Point]) {
-  const v = Math.abs(p.x - q.x) < 0.5;
-  if (!v && Math.abs(p.y - q.y) >= 0.5) return false;
-  const [b0, b1] = (v ? [p.y, q.y] : [p.x, q.x]).sort((m, n) => m - n);
-  return segs.some(([r, s]) => {
-    if (Math.abs(r.x - s.x) < 0.5 !== v || (!v && Math.abs(r.y - s.y) >= 0.5)) return false;
-    if (Math.abs((v ? r.x : r.y) - (v ? p.x : p.y)) >= BESIDE) return false;
-    const [a0, a1] = (v ? [r.y, s.y] : [r.x, s.x]).sort((m, n) => m - n);
-    return Math.min(a1 ?? 0, b1 ?? 0) - Math.max(a0 ?? 0, b0 ?? 0) > BESIDE_ALONG;
-  });
 }

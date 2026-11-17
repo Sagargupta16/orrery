@@ -1,11 +1,11 @@
 # Icons
 
-18,300 icons in 10 packs, all current official artwork. The four cloud packs are built from each vendor's own download by `scripts/sync-icons.mjs` (pinned by URL and SHA-256 in `scripts/icon-sources.json`; a monthly workflow re-pins newer releases) and ship inside the skill. The six sets that are published as npm libraries are not copied into the skill: they load from the library itself at render time (see [Where icons load from](#where-icons-load-from)). Every icon is drawn the same way either way: ids made unique per use, monochrome glyphs colored for the theme.
+18,307 icons in 10 packs, all current official artwork. The four cloud packs are built from each vendor's own download by `scripts/sync-icons.mjs` (pinned by URL and SHA-256 in `scripts/icon-sources.json`; a monthly workflow re-pins newer releases) and ship inside the skill. The six sets that are published as npm libraries are not copied into the skill: they load from the library itself at render time (see [Where icons load from](#where-icons-load-from)). Every icon is drawn the same way either way: ids made unique per use, monochrome glyphs colored for the theme.
 
 | Pack | Icons | Source | Version | What it covers | Ships |
 | --- | ---: | --- | --- | --- | --- |
 | `aws` | 810 | [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/) | 2026-07-31 package | 305 services, 466 resources (light and dark variants), 13 group tiles, 26 categories | bundled |
-| `azure` | 636 | [Azure Architecture Icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) | V24 | Azure services and resources | bundled |
+| `azure` | 643 | [Azure Architecture Icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) | V25 | Azure services and resources | bundled |
 | `gcp` | 233 | [Google Cloud icons](https://cloud.google.com/icons) | May 2026 icon guide | 19 core product icons, 26 category icons, 188 products mapped to the icon Google assigns them | bundled |
 | `k8s` | 40 | [Kubernetes icons](https://github.com/kubernetes/community/tree/master/icons) | kubernetes/community@70a4bb2 | resource kinds, control plane, infrastructure, the Kubernetes logo | bundled |
 | `github` | 408 | [GitHub Octicons](https://primer.style/octicons) | @primer/octicons 19.42.0 | GitHub's own icon set | npm `@primer/octicons` |
@@ -29,7 +29,7 @@ The bundled packs need nothing. A library pack loads the first time a diagram us
 2. the user cache (`%LOCALAPPDATA%\orrery` on Windows, `~/.cache/orrery` elsewhere, or `ORRERY_CACHE`),
 3. jsDelivr (`https://cdn.jsdelivr.net/npm/<package>@<version>/<file>`), then unpkg; the file is cached after the first download.
 
-Every file is checked against the SHA-256 pinned in `assets/icons/index.json`, so a render is the same everywhere. Searching and validating never download anything. Without network and without a cached copy, a render that needs a library icon fails with DG301; run `orrery icons fetch` once where there is network (and copy the cache folder, or point `ORRERY_CACHE` at it), or use an icon from a bundled pack. `orrery doctor` shows how many libraries are available offline.
+Every file is checked against the SHA-256 pinned in `assets/icons/index.json`, so a render is the same everywhere. Searching and validating never download anything. Without network and without a cached copy, a render that needs a library icon fails with DG301; run `orrery icons fetch` once where there is network (and copy the cache folder, or point `ORRERY_CACHE` at it), or use an icon from a bundled pack. Behind a proxy, set `NODE_USE_ENV_PROXY=1` together with `HTTPS_PROXY` so the download goes through it; the DG301 message names the network error. `orrery doctor` shows how many libraries are available offline.
 
 ## Ids
 
@@ -103,8 +103,8 @@ Then `icon: local:order-desk` on a node. [examples/local-icons-order-desk.yaml](
 
 Each file is read when the diagram renders (and when it validates):
 
-- Refused, with the file, the problem and the fix: scripts, `<foreignObject>`, `on*` event handlers, `<style>` elements (their rules would restyle the whole diagram), links and references that leave the file (`href` that is not `#id`, `url()` that is not `url(#id)`, `javascript:`), embedded images, animation, DOCTYPE entity declarations, files over 512 KB. A diagram with such a file fails with DG111.
-- Dropped: comments, metadata, title, editor namespaces (Inkscape, Sodipodi), classes, `data-` attributes. Inline `style=""` declarations become attributes.
+- Refused, with the file, the problem and the fix: scripts, `<foreignObject>`, `on*` event handlers, `<style>` elements (their rules would restyle the whole diagram), links and references that leave the file (`href` that is not `#id`, `url()` that is not `url(#id)`, a CSS escape or `image-set()`, `image()`, `cross-fade()`, `element()` or `src()` in a value, `javascript:`), embedded images, animation, DOCTYPE entity declarations, an element in a namespace that is not SVG and not an editor's, a path that is not a file (a folder or a device), files over 512 KB. A diagram with such a file fails with DG111.
+- Dropped: comments, metadata, title, editor namespaces (Inkscape, Sodipodi, Sketch, Adobe Illustrator, Serif, Figma, Creative Commons and RDF metadata, also undeclared prefixes such as `inkscape:`), classes, `data-` attributes, and an upper-case `ID=` (XML ids are case-sensitive, so it is not an id). Prefixes follow the file's `xmlns:` declarations: `<s:path>` bound to the SVG namespace is a `<path>`. Inline `style=""` declarations become attributes.
 - The viewBox is kept (or `0 0 width height` when there is none), and every id is made unique per use, so one icon can appear many times and two files can share id names.
 - One-color artwork (one paint, `currentColor` included, no gradient) becomes a monochrome glyph: it takes the theme's text color or the node's `color:`, and the stage skin paints it like a Tabler glyph. Artwork in several colors keeps them; its `currentColor` parts follow the text color.
 

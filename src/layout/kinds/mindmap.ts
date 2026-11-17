@@ -202,7 +202,7 @@ function rootOf(ctx: AfterLayout): string | undefined {
   return ctx.nodes.find((n) => !into.has(n.id))?.id ?? ctx.nodes[0]?.id;
 }
 
-/** Branches in spec order, each to the half with less in it so far. */
+/** Branches in spec order, each to the half with less in it so far (or to its frame's half). */
 function splitHalves(mind: Mind, branches: string[]): Map<number, string[]> {
   const { ctx, t, cousin } = mind;
   const model = ctx.model;
@@ -215,10 +215,20 @@ function splitHalves(mind: Mind, branches: string[]): Map<number, string[]> {
     [first, 0],
     [-first, 0],
   ]);
+  // A frame round several branches holds them on one half: split, it would span the root.
+  const rootFrames = new Set(mind.f.chain(mind.root));
+  const frameSide = new Map<string, number>();
   for (const b of branches) {
     const c = t.contour(b);
     const span = Math.max(...c.map((x) => x.hi)) - Math.min(...c.map((x) => x.lo)) + cousin;
-    const side = (load.get(first) ?? 0) <= (load.get(-first) ?? 0) ? first : -first;
+    const frame = mind.f
+      .chain(b)
+      .filter((g) => !rootFrames.has(g))
+      .at(-1);
+    const side =
+      (frame ? frameSide.get(frame) : undefined) ??
+      ((load.get(first) ?? 0) <= (load.get(-first) ?? 0) ? first : -first);
+    if (frame) frameSide.set(frame, side);
     halves.get(side)?.push(b);
     load.set(side, (load.get(side) ?? 0) + span);
   }

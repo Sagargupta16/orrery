@@ -1,5 +1,6 @@
+import { createHash } from "node:crypto";
 import { checkScene } from "../check/index.ts";
-import { loadIconLibraries } from "../icons/index.ts";
+import { loadIconLibraries, withLocalIcons } from "../icons/index.ts";
 import { loadLocalIcons } from "../icons/local/index.ts";
 import { fitIcons, layout } from "../layout/index.ts";
 import type { AnimateMode, Diagnostic, Model, Scene, Skin, ThemeName } from "../types.ts";
@@ -7,7 +8,7 @@ import { renderDrawio } from "./drawio.ts";
 import { embedPngSpec, embedSvgSpec } from "./embed.ts";
 import { renderHtml } from "./html.ts";
 import { renderMermaid } from "./mermaid.ts";
-import { renderPng } from "./png.ts";
+import { pngScale, renderPng } from "./png.ts";
 import { renderSequence } from "./sequence.ts";
 import { esc, renderSvg } from "./svg.ts";
 import { componentName, renderTsx } from "./tsx.ts";
@@ -47,6 +48,12 @@ export interface RenderRequest {
   /** Base name used for the TSX component and downloads. */
   name: string;
   scale?: number;
+  /**
+   * Whether `scale` was asked for. The default scale (and a scale that was not asked for) is lowered
+   * to keep the PNG inside the pixel budget; one that was asked for and does not fit is an error.
+   * Unset, a scale other than the default 3 counts as asked for.
+   */
+  scaleExplicit?: boolean;
   fonts?: string[];
   /** Overrides the spec's animate mode. */
   animate?: AnimateMode;
@@ -70,7 +77,12 @@ export interface RenderResult {
   scenes: Partial<Record<ThemeName, Scene>>;
 }
 
-export async function renderModel(req: RenderRequest): Promise<RenderResult> {
+/** Lays out and draws a model; renders in flight together each see only their own local icons. */
+export function renderModel(req: RenderRequest): Promise<RenderResult> {
+  return withLocalIcons(() => render(req));
+}
+
+async function render(req: RenderRequest): Promise<RenderResult> {
   const model: Model = {
     ...req.model,
     ...(req.skin ? { skin: req.skin } : {}),
@@ -95,14 +107,22 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
   for (const s of Object.values(scenes)) fitIcons(s);
   const first = scenes[req.themes[0] ?? model.theme] ?? Object.values(scenes)[0];
   const diagnostics = first ? checkScene(first, model) : [];
-  // Ids carry the diagram and theme, so the light and dark file (or two diagrams) can share a page.
-  const idPrefix = (theme: ThemeName) =>
-    `${req.name}-${theme}`.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^(?=[^A-Za-z_])/, "sd-");
+  // Ids carry the diagram's name, theme and a hash of its model, so the light and dark file, or
+  // two diagrams that share a name (three x.yaml in different folders), can share a page.
+  // Local icon paths are absolute, so they stay out of the hash: the gallery is the same on every machine.
+  const hashed = { ...model, icons: model.icons?.map((i) => i.name) };
+  const hash = createHash("sha256").update(JSON.stringify(hashed)).digest("hex").slice(0, 6);
+  const idPrefix = (theme: ThemeName, suffix = "") =>
+    `${req.name}-${theme}-${hash}${suffix}`
+      .replace(/[^A-Za-z0-9_-]+/g, "-")
+      .replace(/^(?=[^A-Za-z_])/, "sd-");
   const svgOf = (theme: ThemeName, scene: Scene) => renderSvg(scene, { idPrefix: idPrefix(theme) });
   /** PNGs and the HTML page's PNG export are a still frame: no packets mid-edge, no flow dashes. */
   const stillOf = (theme: ThemeName, scene: Scene) =>
     scene.animate !== "none" ? svgOf(theme, { ...scene, animate: "none" }) : undefined;
   const artifacts: Artifact[] = [];
+  // PNGs are drawn last, so one that fails does not lose the files the same run asked for.
+  const pngs: { artifact: Artifact; scene: Scene; still: string }[] = [];
   for (const theme of req.themes) {
     const scene = scenes[theme];
     if (!scene || !req.formats.length) continue;
@@ -115,16 +135,9 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
       const base = { format, theme, width: scene.width, height: scene.height };
       if (format === "svg") artifacts.push({ ...base, data: svg });
       if (format === "png") {
-        const still = stillOf(theme, scene) ?? svg;
-        artifacts.push({
-          ...base,
-          data: embedPngSpec(
-            await renderPng(still, { scale: req.scale, fonts: req.fonts }),
-            req.source,
-          ),
-          width: Math.round(scene.width * (req.scale ?? 3)),
-          height: Math.round(scene.height * (req.scale ?? 3)),
-        });
+        const artifact: Artifact = { ...base, data: "" };
+        artifacts.push(artifact);
+        pngs.push({ artifact, scene, still: stillOf(theme, scene) ?? svg });
       }
       if (format === "drawio") artifacts.push({ ...base, data: drawio() });
       if (format === "drawio.svg") artifacts.push({ ...base, data: editableSvg(svg, drawio()) });
@@ -132,7 +145,7 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
         artifacts.push({ ...base, data: renderTsx(scene, componentName(model.title, req.name)) });
       if (format === "mmd") artifacts.push({ ...base, data: renderMermaid(model, scene) });
       if (format === "sequence.svg") {
-        const sq = renderSequence(scene, model, { idPrefix: idPrefix(theme) });
+        const sq = renderSequence(scene, model, { idPrefix: idPrefix(theme, "-seq") });
         artifacts.push({
           ...base,
           data: embedSvgSpec(sq.svg, req.source),
@@ -147,17 +160,50 @@ export async function renderModel(req: RenderRequest): Promise<RenderResult> {
       format: "html",
       data: renderHtml({
         title: model.title ?? req.name,
-        light: svgOf("light", scenes.light),
-        dark: svgOf("dark", scenes.dark),
+        // The downloads are these files, so they carry the spec like the ones written beside the page.
+        light: embedSvgSpec(svgOf("light", scenes.light), req.source),
+        dark: embedSvgSpec(svgOf("dark", scenes.dark), req.source),
         lightStill: stillOf("light", scenes.light),
         darkStill: stillOf("dark", scenes.dark),
         name: req.name,
-        // Both themes are in the page; it opens in the spec's own, dark unless the spec says light.
-        initial: model.theme,
+        // Both themes are in the page; it opens in the one theme asked for, else the spec's own
+        // (dark unless the spec says light).
+        initial: req.themes.length === 1 && req.themes[0] ? req.themes[0] : model.theme,
+        width: scenes.light.width,
+        height: scenes.light.height,
+        // A node link only works in a page, not in an image.
+        inline: scenes.light.nodes.some((nd) => nd.url),
       }),
       width: scenes.light.width,
       height: scenes.light.height,
     });
   }
-  return { artifacts, diagnostics, scenes };
+  const failed = new Set<Artifact>();
+  for (const { artifact, scene, still } of pngs) {
+    try {
+      const shrink = !(req.scaleExplicit ?? (req.scale !== undefined && req.scale !== 3));
+      const scale = pngScale(scene.width, scene.height, req.scale, shrink);
+      artifact.data = embedPngSpec(
+        await renderPng(still, { scale, shrink: true, fonts: req.fonts }),
+        req.source,
+      );
+      artifact.width = Math.round(scene.width * scale);
+      artifact.height = Math.round(scene.height * scale);
+    } catch (e) {
+      // resvg refuses a PNG under 1 px; the command reports that one as a usage error.
+      if (/target size is zero/i.test((e as Error)?.message ?? "")) throw e;
+      failed.add(artifact);
+      diagnostics.push({
+        severity: "error",
+        code: "DG302",
+        message: `the ${artifact.theme} PNG was not written: ${(e as Error)?.message ?? e}`,
+        subject: { format: "png", theme: artifact.theme },
+      });
+    }
+  }
+  return {
+    artifacts: failed.size ? artifacts.filter((a) => !failed.has(a)) : artifacts,
+    diagnostics,
+    scenes,
+  };
 }

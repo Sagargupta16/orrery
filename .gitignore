@@ -9,8 +9,10 @@ Thumbs.db
 .env.*
 !.env.example
 .cache/
-# orrery review output (JSON report and display-width PNG)
+# orrery review output (JSON report, display-width PNG, the scaled look PNG) and contact sheets
 *.review.json
 *.review.png
+*.review.look.png
+*.sheet.png
 # Local preview server config for the Claude desktop app
 .claude/launch.json

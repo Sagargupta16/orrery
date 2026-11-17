@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { contrast, mixHex } from "../color.ts";
@@ -83,7 +84,22 @@ export const LOCAL_PACK = "local";
 let index: Index | undefined;
 let infoById: Map<string, IconInfo> | undefined;
 const packs = new Map<string, PackFile>();
-const locals = new Map<string, { info: IconInfo; entry: PackEntry }>();
+type Locals = Map<string, { info: IconInfo; entry: PackEntry }>;
+/** The last model's local icons, read outside a render (review, `icons show`) as before. */
+const shared: Locals = new Map();
+let scope: AsyncLocalStorage<Locals> | undefined;
+try {
+  scope = new AsyncLocalStorage<Locals>();
+} catch {
+  // The playground has no async_hooks; it renders one spec at a time.
+}
+/** Inside withLocalIcons a render reads only its own model's icons, whatever else is in flight. */
+const locals = (): Locals => scope?.getStore() ?? shared;
+
+/** Runs one render with its own local icon registry (renderModel does it for every render). */
+export function withLocalIcons<T>(fn: () => Promise<T>): Promise<T> {
+  return scope ? scope.run(new Map(), fn) : fn();
+}
 const weights = new Map<string, IconInfo>();
 
 function loadIndex(): Index {
@@ -126,7 +142,7 @@ function clean(id: string): string {
 }
 
 const known = (id: string, withLocals = true) =>
-  infos().get(id) ?? (withLocals ? locals.get(id)?.info : undefined) ?? weights.get(id);
+  infos().get(id) ?? (withLocals ? locals().get(id)?.info : undefined) ?? weights.get(id);
 
 /**
  * A weight an npm set names by suffix ("ph:cube-bold"). Only the plain name is indexed, so the
@@ -137,7 +153,8 @@ function weightOf(id: string): string | undefined {
   const weight = loadIndex().packs[pack]?.lib?.variants?.find((w) => slug.endsWith(`-${w}`));
   const base = weight && infos().get(`${pack}:${slug.slice(0, -weight.length - 1)}`);
   if (!weight || !base) return undefined;
-  weights.set(id, { ...base, id, slug, name: `${base.name} (${weight})` });
+  // The weight is a style, not a different thing: the default label stays the base name.
+  weights.set(id, { ...base, id, slug, name: base.name });
   return id;
 }
 
@@ -161,20 +178,36 @@ export function resolveIcon(id: string, withLocals = true): string | undefined {
  */
 export const resolveCatalogIcon = (id: string): string | undefined => resolveIcon(id, false);
 
+/** The words of a slug, capitalized: "api-gateway" -> "Api Gateway". */
+const titleOf = (slug: string) =>
+  slug
+    .split("-")
+    .filter(Boolean)
+    .map((w) => (w[0] ?? "").toUpperCase() + w.slice(1))
+    .join(" ");
+
 export function iconInfo(id: string): IconInfo | undefined {
   const resolved = resolveIcon(id);
-  return resolved ? known(resolved) : undefined;
+  const info = resolved ? known(resolved) : undefined;
+  // A generic: word is a vocabulary term for a Tabler glyph ("generic:queue" is tabler:stack-2):
+  // asked by that word, the icon is named by it, so a node's default label says "Queue".
+  const asked = clean(id);
+  if (info && asked.startsWith("generic:") && asked !== resolved)
+    return { ...info, name: titleOf(asked.slice("generic:".length)) };
+  return info;
+}
+
+/** Forgets every local icon, so the next model draws only the ones it declares itself. */
+export function clearLocalIcons(): void {
+  locals().clear();
+  shared.clear();
 }
 
 /** Makes local:<name> drawable; a later call for the same name replaces the artwork. */
 export function registerLocalIcon(name: string, art: LocalArt, file = ""): void {
   const id = `${LOCAL_PACK}:${name}`;
-  const title = name
-    .split("-")
-    .filter(Boolean)
-    .map((w) => (w[0] ?? "").toUpperCase() + w.slice(1))
-    .join(" ");
-  locals.set(id, {
+  const title = titleOf(name);
+  const entry: { info: IconInfo; entry: PackEntry } = {
     info: {
       id,
       pack: LOCAL_PACK,
@@ -188,7 +221,10 @@ export function registerLocalIcon(name: string, art: LocalArt, file = ""): void 
         .toLowerCase(),
     },
     entry: { ...art },
-  });
+  };
+  locals().set(id, entry);
+  // Kept for reads after the render too; a later model replaces it.
+  if (locals() !== shared) shared.set(id, entry);
 }
 
 function levenshtein(a: string, b: string): number {
@@ -271,6 +307,45 @@ function aliasesByTarget(): Map<string, string[]> {
   return aliasTargets;
 }
 
+interface Haystack {
+  alias: string[];
+  /** Every token of the slug, name, keywords and aliases. */
+  tokens: Set<string>;
+  tokenList: string[];
+  /** Collapsed slug, name, name without its vendor word, and keywords. */
+  names: string[];
+  plainName: string;
+  fullName: string;
+}
+
+/** What search reads of an icon, built once: aliases and keywords do not change after load. */
+const haystacks = new WeakMap<IconInfo, Haystack>();
+function haystackOf(info: IconInfo): Haystack {
+  let h = haystacks.get(info);
+  if (!h) {
+    const alias = aliasesByTarget().get(info.id) ?? [];
+    const keywordList = info.keywords.split(/\s+/).filter(Boolean);
+    const set = new Set([
+      ...tokens(info.slug),
+      ...tokens(info.name),
+      ...tokens(info.keywords),
+      ...alias.flatMap(tokens),
+    ]);
+    h = {
+      alias,
+      tokens: set,
+      tokenList: [...set],
+      names: [info.slug, info.name, info.name.replace(VENDOR_PREFIX, ""), ...keywordList].map(
+        collapse,
+      ),
+      plainName: tokens(info.name.replace(VENDOR_PREFIX, "")).join("-"),
+      fullName: tokens(info.name).join("-"),
+    };
+    haystacks.set(info, h);
+  }
+  return h;
+}
+
 /** Ranked icon search over ids, aliases, official names, categories and keywords. */
 export function searchIcons(query: string, opts: SearchOptions = {}): IconInfo[] {
   const q = clean(query);
@@ -291,26 +366,16 @@ export function searchIcons(query: string, opts: SearchOptions = {}): IconInfo[]
   const productNamed = brandNames().some((b) => b.startsWith(collapsedQ));
   const officialHit = [...infos().values()].some((i) => {
     if (!OFFICIAL.has(i.pack)) return false;
-    if (
-      collapse(i.slug) === collapsedQ ||
-      collapse(i.name.replace(VENDOR_PREFIX, "")) === collapsedQ
-    )
-      return true;
-    return !productNamed && (aliasesByTarget().get(i.id) ?? []).includes(joined);
+    const h = haystackOf(i);
+    if (h.names[0] === collapsedQ || h.names[2] === collapsedQ) return true;
+    return !productNamed && h.alias.includes(joined);
   });
   const brandish = !pack && collapsedQ.length >= 3 && productNamed && !officialHit;
   const scored: [number, IconInfo][] = [];
-  for (const info of [...infos().values(), ...[...locals.values()].map((l) => l.info)]) {
+  for (const info of [...infos().values(), ...[...locals().values()].map((l) => l.info)]) {
     if (pack && info.pack !== pack) continue;
     if (opts.type && info.type !== opts.type) continue;
-    const alias = aliasesByTarget().get(info.id) ?? [];
-    const keywordList = info.keywords.split(/\s+/).filter(Boolean);
-    const hayTokens = new Set([
-      ...tokens(info.slug),
-      ...tokens(info.name),
-      ...tokens(info.keywords),
-      ...alias.flatMap(tokens),
-    ]);
+    const { alias, tokens: hayTokens, tokenList, names, plainName, fullName } = haystackOf(info);
     let score = 0;
     let matched = 0;
     for (const t of qTokens) {
@@ -319,15 +384,12 @@ export function searchIcons(query: string, opts: SearchOptions = {}): IconInfo[]
       if (hayTokens.has(t) || t === info.pack) {
         matched += 1;
         score += 10;
-      } else if (t.length >= 2 && [...hayTokens].some((h) => h.startsWith(t))) {
+      } else if (t.length >= 2 && tokenList.some((h) => h.startsWith(t))) {
         matched += 1;
         score += 6;
       }
     }
     // "drawio" vs "draw.io", "dynamo db" vs "DynamoDB", "postgres" vs "PostgreSQL".
-    const names = [info.slug, info.name, info.name.replace(VENDOR_PREFIX, ""), ...keywordList].map(
-      collapse,
-    );
     const isLogo = info.pack === "logos" || info.pack === "si";
     if (collapsedQ.length >= 3) {
       if (names.includes(collapsedQ)) {
@@ -343,8 +405,7 @@ export function searchIcons(query: string, opts: SearchOptions = {}): IconInfo[]
     const slugBase = info.pack === "logos" ? info.slug.replace(/-icon$/, "") : info.slug;
     if (slugBase === joined) score += 40;
     if (alias.includes(joined)) score += brandish ? 8 : 40;
-    const plainName = tokens(info.name.replace(VENDOR_PREFIX, "")).join("-");
-    if (plainName === joined || tokens(info.name).join("-") === joined) score += 30;
+    if (plainName === joined || fullName === joined) score += 30;
     if (slugBase.startsWith(joined)) score += 6;
     score -= Math.min(10, hayTokens.size * 0.3);
     score += (TYPE_WEIGHT[info.type] ?? 0) + (PACK_WEIGHT[info.pack] ?? 0);
@@ -455,7 +516,7 @@ function libraryEntry(info: IconInfo, lib: LibrarySource): PackEntry {
 
 function packEntry(info: IconInfo): PackEntry {
   if (info.pack === LOCAL_PACK) {
-    const local = locals.get(info.id);
+    const local = locals().get(info.id);
     if (!local) throw new Error(`icon ${info.id} is not loaded; call loadLocalIcons first`);
     return local.entry;
   }

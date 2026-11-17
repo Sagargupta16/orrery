@@ -123,3 +123,54 @@ export const depthOf = (model: Model, id: string | undefined): number => {
   }
   return d;
 };
+
+/**
+ * The ids of the edges on a cycle of the model: inside one strongly connected component (Tarjan,
+ * walked with an explicit stack so a long chain cannot overflow the call stack), self loops too.
+ */
+export function loopedEdges(model: Model): Set<string> {
+  const next = new Map<string, string[]>();
+  for (const e of model.edges) next.set(e.from, [...(next.get(e.from) ?? []), e.to]);
+  const index = new Map<string, number>();
+  const low = new Map<string, number>();
+  const comp = new Map<string, number>();
+  const stack: string[] = [];
+  let count = 0;
+  for (const root of next.keys()) {
+    if (index.has(root)) continue;
+    // Each frame is a node and how many of its successors it has walked.
+    const walk: [string, number][] = [[root, 0]];
+    index.set(root, count);
+    low.set(root, count++);
+    stack.push(root);
+    while (walk.length) {
+      const top = walk[walk.length - 1] as [string, number];
+      const [v, i] = top;
+      const w = next.get(v)?.[i];
+      if (w !== undefined) {
+        top[1]++;
+        if (!index.has(w)) {
+          index.set(w, count);
+          low.set(w, count++);
+          stack.push(w);
+          walk.push([w, 0]);
+        } else if (!comp.has(w)) low.set(v, Math.min(low.get(v) ?? 0, index.get(w) ?? 0));
+        continue;
+      }
+      walk.pop();
+      const parent = walk[walk.length - 1]?.[0];
+      if (parent !== undefined) low.set(parent, Math.min(low.get(parent) ?? 0, low.get(v) ?? 0));
+      if (low.get(v) !== index.get(v)) continue;
+      for (let x = stack.pop(); x !== undefined; x = stack.pop()) {
+        comp.set(x, index.get(v) ?? 0);
+        if (x === v) break;
+      }
+    }
+  }
+  // Two different ends in one component lie on a cycle together.
+  return new Set(
+    model.edges
+      .filter((e) => e.from === e.to || comp.get(e.from) === comp.get(e.to))
+      .map((e) => e.id),
+  );
+}

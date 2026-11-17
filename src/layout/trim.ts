@@ -139,6 +139,15 @@ export function stretchColumns(model: Model, placed: Map<string, ElkNode>, edges
       const b = boxOf(el);
       // Only even out near misses: stretching a much narrower frame leaves its content off-center.
       if (b.w < (x1 - x0) * 0.75) continue;
+      // Nor one whose centered content the stretch would push more than 12px off its center: past
+      // that, content off its center reads worse than a frame narrower than its neighbors (the
+      // review's grid.off-center against grid.uneven-siblings).
+      const kids = (el.children ?? []).map(boxOf);
+      if (kids.length) {
+        const k = union(kids);
+        const off = (lo: number, hi: number) => Math.abs(k.x - lo - (hi - k.x - k.w)) / 2;
+        if (off(x0, x1) > 12 && off(b.x, b.x + b.w) <= 6) continue;
+      }
       const strips = [
         { x: x0, y: b.y, w: b.x - x0, h: b.h, left: true },
         { x: b.x + b.w, y: b.y, w: x1 - b.x - b.w, h: b.h, left: false },

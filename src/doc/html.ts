@@ -1,6 +1,6 @@
 // The standalone HTML page: GitHub-like CSS, figures as inline SVG, local images as data URIs.
 import { esc } from "../render/svg.ts";
-import type { ThemeName } from "../types.ts";
+import type { Diagnostic, ThemeName } from "../types.ts";
 import type { DocFigure } from "./figures.ts";
 import { dataUri } from "./images.ts";
 import { type Inline, plain } from "./inline.ts";
@@ -33,7 +33,7 @@ th{background:var(--soft);font-weight:600}
 hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
 img{max-width:100%;height:auto}
 figure{margin:1.75rem 0}
-figure svg{display:block;width:100%;height:auto}
+figure svg,figure img{display:block;width:100%;height:auto}
 figcaption{margin-top:.6rem;font-size:.875rem;color:var(--muted);text-align:center}
 @media print{
 body{background:#fff;color:#000;font-size:11pt}
@@ -44,7 +44,26 @@ figure,pre,table,blockquote{break-inside:avoid}
 pre,code,th{background:none}
 }`;
 
-const safeHref = (href: string) => (/^\s*(?:javascript|vbscript|data):/i.test(href) ? "#" : href);
+/** What esc() drops: characters XML does not allow, C0 controls among them. */
+const NOT_XML = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
+const SAFE_SCHEMES = ["http", "https", "mailto"];
+
+/**
+ * A link target the page may follow: http(s), mailto, a fragment or a relative path; any other
+ * scheme becomes "#". The target is read the way a browser reads the written attribute: without
+ * what esc() drops, without tabs and newlines anywhere and without controls and spaces at either
+ * end, so `\u0001javascript:` is a javascript: link here too.
+ */
+function safeHref(href: string): string {
+  const url = href
+    .replace(NOT_XML, "")
+    .replace(/[\t\n\r]/g, "")
+    .replace(/^[\0- ]+|[\0- ]+$/g, "");
+  const scheme = /^([a-z][a-z\d+.-]*):/i.exec(url)?.[1]?.toLowerCase();
+  return scheme && !SAFE_SCHEMES.includes(scheme) ? "#" : url;
+}
+
+const svgUri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
 function slug(text: string, seen: Map<string, number>): string {
   const base =
@@ -103,7 +122,8 @@ function listHtml(items: ListItem[], ctx: HtmlCtx): string {
       open.push(tag);
       out += it.ordered && it.num !== 1 ? `<ol start="${it.num}">` : `<${tag}>`;
     }
-    out += `<li>${inlineHtml(it.c, ctx)}`;
+    const more = (it.more ?? []).map((m) => `\n${blockHtml(m, ctx)}`).join("");
+    out += `<li>${inlineHtml(it.c, ctx)}${more}`;
   }
   while (open.length) out += `</li></${open.pop()}>`;
   return out;
@@ -133,7 +153,11 @@ function blockHtml(b: Block, ctx: HtmlCtx): string {
     case "figure": {
       const f = ctx.figures.get(b.n);
       if (!f?.svg) return "";
-      return `<figure class="orrery" id="figure-${b.n}">\n${f.svg.trim()}\n<figcaption>Figure ${b.n}: ${esc(f.caption)}</figcaption>\n</figure>`;
+      // theme=both: the reader's color scheme picks the light or the dark picture.
+      const art = f.both
+        ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${svgUri(f.both.dark)}"><img src="${svgUri(f.both.light)}" alt="${esc(f.alt)}" width="${Math.round(f.width)}" height="${Math.round(f.height)}"></picture>`
+        : f.svg.trim();
+      return `<figure class="orrery" id="figure-${b.n}">\n${art}\n<figcaption>Figure ${b.n}: ${esc(f.caption)}</figcaption>\n</figure>`;
     }
   }
 }
@@ -143,8 +167,13 @@ export function renderDocHtml(
   figures: Map<number, DocFigure>,
   theme: ThemeName,
   dir: string,
+  diagnostics: Diagnostic[] = [],
 ): string {
-  const ctx: HtmlCtx = { figures, ids: new Map(), src: (src) => dataUri(src, dir) };
+  const ctx: HtmlCtx = {
+    figures,
+    ids: new Map(),
+    src: (src) => dataUri(src, dir, diagnostics),
+  };
   return `<!doctype html>
 <html lang="en" data-theme="${theme}">
 <head>

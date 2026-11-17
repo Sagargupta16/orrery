@@ -166,6 +166,22 @@ for (let i = 0; i < files.length; i += pool) {
 // The README art (hero and how-it-works) in both themes.
 for (const f of readdirSync(join(repo, "docs")).filter((f) => f.endsWith(".svg")))
   copyFileSync(join(repo, "docs", f), join(artOut, f));
+// Social cards do not take an SVG for og:image, so the hero also goes out as a PNG.
+await run(process.execPath, [
+  cli,
+  "render",
+  join(repo, "docs/hero.yaml"),
+  "-o",
+  join(artOut, "hero"),
+  "-f",
+  "png",
+  "--theme",
+  "dark",
+]);
+const heroSvg = readFileSync(join(repo, "docs/hero-dark.svg"), "utf8");
+const [, heroW, heroH] = heroSvg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/) ?? [];
+const howSvg = readFileSync(join(repo, "docs/how-it-works-dark.svg"), "utf8");
+const [, howW, howH] = howSvg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/) ?? [];
 
 // Catalog numbers for the icon pack table and the hero stats.
 const index = JSON.parse(readFileSync(join(repo, "skills/orrery/assets/icons/index.json"), "utf8"));
@@ -185,6 +201,12 @@ const meta = {
   aliases: Object.keys(index.aliases).length,
   packs: packs.length,
   examples: examples.length,
+  hero: {
+    width: Math.round(Number(heroW)),
+    height: Math.round(Number(heroH)),
+    lines: readFileSync(join(repo, "docs/hero.yaml"), "utf8").trimEnd().split("\n").length,
+  },
+  how: { width: Math.round(Number(howW)), height: Math.round(Number(howH)) },
   categories: CATEGORIES.map(([id, label]) => ({
     id,
     label,

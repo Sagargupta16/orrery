@@ -29,6 +29,14 @@ export const SIZES = {
  */
 export const ENDS = { pitch: 14, inset: 8, gap: 0 };
 
+/**
+ * The most edges layout runs ELK more than once for: past it, one run takes seconds (300 dense
+ * edges take about 8 s), so the layout keeps its first run instead of trying again with crossing
+ * ends unpinned, layout.aspect does not lay out its other candidates (DG206 and DG219 say so), and
+ * ELK breaks cycles greedily (context.ts).
+ */
+export const ELK_BUDGET = 150;
+
 /** The spec's animate mode, else the skin's: relay for stage, packets for classic. */
 export const animateOf = (model: Pick<Model, "animate" | "skin">): AnimateMode =>
   model.animate ?? (model.skin === "stage" ? "relay" : "packets");

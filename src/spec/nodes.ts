@@ -22,11 +22,11 @@ import { closest, suggestIds } from "./suggest.ts";
 import { localFix, localIcon, type Settings } from "./top.ts";
 import { hexColor, isObj, type Obj, oneOf, pick, str, unknownKeys } from "./values.ts";
 
-const hasControlChar = (s: string) =>
-  [...s].some((ch) => {
-    const c = ch.charCodeAt(0);
-    return c <= 0x1f || c === 0x7f;
-  });
+// Control characters (C0 and DEL), and anything XML 1.0 cannot carry (U+FFFE, U+FFFF, lone
+// surrogates). The renderers strip the latter after this check, which would join
+// "java\uFFFEscript:" into a live scheme, so a url holding either is refused before its
+// scheme is read.
+const UNSAFE_URL_CHAR = /[^\u0020-\u007e\u0080-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u;
 
 export function parseNodes(ctx: Ctx, settings: Settings) {
   for (const [id, value] of entries(ctx, ctx.raw.nodes, "nodes")) {
@@ -57,14 +57,15 @@ function parseNode(ctx: Ctx, settings: Settings, id: string, value: unknown) {
   });
   const iconSize = nodeSize(ctx, id, n, look);
   // Events, gateways and the UML initial and final states are often unnamed; everything else
-  // falls back to its id.
+  // falls back to its icon's name, then its id. The icon is named as written: generic:queue is
+  // "Queue", not the Tabler glyph it draws, and ph:handshake-duotone is "Handshake".
   const label =
     str(pick(n, "label", NODE_SYNONYMS)) ??
     ((bpmn && (isBpmnEvent(bpmn) || isBpmnGateway(bpmn))) ||
     (!bpmn && (shape === "initial" || shape === "final"))
       ? ""
       : undefined) ??
-    (icon ? iconInfo(icon)?.name : undefined) ??
+    (icon ? (iconInfo(iconRaw ?? icon) ?? iconInfo(icon))?.name : undefined) ??
     id;
   const { rank, align } = nodeRank(ctx, id, n);
   const on = str(pick(n, "on", NODE_SYNONYMS));
@@ -186,8 +187,12 @@ function nodeScore(ctx: Ctx, id: string, n: Obj) {
   const scoreRaw = pick(n, "score", NODE_SYNONYMS);
   let score: number | undefined;
   if (scoreRaw !== undefined) {
-    const v = Number(scoreRaw);
-    if (typeof scoreRaw === "boolean" || !Number.isFinite(v) || v < -2 || v > 2)
+    // Number() reads null, "", true and [2] as numbers too; only a number or numeric text counts.
+    const v =
+      typeof scoreRaw === "number" || (typeof scoreRaw === "string" && scoreRaw.trim())
+        ? Number(scoreRaw)
+        : Number.NaN;
+    if (!Number.isFinite(v) || v < -2 || v > 2)
       ctx.err("DG112", `node "${id}" score must be a number from -2 (very negative) to 2`, {
         subject: { node: id },
         fixes: ["use score: 1 for a good step, -2 for a painful one"],
@@ -200,13 +205,20 @@ function nodeScore(ctx: Ctx, id: string, n: Obj) {
 function nodeUrl(ctx: Ctx, id: string, n: Obj) {
   const url = str(pick(n, "url", NODE_SYNONYMS));
   // Links end up in SVG and HTML; only schemes that cannot run code are allowed. Browsers drop
-  // tabs and newlines inside a URL ("java<TAB>script:" runs), so control characters are
-  // rejected outright and the scheme is read with all whitespace removed.
-  if (url && hasControlChar(url)) {
-    ctx.err("DG107", `node "${id}" url must not contain control characters (tab, newline ...)`, {
-      subject: { node: id, url },
-      fixes: ["use an https:// link on one line, without tabs or line breaks"],
-    });
+  // tabs and newlines inside a URL ("java<TAB>script:" runs), so control characters and the
+  // characters the renderers strip are rejected outright, and the scheme is read with all
+  // whitespace removed.
+  if (url && UNSAFE_URL_CHAR.test(url)) {
+    ctx.err(
+      "DG107",
+      `node "${id}" url must not contain control characters (tab, newline ...) or characters XML cannot carry (U+FFFE, U+FFFF, lone surrogates)`,
+      {
+        subject: { node: id, url },
+        fixes: [
+          "use an https:// link on one line, without tabs, line breaks or invisible characters",
+        ],
+      },
+    );
   } else if (url) {
     const bare = url.replace(/\s/g, "");
     if (/^[a-z][a-z0-9+.-]*:/i.test(bare) && !/^(https?|mailto):/i.test(bare)) {

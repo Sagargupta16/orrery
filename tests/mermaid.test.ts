@@ -24,7 +24,7 @@ describe("Mermaid export: architecture-beta", () => {
     expect(out).toContain('  group cloud(logos:aws)["AWS Cloud"]\n');
     expect(out).toContain('  group region["us-east-1"] in cloud\n');
     expect(out).toContain('  group private["Private subnet"] in vpc\n');
-    expect(out).toContain('  service api(logos:aws-ecs)["Orders API"] in private\n');
+    expect(out).toContain('  service api(logos:aws-ecs)["Orders API (x3)"] in private\n');
     expect(out).toContain('  service worker(logos:aws-lambda)["Worker"] in private\n');
     expect(out).toContain('  service queue(logos:aws-sqs)["Jobs"] in region\n');
     // No logo for the product: Mermaid's own icons, from the icon or the shape.

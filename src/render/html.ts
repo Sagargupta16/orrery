@@ -12,6 +12,14 @@ export interface HtmlInput {
   /** Base name for downloads. */
   name: string;
   initial: "light" | "dark";
+  /** The diagram's size in px, the same in both themes. */
+  width: number;
+  height: number;
+  /**
+   * Put the SVG itself in the page instead of showing it as an image, so the links on its nodes
+   * work (an image never follows a link) and its description stays with it.
+   */
+  inline?: boolean;
 }
 
 export function renderHtml(input: HtmlInput): string {
@@ -24,6 +32,8 @@ export function renderHtml(input: HtmlInput): string {
       : "svgs";
   // A JS literal for the script, where HTML entities are not decoded; "<" escaped so it cannot close it.
   const name = JSON.stringify(input.name).replace(/</g, "\\u003c");
+  // The SVG's own description, already escaped for an attribute, is the image's text alternative.
+  const desc = /<desc id="[^"]*">([^<]*)<\/desc>/.exec(input.light)?.[1];
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -46,8 +56,10 @@ button:active,a.btn:active{transform:scale(.97)}
 main{position:relative;flex:1;overflow:hidden;touch-action:none;cursor:grab}
 main.dragging{cursor:grabbing}
 #canvas{position:absolute;left:0;top:0}
-#canvas img{display:block;max-width:none;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);transition:opacity .2s ease}
-body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
+#canvas img,#canvas svg{display:block;max-width:none;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);transition:opacity .2s ease}
+#canvas svg{user-select:none;-webkit-user-select:none}
+#canvas a{cursor:pointer}
+body[data-theme=dark] #canvas img,body[data-theme=dark] #canvas svg{box-shadow:0 0 0 1px var(--line)}
 .hint{position:absolute;right:12px;bottom:10px;font-size:12px;color:var(--muted);pointer-events:none}
 </style>
 </head>
@@ -64,7 +76,7 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
 </div>
 </header>
 <main id="stage" aria-label="Diagram, drag to pan, scroll or pinch to zoom">
-<div id="canvas"><img id="diagram" alt="${esc(input.title)}"></div>
+<div id="canvas">${input.inline ? "" : `<img id="diagram" alt="${desc || esc(input.title)}">`}</div>
 <div class="hint">drag to pan, scroll or pinch to zoom</div>
 </main>
 <script>
@@ -73,25 +85,53 @@ body[data-theme=dark] #canvas img{box-shadow:0 0 0 1px var(--line)}
   const stills = ${stills};
   const name = ${name};
   const toUrl = (b64) => "data:image/svg+xml;base64," + b64;
+  const inline = ${input.inline ? "true" : "false"};
   const body = document.body, stage = document.getElementById("stage"), canvas = document.getElementById("canvas"), img = document.getElementById("diagram");
   let theme = body.dataset.theme, scale = 1, x = 0, y = 0;
-  const size = () => { const m = atob(svgs[theme].slice(0, 800)).match(/width="([\\d.]+)" height="([\\d.]+)"/); return m ? [Number(m[1]), Number(m[2])] : [1000, 600]; };
-  const apply = () => { const [w, h] = size(); canvas.style.left = x + "px"; canvas.style.top = y + "px"; img.style.width = w * scale + "px"; img.style.height = h * scale + "px"; };
+  const size = () => [${input.width}, ${input.height}];
+  // The inline SVG is cleaned before it joins the page: no scripts, foreign content or handlers, and
+  // links only to #, http(s) and mailto (embedded images stay).
+  const BLOCKED = new Set(["script", "foreignobject", "iframe", "object", "embed", "audio", "video", "link", "meta", "base", "form", "input", "button", "textarea"]);
+  const SAFE_LINK = /^(#|https?:|mailto:)/i;
+  const SAFE_HREF = /^(#|https?:|mailto:|data:image\\/(png|jpe?g|gif|webp|svg\\+xml)[;,])/i;
+  const bare = (v) => v.replace(/[\\s\\p{Cc}]/gu, "");
+  const decode = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
+  const clean = (markup) => {
+    const doc = new DOMParser().parseFromString(markup, "image/svg+xml"), root = doc.documentElement;
+    const drop = [], walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+    for (let node = root; node; node = walker.nextNode()) {
+      if (BLOCKED.has(node.localName.toLowerCase())) { drop.push(node); continue; }
+      for (const attr of [...node.attributes]) {
+        const name = attr.name.toLowerCase(), value = bare(attr.value);
+        if (name.startsWith("on") || ((name === "href" || name.endsWith(":href") || name === "src") && !SAFE_HREF.test(value))) node.removeAttribute(attr.name);
+      }
+    }
+    for (const el of drop) el.remove();
+    return document.importNode(root, true);
+  };
+  const apply = () => { const [w, h] = size(); const t = inline ? canvas.firstElementChild : img; canvas.style.left = x + "px"; canvas.style.top = y + "px"; if (t) { t.style.width = w * scale + "px"; t.style.height = h * scale + "px"; } };
   const fit = () => { const [w, h] = size(); const r = stage.getBoundingClientRect(); scale = Math.min((r.width - 32) / w, (r.height - 32) / h, 2); x = (r.width - w * scale) / 2; y = Math.max(16, (r.height - h * scale) / 2); apply(); };
-  const show = () => { body.dataset.theme = theme; img.src = toUrl(svgs[theme]); const [w, h] = size(); img.width = w; img.height = h; apply(); const a = document.querySelector('[data-act=svg]'); a.href = toUrl(svgs[theme]); a.download = name + "-" + theme + ".svg"; };
+  const show = () => { body.dataset.theme = theme; const [w, h] = size(); if (inline) canvas.replaceChildren(clean(decode(svgs[theme]))); else { img.src = toUrl(svgs[theme]); img.width = w; img.height = h; } apply(); const a = document.querySelector('[data-act=svg]'); a.href = toUrl(svgs[theme]); a.download = name + "-" + theme + ".svg"; };
   const zoomAt = (f, cx, cy) => { const ns = Math.max(0.1, Math.min(8, scale * f)); x = cx - (cx - x) * (ns / scale); y = cy - (cy - y) * (ns / scale); scale = ns; apply(); };
-  const pointers = new Map(); let pinch = 0;
-  stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.classList.add("dragging"); });
+  const pointers = new Map(); let pinch = 0, tap = null;
+  stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); stage.classList.add("dragging"); tap = pointers.size === 1 ? [e.clientX, e.clientY] : null; });
+  // A touch or click that did not move opens the link under it; the page captures the pointer for panning, so the browser never clicks the link itself.
+  const follow = (e) => {
+    const a = document.elementFromPoint(e.clientX, e.clientY)?.closest("a");
+    const href = a && (a.getAttribute("href") || a.getAttribute("xlink:href"));
+    if (href && SAFE_LINK.test(bare(href)) && !href.startsWith("#")) window.open(href, "_blank", "noopener");
+  };
   stage.addEventListener("pointermove", (e) => {
     if (!pointers.has(e.pointerId)) return;
     const prev = pointers.get(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    if (tap && (pointers.size > 1 || Math.hypot(e.clientX - tap[0], e.clientY - tap[1]) > 6)) tap = null;
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); const r = stage.getBoundingClientRect();
       if (pinch) zoomAt(d / pinch, (a[0] + b[0]) / 2 - r.left, (a[1] + b[1]) / 2 - r.top); pinch = d;
     } else { x += e.clientX - prev[0]; y += e.clientY - prev[1]; apply(); }
   });
   const up = (e) => { pointers.delete(e.pointerId); if (pointers.size < 2) pinch = 0; if (!pointers.size) stage.classList.remove("dragging"); };
-  stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+  stage.addEventListener("pointerup", (e) => { if (inline && tap && pointers.size === 1) follow(e); tap = null; up(e); }); stage.addEventListener("pointercancel", (e) => { tap = null; up(e); });
   stage.addEventListener("wheel", (e) => { e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
   document.querySelector("[data-act=theme]").onclick = () => { theme = theme === "light" ? "dark" : "light"; show(); };
   document.querySelector("[data-act=in]").onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(1.25, r.width / 2, r.height / 2); };

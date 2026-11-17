@@ -9,10 +9,10 @@
   },
   "azure": {
     "title": "Azure Architecture Icons",
-    "version": "V24",
+    "version": "V25",
     "page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
-    "url": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V24.zip",
-    "sha256": "921594ccd1bf3d9c0a1bd7b6d924e050551a59342f2b353bb74bdcf761c35141",
+    "url": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip",
+    "sha256": "f293d99252b3638557dd08ccbff9f2529083473d39b373fb2af29a7200351339",
     "terms": "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft. Microsoft reserves all other rights."
   },
   "gcp": {

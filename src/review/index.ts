@@ -138,7 +138,11 @@ export function reviewScene(
       ...(opts.themes ?? []).map((x) => x.theme).filter((t) => t !== scene.theme),
     ],
     canvas: { width: scene.width, height: scene.height },
-    display: { width: Math.round(scene.width * s), height: Math.round(scene.height * s) },
+    // A PNG cannot be zero pixels wide: resvg refuses a target of that size (review --width 2).
+    display: {
+      width: Math.max(1, Math.round(scene.width * s)),
+      height: Math.max(1, Math.round(scene.height * s)),
+    },
     vendors,
     rubrics,
     score,
@@ -206,12 +210,18 @@ function reviewElements(scene: Scene, foot: Map<string, Box>, s: number): Review
   ];
 }
 
+/** The rubrics `before` applied that `after` no longer does (a kind switch or a dropped C4 title). */
+export function droppedRubrics(before: ReviewReport, after: ReviewReport): string[] {
+  return before.rubrics.filter((r) => !after.rubrics.includes(r));
+}
+
 /**
  * True when `after` may replace `before`: both were reviewed at the same width and theme, no hard
- * count went up, blockers plus majors did not go up, no node was dropped and the score went up.
- * Each guard closes a way to raise the score without improving the diagram: another width or
- * theme changes what is measured, and deleting nodes (or the findings about them) is not a fix.
- * Removing an edge is allowed.
+ * count went up, blockers plus majors did not go up, no node was dropped, every rubric that
+ * applied still does and the score went up. Each guard closes a way to raise the score without
+ * improving the diagram: another width or theme changes what is measured, deleting nodes (or the
+ * findings about them) is not a fix, and a rubric that stops applying (kind: switched, "C4"
+ * dropped from the title) removes its findings without fixing them. Removing an edge is allowed.
  */
 export function improves(before: ReviewReport, after: ReviewReport): boolean {
   const keys = Object.keys(before.hard) as (keyof HardCounts)[];
@@ -223,6 +233,7 @@ export function improves(before: ReviewReport, after: ReviewReport): boolean {
     keys.every((k) => after.hard[k] <= before.hard[k]) &&
     serious(after) <= serious(before) &&
     nodes(after) >= nodes(before) &&
+    droppedRubrics(before, after).length === 0 &&
     after.score > before.score
   );
 }
@@ -276,7 +287,8 @@ export async function reviewModel(req: ReviewRequest): Promise<ReviewRun> {
   });
   const svg = rendered.artifacts.find((a) => a.format === "svg" && a.theme === theme)?.data;
   // The exact display scale (the report rounds it), so the PNG is display.width wide.
-  const scale = report.display.width / scene.width;
+  // A scene far wider than tall at a tiny width would be under 1px tall: keep one pixel.
+  const scale = Math.max(report.display.width / scene.width, 1 / scene.height);
   const png =
     req.png !== false && typeof svg === "string"
       ? await renderPng(svg, { scale, fonts: req.fonts })

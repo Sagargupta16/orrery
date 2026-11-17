@@ -1,7 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "The shared preset's one monthly pull request covers the icon libraries too: .github/workflows/icons.yml re-pins their checksums and rebuilds the generated files on every Renovate branch, committing as github-actions[bot].",
-  "extends": ["github>Sagargupta16/shared-workflows"],
+  "description": "The shared preset's one monthly pull request covers the icon libraries too: .github/workflows/icons.yml rebuilds their pins and the generated files from the lockfile versions on every Renovate branch, committing as github-actions[bot]. Workflow actions are pinned by commit digest, and a release waits 3 days before Renovate proposes it.",
+  "extends": ["github>Sagargupta16/shared-workflows", "helpers:pinGitHubActionDigests"],
+  "minimumReleaseAge": "3 days",
+  "internalChecksFilter": "strict",
   "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
   "packageRules": [
     {

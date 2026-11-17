@@ -28,6 +28,8 @@ interface Stack {
   shown: string;
   src: Source;
   resources: Record<string, Obj>;
+  /** Resource ids whose value is not a mapping (a null or a scalar), left out with a warning. */
+  skipped: string[];
   region?: string;
   account?: string;
   sam: boolean;
@@ -115,7 +117,11 @@ function readStacks(path: string): Stack[] {
     const name = basename(file).replace(/\.template\.json$|\.(ya?ml|json|template)$/i, "");
     const env = envs[basename(file)] ?? envs[name];
     const transform = JSON.stringify(data.Transform ?? "");
-    const resources = data.Resources as Record<string, Obj>;
+    const resources: Record<string, Obj> = {};
+    const skipped: string[] = [];
+    for (const [id, r] of Object.entries(data.Resources))
+      if (isObj(r)) resources[id] = r;
+      else skipped.push(id);
     withGlobals(resources, data.Globals);
     out.push({
       name,
@@ -123,6 +129,7 @@ function readStacks(path: string): Stack[] {
       shown: displayPath(file),
       src,
       resources,
+      skipped,
       ...(env?.region ? { region: env.region } : {}),
       ...(env?.account ? { account: env.account } : {}),
       sam: transform.includes("AWS::Serverless"),
@@ -209,6 +216,9 @@ class CloudFormation {
   }
 
   run(): Imported {
+    for (const stack of this.stacks)
+      for (const id of stack.skipped)
+        this.draft.warn(`${this.key(stack, id)}: is not a mapping with a Type, so it is skipped`);
     for (const key of this.res.keys()) this.classify(key);
     this.foldParts();
     this.boundaries();
@@ -313,6 +323,10 @@ class CloudFormation {
       return this.draft.leave(key, "drawn as the flow it grants");
     const glue = GLUE.find(([re]) => re.test(type));
     if (glue) return this.draft.leave(key, glue[1]);
+    if (!type) {
+      this.draft.leave(key, "no Type");
+      return void this.draft.warn(`${key}: has no Type, so it is not drawn`);
+    }
     this.draft.leave(key, "no icon for this type in the import table");
     this.draft.warn(`${key}: ${type} is not in the import table, so it is not drawn`);
   }

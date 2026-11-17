@@ -84,7 +84,14 @@ export function readSources(file: string, opts: { cfn?: boolean } = {}): Source[
   for (const doc of list) {
     const first = doc.errors[0];
     if (first) throw new Error(`${file}: ${first.message.split("\n")[0]}`);
-    out.push({ doc, lines, data: doc.toJS({ maxAliasCount: -1 }) });
+    // The library's alias limit stops a "billion laughs" file from expanding into memory.
+    let data: unknown;
+    try {
+      data = doc.toJS();
+    } catch (e) {
+      throw new Error(`${file}: ${(e as Error).message.split("\n")[0]}`);
+    }
+    out.push({ doc, lines, data });
   }
   return out;
 }

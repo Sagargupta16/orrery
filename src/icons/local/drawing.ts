@@ -125,9 +125,16 @@ function rectSubs(n: XNode, v: (k: string) => number): Sub[] {
 }
 
 /** A shape element's outline in its own coordinates; undefined for non-shapes. */
-function shapeSubs(n: XNode, bad: Bad): Sub[] | undefined {
+function shapeSubs(n: XNode, bad: Bad, [rootW, rootH]: [number, number]): Sub[] | undefined {
   const tag = local(n.name);
-  const v = (k: string) => numbers(n.attrs.get(k))[0] ?? 0;
+  // A percentage is of the viewBox side its attribute runs along; r takes the diagonal's share.
+  const whole = (k: string) =>
+    /^(?:x|cx|x1|x2|width|rx)$/.test(k)
+      ? rootW
+      : /^(?:y|cy|y1|y2|height|ry)$/.test(k)
+        ? rootH
+        : Math.hypot(rootW, rootH) / Math.SQRT2;
+  const v = (k: string) => length(n.attrs.get(k), whole(k)) ?? 0;
   if (tag === "path") return pathSubs(n.attrs.get("d") ?? "", bad);
   if (tag === "circle") {
     const r = v("r");
@@ -308,7 +315,7 @@ export function drawingOf(root: XNode, bad: Bad): Drawing {
       texts += 1;
       return;
     }
-    const subs = shapeSubs(n, bad);
+    const subs = shapeSubs(n, bad, [rootW, rootH]);
     if (subs) {
       const filled = tag !== "line" && normalizeColor(s.fill ?? "#000000") !== undefined;
       const stroked =

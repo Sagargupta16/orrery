@@ -27,10 +27,14 @@ async function sequence(
 // The sequence goes through renderSvg: messages are its edge groups, participants its node groups.
 /** Message groups in drawing order (top to bottom). */
 const messageIds = (svg: string, prefix: string) =>
-  [...svg.matchAll(new RegExp(`<g id="${prefix}-e-([^"]+)">`, "g"))].map((m) => m[1]);
+  [...svg.matchAll(new RegExp(`<g id="${prefix}-[0-9a-f]{6}-seq-e-([^"]+)">`, "g"))].map(
+    (m) => m[1],
+  );
 /** Participant heads, left to right. */
 const lifelineIds = (svg: string, prefix: string) =>
-  [...svg.matchAll(new RegExp(`<g id="${prefix}-n-([^"]+)">`, "g"))].map((m) => m[1]);
+  [...svg.matchAll(new RegExp(`<g id="${prefix}-[0-9a-f]{6}-seq-n-([^"]+)">`, "g"))].map(
+    (m) => m[1],
+  );
 const references = (doc: string) =>
   [...doc.matchAll(/url\(#([^)]+)\)|href="#([^"]+)"/g)].map((m) => m[1] ?? m[2] ?? "");
 
@@ -142,7 +146,7 @@ edges:
       "back",
     );
     const group = (id: string) =>
-      must(svg.match(new RegExp(`<g id="back-light-e-${id}">.*?</g>`, "s")), id)[0];
+      must(svg.match(new RegExp(`<g id="back-light-[0-9a-f]{6}-seq-e-${id}">.*?</g>`, "s")), id)[0];
     const [ask, answer] = messageIds(svg, "back-light");
     expect(group(must(ask, "ask"))).not.toContain("stroke-dasharray");
     expect(group(must(answer, "answer"))).toContain("stroke-dasharray");
@@ -186,7 +190,7 @@ edges:
     expect(svg).toContain("retry &lt; 3");
     // The loop leaves the lifeline to the right and comes back to it lower down, corners rounded.
     const loop = must(
-      must(svg.match(/<g id="self-light-e-[^"]+"><path d="([^"]+)"/), "loop")[1],
+      must(svg.match(/<g id="self-light-[0-9a-f]{6}-seq-e-[^"]+"><path d="([^"]+)"/), "loop")[1],
       "d",
     );
     const coords = [...loop.matchAll(/-?[\d.]+/g)].map((x) => Number(x[0]));
@@ -206,8 +210,8 @@ edges:
     expect(stage).toMatch(/font-family="&#39;Geist Mono&#39;/);
     expect(classic).toMatch(/font-family="Inter/);
     // The stage canvas: its gradient, grid and wash, then tiles under the glyphs.
-    expect(stage).toContain('id="s-dark-bg"');
-    expect(stage).toContain('fill="url(#s-dark-grid)"');
+    expect(stage).toMatch(/id="s-dark-[0-9a-f]{6}-seq-bg"/);
+    expect(stage).toMatch(/fill="url\(#s-dark-[0-9a-f]{6}-seq-grid\)"/);
     // Classic dark: the dark canvas and the theme's step badges.
     expect(classic).toContain('fill="#0d1117"');
     expect(classic).toMatch(/<circle [^>]*fill="#e6edf3"\/>/);

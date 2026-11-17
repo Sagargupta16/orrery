@@ -6,7 +6,7 @@
 //
 // Output: skills/orrery/assets/icons/<pack>.json (bodies) and index.json (names, search, aliases).
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { strFromU8, unzipSync } from "fflate";
@@ -30,6 +30,7 @@ async function download(url, expected) {
   mkdirSync(cacheDir, { recursive: true });
   const cached = join(cacheDir, `${sha256(Buffer.from(url)).slice(0, 16)}.bin`);
   let buf;
+  let fresh = false;
   // --latest always downloads: Google's zips keep one URL across releases, so a cached copy
   // would re-pin an old package.
   if (existsSync(cached) && !latest) {
@@ -40,13 +41,22 @@ async function download(url, expected) {
     });
     if (!res.ok) throw new Error(`GET ${url} -> HTTP ${res.status}`);
     buf = Buffer.from(await res.arrayBuffer());
-    writeFileSync(cached, buf);
+    fresh = true;
   }
   const actual = sha256(buf);
   if (expected && actual !== expected && !latest) {
+    // A bad body (an error page served with 200) must not be cached, or every later run would
+    // fail on the cached copy and never fetch again.
+    if (!fresh) rmSync(cached, { force: true });
     throw new Error(
       `checksum mismatch for ${url}\n  pinned ${expected}\n  actual ${actual}\nRe-run with --latest to re-pin.`,
     );
+  }
+  // Written only now, after the checksum matched (or --latest is re-pinning to this body).
+  if (fresh) {
+    const tmp = `${cached}.${process.pid}.tmp`;
+    writeFileSync(tmp, buf);
+    renameSync(tmp, cached);
   }
   return { buf, sha: actual };
 }
@@ -59,33 +69,46 @@ async function pageText(url) {
   return res.text();
 }
 
-// Finds the current official package links on the vendor pages.
+// Finds the current official package links on the vendor pages. A page whose link pattern no
+// longer matches keeps its old pin, so each miss is named; a run that could check none of them fails.
 async function refreshPins() {
+  let checked = 0;
+  const miss = (pack, url) =>
+    console.warn(`warning: no ${pack} package link found on ${url}; keeping the pinned one`);
   const aws = await pageText(sources.aws.page);
   const awsZip = aws.match(
     /https:\/\/d1\.awsstatic\.com\/[^"'\s]*Icon-package_(\d{8})[^"'\s]*\.zip/,
   );
   if (awsZip) {
+    checked += 1;
     sources.aws.url = awsZip[0];
     const d = awsZip[1];
     sources.aws.version = `${d.slice(4)}-${d.slice(0, 2)}-${d.slice(2, 4)}`;
-  }
+  } else miss("AWS", sources.aws.page);
   const azure = await pageText(sources.azure.page);
   const azureZip = azure.match(
     /https:\/\/arch-center\.azureedge\.net\/icons\/Azure_Public_Service_Icons_(V\d+)\.zip/,
   );
   if (azureZip) {
+    checked += 1;
     sources.azure.url = azureZip[0];
     sources.azure.version = azureZip[1];
-  }
+  } else miss("Azure", sources.azure.page);
   const gcp = await pageText(sources.gcp.page);
   for (const [part, name] of [
     ["core", "core-products-icons"],
     ["category", "category-icons"],
   ]) {
     const m = gcp.match(new RegExp(`https://services\\.google\\.com/fh/files/misc/${name}\\.zip`));
-    if (m) sources.gcp.parts[part].url = m[0];
+    if (m) {
+      checked += 1;
+      sources.gcp.parts[part].url = m[0];
+    } else miss(`Google Cloud ${part}`, sources.gcp.page);
   }
+  if (!checked)
+    throw new Error(
+      "--latest could not find a package link on any vendor page; nothing was checked",
+    );
   // The Kubernetes icons and logo are pinned to commits: move to the newest that touched them.
   const k8s = sources.k8s;
   const icons = await newestCommit("kubernetes/community", "icons");
@@ -144,12 +167,40 @@ const removeVendorStyles = {
   }),
 };
 
+// Active content a vendor pack must never ship: the catalogs are inlined into pages and React
+// components, so a script, an event handler or a javascript: link would run there.
+const ACTIVE_CONTENT = [
+  ["script element", /<script\b/i],
+  ["event handler", /\son[a-z]+\s*=/i],
+  ["javascript: link", /javascript:/i],
+];
+const activeContentIn = (svg) => ACTIVE_CONTENT.filter(([, re]) => re.test(svg)).map(([w]) => w);
+
+// Some vendor artwork points at an id it never defines (Azure V25 App Service Builder has a
+// clip-path to a clipPath that is not in the file). Browsers ignore such a reference, so it is
+// dropped here: a missing fill or stroke paints nothing, the other attributes just go away.
+function dropDanglingRefs(svg) {
+  const ids = new Set([...svg.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+  return svg.replace(/\s([\w:-]+)="([^"]*)"/g, (all, name, value) => {
+    const isHref = (name === "href" || name === "xlink:href") && value.startsWith("#");
+    if (isHref) return ids.has(value.slice(1)) ? all : "";
+    if (!value.includes("url(#")) return all;
+    const kept = value.replace(/url\(#([^)"']+)\)\s*/g, (u, id) => (ids.has(id) ? u : "")).trim();
+    if (kept === value.trim()) return all;
+    if (kept) return ` ${name}="${kept}"`;
+    return name === "fill" || name === "stroke" ? ` ${name}="none"` : "";
+  });
+}
+
 let idCounter = 0;
+// `unsafe` lists the active content found in the vendor file (and removed), for the caller to report.
 function normalize(svg) {
   idCounter += 1;
-  const { data } = optimize(svg, {
+  const unsafe = activeContentIn(svg);
+  const { data: optimized } = optimize(svg, {
     multipass: true,
     plugins: [
+      "removeScripts",
       removeVendorStyles,
       {
         name: "preset-default",
@@ -170,6 +221,8 @@ function normalize(svg) {
       },
     ],
   });
+  if (activeContentIn(optimized).length) throw new Error("active content survived svgo");
+  const data = dropDanglingRefs(optimized);
   const open = data.match(/^<svg\b([^>]*)>/);
   if (!open) throw new Error("not an svg");
   const attrs = Object.fromEntries(
@@ -179,7 +232,7 @@ function normalize(svg) {
   const viewBox = attrs.viewBox ?? "0 0 24 24";
   const paint = ROOT_PAINT.filter((k) => attrs[k] !== undefined).map((k) => `${k}="${attrs[k]}"`);
   if (paint.length) body = `<g ${paint.join(" ")}>${body}</g>`;
-  return { v: viewBox, b: body };
+  return { v: viewBox, b: body, ...(unsafe.length ? { unsafe } : {}) };
 }
 
 // True when every painted color in an icon is near black, so a dark theme must recolor it. An icon
@@ -313,6 +366,12 @@ class Pack {
   }
 }
 
+// The dark body rides on the light icon; its active-content findings join the icon's own.
+function addDark(icon, dark) {
+  icon.d = dark.b;
+  if (dark.unsafe) icon.unsafe = [...(icon.unsafe ?? []), ...dark.unsafe];
+}
+
 const files = (zip, re) =>
   Object.keys(zip)
     .filter((p) => re.test(p) && !p.includes("__MACOSX") && !p.split("/").pop().startsWith("._"))
@@ -395,7 +454,7 @@ async function buildAws() {
     const slug = slugify(parts.map(strip).join("-"));
     const light = normalize(text(zip, entry.Light ?? entry.Dark));
     const icon = { n: name, c: entry.category, t: "resource", ...light };
-    if (entry.Light && entry.Dark) icon.d = normalize(text(zip, entry.Dark)).b;
+    if (entry.Light && entry.Dark) addDark(icon, normalize(text(zip, entry.Dark)));
     pack.add(slug, icon, "resource");
   }
 
@@ -412,7 +471,7 @@ async function buildAws() {
       t: "group",
       ...normalize(text(zip, p)),
     };
-    if (zip[dark]) icon.d = normalize(text(zip, dark)).b;
+    if (zip[dark]) addDark(icon, normalize(text(zip, dark)));
     pack.add(`group-${slugify(raw)}`, icon);
   }
 
@@ -965,6 +1024,18 @@ async function main() {
       variants: ["bold", "duotone", "fill", "light", "thin"],
     }),
   ];
+
+  const unsafe = packs.flatMap((p) =>
+    [...p.icons]
+      .filter(([, e]) => e.unsafe)
+      .map(([slug, e]) => `${p.key}:${slug} (${e.unsafe.join(", ")})`),
+  );
+  if (unsafe.length) {
+    console.error(
+      `${unsafe.length} vendor icon(s) contain active content (removed from the catalogs, but the vendor pack needs a look before it is pinned):\n  ${unsafe.join("\n  ")}`,
+    );
+    process.exit(1);
+  }
 
   const aliasTable = existsSync(aliasesPath) ? JSON.parse(readFileSync(aliasesPath, "utf8")) : {};
   const all = new Set(packs.flatMap((p) => [...p.icons.keys()].map((s) => `${p.key}:${s}`)));

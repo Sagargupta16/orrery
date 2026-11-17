@@ -4,7 +4,7 @@ description: "Use this agent to check a orrery diagram against the published rul
 tools: Read, Glob, Grep
 model: inherit
 effort: medium
-maxTurns: 8
+maxTurns: 12
 color: blue
 ---
 

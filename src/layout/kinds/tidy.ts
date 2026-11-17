@@ -58,7 +58,46 @@ export function hierarchy(ctx: AfterLayout, undirected: boolean, first?: string)
       }
     }
   }
+  framesTogether(ctx, h);
   return h;
+}
+
+/**
+ * Siblings that share a frame stand next to each other, in the order each frame first comes up,
+ * so a frame fitted round its members holds no sibling outside it. Nested frames the same way.
+ */
+function framesTogether(ctx: AfterLayout, h: Hierarchy): void {
+  const framed = new Set(ctx.groups.filter((g) => !g.overlay && !g.lane).map((g) => g.id));
+  const parentOf = new Map([...ctx.model.nodes, ...ctx.model.groups].map((x) => [x.id, x.parent]));
+  // Outermost frame first.
+  const chainOf = (id: string) => {
+    const out: string[] = [];
+    for (let p = parentOf.get(id); p; p = parentOf.get(p)) if (framed.has(p)) out.unshift(p);
+    return out;
+  };
+  interface Slot {
+    id?: string;
+    frame?: string;
+    slots: Slot[];
+  }
+  const flatten = (s: Slot): string[] => [...(s.id ? [s.id] : []), ...s.slots.flatMap(flatten)];
+  for (const [parent, kids] of h.kids) {
+    if (kids.length < 3) continue;
+    const top: Slot = { slots: [] };
+    for (const id of kids) {
+      let at = top;
+      for (const g of chainOf(id)) {
+        let next = at.slots.find((s) => s.frame === g);
+        if (!next) {
+          next = { frame: g, slots: [] };
+          at.slots.push(next);
+        }
+        at = next;
+      }
+      at.slots.push({ id, slots: [] });
+    }
+    h.kids.set(parent, flatten(top));
+  }
 }
 
 // ---------------------------------------------------------------- tidy tree

@@ -116,7 +116,7 @@ blocker quality.label-size node labels render
 
     <div class="relative mx-auto max-w-6xl px-5 pb-16 pt-16 sm:px-8 sm:pt-24">
       <p class="eyebrow">Open source &middot; MIT &middot; v{meta.version}</p>
-      <h1 class="display mt-5 max-w-4xl text-[clamp(2.6rem,7vw,5.4rem)]">
+      <h1 class="display mt-5 max-w-4xl text-[clamp(1.8rem,7vw,5.4rem)] [text-wrap:balance]">
         Architecture diagrams drawn to each vendor's own rules.
       </h1>
       <p class="mt-6 max-w-2xl text-lg text-dim sm:text-xl">
@@ -153,14 +153,14 @@ blocker quality.label-size node labels render
             src={url("art/hero-dark.svg")}
             alt="GitOps delivery to three clouds: GitHub Actions builds and signs, Argo CD syncs GKE, AKS and EKS, Cloudflare fronts them and Grafana watches"
             class="mx-auto w-full"
-            width="1758"
-            height="1296"
+            width={meta.hero.width}
+            height={meta.hero.height}
             fetchpriority="high"
           />
         </a>
         <figcaption class="flex flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3.5 text-sm text-dim">
-          <span>This diagram is 40 lines of YAML, drawn in the stage skin. Every SVG is animated by default.</span>
-          <a class="font-mono text-xs text-accent-soft hover:text-ink" href={blob("docs/hero.yaml")}>docs/hero.yaml</a>
+          <span>This diagram is {meta.hero.lines} lines of YAML, drawn in the stage skin. Every SVG is animated by default.</span>
+          <a class="hit font-mono text-xs text-accent-soft hover:text-ink" href={blob("docs/hero.yaml")}>docs/hero.yaml</a>
         </figcaption>
       </figure>
     </div>
@@ -209,7 +209,7 @@ blocker quality.label-size node labels render
           </div>
           <figure class="panel flex min-w-0 flex-col overflow-hidden">
             <div class="flex flex-1 items-center bg-[#0d1117] p-4 sm:p-6">
-              <img src={starterFile("-dark.svg")} alt={starter.alt} class="mx-auto w-full" loading="lazy" />
+              <img src={starterFile("-dark.svg")} alt={starter.alt} class="mx-auto w-full" width={starter.width} height={starter.height} loading="lazy" />
             </div>
             <figcaption class="border-t border-line px-5 py-3.5 font-mono text-xs text-dim">
               orrery render starter.yaml -f all --theme both
@@ -256,6 +256,8 @@ blocker quality.label-size node labels render
           src={url("art/how-it-works-dark.svg")}
           alt="A YAML spec is validated, laid out by ELK, checked and rendered with the icon packs to SVG, PNG, draw.io, TSX and HTML"
           class="mx-auto max-h-[720px] w-auto"
+          width={meta.how.width}
+          height={meta.how.height}
           loading="lazy"
         />
       </figure>
@@ -369,7 +371,7 @@ blocker quality.label-size node labels render
               <tr class="border-b border-line last:border-0">
                 <td class="px-5 py-3.5 font-mono text-ink">{p.key}</td>
                 <td class="px-5 py-3.5">
-                  <a class="text-dim hover:text-ink" href={p.source}>
+                  <a class="hit text-dim hover:text-ink" href={p.source}>
                     {p.title}
                   </a>
                 </td>

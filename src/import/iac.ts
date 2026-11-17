@@ -3,6 +3,7 @@
 // ports into flow labels, and the writer that turns a draft into a spec with evidence on every
 // item and every left-out resource listed in a comment. Deterministic: the same input gives the
 // same text, so CI can redraw a diagram without a model.
+import { createHash } from "node:crypto";
 import { relative, resolve, sep } from "node:path";
 import { stringify } from "yaml";
 import { iconInfo } from "../icons/index.ts";
@@ -71,16 +72,19 @@ export interface WriteOptions {
   legend?: { dashed?: string };
 }
 
-/** Lowercase letters, digits and single dashes: a node or group id. */
+/**
+ * Lowercase letters, digits and single dashes: a node or group id. A name with no ASCII letter or
+ * digit (日本語) becomes `item-` and a short hash of the name, so two of them stay two ids.
+ */
 export function slug(text: string): string {
-  return (
-    text
-      .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-      .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "item"
-  );
+  const id = text
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (id || !text.trim()) return id || "item";
+  return `item-${createHash("sha1").update(text).digest("hex").slice(0, 6)}`;
 }
 
 /** "orders_api" and "OrdersApi" read as "Orders api". */
@@ -470,12 +474,40 @@ export function accessOf(action: string, type?: string): Access[] {
   if (owners && !owners.includes(service.toLowerCase())) return [];
   const rules = ACTIONS[service.toLowerCase()] ?? [];
   // Action names are letters and digits; `*` and `?` are the only wildcards IAM knows.
-  const glob = name
-    .replace(/[^A-Za-z0-9*?-]/g, "")
-    .replace(/\*/g, ".*")
-    .replace(/\?/g, ".");
-  const pattern = new RegExp(`^${glob}$`, "i");
-  return rules.filter(([names]) => names.some((n) => pattern.test(n))).map(([, a]) => a);
+  const pattern = name.replace(/[^A-Za-z0-9*?-]/g, "");
+  return rules
+    .filter(([names]) => names.some((n) => wildcardMatch(pattern, n, true)))
+    .map(([, a]) => a);
+}
+
+/**
+ * Whether `text` matches a pattern where `*` is any run of characters and `?` is one. It walks
+ * both strings with one backtrack point, so a hostile pattern such as `*a*a*a*a*b` costs
+ * O(pattern x text), where the same pattern as a regular expression backtracks exponentially.
+ */
+export function wildcardMatch(pattern: string, text: string, ignoreCase = false): boolean {
+  const p = ignoreCase ? pattern.toLowerCase() : pattern;
+  const t = ignoreCase ? text.toLowerCase() : text;
+  let pi = 0;
+  let ti = 0;
+  let star = -1;
+  let mark = 0;
+  while (ti < t.length) {
+    if (pi < p.length && p[pi] === "*") {
+      star = pi++;
+      mark = ti;
+    } else if (pi < p.length && (p[pi] === "?" || p[pi] === t[ti])) {
+      pi++;
+      ti++;
+    } else if (star >= 0) {
+      pi = star + 1;
+      ti = ++mark;
+    } else {
+      return false;
+    }
+  }
+  while (p[pi] === "*") pi++;
+  return pi === p.length;
 }
 
 const PORTS: Record<number, string> = {

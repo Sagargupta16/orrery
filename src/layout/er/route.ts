@@ -2,7 +2,8 @@
 // center line of the row it joins (a table's header when it joins none, the face's center on any
 // other node), and runs straight out far enough for its crow's foot. Between the two ends the
 // candidates are a straight line, a Z through the channel between facing sides, a detour over or
-// under a table in the way, and a C round both tables on one side; each is measured as bends.ts
+// under a table in the way, a C round both tables on one side, and a run along the gap between
+// two rows of tables from either face to either face; each is measured as bends.ts
 // measures a route (through a table, near one, through a header, over a frame, crossings) plus
 // lines on top of or beside others and the way it strays past the drawing, and the cheapest wins.
 // Labels go on last, beside a run of the final route, clear of the marks.
@@ -24,6 +25,8 @@ import { headerOf, rowsOf } from "./table.ts";
 export const STUB = 30;
 /** Risers and C routes keep this far apart, as ELK keeps edges in one channel. */
 const PITCH = 10;
+/** Ends that would meet a face at one point part this far, as spreadEnds parts icon ends. */
+const SEAT = 14;
 /** Rounds of routing: an edge rerouted can free the way for one routed before it. */
 const ROUNDS = 3;
 
@@ -56,7 +59,7 @@ function risers(lo: number, hi: number): number[] {
 }
 
 /** Every route worth measuring from a to b. */
-function candidates(a: End, b: End, boxes: Box[]): Point[][] {
+function candidates(a: End, b: End, boxes: Box[], own: Box[]): Point[][] {
   const out: Point[][] = [];
   const level = Math.abs(a.y - b.y) < 0.5;
   // Facing sides: a straight line when the rows line up, else a Z through the channel.
@@ -93,6 +96,24 @@ function candidates(a: End, b: End, boxes: Box[]): Point[][] {
       out.push([pt(a.right, a.y), pt(right, a.y), pt(right, b.y), pt(b.right, b.y)]);
       out.push([pt(a.left, a.y), pt(left, a.y), pt(left, b.y), pt(b.left, b.y)]);
     }
+  // Between rows of tables (a flow that runs down stacks them): out of either face, along the gap
+  // over or under a table, and into either face of the other end, where a C or a Z would run
+  // through a table beside the ends.
+  const gaps = [...boxes, ...own].flatMap((o) => [o.y - 20, o.y + o.h + 20]);
+  for (const [ax, sa] of [
+    [a.right, 1],
+    [a.left, -1],
+  ] as const)
+    for (const [bx, sb] of [
+      [b.right, 1],
+      [b.left, -1],
+    ] as const)
+      for (const y of gaps)
+        for (let i = 0; i < 2; i++) {
+          const m1 = ax + sa * (STUB + i * PITCH);
+          const m2 = bx + sb * (STUB + i * PITCH);
+          out.push([pt(ax, a.y), pt(m1, a.y), pt(m1, y), pt(m2, y), pt(m2, b.y), pt(bx, b.y)]);
+        }
   return out;
 }
 
@@ -168,7 +189,8 @@ function bestRoute(view: RouteView, e: SceneEdge, a: End, b: End): Point[] | und
   const boxes = view.nodes.filter((n) => n.id !== e.from && n.id !== e.to).map((n) => n.box);
   const all = union(view.nodes.map((n) => n.box));
   const area = { x: all.x - 24, y: all.y - 24, w: all.w + 48, h: all.h + 48 };
-  for (const pts of candidates(a, b, boxes)) {
+  const own = view.nodes.filter((n) => n.id === e.from || n.id === e.to).map((n) => n.box);
+  for (const pts of candidates(a, b, boxes, own)) {
     const d = count?.(pts);
     const cost =
       (d
@@ -287,16 +309,53 @@ export function routeRelationships(ctx: AfterLayout, rowsFor: (e: SceneEdge) => 
     delete e.stepBox;
   }
   const view: RouteView = { nodes: ctx.nodes, groups: ctx.groups, edges: ctx.edges };
-  for (let k = 0; k < ROUNDS; k++) {
-    let moved = false;
-    for (const e of mine) {
-      const pair = ends.get(e);
-      const pts = pair && bestRoute(view, e, pair[0], pair[1]);
-      if (!pts || same(pts, e.points)) continue;
-      e.points = pts;
-      moved = true;
+  const routeAll = () => {
+    for (let k = 0; k < ROUNDS; k++) {
+      let moved = false;
+      for (const e of mine) {
+        const pair = ends.get(e);
+        const pts = pair && bestRoute(view, e, pair[0], pair[1]);
+        if (!pts || same(pts, e.points)) continue;
+        e.points = pts;
+        moved = true;
+      }
+      if (!moved) break;
     }
-    if (!moved) break;
-  }
+  };
+  routeAll();
+  // Seating can send a line out of the other face onto another's point: once more for those.
+  for (let k = 0; k < 2 && seatShared(mine, ends); k++) routeAll();
   placeLabels(ctx, mine);
+}
+
+/**
+ * Ends that left one face at one point (two lines on one row, or several on a table's header)
+ * part SEAT px apart along the face, the one whose other end is highest on top, so each line
+ * keeps its own crow's foot. Returns whether any end moved.
+ */
+function seatShared(mine: SceneEdge[], ends: Map<SceneEdge, [End, End]>): boolean {
+  const seats = new Map<string, { end: End; other: End; order: number }[]>();
+  mine.forEach((e, i) => {
+    const pair = ends.get(e);
+    if (!pair) return;
+    for (const k of [0, 1] as const) {
+      const p = k === 0 ? e.points[0] : e.points.at(-1);
+      if (!p) continue;
+      const key = `${k === 0 ? e.from : e.to}|${Math.round(p.x)}|${Math.round(p.y)}`;
+      const list = seats.get(key) ?? [];
+      list.push({ end: pair[k], other: pair[1 - k] ?? pair[k], order: 2 * i + k });
+      seats.set(key, list);
+    }
+  });
+  let moved = false;
+  for (const list of seats.values()) {
+    const center = list[0]?.end.y;
+    if (list.length < 2 || center === undefined) continue;
+    list.sort((p, q) => p.other.y - q.other.y || p.order - q.order);
+    list.forEach((s, i) => {
+      s.end.y = center + (i - (list.length - 1) / 2) * SEAT;
+    });
+    moved = true;
+  }
+  return moved;
 }

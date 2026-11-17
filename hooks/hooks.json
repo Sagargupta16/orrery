@@ -1,5 +1,5 @@
 {
-  "description": "Validate an orrery spec right after an agent writes or edits it, so diagram errors come back with their fixes before anything is rendered.",
+  "description": "Validate an orrery spec right after an agent writes or edits it, so diagram errors come back with their fixes before anything is rendered, and keep an orrery author agent working until the spec it names passes validate --strict (and, for diagram-author, the measured review), at most two retries.",
   "hooks": {
     "PostToolUse": [
       {
@@ -9,6 +9,30 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/validate-spec.mjs\"",
             "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^orrery:(diagram-author|image-importer)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-gate.mjs\"",
+            "timeout": 100
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "SubagentHandback",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-gate.mjs\"",
+            "timeout": 100
           }
         ]
       }

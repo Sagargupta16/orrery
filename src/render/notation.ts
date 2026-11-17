@@ -368,9 +368,13 @@ function gear(cx: number, cy: number): string {
   return poly(pts) + circle(cx, cy, 2);
 }
 
-/** Markers at an edge's start for its flow kind; `ground` is the color behind the line. */
+/**
+ * Markers at an edge's sending end for its flow kind; `ground` is the color behind the line. With
+ * `arrow: start` the arrowhead is at the first point, so the sender is the last one and the marks
+ * are placed along the line walked from there.
+ */
 export function flowMarks(e: SceneEdge, color: string, w: number, ground: string): string {
-  const pts = e.points;
+  const pts = e.arrow === "start" ? [...e.points].reverse() : e.points;
   const a = pts[0];
   const b = pts[1];
   if (!a || !b || (e.flow !== "message" && e.flow !== "default" && e.flow !== "conditional"))
@@ -385,7 +389,7 @@ export function flowMarks(e: SceneEdge, color: string, w: number, ground: string
     const parts = [circle(c.x, c.y, r, ` fill="${ground}"${paint}`)];
     const tip = pts[pts.length - 1];
     const from = pts[pts.length - 2];
-    if ((e.arrow === "end" || e.arrow === "both") && tip && from) {
+    if (e.arrow !== "none" && tip && from) {
       // Wide enough to cover the filled head (svg.ts) and the chevron (stage.ts) under it.
       const thick = e.line === "thick";
       parts.push(head(tip, from, (thick ? 11 : 9) * u, (thick ? 7.4 : 6) * u, ground, paint));

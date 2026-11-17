@@ -18,7 +18,9 @@ export interface Face {
 
 export const LABEL: Face = { size: 11.5, weight: 700, caps: true, track: 0.08 };
 export const NOTE: Face = { size: 10, weight: 400, caps: false, track: 0 };
-export const EDGE: Face = { size: 9.5, weight: 700, caps: true, track: 0.06 };
+// Edge labels and sequence messages keep their case: they carry identifiers and protocol text
+// (code_verifier=X&getUser) that upper-casing would break.
+export const EDGE: Face = { size: 9.5, weight: 700, caps: false, track: 0.06 };
 export const HEADER: Face = { size: 11, weight: 700, caps: true, track: 0.1 };
 export const TITLE: Face = { size: 18, weight: 700, caps: true, track: 0.06 };
 export const SUBTITLE: Face = { size: 11.5, weight: 400, caps: false, track: 0 };
@@ -26,6 +28,16 @@ export const KEY: Face = { size: 9.5, weight: 700, caps: true, track: 0.06 };
 export const DIGIT: Face = { size: 13, weight: 700, caps: true, track: 0 };
 
 const chars = (s: string) => [...s].length;
+
+/**
+ * The face a label is drawn in: caps are the stage look for words, but an identifier (a
+ * lowercase-to-uppercase hump, as in SlackNotifier or IOrderAPI) loses its meaning in caps, and
+ * so does every label of an entity-relationship diagram (`all`).
+ */
+export function keepCase(f: Face, lines: string[], all = false): Face {
+  if (!f.caps) return f;
+  return all || lines.some((l) => /\p{Ll}\p{Lu}/u.test(l)) ? { ...f, caps: false } : f;
+}
 
 export function monoWidth(s: string, f: Face, size = f.size): number {
   const c = chars(s);

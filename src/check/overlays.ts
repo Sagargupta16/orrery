@@ -1,7 +1,7 @@
 // Overlay (around:) groups: what they enclose without listing it, and what their headers cover.
 import type { Box, Model, ModelGroup, Scene } from "../types.ts";
 import type { CheckContext } from "./context.ts";
-import { boxOf, EPS, nodeParts, overlaps } from "./geometry.ts";
+import { boxOf, EPS, nodeParts, overlaps, titleBox } from "./geometry.ts";
 
 /** The overlay g and what it lists, with the members of any overlay it lists, and so on. */
 function membersOf(model: Model, g: ModelGroup, out = new Set<string>()): Set<string> {
@@ -70,9 +70,9 @@ export function overlayEncloses({ scene, model, parentOf, warn }: CheckContext):
   }
 }
 
-/** The drawn pieces of a group's header: its label (when it has one) and its tile. */
-const headerParts = (g: Scene["groups"][number]): Box[] =>
-  [g.label.lines.length ? g.labelBox : undefined, g.iconBox].filter(
+/** The drawn pieces of a group's header: its title (when it has one) and its tile. */
+const headerParts = (scene: Scene, g: Scene["groups"][number]): Box[] =>
+  [g.label.lines.length ? titleBox(scene, g) : undefined, g.iconBox].filter(
     (b): b is Box => !!b && b.w > 0 && b.h > 0,
   );
 
@@ -86,12 +86,12 @@ interface Covered {
 
 /** The first header part of each other group, then the first part of each node, under ov's header. */
 function coveredBy(scene: Scene, ov: Scene["groups"][number]): Covered[] {
-  const own = headerParts(ov);
+  const own = headerParts(scene, ov);
   const hits = (b: Box) => own.find((o) => overlaps(o, b, -EPS));
   const covered: Covered[] = [];
   for (const g of scene.groups) {
     if (g.id === ov.id) continue;
-    for (const b of headerParts(g)) {
+    for (const b of headerParts(scene, g)) {
       const by = hits(b);
       if (by) {
         covered.push({
