@@ -5,10 +5,10 @@
 //
 //   node scripts/gallery.mjs           re-render everything
 //   node scripts/gallery.mjs --check   verify (CI, scripts/check-repo.mjs)
-import { spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -54,11 +54,32 @@ const sha = (p) => createHash("sha256").update(readFileSync(p)).digest("hex");
 const tmp = check ? mkdtempSync(join(tmpdir(), "sdw-gallery-")) : undefined;
 const problems = [];
 
-for (const job of jobs()) {
-  const base = tmp ? join(tmp, job.base) : join(root, job.base);
-  const r = spawnSync(process.execPath, [cli, "render", job.spec, "-o", base, ...job.args], {
-    encoding: "utf8",
+// Renders run in a small pool, each its own Node process writing its own files. Results are kept
+// by job index and read back in job order, so the report is the same as one render at a time.
+const all = jobs();
+const render = (job) =>
+  new Promise((done) => {
+    const base = tmp ? join(tmp, job.base) : join(root, job.base);
+    execFile(
+      process.execPath,
+      [cli, "render", job.spec, "-o", base, ...job.args],
+      { encoding: "utf8" },
+      (err, stdout, stderr) => done({ status: err ? (err.code ?? 1) : 0, stdout, stderr }),
+    );
   });
+const results = [];
+let next = 0;
+await Promise.all(
+  Array.from({ length: Math.min(6, availableParallelism()) }, async () => {
+    while (next < all.length) {
+      const i = next++;
+      results[i] = await render(all[i]);
+    }
+  }),
+);
+
+for (const [i, job] of all.entries()) {
+  const r = results[i];
   const label = relative(root, job.spec).replaceAll("\\", "/");
   if (r.status !== 0) {
     problems.push(`${label}: does not render: ${(r.stderr || r.stdout).trim().slice(0, 300)}`);

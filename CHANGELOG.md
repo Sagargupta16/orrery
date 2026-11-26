@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.13.1] - 2026-11-26
+
+### Changed
+
+- **The gallery check and the site build render in parallel.** `scripts/gallery.mjs` (`pnpm gallery`, the repo checks in CI and the icon refresh workflow) runs its 79 renders through a pool of up to six processes instead of one at a time and reads the results back in job order, so its report, its exit code and every file it writes stay the same. `site/scripts/prepare.mjs` hands each worker the next example as soon as its last one is done instead of waiting for a whole batch, and takes an example's counts from the classic render's `--json` receipt instead of starting a third process for `describe`; timelines and journeys still ask `describe`, which counts only the edges they draw. Measured on one machine: the gallery check went from 106.7 s to 15.8 s and the site prepare step from 104.4 s to 51.8 s, with all 1,397 files it writes byte-identical.
+
 ## [0.13.0] - 2026-11-17
 
 A second sweep of every subsystem, with new features where the audit found gaps. 130 fixes are counted from the lanes that reported a number (icon sync 5, icons 9, importers 9, site 12, review 11, diff and verify 10, patch 6, CLI 12, spec 11, render 14, MCP 8, CI 10, kind layouts 9, Mermaid import 4); the stage skin, LSP, `orrery doc` and integration fixes below come on top of that count.

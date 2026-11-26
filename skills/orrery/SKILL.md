@@ -14,7 +14,7 @@ description: >-
   sequence, ER, state or gantt diagram into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.13.0"
+  version: "0.13.1"
   author: Sagar Gupta
 ---
 
