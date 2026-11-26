@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.13.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.13.1 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -9908,7 +9908,7 @@ function hexColor(r6, value2, key, where, subject, extra = []) {
 }
 
 // src/cli/help.ts
-var VERSION = true ? "0.13.0" : "dev";
+var VERSION = true ? "0.13.1" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
@@ -39495,7 +39495,7 @@ var TOOLS = [
 var SERVER = {
   name: "orrery",
   title: "orrery",
-  version: true ? "0.13.0" : "dev"
+  version: true ? "0.13.1" : "dev"
 };
 var MODERN = ["2026-07-28"];
 var LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];

@@ -101,7 +101,7 @@ async function renderExample(file) {
   mkdirSync(dir, { recursive: true });
   await run(process.execPath, [cli, "render", specPath, "-o", join(dir, name), "-f", "all", "--theme", "both"]);
   // The same diagram in the classic skin (same layout), for the gallery's Stage / Classic switch.
-  await run(process.execPath, [
+  const classic = await run(process.execPath, [
     cli,
     "render",
     specPath,
@@ -113,6 +113,7 @@ async function renderExample(file) {
     "both",
     "--skin",
     "classic",
+    "--json",
   ]);
   copyFileSync(specPath, join(dir, `${name}.yaml`));
   // The spec's own icons go along at the same relative paths, so the downloaded spec renders.
@@ -121,9 +122,17 @@ async function renderExample(file) {
     mkdirSync(dirname(join(dir, icon)), { recursive: true });
     copyFileSync(join(examplesDir, icon), join(dir, icon));
   }
-  // Counts from the model, which expands chained (a -> b -> c) and fan-out edges.
-  const described = await run(process.execPath, [cli, "describe", specPath, "--json"]);
-  const { counts } = JSON.parse(described.stdout);
+  // Counts from the model, which expands chained (a -> b -> c) and fan-out edges. The render's
+  // receipt counts every edge; a timeline or journey draws only the edges between two items, so
+  // those kinds keep describe's count of the drawn ones.
+  let counts;
+  if (/^(timeline|journey)$/i.test(String(spec.kind ?? ""))) {
+    const described = await run(process.execPath, [cli, "describe", specPath, "--json"]);
+    ({ counts } = JSON.parse(described.stdout));
+  } else {
+    const stats = JSON.parse(classic.stdout).stats;
+    counts = { nodes: stats.nodes, groups: stats.groups, edges: stats.edges };
+  }
 
   const nodes = Object.values(spec.nodes ?? {});
   const groups = Object.values(spec.groups ?? {});
@@ -158,10 +167,18 @@ const files = readdirSync(examplesDir)
   .filter((f) => /\.ya?ml$/.test(f))
   .sort();
 const pool = Math.max(2, Math.min(6, availableParallelism() - 1));
+// A rolling pool: each worker takes the next example as soon as its last one is done, and each
+// result goes to its own index, so the order stays the files' order.
 const examples = [];
-for (let i = 0; i < files.length; i += pool) {
-  examples.push(...(await Promise.all(files.slice(i, i + pool).map(renderExample))));
-}
+let next = 0;
+await Promise.all(
+  Array.from({ length: pool }, async () => {
+    while (next < files.length) {
+      const i = next++;
+      examples[i] = await renderExample(files[i]);
+    }
+  }),
+);
 
 // The README art (hero and how-it-works) in both themes.
 for (const f of readdirSync(join(repo, "docs")).filter((f) => f.endsWith(".svg")))
