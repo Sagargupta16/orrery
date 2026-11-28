@@ -37,6 +37,17 @@ export const ENDS = { pitch: 14, inset: 8, gap: 0 };
  */
 export const ELK_BUDGET = 150;
 
-/** The spec's animate mode, else the skin's: relay for stage, packets for classic. */
+/** Clear space kept on each side of an edge label placed beside its line, in px. */
+export const LABEL_CLEAR = 8;
+
+/**
+ * Whether an edge label fits in a normal layer gap beside its line, so ELK needs no label layer
+ * for it: `extent` is the label's height in a vertical flow and its width in a horizontal one,
+ * `spacing` the spec's layout.spacing factor (the gap between layers is 64px times it).
+ */
+export const fitsBeside = (extent: number, spacing: number) =>
+  extent + 2 * LABEL_CLEAR <= 64 * spacing;
+
+/** The spec's animate mode, else the skin's: relay for stage, none (still) for classic. */
 export const animateOf = (model: Pick<Model, "animate" | "skin">): AnimateMode =>
   model.animate ?? (model.skin === "stage" ? "relay" : "none");

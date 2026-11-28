@@ -1,17 +1,18 @@
-// The edges ELK sees: ports when merge is on, label boxes (and empty spacers so a fan-out stays in
-// one column), cell edges for a grid child's own run, and hidden copies for edges drawn after ELK
-// (through its group for a node on a border).
+// The edges ELK sees: ports when merge is on, label boxes for the labels too tall (or wide) to sit
+// beside their line in a layer gap (and empty spacers so a fan-out stays in one column), cell
+// edges for a grid child's own run, and hidden copies for edges drawn after ELK (through its group
+// for a node on a border).
 
 import { textBlock } from "../text.ts";
 import type { ModelEdge } from "../types.ts";
 import type { EdgeLabel, Graph } from "./context.ts";
 import type { ElkEdge } from "./elk.ts";
 import { seatFlow } from "./seats.ts";
-import { SIZES } from "./sizes.ts";
+import { fitsBeside, SIZES } from "./sizes.ts";
 
-export function addEdges(
-  ctx: Omit<Graph, "edgeLabels" | "cellEdges">,
-): Pick<Graph, "edgeLabels" | "cellEdges"> {
+type Added = "edgeLabels" | "cellEdges" | "beside" | "unplaced";
+
+export function addEdges(ctx: Omit<Graph, Added>): Pick<Graph, Added> {
   const { model, opts, plan, elkNodes, root, rel } = ctx;
   const { free, inBlock, members, rep, cellOf, lowest } = rel;
   const port = (nodeId: string, side: "in" | "out", e: ModelEdge): string => {
@@ -34,10 +35,42 @@ export function addEdges(
   };
   /** Where ELK's copy of the edge starts: its target when the edge is flipped. */
   const source = (e: ModelEdge) => (opts.flip?.has(e.id) ? e.to : e.from);
-  // A labelled edge gets its own layer for the label; give its unlabelled siblings an
-  // empty label of the same kind so a fan-out stays in one column.
+  const cellAt = (e: ModelEdge) => (plan.grids.size ? cellOf(lowest(e.from, e.to)) : undefined);
+  const tags = new Map(
+    model.edges.flatMap((e) =>
+      !free(e) && (e.label || e.step !== undefined) ? [[e.id, measureTag(e)] as const] : [],
+    ),
+  );
+  // A label that fits in a normal layer gap beside its line gets no ELK label (and so no layer
+  // of its own): it is placed beside the final route. Flows ELK lays out as layers only, with
+  // orthogonal lines and no hook of their own on the edges; not grid cells, self loops (state
+  // redraws them), back edges given reversed, or what the first pass found no spot for.
+  const besideKind =
+    !opts.labelLayers &&
+    (model.kind === "architecture" || model.kind === "flowchart" || model.kind === "state") &&
+    model.routing === "orthogonal" &&
+    !ctx.hidden.size;
+  const beside = new Set(
+    besideKind
+      ? model.edges
+          .filter((e) => {
+            const tag = tags.get(e.id);
+            return (
+              !!tag &&
+              e.from !== e.to &&
+              !cellAt(e) &&
+              !opts.flip?.has(e.id) &&
+              !opts.layered?.has(e.id) &&
+              fitsBeside(ctx.horizontal ? tag.w : tag.h, ctx.spacing)
+            );
+          })
+          .map((e) => e.id)
+      : [],
+  );
+  // A labelled edge ELK lays out gets its own layer for the label; give its unlabelled siblings
+  // an empty label of the same kind so a fan-out stays in one column.
   const labelledFrom = new Set(
-    model.edges.filter((e) => !free(e) && (e.label || e.step !== undefined)).map(source),
+    model.edges.filter((e) => tags.has(e.id) && !beside.has(e.id)).map(source),
   );
   const edgeLabels = new Map<string, EdgeLabel>();
   const cellEdges = new Map<string, ElkEdge[]>();
@@ -61,29 +94,35 @@ export function addEdges(
       sources: [port(flip ? e.to : e.from, "out", e)],
       targets: [port(flip ? e.from : e.to, "in", e)],
     };
-    if (!e.label && e.step === undefined && labelledFrom.has(source(e))) {
+    const tag = tags.get(e.id);
+    if ((!tag || beside.has(e.id)) && labelledFrom.has(source(e))) {
       elkEdge.labels = [{ id: `${e.id}__spacer`, text: " ", width: 1, height: 1 }];
     }
-    const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
-    if (e.label || e.step !== undefined) {
-      const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-      const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-      const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
-      edgeLabels.set(e.id, { block, w, h, stepW });
+    if (tag && !beside.has(e.id)) {
+      edgeLabels.set(e.id, tag);
       elkEdge.labels = [
         {
           id: `${e.id}__label`,
           text: e.label || `step ${e.step}`,
-          width: w,
-          height: h,
+          width: tag.w,
+          height: tag.h,
         },
       ];
     }
-    const cell = plan.grids.size ? cellOf(lowest(e.from, e.to)) : undefined;
+    const cell = cellAt(e);
     if (cell) cellEdges.set(cell, [...(cellEdges.get(cell) ?? []), elkEdge]);
     else root.edges?.push(elkEdge);
   }
-  return { edgeLabels, cellEdges };
+  return { edgeLabels, cellEdges, beside, unplaced: new Set() };
+}
+
+/** An edge's label and step badge as one box: the badge at its left, 2px before the text. */
+function measureTag(e: ModelEdge): EdgeLabel {
+  const block = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+  const stepW = e.step !== undefined ? SIZES.step + 2 : 0;
+  const w = Math.ceil((e.label ? block.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
+  const h = Math.ceil(Math.max(e.label ? block.height + 6 : 0, stepW ? SIZES.step : 0));
+  return { block, w, h, stepW };
 }
 
 /**
@@ -92,9 +131,7 @@ export function addEdges(
  * into the group gets one, so ELK keeps the group between the node's ends, as when it was inside.
  * Returns each edge's ends as ELK's copy should run.
  */
-function seatLinks(
-  ctx: Omit<Graph, "edgeLabels" | "cellEdges">,
-): (e: ModelEdge) => [string, string] {
+function seatLinks(ctx: Omit<Graph, Added>): (e: ModelEdge) => [string, string] {
   const { model, plan, root, rel } = ctx;
   if (!plan.seats.size) return (e) => [e.from, e.to];
   const flow = new Map(

@@ -1,11 +1,13 @@
 // The second pass: headers slid off the edges crossing them, and what the first pass learned
 // (corner labels no position clears, overlay headers on group headers, rerouted align edges,
-// groups too short for their border nodes) turned into options for one more run of the core.
+// groups too short for their border nodes, edge labels with no clear spot beside their line)
+// turned into options for one more run of the core.
 
 import type { Box, SceneGroup } from "../types.ts";
 import type { LayoutOptions, Routed } from "./context.ts";
 import { union } from "./geometry.ts";
 import { clearHeader, headerText } from "./groups.ts";
+import { layeredLabels } from "./labels.ts";
 import { widenedOf } from "./measure.ts";
 import { attachBox } from "./steer.ts";
 
@@ -49,12 +51,15 @@ export function secondPass(ctx: Routed): LayoutOptions | undefined {
     }),
   );
   const loose = new Set([...rerouted].filter((id) => !back.has(id)));
+  // A label beside its line that found no clear spot goes back to ELK, in a layer of its own.
+  const layered = layeredLabels(ctx);
   return !opts.widen &&
     !opts.room &&
     !opts.loose &&
     !opts.flip &&
     !opts.grow &&
-    (wider || room.size || rerouted.size || grow.size)
+    !opts.layered &&
+    (wider || room.size || rerouted.size || grow.size || layered.size)
     ? {
         ...opts,
         widen: wider ? new Set(widen) : undefined,
@@ -62,6 +67,7 @@ export function secondPass(ctx: Routed): LayoutOptions | undefined {
         loose: loose.size ? loose : undefined,
         flip: back.size ? back : undefined,
         ...(grow.size ? { grow } : {}),
+        ...(layered.size ? { layered } : {}),
       }
     : undefined;
 }

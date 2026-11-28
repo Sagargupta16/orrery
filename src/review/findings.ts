@@ -216,6 +216,12 @@ export const FINDINGS = {
     about:
       "the median empty gap between neighbouring nodes in a row or column is over 300px, so the picture is spread thin",
   },
+  "layout.sparse-canvas": {
+    dimension: "layout",
+    cap: 8,
+    about:
+      "the nodes cover under 5% of the canvas, so the picture is mostly empty paper (the nodes' footprints over the canvas, both in canvas px)",
+  },
   "layout.wide-pitch": {
     dimension: "layout",
     cap: 8,

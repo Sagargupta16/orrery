@@ -202,6 +202,37 @@ describe("layout", () => {
     expect(loose.height).toBeGreaterThanOrEqual(compact.height);
   });
 
+  it("puts a label that fits the layer gap beside its line, with no layer of its own", async () => {
+    const spec = (label: string) =>
+      model(`direction: down
+nodes:
+  a: { icon: aws:lambda, label: A }
+  b: { icon: aws:lambda, label: B }
+edges:
+  - a -> b${label}
+`);
+    const box = (s: Scene, id: string) =>
+      must(
+        s.nodes.find((n) => n.id === id),
+        id,
+      ).box;
+    const gap = (s: Scene) => box(s, "b").y - (box(s, "a").y + box(s, "a").h);
+    const bare = await layout(spec(""));
+    const labelled = await layout(spec(": HTTPS"));
+    expect(gap(labelled)).toBe(gap(bare));
+    const e = must(labelled.edges[0], "edge");
+    const label = must(e.labelBox, "label");
+    const x = must(e.points[0], "start").x;
+    // Beside the line, 6px off it, and between the two nodes.
+    expect(label.x).toBe(x + 6);
+    expect(label.y).toBeGreaterThan(must(e.points[0], "start").y);
+    expect(label.y + label.h).toBeLessThan(must(e.points.at(-1), "end").y);
+    // Too tall for the gap at this spacing: ELK gives it a layer of its own again.
+    const tight = await layout({ ...spec(": HTTPS"), spacing: 0.5 });
+    const bareTight = await layout({ ...spec(""), spacing: 0.5 });
+    expect(gap(tight)).toBeGreaterThan(gap(bareTight));
+  });
+
   it("lays out self loops, repeated edges, group endpoints and empty groups", async () => {
     const s = await layout(
       model(`groups:

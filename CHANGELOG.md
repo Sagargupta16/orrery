@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.15.0] - 2026-11-28
+
+What readers ask for most, measured and acted on. The most-reacted appearance and layout issues of mermaid, d2, PlantUML, draw.io, Excalidraw, Structurizr, diagrams, elkjs and dagre (about 1,018 issues with 3 or more reactions, read 2026-11-28) put whitespace, uneven gaps, edge routing and label placement near the top, next to official icons and containers orrery already has. Seven AWS reference architectures set the density target (node footprints over the canvas: about 0.13 to 0.28). orrery's empty space came from one rule: every labelled arrow got a layer of its own.
+
+### Changed
+
+- **Edge labels sit beside their line.** A label that fits in a normal layer gap (`fitsBeside` in `src/layout/sizes.ts`: its height in a vertical flow, its width in a horizontal one, plus 8px each side, within 64px times `layout.spacing`) no longer gets an ELK label layer, and neither do its unlabelled siblings; it is placed beside the final route, clear of lines, arrowheads, borders, headers, other labels and each group's title band. One labelled arrow used to turn a 64px gap into 149px; it now stays 64px. A label with no clear spot goes back to ELK in the existing second pass. Architecture, flowchart and state diagrams with orthogonal lines; lanes, pools and the kinds with their own layout are unchanged.
+- **The compact layout has to earn its place.** The layout is drawn both ways, and the compact one is kept only when it saves at least 3% of the canvas and crosses or turns back no more edges, and has no more defects or warnings (an align with no effect, a line skimming a node), than the one with a layer for every label. Otherwise the picture stays as before.
+- **The second pass never wins with more defects.** When the first pass rerouted nothing, the second pass used to be taken without comparing; a widened group could then put a line through a header. Both are now compared every time.
+- Measured on all 77 examples: 77 pass (as before), 0 hard defects, mean score 98.717 (was 98.669), total canvas area 12.7% smaller (49 smaller, none larger), uneven layer gaps in 16 (was 26), off-center edge ends in 21 (was 32). aws-three-tier 1253x1944 to 1253x1689, gcp-hub-spoke-network 1148x1600 to 1143x1345, k8s-service-mesh 1153x1877 to 1098x1532. Gallery pictures and the website regenerate with it.
+- **Review:** a gap between layers is budgeted one layer gap when its labels sit beside their lines (`Scene.besideLabels` names them), and two layer gaps plus the label when ELK gave the label a layer. `layout.long-edge` also needs the edge to be over 0.4 of the canvas's mean side, so a compact layout's short median does not flag every edge across it.
+- **PNG:** when the native renderer is installed but fails on an input, the bundled WebAssembly build draws it instead, and its error is the one reported when both fail.
+
+### Added
+
+- Review metrics `inkPct` (node footprints over the canvas, both in canvas px), `bendMean` and `bendMax` (bends per routed edge), and the finding `layout.sparse-canvas` (minor, nodes cover under 5% of the canvas; not for kinds that place their own nodes). No example triggers it after the label change; four did before.
+
 ## [0.14.0] - 2026-11-28
 
 ### Changed

@@ -42,6 +42,16 @@ export interface LayoutOptions {
   flip?: Set<string>;
   /** The least size of a group whose border nodes did not fit along it (set by the second pass). */
   grow?: SeatGrowth;
+  /**
+   * Edges whose label the first pass placed beside the line found no clear spot for: the second
+   * pass gives them to ELK with their label, which lays it out in a layer of its own.
+   */
+  layered?: Set<string>;
+  /**
+   * Every edge label gets an ELK layer of its own, none beside its line: the layout layoutGridded
+   * keeps when the compact one crosses or turns more edges.
+   */
+  labelLayers?: boolean;
   /** ELK layer wrapping (layout.aspect candidates): the strategy and the target width:height. */
   wrap?: "SINGLE_EDGE" | "MULTI_EDGE";
   ratio?: number;
@@ -100,6 +110,13 @@ export interface Graph extends Setup {
   edgeLabels: Map<string, EdgeLabel>;
   /** Edges inside one child group of a grid, by that group: its own ELK run routes them. */
   cellEdges: Map<string, ElkEdge[]>;
+  /**
+   * ELK-routed edges whose label fits beside the line in a normal layer gap: ELK gets no label
+   * for them, and placeFreeLabels puts it beside the final route.
+   */
+  beside: Set<string>;
+  /** Those of them placeFreeLabels found no clear spot for (it fills this in). */
+  unplaced: Set<string>;
 }
 
 /** After ELK: the laid-out graph, grid cells filled in and align blocks gone. */

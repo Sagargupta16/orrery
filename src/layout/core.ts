@@ -77,12 +77,10 @@ export async function layoutCore(model: Model, opts: LayoutOptions = {}): Promis
         return undefined;
       })
     : undefined;
-  // Without (or with flipped) rerouted edges ELK may close the gap a label needs: the second pass
-  // wins unless it covers more than this one, which is finished below to compare.
-  const early = again && !rerouted.size ? await again : undefined;
-  if (early) return early;
-
-  const scene = assemble(routed, hooked.routing, sizeCanvas(routed));
+  // The second pass wins unless it has more defects than this one, which is finished below to
+  // compare: a widened group or a label given back its layer can put a line through a header.
+  const assembled = assemble(routed, hooked.routing, sizeCanvas(routed));
+  const scene = routed.beside.size ? { ...assembled, besideLabels: [...routed.beside] } : assembled;
   // The skin only recolors: every box and point above is the same for classic and stage.
   const done = model.skin === "stage" ? stageColors(scene) : scene;
   if (!again) return done;
