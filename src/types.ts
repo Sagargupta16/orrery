@@ -588,6 +588,8 @@ export interface Scene {
   legend?: SceneLegend;
   /** Set when ELK needed a fallback strategy, naming it; spec order may not be kept then. */
   layoutFallback?: string;
+  /** Edges whose label sits beside the line with no ELK layer of its own (layout/sizes.ts fitsBeside). */
+  besideLabels?: string[];
   /** Plain-language summary used for the SVG <desc> and alt text. */
   description: string;
   kind: DiagramKind;

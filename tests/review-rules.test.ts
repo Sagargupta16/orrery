@@ -310,10 +310,64 @@ edges:
 `;
 
   it("layout.sparse flags a figure whose median gap is over 300px", async () => {
-    const [hit] = await findings(chain("3"), "layout.sparse");
+    // Labels beside their lines keep even spacing 3 under 300px, so the labelled layers the
+    // layout falls back to make the wide gaps.
+    const m = model(chain("3"));
+    const scene = structuredClone(await layout(m, { labelLayers: true }));
+    const [hit] = review(scene, m).findings.filter((f) => f.id === "layout.sparse");
     expect(hit?.evidence.medianGapPx).toBeGreaterThan(300);
     expect(hit?.patches).toEqual([{ op: "set", path: "layout.spacing", value: "compact" }]);
     expect(await findings(chain("normal"), "layout.sparse")).toEqual([]);
+  });
+
+  it("layout.sparse-canvas flags nodes covering under 5% of the canvas, with inkPct a metric", async () => {
+    const { m, scene } = await laid(PAIR);
+    const report = review(scene, m);
+    const ink = Number(report.dimensions.layout.metrics.inkPct);
+    const area = scene.nodes.reduce((s, n) => s + n.box.w * n.box.h, 0);
+    expect(ink).toBeGreaterThan(100 * (area / (scene.width * scene.height)) - 0.1);
+    expect(ink).toBeGreaterThan(5);
+    expect(report.findings.map((f) => f.id)).not.toContain("layout.sparse-canvas");
+    // The same nodes on a canvas four times the side: the share falls by 16.
+    scene.width *= 4;
+    scene.height *= 4;
+    const sparse = review(scene, m);
+    const [hit] = sparse.findings.filter((f) => f.id === "layout.sparse-canvas");
+    expect(Number(sparse.dimensions.layout.metrics.inkPct)).toBeLessThan(5);
+    expect(hit?.severity).toBe("minor");
+    expect(hit?.evidence).toMatchObject({ limitPct: 5, width: scene.width, height: scene.height });
+    expect(hit?.patches).toEqual([{ op: "set", path: "layout.spacing", value: "compact" }]);
+  });
+
+  it("layout.sparse-canvas is not reported for a kind that places its own nodes", async () => {
+    const { m, scene } = await laid(`kind: sequence
+nodes: { a: A, b: B }
+edges:
+  - a -> b: hi
+`);
+    scene.width *= 8;
+    scene.height *= 8;
+    const report = review(scene, m);
+    expect(Number(report.dimensions.layout.metrics.inkPct)).toBeLessThan(5);
+    expect(report.findings.map((f) => f.id)).not.toContain("layout.sparse-canvas");
+  });
+
+  it("bendMean and bendMax count the corners of every routed edge", async () => {
+    const { m, scene } = await laid(`direction: down
+${PAIR}`);
+    const straight = review(scene, m).dimensions.grid.metrics;
+    expect(straight).toMatchObject({ bendMean: 0, bendMax: 0 });
+    const [e] = scene.edges;
+    const [p, q] = [e?.points[0], e?.points.at(-1)];
+    if (!e || !p || !q) throw new Error("edge points");
+    e.points = [
+      p,
+      { x: p.x, y: (p.y + q.y) / 2 },
+      { x: q.x + 40, y: (p.y + q.y) / 2 },
+      { x: q.x + 40, y: q.y },
+      q,
+    ];
+    expect(review(scene, m).dimensions.grid.metrics).toMatchObject({ bendMean: 3, bendMax: 3 });
   });
 
   /** Three nodes in a row, centres `pitch` apart, each label `wide` px wide. */

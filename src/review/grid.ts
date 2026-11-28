@@ -156,6 +156,7 @@ export function measureGrid(c: Ctx): void {
   const spread = endSpread(c);
   const rows = iconRows(c);
   const bendy = extraBends(c);
+  const bends = bendCounts(c);
 
   Object.assign(m, {
     raggedLayers: ragged,
@@ -169,7 +170,24 @@ export function measureGrid(c: Ctx): void {
     unevenEnds: spread,
     offLineIcons: rows,
     extraBends: bendy,
+    bendMean: r2(bends.mean),
+    bendMax: bends.max,
   });
+}
+
+/**
+ * Bends per routed edge (layout/bends.ts bendsOf: corners after dropping straight points), as a
+ * metric only: grid.avoidable-bend and grid.zig-zag judge the single route. A spline has no
+ * corners to count.
+ */
+function bendCounts(c: Ctx): { mean: number; max: number } {
+  const { scene } = c;
+  if (scene.routing === "spline") return { mean: 0, max: 0 };
+  const counts = scene.edges.filter((e) => e.points.length > 1).map((e) => bendsOf(e.points));
+  return {
+    mean: counts.reduce((s, n) => s + n, 0) / Math.max(1, counts.length),
+    max: Math.max(0, ...counts),
+  };
 }
 
 /** Kinds whose own hooks place every node and route every connector; pools and lanes too. */
@@ -390,8 +408,9 @@ interface Gap {
  * the labels in it need, 48px at least, plus 32px) would flag every labelled gap in the gallery
  * (about 165px at normal spacing) as a hole that no spec edit closes. So each gap is measured
  * against the room layout itself gives it: one layer gap (64px times layout.spacing), or, when
- * edge labels sit in it, two layer gaps and the labels, because ELK gives centered labels a layer
- * of their own; and never less than the routing tracks of the edge runs across it. An empty band
+ * edge labels sit in it, two layer gaps and the labels when they are too big to sit beside their
+ * line (ELK gives those a layer of their own; Scene.besideLabels names the rest), else one layer gap;
+ * and never less than the routing tracks of the edge runs across it. An empty band
  * is over 96px more than its room (an unlabelled gap at normal spacing: 160px) or over 2.5x its
  * room and over 64px, and a gap between sibling groups is over its room (48px at least) plus 32px.
  * grid.uneven-gaps judges the spread of every layer gap at once, so one evenly wide gap passes it.
@@ -464,7 +483,11 @@ function frameGaps(c: Ctx): { wide: number; between: number } {
             .map(([p]) => Math.round(p[at])),
         ).size;
         const channel = tracks ? (40 + 10 * (tracks - 1)) * model.spacing : 0;
-        const labels = inside.length ? 2 * layer + Math.max(0, hi - lo) : layer;
+        // A label placed beside its line takes no layer of its own (Scene.besideLabels).
+        const extent = Math.max(0, hi - lo);
+        const beside = new Set(scene.besideLabels ?? []);
+        const layered = inside.some((x) => !beside.has(x.e.id));
+        const labels = layered ? 2 * layer + extent : layer;
         gaps.push({
           d: b0 - a0,
           a0,

@@ -1,12 +1,14 @@
 // The placement hints around the core: rank: <n> becomes an align on a node already in that
 // layer, and an align or a cols grid whose edges cannot be drawn clear is dropped and reported.
 
+import { checkScene } from "../check/index.ts";
 import type { Box, IgnoredSetting, Model, Scene } from "../types.ts";
 import { hiddenOf, type LayoutOptions, withIgnored } from "./context.ts";
 import { layoutCore } from "./core.ts";
-import { sceneDefects } from "./defects.ts";
+import { againstFlow, sceneCrossings, sceneDefects } from "./defects.ts";
 import { layersOf, planPlacement, selfPlaced } from "./plan.ts";
 import { loopedEdges } from "./relations.ts";
+import { ELK_BUDGET } from "./sizes.ts";
 
 /**
  * rank: <n> puts a node in the nth layer of its group. ELK 0.12 has no layer number constraint
@@ -164,11 +166,38 @@ const COVERED = "in that layer an edge or its label would cover a node or anothe
 const CROWDED = "in its grid an edge or its label would cover a node or another label";
 
 /**
+ * Edge labels that fit beside their line give a compact layout (no ELK layer each), but ELK then
+ * orders the layers without them and can turn or cross edges the labelled layout keeps straight.
+ * The compact layout is kept when it saves at least 3% of the canvas and crosses or turns no more
+ * edges, and has no more defects or warnings, than the one with a layer for every label.
+ */
+export async function layoutGridded(model: Model, opts: LayoutOptions): Promise<Scene> {
+  const compact = await layoutGrids(model, opts);
+  const labelled =
+    (model.kind === "architecture" || model.kind === "flowchart" || model.kind === "state") &&
+    model.edges.length <= ELK_BUDGET &&
+    model.edges.some((e) => e.label || e.step !== undefined);
+  if (opts.labelLayers || !labelled) return compact;
+  const layered = await layoutGrids(model, { ...opts, labelLayers: true });
+  const turns = (s: Scene) => sceneCrossings(s) + againstFlow(s);
+  const area = (s: Scene) => s.width * s.height;
+  // Warnings include a hint that had no effect (DG219) and lines that skim a node (DG221).
+  const warnings = (s: Scene) =>
+    checkScene(s, model).filter((d) => d.severity === "warning").length + (s.ignored?.length ?? 0);
+  return turns(compact) > turns(layered) ||
+    sceneDefects(compact) > sceneDefects(layered) ||
+    area(compact) > area(layered) * 0.97 ||
+    warnings(compact) > warnings(layered)
+    ? layered
+    : compact;
+}
+
+/**
  * A cols grid whose edges cannot be drawn clear goes the way an align does (dropCovering): the
  * group is laid out as if it had no cols, and each dropped grid is reported. It wraps the rank
  * and align hints, so those are decided again for the layout without the grid.
  */
-export async function layoutGridded(model: Model, opts: LayoutOptions): Promise<Scene> {
+async function layoutGrids(model: Model, opts: LayoutOptions): Promise<Scene> {
   const scene = await layoutRanked(model, opts);
   const plan = sceneDefects(scene) ? planPlacement(model, hiddenOf(model)) : undefined;
   if (!plan?.grids.size) return scene;

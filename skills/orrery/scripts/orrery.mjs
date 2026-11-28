@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.14.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.15.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -9888,7 +9888,7 @@ function hexColor(r6, value2, key, where, subject, extra = []) {
 }
 
 // src/cli/help.ts
-var VERSION = true ? "0.14.0" : "dev";
+var VERSION = true ? "0.15.0" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
@@ -10066,6 +10066,8 @@ var SIZES = {
 };
 var ENDS = { pitch: 14, inset: 8, gap: 0 };
 var ELK_BUDGET = 150;
+var LABEL_CLEAR = 8;
+var fitsBeside = (extent2, spacing) => extent2 + 2 * LABEL_CLEAR <= 64 * spacing;
 var animateOf = (model) => model.animate ?? (model.skin === "stage" ? "relay" : "none");
 
 // src/types.ts
@@ -12949,22 +12951,29 @@ function clearHeader(g, room2, groups, nodes, edges) {
 
 // src/layout/labels.ts
 function placeFreeLabels(ctx) {
-  const { model, opts, nodes, groups, edges, headers, rerouted, rel: rel2 } = ctx;
+  const { model, opts, nodes, groups, edges, headers, rerouted, rel: rel2, beside: beside2, unplaced } = ctx;
   const footprints = nodes.map((n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox]));
   for (const e of model.edges) {
     const edge3 = edges.find((x2) => x2.id === e.id);
-    if (!(rel2.free(e) || rerouted.has(e.id)) || !edge3 || !e.label && e.step === void 0)
-      continue;
-    const block3 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+    const drawnAfter = rel2.free(e) || rerouted.has(e.id);
+    if (!(drawnAfter || beside2.has(e.id)) || !edge3 || !e.label && e.step === void 0) continue;
     const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
-    const w = Math.ceil((e.label ? block3.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-    const h = Math.ceil(Math.max(e.label ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
-    const fresh = rel2.inBlock(e) || rel2.gridBetween(e) || rel2.seated(e) || rerouted.has(e.id) || !!opts.loose?.has(e.id);
+    const sized = (b) => ({
+      w: Math.ceil((e.label ? b.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0)),
+      h: Math.ceil(Math.max(e.label ? b.height + 6 : 0, stepW ? SIZES.step : 0))
+    });
+    let block3 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+    let { w, h } = sized(block3);
+    const fresh = !drawnAfter || rel2.inBlock(e) || rel2.gridBetween(e) || rel2.seated(e) || rerouted.has(e.id) || !!opts.loose?.has(e.id);
     const avoid = [
       ...footprints,
       ...edges.flatMap((x2) => [x2.labelBox, x2.stepBox]),
       ...groups.map(headerText),
       ...fresh ? nodes.map((n4) => n4.badgeBox) : [],
+      // A label beside an ELK line keeps off every arrowhead, which reaches past a line's tip box,
+      // and out of each framed group's title band (DG225), where it would read as the title.
+      ...drawnAfter ? [] : edges.flatMap((x2) => x2 === edge3 ? [] : headsOf(x2)),
+      ...drawnAfter ? [] : groups.flatMap(titleBand),
       ...fresh ? groups.flatMap((g) => [
         { x: g.box.x - 1, y: g.box.y, w: 2, h: g.box.h },
         { x: g.box.x + g.box.w - 1, y: g.box.y, w: 2, h: g.box.h },
@@ -12979,17 +12988,18 @@ function placeFreeLabels(ctx) {
       { x: g.box.x, y: g.box.y + g.box.h - 1, w: g.box.w, h: 2 }
     ]);
     const lines2 = edges.filter((x2) => x2 !== edge3).map((x2) => x2.points);
-    const search2 = () => labelSpot(
+    const search2 = (fine2 = false, sw = w, sh = h) => labelSpot(
       edge3.points,
-      w,
-      h,
+      sw,
+      sh,
       [
         ...avoid.filter((b) => !!b),
         ...fresh ? [] : frames2,
         ...headers.map((x2) => x2.box),
         ...groups.flatMap((g) => g.iconBox ? [g.iconBox] : [])
       ],
-      lines2
+      lines2,
+      fine2
     );
     const usual = fresh ? void 0 : freeLabelBox(edge3.points, w, h, avoid);
     const inside4 = (v, lo, len2) => v > lo + 1 && v < lo + len2 - 1;
@@ -13001,7 +13011,16 @@ function placeFreeLabels(ctx) {
         ({ box: r6 }) => (inside4(r6.y, b.y, b.h) || inside4(r6.y + r6.h, b.y, b.h)) && spans2(r6.x, r6.w, b.x, b.w) || (inside4(r6.x, b.x, b.w) || inside4(r6.x + r6.w, b.x, b.w)) && spans2(r6.y, r6.h, b.y, b.h)
       );
     };
-    const box2 = (usual && !crossed(usual) ? usual : search2()) ?? usual ?? freeLabelBox(edge3.points, w, h, avoid);
+    const hits5 = hardHits(ctx, edge3);
+    let found = (usual && !crossed(usual) && !hits5(usual) ? usual : search2()) ?? (drawnAfter ? void 0 : search2(true));
+    const narrow = !found && !drawnAfter && e.label ? textBlock(e.label, SIZES.edgeLabel, Math.ceil(block3.width / 2) + 1) : void 0;
+    if (narrow && narrow.lines.length > block3.lines.length) {
+      const size = sized(narrow);
+      const spot = search2(true, size.w, size.h);
+      if (spot) [found, block3, w, h] = [spot, narrow, size.w, size.h];
+    }
+    if (!found && !drawnAfter) unplaced.add(e.id);
+    const box2 = found ?? leastHit(edge3.points, w, h, hits5, usual ?? freeLabelBox(edge3.points, w, h, avoid));
     if (e.step !== void 0)
       edge3.stepBox = {
         x: box2.x,
@@ -13020,7 +13039,70 @@ function placeFreeLabels(ctx) {
     }
   }
 }
-function labelSpot(points, w, h, avoid, lines2) {
+function layeredLabels(ctx) {
+  const { edges, beside: beside2, unplaced } = ctx;
+  const out = new Set(unplaced);
+  for (const edge3 of edges) {
+    if (!beside2.has(edge3.id) || out.has(edge3.id)) continue;
+    const hits5 = hardHits(ctx, edge3);
+    if ([edge3.labelBox, edge3.stepBox].some((b) => b && b.w > 0 && hits5(b) > 0)) out.add(edge3.id);
+  }
+  return out;
+}
+function hardHits(ctx, edge3) {
+  const { edges, groups, nodes } = ctx;
+  const feet = nodes.map(
+    (n4) => union2([n4.box, n4.iconBox, n4.labelBox, n4.noteBox].filter((b) => !!b))
+  );
+  const tags = edges.flatMap(
+    (x2) => x2 === edge3 ? [] : [x2.labelBox, x2.stepBox].filter((b) => !!b && b.w > 0)
+  );
+  const heads = edges.flatMap((x2) => x2 === edge3 ? [] : headsOf(x2));
+  const segs2 = edges.flatMap((x2) => segmentsOf(x2.points));
+  const inside4 = (v, lo, len2) => v > lo + 1 && v < lo + len2 - 1;
+  const spans2 = (lo, len2, a, alen) => lo < a + alen && a < lo + len2;
+  const count = (list, hit) => list.filter(hit).length;
+  return (b) => count(segs2, ([p, q2]) => segmentHits(p, q2, b, 0.5)) + count(heads, (x2) => meet(b, x2, -1)) + count(
+    groups,
+    ({ box: r6 }) => (inside4(r6.y, b.y, b.h) || inside4(r6.y + r6.h, b.y, b.h)) && spans2(r6.x, r6.w, b.x, b.w) || (inside4(r6.x, b.x, b.w) || inside4(r6.x + r6.w, b.x, b.w)) && spans2(r6.y, r6.h, b.y, b.h)
+  ) / 4 + count(feet, (f) => meet(b, f, -1)) + count(tags, (t) => meet(b, t, -1));
+}
+function leastHit(points, w, h, hits5, last) {
+  let best = last;
+  let fewest = hits5(last);
+  for (const b of spotsAlong(points, w, h, TWELFTHS)) {
+    if (!fewest) break;
+    const n4 = hits5(b);
+    if (n4 < fewest) [best, fewest] = [{ x: round2(b.x), y: round2(b.y), w, h }, n4];
+  }
+  return best;
+}
+function titleBand(g) {
+  if (g.overlay || g.lane || g.type === "pool" || g.type === "lane" || !g.label.lines.length)
+    return [];
+  const t = headerText(g);
+  return [{ x: g.box.x, y: g.box.y, w: g.box.w, h: Math.max(28, t.y + t.h - g.box.y) }];
+}
+function headsOf(e) {
+  const ends3 = [];
+  if (e.arrow === "end" || e.arrow === "both") ends3.push([e.points.at(-1), e.points.at(-2)]);
+  if (e.arrow === "start" || e.arrow === "both") ends3.push([e.points[0], e.points[1]]);
+  return ends3.flatMap(([tip, prev]) => {
+    if (!tip || !prev) return [];
+    const len2 = Math.hypot(tip.x - prev.x, tip.y - prev.y) || 1;
+    const [ux, uy] = [(tip.x - prev.x) / len2, (tip.y - prev.y) / len2];
+    const [bx, by] = [tip.x - ux * 9, tip.y - uy * 9];
+    const xs = [tip.x, bx - uy * 4.5, bx + uy * 4.5];
+    const ys = [tip.y, by + ux * 4.5, by - ux * 4.5];
+    const x2 = Math.min(...xs) - 1;
+    const y = Math.min(...ys) - 1;
+    return [{ x: x2, y, w: Math.max(...xs) + 1 - x2, h: Math.max(...ys) + 1 - y }];
+  });
+}
+var TWELFTHS = Array.from({ length: 11 }, (_, i) => (i + 1) / 12).sort(
+  (a, b) => Math.abs(a - 0.5) - Math.abs(b - 0.5)
+);
+function labelSpot(points, w, h, avoid, lines2, fine2 = false) {
   const stroke3 = ([p, q2]) => ({
     x: Math.min(p.x, q2.x) - 1,
     y: Math.min(p.y, q2.y) - 1,
@@ -13032,23 +13114,26 @@ function labelSpot(points, w, h, avoid, lines2) {
     ...avoid,
     ...[...lines2, points].flatMap((pts) => [...segmentsOf(pts).map(stroke3), ...tips(pts)])
   ];
+  const spot = spotsAlong(points, w, h, fine2 ? TWELFTHS : [0.5, 1 / 3, 2 / 3]).find(
+    (b) => !walls.some((o) => meet(b, o))
+  );
+  return spot && { x: round2(spot.x), y: round2(spot.y), w, h };
+}
+function spotsAlong(points, w, h, fractions) {
   const runs2 = segmentsOf(points).filter(([p, q2]) => Math.abs(p.x - q2.x) + Math.abs(p.y - q2.y) > 1).sort(([a, b], [c, d]) => Math.hypot(d.x - c.x, d.y - c.y) - Math.hypot(b.x - a.x, b.y - a.y));
-  for (const [p, q2] of runs2)
-    for (const f of [0.5, 1 / 3, 2 / 3]) {
+  return runs2.flatMap(
+    ([p, q2]) => fractions.flatMap((f) => {
       const x2 = p.x + (q2.x - p.x) * f;
       const y = p.y + (q2.y - p.y) * f;
-      const level2 = Math.abs(p.y - q2.y) < 0.5;
-      const spots = level2 ? [
+      return Math.abs(p.y - q2.y) < 0.5 ? [
         { x: x2 - w / 2, y: y - h - 3, w, h },
         { x: x2 - w / 2, y: y + 3, w, h }
       ] : [
         { x: x2 + 6, y: y - h / 2, w, h },
         { x: x2 - 6 - w, y: y - h / 2, w, h }
       ];
-      const spot = spots.find((b) => !walls.some((o) => meet(b, o)));
-      if (spot) return { x: round2(spot.x), y: round2(spot.y), w, h };
-    }
-  return void 0;
+    })
+  );
 }
 function freeLabelBox(points, w, h, avoid) {
   const runs2 = points.slice(1).map((q3, i) => [points[i] ?? q3, q3]).filter(([p2, q3]) => Math.abs(p2.x - q3.x) < 0.5 && Math.abs(p2.y - q3.y) > 0.5).sort(([a, b], [c, d]) => Math.abs(d.y - c.y) - Math.abs(b.y - a.y));
@@ -18146,8 +18231,21 @@ function addEdges(ctx) {
     return id;
   };
   const source = (e) => opts.flip?.has(e.id) ? e.to : e.from;
+  const cellAt = (e) => plan.grids.size ? cellOf(lowest(e.from, e.to)) : void 0;
+  const tags = new Map(
+    model.edges.flatMap(
+      (e) => !free(e) && (e.label || e.step !== void 0) ? [[e.id, measureTag(e)]] : []
+    )
+  );
+  const besideKind = !opts.labelLayers && (model.kind === "architecture" || model.kind === "flowchart" || model.kind === "state") && model.routing === "orthogonal" && !ctx.hidden.size;
+  const beside2 = new Set(
+    besideKind ? model.edges.filter((e) => {
+      const tag = tags.get(e.id);
+      return !!tag && e.from !== e.to && !cellAt(e) && !opts.flip?.has(e.id) && !opts.layered?.has(e.id) && fitsBeside(ctx.horizontal ? tag.w : tag.h, ctx.spacing);
+    }).map((e) => e.id) : []
+  );
   const labelledFrom = new Set(
-    model.edges.filter((e) => !free(e) && (e.label || e.step !== void 0)).map(source)
+    model.edges.filter((e) => tags.has(e.id) && !beside2.has(e.id)).map(source)
   );
   const edgeLabels = /* @__PURE__ */ new Map();
   const cellEdges = /* @__PURE__ */ new Map();
@@ -18169,29 +18267,33 @@ function addEdges(ctx) {
       sources: [port(flip3 ? e.to : e.from, "out", e)],
       targets: [port(flip3 ? e.from : e.to, "in", e)]
     };
-    if (!e.label && e.step === void 0 && labelledFrom.has(source(e))) {
+    const tag = tags.get(e.id);
+    if ((!tag || beside2.has(e.id)) && labelledFrom.has(source(e))) {
       elkEdge.labels = [{ id: `${e.id}__spacer`, text: " ", width: 1, height: 1 }];
     }
-    const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
-    if (e.label || e.step !== void 0) {
-      const block3 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
-      const w = Math.ceil((e.label ? block3.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
-      const h = Math.ceil(Math.max(e.label ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
-      edgeLabels.set(e.id, { block: block3, w, h, stepW });
+    if (tag && !beside2.has(e.id)) {
+      edgeLabels.set(e.id, tag);
       elkEdge.labels = [
         {
           id: `${e.id}__label`,
           text: e.label || `step ${e.step}`,
-          width: w,
-          height: h
+          width: tag.w,
+          height: tag.h
         }
       ];
     }
-    const cell = plan.grids.size ? cellOf(lowest(e.from, e.to)) : void 0;
+    const cell = cellAt(e);
     if (cell) cellEdges.set(cell, [...cellEdges.get(cell) ?? [], elkEdge]);
     else root.edges?.push(elkEdge);
   }
-  return { edgeLabels, cellEdges };
+  return { edgeLabels, cellEdges, beside: beside2, unplaced: /* @__PURE__ */ new Set() };
+}
+function measureTag(e) {
+  const block3 = textBlock(e.label ?? "", SIZES.edgeLabel, SIZES.edgeLabelMax);
+  const stepW = e.step !== void 0 ? SIZES.step + 2 : 0;
+  const w = Math.ceil((e.label ? block3.width + 12 : 0) + stepW + (e.label && stepW ? 2 : 0));
+  const h = Math.ceil(Math.max(e.label ? block3.height + 6 : 0, stepW ? SIZES.step : 0));
+  return { block: block3, w, h, stepW };
 }
 function seatLinks(ctx) {
   const { model, plan, root, rel: rel2 } = ctx;
@@ -19329,13 +19431,15 @@ function secondPass(ctx) {
     })
   );
   const loose = new Set([...rerouted].filter((id) => !back.has(id)));
-  return !opts.widen && !opts.room && !opts.loose && !opts.flip && !opts.grow && (wider || room2.size || rerouted.size || grow7.size) ? {
+  const layered = layeredLabels(ctx);
+  return !opts.widen && !opts.room && !opts.loose && !opts.flip && !opts.grow && !opts.layered && (wider || room2.size || rerouted.size || grow7.size || layered.size) ? {
     ...opts,
     widen: wider ? new Set(widen2) : void 0,
     room: room2.size ? room2 : void 0,
     loose: loose.size ? loose : void 0,
     flip: back.size ? back : void 0,
-    ...grow7.size ? { grow: grow7 } : {}
+    ...grow7.size ? { grow: grow7 } : {},
+    ...layered.size ? { layered } : {}
   } : void 0;
 }
 function overlayRoom(ctx) {
@@ -22040,9 +22144,8 @@ async function layoutCore(model, opts = {}) {
     failed = e?.message ?? String(e);
     return void 0;
   }) : void 0;
-  const early = again && !rerouted.size ? await again : void 0;
-  if (early) return early;
-  const scene = assemble(routed, hooked.routing, sizeCanvas(routed));
+  const assembled = assemble(routed, hooked.routing, sizeCanvas(routed));
+  const scene = routed.beside.size ? { ...assembled, besideLabels: [...routed.beside] } : assembled;
   const done = model.skin === "stage" ? stageColors(scene) : scene;
   if (!again) return done;
   const second = await again;
@@ -22159,6 +22262,16 @@ function rankAnchors(model, probe2, ignore) {
 var COVERED = "in that layer an edge or its label would cover a node or another label";
 var CROWDED = "in its grid an edge or its label would cover a node or another label";
 async function layoutGridded(model, opts) {
+  const compact = await layoutGrids(model, opts);
+  const labelled = (model.kind === "architecture" || model.kind === "flowchart" || model.kind === "state") && model.edges.length <= ELK_BUDGET && model.edges.some((e) => e.label || e.step !== void 0);
+  if (opts.labelLayers || !labelled) return compact;
+  const layered = await layoutGrids(model, { ...opts, labelLayers: true });
+  const turns = (s) => sceneCrossings(s) + againstFlow(s);
+  const area = (s) => s.width * s.height;
+  const warnings = (s) => checkScene(s, model).filter((d) => d.severity === "warning").length + (s.ignored?.length ?? 0);
+  return turns(compact) > turns(layered) || sceneDefects(compact) > sceneDefects(layered) || area(compact) > area(layered) * 0.97 || warnings(compact) > warnings(layered) ? layered : compact;
+}
+async function layoutGrids(model, opts) {
   const scene = await layoutRanked(model, opts);
   const plan = sceneDefects(scene) ? planPlacement(model, hiddenOf(model)) : void 0;
   if (!plan?.grids.size) return scene;
@@ -27629,15 +27742,18 @@ async function renderPng(svg, opts = {}) {
       ].map((f) => join7(fontsDir, f)),
       ...opts.fonts ?? []
     ];
-    const image = await nat.renderAsync(svg, {
-      fitTo: { mode: "zoom", value: scale },
-      background: opts.background,
-      font: { fontFiles: files, defaultFontFamily: "Inter", loadSystemFonts: false },
-      shapeRendering: 2,
-      textRendering: 1,
-      imageRendering: 0
-    });
-    return image.asPng();
+    try {
+      const image = await nat.renderAsync(svg, {
+        fitTo: { mode: "zoom", value: scale },
+        background: opts.background,
+        font: { fontFiles: files, defaultFontFamily: "Inter", loadSystemFonts: false },
+        shapeRendering: 2,
+        textRendering: 1,
+        imageRendering: 0
+      });
+      return image.asPng();
+    } catch {
+    }
   }
   resvg ??= load2();
   const { Resvg } = await resvg;
@@ -36052,6 +36168,11 @@ var FINDINGS = {
     cap: 15,
     about: "the median empty gap between neighbouring nodes in a row or column is over 300px, so the picture is spread thin"
   },
+  "layout.sparse-canvas": {
+    dimension: "layout",
+    cap: 8,
+    about: "the nodes cover under 5% of the canvas, so the picture is mostly empty paper (the nodes' footprints over the canvas, both in canvas px)"
+  },
   "layout.wide-pitch": {
     dimension: "layout",
     cap: 8,
@@ -37076,6 +37197,7 @@ function measureGrid2(c) {
   const spread2 = endSpread(c);
   const rows = iconRows(c);
   const bendy = extraBends(c);
+  const bends = bendCounts(c);
   Object.assign(m, {
     raggedLayers: ragged,
     jogs,
@@ -37087,8 +37209,19 @@ function measureGrid2(c) {
     groupGaps: between,
     unevenEnds: spread2,
     offLineIcons: rows,
-    extraBends: bendy
+    extraBends: bendy,
+    bendMean: r22(bends.mean),
+    bendMax: bends.max
   });
+}
+function bendCounts(c) {
+  const { scene } = c;
+  if (scene.routing === "spline") return { mean: 0, max: 0 };
+  const counts = scene.edges.filter((e) => e.points.length > 1).map((e) => bendsOf(e.points));
+  return {
+    mean: counts.reduce((s, n4) => s + n4, 0) / Math.max(1, counts.length),
+    max: Math.max(0, ...counts)
+  };
 }
 var placedByHook = (c) => ["tree", "mindmap"].includes(c.scene.kind ?? "") || OWN_LAYOUT.has(c.scene.kind) || c.scene.groups.some((g) => g.lane);
 function endSpread(c) {
@@ -37285,7 +37418,10 @@ function frameGaps(c) {
           ).map(([p]) => Math.round(p[at2]))
         ).size;
         const channel = tracks ? (40 + 10 * (tracks - 1)) * model.spacing : 0;
-        const labels2 = inside4.length ? 2 * layer2 + Math.max(0, hi - lo) : layer2;
+        const extent2 = Math.max(0, hi - lo);
+        const beside2 = new Set(scene.besideLabels ?? []);
+        const layered = inside4.some((x2) => !beside2.has(x2.e.id));
+        const labels2 = layered ? 2 * layer2 + extent2 : layer2;
         gaps.push({
           d: b0 - a0,
           a0,
@@ -37368,6 +37504,7 @@ function measureLayout(c, diagnostics) {
   const holePct = emptySpace(c);
   const spacing = nodeSpacing(c);
   const aspect = proportions(c);
+  const ink = inkDensity(c);
   const ignored = layoutDiagnostics(c, diagnostics);
   const { pairs, inOrder } = specOrder(c);
   Object.assign(m, {
@@ -37375,6 +37512,7 @@ function measureLayout(c, diagnostics) {
     againstFlow: against.length,
     crossings: crossings3,
     holePct: r1(holePct),
+    inkPct: r1(ink),
     nodeGapPx: Math.round(spacing.gap),
     nodePitchPx: Math.round(spacing.pitch),
     aspect: r22(aspect),
@@ -37481,7 +37619,8 @@ function edgeLengths(c) {
     return a && z ? Math.abs(z.x - a.x) + Math.abs(z.y - a.y) : l.len;
   };
   const detour2 = (l) => l.len > 100 && l.len > 3 * span2(l);
-  const long = scene.kind === "timeline" ? lens.filter(detour2) : scene.kind === "tree" || scene.kind === "mindmap" ? [] : lens.filter((l) => l.len > 2.5 * median2 && l.len > 300);
+  const floor = Math.max(300, 0.2 * (scene.width + scene.height));
+  const long = scene.kind === "timeline" ? lens.filter(detour2) : scene.kind === "tree" || scene.kind === "mindmap" ? [] : lens.filter((l) => l.len > 2.5 * median2 && l.len > floor);
   for (const l of long)
     add(
       "layout.long-edge",
@@ -37668,6 +37807,31 @@ function nodeSpacing(c) {
       Math.min(8, 4 + (pitch - WIDE_PITCH) / 20)
     );
   return { gap: gap2, pitch };
+}
+var SPARSE_INK = 5;
+function inkDensity(c) {
+  const { scene, model, add } = c;
+  const area = scene.nodes.reduce((s, n4) => {
+    const b = c.foot.get(n4.id) ?? n4.box;
+    return s + b.w * b.h;
+  }, 0);
+  const ink = 100 * area / Math.max(1, scene.width * scene.height);
+  if (!OWN_LAYOUT.has(model.kind) && scene.nodes.length > 1 && ink < SPARSE_INK)
+    add(
+      "layout.sparse-canvas",
+      "minor",
+      [],
+      { inkPct: r1(ink), limitPct: SPARSE_INK, width: scene.width, height: scene.height },
+      `the nodes cover ${r1(ink)}% of the canvas (under ${SPARSE_INK}%), so the picture is mostly empty paper`,
+      [
+        ...model.spacing > 0.75 ? ["use layout: { spacing: compact }"] : [],
+        "shorten the edge labels between layers: a label that does not fit beside its line takes a layer of its own",
+        "split the diagram into views"
+      ],
+      Math.min(8, (SPARSE_INK - ink) * 3),
+      model.spacing > 0.75 ? [{ op: "set", path: "layout.spacing", value: "compact" }] : void 0
+    );
+  return ink;
 }
 function proportions(c) {
   const { scene, model, add } = c;
@@ -39372,7 +39536,7 @@ var TOOLS = [
 var SERVER = {
   name: "orrery",
   title: "orrery",
-  version: true ? "0.14.0" : "dev"
+  version: true ? "0.15.0" : "dev"
 };
 var MODERN = ["2026-07-28"];
 var LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];

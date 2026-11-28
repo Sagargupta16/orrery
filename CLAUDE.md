@@ -118,6 +118,7 @@ npx -y @sagargupta1610/skillcheck lint skills
 - CI fails when `skills/orrery/scripts/orrery.mjs` does not match `src/` ("Bundled CLI matches src/"): run `pnpm build` and commit the bundle with every src change.
 - SVGs are static unless animate is asked (`animate: packets` for classic, SMIL); `skin: stage` with no `animate` key plays `relay`. PNG and draw.io always get a still scene (`animate: "none"`); keep it that way, resvg would draw packets at the origin.
 - Defaults since 0.14.0: classic skin, light theme, static. `skin: stage` animates with relay unless `animate` says otherwise; the official rules behind the defaults are in `references/review/conventions-*.md`.
+- Edge labels that `fitsBeside` (layout/sizes.ts) get no ELK label layer and are placed beside the route by `placeFreeLabels` (`Scene.besideLabels` names them, and the review budgets their gaps from it). `layoutGridded` (hints.ts) lays labelled architecture, flowchart and state diagrams out twice, with `opts.labelLayers` for the old layered labels, and keeps the compact one only when it saves 3% of the canvas with no more crossings, turned edges, defects or warnings.
 
 ## Repo-specific rules
 

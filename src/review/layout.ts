@@ -27,6 +27,7 @@ export function measureLayout(c: Ctx, diagnostics: Diagnostic[]): void {
   const holePct = emptySpace(c);
   const spacing = nodeSpacing(c);
   const aspect = proportions(c);
+  const ink = inkDensity(c);
   const ignored = layoutDiagnostics(c, diagnostics);
   const { pairs, inOrder } = specOrder(c);
 
@@ -35,6 +36,7 @@ export function measureLayout(c: Ctx, diagnostics: Diagnostic[]): void {
     againstFlow: against.length,
     crossings,
     holePct: r1(holePct),
+    inkPct: r1(ink),
     nodeGapPx: Math.round(spacing.gap),
     nodePitchPx: Math.round(spacing.pitch),
     aspect: r2(aspect),
@@ -169,12 +171,15 @@ function edgeLengths(c: Ctx): { lens: EdgeLength[]; median: number; long: EdgeLe
     return a && z ? Math.abs(z.x - a.x) + Math.abs(z.y - a.y) : l.len;
   };
   const detour = (l: EdgeLength) => l.len > 100 && l.len > 3 * span(l);
+  // A long edge is long against the picture too: over 300px and over 0.4 of the canvas's mean
+  // side, so a compact layout's short median does not flag every edge that crosses it.
+  const floor = Math.max(300, 0.2 * (scene.width + scene.height));
   const long =
     scene.kind === "timeline"
       ? lens.filter(detour)
       : scene.kind === "tree" || scene.kind === "mindmap"
         ? []
-        : lens.filter((l) => l.len > 2.5 * median && l.len > 300);
+        : lens.filter((l) => l.len > 2.5 * median && l.len > floor);
   for (const l of long)
     add(
       "layout.long-edge",
@@ -418,6 +423,44 @@ function nodeSpacing(c: Ctx): { gap: number; pitch: number } {
       Math.min(8, 4 + (pitch - WIDE_PITCH) / 20),
     );
   return { gap, pitch };
+}
+
+/**
+ * A canvas under this ink share reads as empty paper. Measured on 2026-11-28: orrery's ELK-laid
+ * gallery runs 4.7 to 26% (median near 10), the vendor references about 6.5 to 28% (median near 18).
+ */
+const SPARSE_INK = 5;
+
+/**
+ * Ink: the node footprints (icon or card box with its label and note) as a share of the canvas,
+ * both in canvas px. Frames, edges and the title are not counted, so a frame-heavy figure reads
+ * lower than it looks; the finding is only for a canvas where layout, not a nested frame, spread
+ * the nodes. A kind with its own layout places every node (a sequence's lifelines and a
+ * timeline's dates set the canvas), so density does not mean the same there: metric only.
+ */
+function inkDensity(c: Ctx): number {
+  const { scene, model, add } = c;
+  const area = scene.nodes.reduce((s, n) => {
+    const b = c.foot.get(n.id) ?? n.box;
+    return s + b.w * b.h;
+  }, 0);
+  const ink = (100 * area) / Math.max(1, scene.width * scene.height);
+  if (!OWN_LAYOUT.has(model.kind) && scene.nodes.length > 1 && ink < SPARSE_INK)
+    add(
+      "layout.sparse-canvas",
+      "minor",
+      [],
+      { inkPct: r1(ink), limitPct: SPARSE_INK, width: scene.width, height: scene.height },
+      `the nodes cover ${r1(ink)}% of the canvas (under ${SPARSE_INK}%), so the picture is mostly empty paper`,
+      [
+        ...(model.spacing > 0.75 ? ["use layout: { spacing: compact }"] : []),
+        "shorten the edge labels between layers: a label that does not fit beside its line takes a layer of its own",
+        "split the diagram into views",
+      ],
+      Math.min(8, (SPARSE_INK - ink) * 3),
+      model.spacing > 0.75 ? [{ op: "set", path: "layout.spacing", value: "compact" }] : undefined,
+    );
+  return ink;
 }
 
 /** Proportions, canvas width and the ELK fallback. */

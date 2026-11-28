@@ -141,9 +141,10 @@ edges:
     expect(cy(c)).toBeGreaterThan(cy(a) + a.h);
   });
 
-  it("lays a cols group out without its grid when the grid leaves an edge over a label", async () => {
-    // Flowing down, the grid's labelled routes from the load balancer to Orders and Payments leave
-    // a label over a node or another label, whichever way they run.
+  it("keeps a cols group's grid when the labels of its routes find a clear spot", async () => {
+    // Flowing down, the grid's labelled routes from the load balancer to Orders and Payments once
+    // left a label over a node or another label; a label with no clear spot now takes the one
+    // that runs into the fewest things, which here is clear, so the grid stays.
     const spec = (dir: string) => `direction: ${dir}
 groups:
   vpc: { type: aws:vpc, label: Services, cols: 2 }
@@ -168,9 +169,7 @@ edges:
 `;
     const down = await layout(model(spec("down")));
     expect(sceneDefects(down)).toBe(0);
-    expect(down.ignored).toEqual([
-      { subject: "vpc", setting: "cols", reason: expect.stringContaining("grid") },
-    ]);
+    expect(down.ignored).toBeUndefined();
     // Flowing right the same grid draws clear, so it stays: Data and Orders in the first row,
     // Payments and Shipping under them.
     const right = await layout(model(spec("right")));

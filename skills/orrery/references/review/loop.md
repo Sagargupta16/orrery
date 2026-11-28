@@ -225,6 +225,7 @@ The composition findings (zig-zag, avoidable bend, beside a group, uneven siblin
 | `layout.ignored` | DG219 | 9 | a setting layout could not honor (for example `rank:`, `align:`, `cols:` or `layout.aspect`); the patch unsets it |
 | `layout.sparse-group` |  | 12 | a group more than 65% empty (8px raster below its header) |
 | `layout.sparse` |  | 15 | the median empty gap between neighbouring nodes is over 300px (canvas px): the figure is spread thin |
+| `layout.sparse-canvas` |  | 8 | the nodes (icon or card with its label) cover under 5% of the canvas, so the picture is mostly empty paper; fixed by `layout: { spacing: compact }` (the patch), shorter edge labels, fewer layers or splitting the diagram into views. Not reported for kinds that place every node themselves (journey, sequence, timeline); `inkPct` is still in the layout metrics there |
 | `layout.wide-pitch` |  | 8 | the median centre-to-centre pitch of neighbouring nodes is over 400px |
 | `layout.beside-group` |  | 12 | a node outside a group shares 20 to 80% of its height with it, so the two read as one row of peers |
 | `grid.ragged` |  | 24 | items in one layer share no start, center or end line, or icons joined by an edge in one row (one column) sit off one center line |

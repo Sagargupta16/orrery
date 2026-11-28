@@ -124,15 +124,20 @@ export async function renderPng(svg: string, opts: PngOptions = {}): Promise<Uin
       ].map((f) => join(fontsDir, f)),
       ...(opts.fonts ?? []),
     ];
-    const image = await nat.renderAsync(svg, {
-      fitTo: { mode: "zoom", value: scale },
-      background: opts.background,
-      font: { fontFiles: files, defaultFontFamily: "Inter", loadSystemFonts: false },
-      shapeRendering: 2,
-      textRendering: 1,
-      imageRendering: 0,
-    });
-    return image.asPng();
+    try {
+      const image = await nat.renderAsync(svg, {
+        fitTo: { mode: "zoom", value: scale },
+        background: opts.background,
+        font: { fontFiles: files, defaultFontFamily: "Inter", loadSystemFonts: false },
+        shapeRendering: 2,
+        textRendering: 1,
+        imageRendering: 0,
+      });
+      return image.asPng();
+    } catch {
+      // A broken platform binary, or an input the native build rejects: the wasm build draws the
+      // same bytes, and when it fails too, its error (the wording callers match) is the one thrown.
+    }
   }
   resvg ??= load();
   const { Resvg } = await resvg;
