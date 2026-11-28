@@ -56,14 +56,14 @@ export const renderTool: Tool = {
       theme: {
         type: "string",
         enum: [...THEMES, "both"],
-        description: "both renders a light and a dark file. Default: the spec's theme.",
+        description: "both renders a light and a dark file. Default: the spec's theme, else light.",
       },
       skin: SKIN,
       animate: {
         type: "string",
         enum: [...ANIMATE_MODES],
         description:
-          "SVG motion: packets, flow, relay or none. Default: the skin's (packets for classic, relay for stage). PNG is always still.",
+          "SVG motion: packets, flow, relay or none. Default: the skin's (none for classic, relay for stage). PNG is always still.",
       },
       scale: {
         type: "number",

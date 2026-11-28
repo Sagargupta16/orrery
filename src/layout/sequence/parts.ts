@@ -3,11 +3,9 @@
 // messages as scene edges along their rows, the lifelines, bars and fragments, the legend and the
 // alt text.
 
-import { textBlock } from "../../text.ts";
 import type { Theme } from "../../themes.ts";
 import type {
   Box,
-  LegendEntry,
   Model,
   Point,
   Scene,
@@ -20,9 +18,9 @@ import type { Laid } from "../context.ts";
 import type { ElkNode } from "../elk.ts";
 import { round, union } from "../geometry.ts";
 import { type HeaderRoom, paintGroup } from "../groups.ts";
+import { placeLegend } from "../legend.ts";
 import { type GroupGeom, groupGeometry } from "../measure.ts";
 import { sceneNodes } from "../nodes.ts";
-import { SIZES } from "../sizes.ts";
 import { type Act, type Column, groupSpans, type Msg, SEQ } from "./columns.ts";
 import type { SceneSequence, SequenceFragment, SequenceLifeline } from "./index.ts";
 import type { Frag, Rows } from "./rows.ts";
@@ -351,7 +349,7 @@ export function assemble(
   let height = Math.ceil(bottom + P);
   let legend: SceneLegend | undefined;
   if (model.legend?.length) {
-    legend = placeLegend(model.legend, width, bottom + 16);
+    legend = placeLegend(model.legend, width, round(bottom + 16));
     width = Math.max(width, Math.ceil(legend.box.w + 2 * P));
     height = Math.ceil(legend.box.y + legend.box.h + P);
   }
@@ -369,42 +367,6 @@ export function assemble(
     description: describe(model, cols, msgs, frags),
     sequence,
   };
-}
-
-/** The line-style key under the diagram, right-aligned, as the other layouts place it. */
-function placeLegend(entries: LegendEntry[], width: number, top: number): SceneLegend {
-  const P = 10;
-  const rows = entries.map((e) => ({
-    line: e.line,
-    label: textBlock(e.label, SIZES.edgeLabel, 240),
-    ...(e.color ? { color: e.color } : {}),
-    ...(e.chip ? { chip: true } : {}),
-  }));
-  const w = Math.ceil(P + 28 + 8 + Math.max(...rows.map((r) => r.label.width)) + P);
-  const pitch = rows.map((r) => Math.max(18, r.label.height + 3));
-  const last = rows[rows.length - 1]?.label.height ?? 0;
-  const h = Math.ceil(P + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P);
-  const box = { x: Math.max(SIZES.pad, width - SIZES.pad - w), y: round(top), w, h };
-  let y = box.y + P;
-  const items = rows.map((r, i) => {
-    const swatch = { x: box.x + P, y: round(y + (r.label.lead - 12) / 2), w: 28, h: 12 };
-    const labelBox = {
-      x: box.x + P + 36,
-      y: round(y),
-      w: round(r.label.width),
-      h: round(r.label.height),
-    };
-    y += pitch[i] ?? 18;
-    return {
-      line: r.line,
-      ...(r.color ? { color: r.color } : {}),
-      ...(r.chip ? { chip: true } : {}),
-      swatch,
-      label: r.label,
-      labelBox,
-    };
-  });
-  return { box, items };
 }
 
 /** Alt text: who takes part, every message in order, and the fragments around them. */

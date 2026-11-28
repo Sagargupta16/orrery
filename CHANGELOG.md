@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here. Follows [Semantic Versioning](https://semver.org/).
 
+## [0.14.0] - 2026-11-28
+
+### Changed
+
+- **The default look follows the vendors' own diagram rules.** A spec with no `skin:`, `theme:` or `animate:` key now renders in the classic skin on a white background, still: every icon in its own colors, labels in black under the icons, AWS group tiles with 1.25pt borders (dashed for Availability Zones and Auto Scaling), open arrowheads on orthogonal lines, no motion. These match the AWS Architecture Icons deck (white background, black labels under icons, no recolored icons, open arrows, straight and right-angle lines), Azure's icon terms and Well-Architected diagram guidance and the C4 notation, none of which animate. It was the stage skin in the dark theme, animated. `skin: stage`, `theme: dark` and `animate: packets` (or `--skin stage`, `--theme dark`, `--animate packets`) bring the old look back; `skin: stage` with no `animate:` still plays its relay. The light theme's label and edge label ink is black (`#000000`) as the deck asks. All 77 examples review to the same scores as before (mean 98.669, 77 pass, 0 hard defects); their gallery pictures and the website now show the default look, with stage and dark as toggles.
+- The website gallery's filter chips no longer squash on top of each other on a phone; the row scrolls sideways.
+- **elkjs 0.12.2** (was 0.12.1): all 77 examples lay out byte for byte as before.
+
+### Added
+
+- **Native PNG rendering when it is installed.** `@resvg/resvg-js` (an optional dependency of the npm package) rasterizes PNGs natively, with the bundled WebAssembly build as the fallback, so the skill still runs with no install; `ORRERY_RESVG=wasm` forces the fallback and the gallery always uses it. Both give the same PNG bytes, and the PNGs of one run now render at the same time. On aws-hybrid-landing-zone `-f svg,png --theme both` took 1.95 s against 2.43 s with the wasm build, Node start included.
+
+### Removed
+
+- About 130 lines of duplicated code (288 removed, 155 added, in src): one `placeLegend` (`src/layout/legend.ts`) replaces four copies in the canvas, journey, timeline and sequence layouts, and one copy each of the edge label colon reader, the edit distance, the straight-point filter and the CRC-32 (all outputs byte-identical). Unused exports `ER_ENDS`, the doc module's internal re-exports, and the `MAX_COMMANDS` and `SIZES` re-exports are gone.
+
 ## [0.13.1] - 2026-11-26
 
 ### Changed

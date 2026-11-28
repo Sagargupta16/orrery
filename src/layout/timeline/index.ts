@@ -15,6 +15,7 @@ import type {
   ThemeName,
   TimeScale,
 } from "../../types.ts";
+import { placeLegend } from "../legend.ts";
 import { animateOf, SIZES } from "../sizes.ts";
 import {
   axisOf,
@@ -27,7 +28,7 @@ import {
   round,
   scaleOf,
 } from "./axis.ts";
-import { describe, keyOf, placeLegend, TODAY_STRIP, titleOf, todayOf } from "./canvas.ts";
+import { describe, keyOf, TODAY_STRIP, titleOf, todayOf } from "./canvas.ts";
 import { dayOf, floorTo, nextOf } from "./dates.ts";
 import {
   itemNodes,
@@ -246,7 +247,9 @@ export async function timelineLayout(model: Model, theme: ThemeName): Promise<Sc
     ),
   );
   let height = Math.ceil(bottom + P);
-  const legend = model.legend?.length ? placeLegend(model.legend, width, height) : undefined;
+  const legend = model.legend?.length
+    ? placeLegend(model.legend, width, height - P + 12)
+    : undefined;
   if (legend) {
     width = Math.max(width, Math.ceil(legend.box.w + 2 * P));
     height = Math.ceil(legend.box.y + legend.box.h + P);

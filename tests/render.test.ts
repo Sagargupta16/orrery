@@ -188,8 +188,15 @@ describe("SVG", () => {
     expect(svg).toContain('aria-labelledby="d2-sdw-title d2-sdw-desc"');
   });
 
-  it("moves packets along the edges by default, with no CSS", () => {
-    const svg = text(sample, "svg", "light");
+  it("moves packets along the edges when asked for animate: packets, with no CSS", async () => {
+    const asked = await renderModel({
+      formats: ["svg"],
+      themes: ["light"],
+      scale: 1,
+      model: model(`animate: packets\n${SAMPLE}`),
+      name: "orders",
+    });
+    const svg = text(asked, "svg", "light");
     expect(svg).not.toContain("<style>");
     expect(svg).toContain("<animateMotion");
     expect(svg).not.toContain("sdw-flow");
@@ -199,7 +206,7 @@ describe("SVG", () => {
   it("runs numbered edges in step order and loops them as one story", async () => {
     const s = await layout(
       model(
-        "skin: classic\nnodes: { a: A, b: B, c: C }\nedges:\n  - a -> b: { step: 1 }\n  - b -> c: { step: 2 }\n",
+        "skin: classic\nanimate: packets\nnodes: { a: A, b: B, c: C }\nedges:\n  - a -> b: { step: 1 }\n  - b -> c: { step: 2 }\n",
       ),
     );
     const svg = renderSvg(s);
@@ -436,12 +443,12 @@ describe("HTML", () => {
     expect(html).not.toMatch(/<script[^>]+src=|<link\b|@import|<iframe/i);
   });
 
-  it("escapes the title and starts in the spec's theme, dark by default", () => {
+  it("escapes the title and starts in the spec's theme, light by default", () => {
     const html = page();
     expect(html).toContain(
       "<title>Orders &lt;v2&gt; &amp; &quot;friends&quot; &#39;quoted&#39; {braces}</title>",
     );
-    expect(html).toContain('<body data-theme="dark">');
+    expect(html).toContain('<body data-theme="light">');
   });
 });
 

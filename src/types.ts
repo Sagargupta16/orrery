@@ -131,7 +131,6 @@ export interface ErField {
 }
 /** One end of a relationship (`card:` on an er edge): 1, 0..1, 1..n, 0..n. */
 export type ErEnd = "one" | "zero-one" | "many" | "zero-many";
-export const ER_ENDS: readonly ErEnd[] = ["one", "zero-one", "many", "zero-many"];
 
 /** A combined fragment of a sequence diagram (`fragments:`), over messages from..to (1-based). */
 export interface SeqFragment {
@@ -416,7 +415,7 @@ export interface Model {
   aspect?: number;
   /** "open" chevrons (AWS and Google decks) or "filled" triangles (Azure). */
   arrowhead: "open" | "filled";
-  /** Unset: the skin's default (packets for classic, relay for stage). */
+  /** Unset: the skin's default (none for classic, relay for stage). */
   animate?: AnimateMode;
   skin: Skin;
   background?: string;

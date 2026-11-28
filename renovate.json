@@ -7,6 +7,11 @@
   "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
   "packageRules": [
     {
+      "description": "The native binding and the wasm build must stay on one version (scripts/build.mjs fails otherwise).",
+      "matchPackageNames": ["@resvg/resvg-js", "@resvg/resvg-wasm"],
+      "groupName": "resvg"
+    },
+    {
       "description": "The eval fixtures pin images and providers on purpose: they are test inputs, not dependencies.",
       "matchFileNames": ["evals/**"],
       "enabled": false

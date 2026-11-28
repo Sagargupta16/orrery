@@ -64,6 +64,7 @@ const crosses = (p: Point, q: Point, b: Box) =>
 const ROADMAP = `title: Roadmap
 kind: timeline
 skin: classic
+animate: packets
 timeline: { scale: quarter, start: 2026-Q1, end: 2026-Q4, today: 2026-05-18 }
 groups:
   platform: { label: Platform }

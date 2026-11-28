@@ -190,7 +190,7 @@ function showRender(reply: RenderReply) {
     if (svg) {
       svg.classList.add("rise");
       stage.replaceChildren(svg);
-      preview.dataset.theme = reply.theme ?? "dark";
+      preview.dataset.theme = reply.theme ?? "light";
       applyFit();
     }
     $("preview-meta").textContent = `${reply.width} x ${reply.height} px, ${reply.counts?.nodes ?? 0} nodes, ${reply.counts?.edges ?? 0} edges`;
@@ -491,7 +491,7 @@ function save(data: BlobPart, type: string, file: string) {
 
 function fileBase(): string {
   const skin = state.skin ?? last?.skin;
-  return `${state.name}${skin === "classic" ? "-classic" : ""}-${state.theme ?? last?.theme ?? "dark"}`;
+  return `${state.name}${skin === "stage" ? "-stage" : ""}-${state.theme ?? last?.theme ?? "light"}`;
 }
 
 async function download(kind: string) {

@@ -2,6 +2,7 @@
 
 import { textBlock } from "../../text.ts";
 import type { Box, ModelEdge, Point, SceneEdge } from "../../types.ts";
+import { dropStraightPoints } from "../geometry.ts";
 import { elbow, flip, gridRoute, type Obstacle, type Port, STEPS } from "./grid.ts";
 import { placeLabels } from "./labels.ts";
 import { type End, endOf, type Ports, portsFor, portsOf } from "./ports.ts";
@@ -11,7 +12,6 @@ import {
   CLEAR,
   clusters,
   cuts,
-  dropStraight,
   EDGE_LABEL,
   EDGE_LABEL_MAX,
   footOf,
@@ -117,7 +117,7 @@ export function routeEdges(r: Routing): SceneEdge[] {
       if (prior) result.set(me.id, prior);
       continue;
     }
-    edge.points = dropStraight(points.map((p) => ({ x: round(p.x), y: round(p.y) })));
+    edge.points = dropStraightPoints(points.map((p) => ({ x: round(p.x), y: round(p.y) })));
     ports.claim(me, edge.points[0], edge.points[edge.points.length - 1], msg);
     for (let k = 1; k < edge.points.length; k++) {
       const p = edge.points[k - 1];

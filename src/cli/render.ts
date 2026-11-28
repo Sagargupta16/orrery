@@ -144,9 +144,9 @@ async function renderSpec(
   return receipt;
 }
 
-/** --theme (or the spec's theme, or dark) as the list of themes to draw. */
+/** --theme (or the spec's theme, or light) as the list of themes to draw. */
 function themesOf(args: Args, specTheme: ThemeName | undefined): ThemeName[] {
-  const themeFlag = String(args.flags.theme ?? specTheme ?? "dark");
+  const themeFlag = String(args.flags.theme ?? specTheme ?? "light");
   if (!["light", "dark", "both"].includes(themeFlag)) usage(`--theme must be light, dark or both`);
   return themeFlag === "both" ? ["light", "dark"] : [themeFlag as ThemeName];
 }

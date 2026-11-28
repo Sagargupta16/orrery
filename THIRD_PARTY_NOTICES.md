@@ -32,8 +32,9 @@ Both are copied unmodified into `skills/orrery/scripts/vendor/` by `scripts/buil
 
 | File | Source | License |
 | --- | --- | --- |
-| `elk.bundled.cjs` | [elkjs](https://github.com/kieler/elkjs) 0.12.1, the Eclipse Layout Kernel compiled to JavaScript | Eclipse Public License 2.0 (`elk.LICENSE.md`). Source code: https://github.com/kieler/elkjs and https://github.com/eclipse-elk/elk |
+| `elk.bundled.cjs` | [elkjs](https://github.com/kieler/elkjs) 0.12.2, the Eclipse Layout Kernel compiled to JavaScript | Eclipse Public License 2.0 (`elk.LICENSE.md`). Source code: https://github.com/kieler/elkjs and https://github.com/eclipse-elk/elk |
 | `resvg/index.mjs`, `resvg/index_bg.wasm` | [@resvg/resvg-wasm](https://github.com/thx/resvg-js) 2.6.2, built from [resvg](https://github.com/linebender/resvg) | Mozilla Public License 2.0, https://www.mozilla.org/MPL/2.0/. Source code: https://github.com/thx/resvg-js |
+| `@resvg/resvg-js` (native binding, loaded from node_modules when installed; not shipped) | [@resvg/resvg-js](https://github.com/thx/resvg-js) 2.6.2, built from [resvg](https://github.com/linebender/resvg) | Mozilla Public License 2.0, https://www.mozilla.org/MPL/2.0/. Source code: https://github.com/thx/resvg-js |
 
 ## Bundled into the CLI
 

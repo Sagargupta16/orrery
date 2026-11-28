@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds everything the site shows from the repository itself, so the site never drifts from the
-// renderer: every example in both themes and every format (and in the classic skin as SVG), the README art, the gallery captions
+// renderer: every example in the classic skin in both themes and every format (and in the stage skin as SVG), the README art, the gallery captions
 // from examples/README.md and the catalog numbers from the icon index. Output goes to
 // public/gallery, public/art and src/data/generated, all git-ignored.
 //
@@ -99,21 +99,35 @@ async function renderExample(file) {
   const spec = parse(text);
   const dir = join(galleryOut, name);
   mkdirSync(dir, { recursive: true });
-  await run(process.execPath, [cli, "render", specPath, "-o", join(dir, name), "-f", "all", "--theme", "both"]);
-  // The same diagram in the classic skin (same layout), for the gallery's Stage / Classic switch.
+  // The official look: classic skin, both themes, every format. Skin and theme are passed on
+  // purpose so the site does not depend on the CLI's defaults.
   const classic = await run(process.execPath, [
     cli,
     "render",
     specPath,
     "-o",
-    join(dir, `${name}-classic`),
+    join(dir, name),
     "-f",
-    "svg",
+    "all",
     "--theme",
     "both",
     "--skin",
     "classic",
     "--json",
+  ]);
+  // The same diagram in the stage skin (same layout), for the gallery's Classic / Stage switch.
+  await run(process.execPath, [
+    cli,
+    "render",
+    specPath,
+    "-o",
+    join(dir, `${name}-stage`),
+    "-f",
+    "svg",
+    "--theme",
+    "both",
+    "--skin",
+    "stage",
   ]);
   copyFileSync(specPath, join(dir, `${name}.yaml`));
   // The spec's own icons go along at the same relative paths, so the downloaded spec renders.
@@ -151,7 +165,7 @@ async function renderExample(file) {
     subtitle: spec.subtitle ?? "",
     caption: info?.caption ?? spec.subtitle ?? "",
     alt: info?.alt ?? spec.title ?? name,
-    theme: spec.theme === "light" ? "light" : "dark",
+    theme: spec.theme === "dark" ? "dark" : "light",
     width: Math.round(Number(w) || 1200),
     height: Math.round(Number(h) || 800),
     packs,
@@ -193,11 +207,13 @@ await run(process.execPath, [
   "-f",
   "png",
   "--theme",
-  "dark",
+  "light",
+  "--skin",
+  "classic",
 ]);
-const heroSvg = readFileSync(join(repo, "docs/hero-dark.svg"), "utf8");
+const heroSvg = readFileSync(join(repo, "docs/hero-light.svg"), "utf8");
 const [, heroW, heroH] = heroSvg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/) ?? [];
-const howSvg = readFileSync(join(repo, "docs/how-it-works-dark.svg"), "utf8");
+const howSvg = readFileSync(join(repo, "docs/how-it-works-light.svg"), "utf8");
 const [, howW, howH] = howSvg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/) ?? [];
 
 // Catalog numbers for the icon pack table and the hero stats.

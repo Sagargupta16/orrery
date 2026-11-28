@@ -66,15 +66,15 @@ const steps = [
   ["Write the spec", "Nodes with official icon ids, nested groups, labelled edges. Or let your agent write it."],
   ["Validate", "Spec errors stop the render, layout warnings do not; every diagnostic carries its fix."],
   ["Lay out", "ELK places nested boundaries, routes edges at right angles and keeps the order you wrote."],
-  ["Render", "Animated SVG, a still PNG, editable draw.io, a React component and an HTML viewer."],
+  ["Render", "A still SVG (animated in the stage skin), a PNG, editable draw.io, a React component and an HTML viewer."],
   ["Review", "Measured at the width people see it, then judged against each vendor's own rules."],
 ];
 
 const outputs = [
-  ["SVG", "Animated by default: one story plays along the edges, in the order the request flows.", starterFile("-dark.svg")],
-  ["PNG", "A still frame at 2x for slides and docs that strip SVG.", starterFile("-dark.png")],
-  ["draw.io", "Every node, group and edge stays editable in diagrams.net.", starterFile("-dark.drawio")],
-  ["React TSX", "A typed component with ids made unique through useId().", starterFile("-dark.tsx")],
+  ["SVG", "The vendors' own look, still by default; the stage skin animates one story along the edges.", starterFile("-light.svg")],
+  ["PNG", "A still frame at 2x for slides and docs that strip SVG.", starterFile("-light.png")],
+  ["draw.io", "Every node, group and edge stays editable in diagrams.net.", starterFile("-light.drawio")],
+  ["React TSX", "A typed component with ids made unique through useId().", starterFile("-light.tsx")],
   ["HTML viewer", "One file with both themes, zoom and PNG and SVG export.", starterFile(".html")],
 ];
 
@@ -148,9 +148,9 @@ blocker quality.label-size node labels render
 
     <div class="relative mx-auto max-w-6xl px-5 pb-8 sm:px-8">
       <figure class="panel overflow-hidden">
-        <a href={url("art/hero-dark.svg")} class="block bg-[#0d1117] p-3 sm:p-6" aria-label="Open the hero diagram full size">
+        <a href={url("art/hero-light.svg")} class="block bg-white p-3 sm:p-6" aria-label="Open the hero diagram full size">
           <img
-            src={url("art/hero-dark.svg")}
+            src={url("art/hero-light.svg")}
             alt="GitOps delivery to three clouds: GitHub Actions builds and signs, Argo CD syncs GKE, AKS and EKS, Cloudflare fronts them and Grafana watches"
             class="mx-auto w-full"
             width={meta.hero.width}
@@ -159,7 +159,7 @@ blocker quality.label-size node labels render
           />
         </a>
         <figcaption class="flex flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3.5 text-sm text-dim">
-          <span>This diagram is {meta.hero.lines} lines of YAML, drawn in the stage skin. Every SVG is animated by default.</span>
+          <span>This diagram is {meta.hero.lines} lines of YAML, drawn in the official look: the vendors' own icons and colors, light and still. Ask for the stage skin and the SVG animates.</span>
           <a class="hit font-mono text-xs text-accent-soft hover:text-ink" href={blob("docs/hero.yaml")}>docs/hero.yaml</a>
         </figcaption>
       </figure>
@@ -208,8 +208,8 @@ blocker quality.label-size node labels render
             </div>
           </div>
           <figure class="panel flex min-w-0 flex-col overflow-hidden">
-            <div class="flex flex-1 items-center bg-[#0d1117] p-4 sm:p-6">
-              <img src={starterFile("-dark.svg")} alt={starter.alt} class="mx-auto w-full" width={starter.width} height={starter.height} loading="lazy" />
+            <div class="flex flex-1 items-center bg-white p-4 sm:p-6">
+              <img src={starterFile("-light.svg")} alt={starter.alt} class="mx-auto w-full" width={starter.width} height={starter.height} loading="lazy" />
             </div>
             <figcaption class="border-t border-line px-5 py-3.5 font-mono text-xs text-dim">
               orrery render starter.yaml -f all --theme both
@@ -251,9 +251,9 @@ blocker quality.label-size node labels render
           ))
         }
       </ol>
-      <figure class="panel overflow-hidden bg-[#0d1117] p-4 sm:p-6">
+      <figure class="panel overflow-hidden bg-white p-4 sm:p-6">
         <img
-          src={url("art/how-it-works-dark.svg")}
+          src={url("art/how-it-works-light.svg")}
           alt="A YAML spec is validated, laid out by ELK, checked and rendered with the icon packs to SVG, PNG, draw.io, TSX and HTML"
           class="mx-auto max-h-[720px] w-auto"
           width={meta.how.width}

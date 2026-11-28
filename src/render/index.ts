@@ -179,16 +179,26 @@ async function render(req: RenderRequest): Promise<RenderResult> {
     });
   }
   const failed = new Set<Artifact>();
-  for (const { artifact, scene, still } of pngs) {
+  // The PNGs of one run render at once; results are applied below in the order they were asked for.
+  const drawn = await Promise.all(
+    pngs.map(async ({ scene, still }) => {
+      try {
+        const shrink = !(req.scaleExplicit ?? (req.scale !== undefined && req.scale !== 3));
+        const scale = pngScale(scene.width, scene.height, req.scale, shrink);
+        const data = await renderPng(still, { scale, shrink: true, fonts: req.fonts });
+        return { scale, data };
+      } catch (e) {
+        return { error: e };
+      }
+    }),
+  );
+  for (const [i, { artifact, scene }] of pngs.entries()) {
+    const res = drawn[i] as { scale?: number; data?: Uint8Array; error?: unknown };
     try {
-      const shrink = !(req.scaleExplicit ?? (req.scale !== undefined && req.scale !== 3));
-      const scale = pngScale(scene.width, scene.height, req.scale, shrink);
-      artifact.data = embedPngSpec(
-        await renderPng(still, { scale, shrink: true, fonts: req.fonts }),
-        req.source,
-      );
-      artifact.width = Math.round(scene.width * scale);
-      artifact.height = Math.round(scene.height * scale);
+      if ("error" in res) throw res.error;
+      artifact.data = embedPngSpec(res.data as Uint8Array, req.source);
+      artifact.width = Math.round(scene.width * (res.scale as number));
+      artifact.height = Math.round(scene.height * (res.scale as number));
     } catch (e) {
       // resvg refuses a PNG under 1 px; the command reports that one as a usage error.
       if (/target size is zero/i.test((e as Error)?.message ?? "")) throw e;

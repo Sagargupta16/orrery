@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// orrery 0.13.1 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
+// orrery 0.14.0 (MIT). Generated from src/ by scripts/build.mjs; do not edit.
 // Bundles yaml (ISC, Eemeli Aro). ELK (EPL-2.0) and resvg (MPL-2.0) load from ./vendor.
 import { createRequire as __sdwRequire } from "node:module";
 const require = __sdwRequire(import.meta.url);
@@ -8743,6 +8743,40 @@ var fontsDir = join2(skillRoot, "assets", "fonts");
 var vendorDir = join2(skillRoot, "scripts", "vendor");
 var examplesDir = join2(skillRoot, "examples");
 
+// src/spec/suggest.ts
+function closest(word2, options) {
+  let best;
+  let bestScore = Number.POSITIVE_INFINITY;
+  for (const o of options) {
+    const d = distance(word2.toLowerCase(), o.toLowerCase());
+    if (d < bestScore) {
+      bestScore = d;
+      best = o;
+    }
+  }
+  return bestScore <= Math.max(2, Math.floor(word2.length / 3)) ? best : void 0;
+}
+function distance(a, b) {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = row[0] ?? 0;
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = row[j] ?? 0;
+      row[j] = Math.min(
+        (row[j] ?? 0) + 1,
+        (row[j - 1] ?? 0) + 1,
+        prev + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+      prev = tmp;
+    }
+  }
+  return row[b.length] ?? 0;
+}
+function suggestIds(id, ids3, kind) {
+  return [...ids3.entries()].filter(([, k]) => !kind || k === kind).map(([candidate]) => [distance(id.toLowerCase(), candidate.toLowerCase()), candidate]).filter(([d]) => d <= Math.max(2, Math.floor(id.length / 3))).sort((a, b) => a[0] - b[0]).slice(0, 3).map(([, c]) => c);
+}
+
 // src/icons/index.ts
 var PACK_ORDER = [
   "aws",
@@ -8854,24 +8888,6 @@ function registerLocalIcon(name2, art, file = "") {
   };
   locals().set(id, entry);
   if (locals() !== shared) shared.set(id, entry);
-}
-function levenshtein(a, b) {
-  if (a === b) return 0;
-  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    let prev = row[0] ?? 0;
-    row[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const tmp = row[j] ?? 0;
-      row[j] = Math.min(
-        (row[j] ?? 0) + 1,
-        (row[j - 1] ?? 0) + 1,
-        prev + (a[i - 1] === b[j - 1] ? 0 : 1)
-      );
-      prev = tmp;
-    }
-  }
-  return row[b.length] ?? 0;
 }
 var tokens = (s) => s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 var collapse = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -9007,7 +9023,7 @@ function suggestIcons(id, limit = 3) {
   const [pack, slug3 = q2] = q2.includes(":") ? q2.split(":", 2) : [void 0, q2];
   const found = searchIcons(slug3.replace(/-/g, " "), { limit: 30 });
   const ranked = found.map((info) => {
-    let score = levenshtein(slug3, info.slug);
+    let score = distance(slug3, info.slug);
     if (pack && info.pack !== pack) score += 4;
     return [score, info.id];
   }).sort((a, b) => a[0] - b[0]);
@@ -9017,7 +9033,7 @@ function suggestIcons(id, limit = 3) {
       ...[...infos().values()].filter((i) => i.pack === pack).map((i) => [i.slug, i.id]),
       ...Object.keys(loadIndex().aliases).filter((a) => a.startsWith(`${pack}:`)).map((a) => [a.slice(pack.length + 1), a])
     ];
-    const near2 = names2.map(([s, nid]) => [levenshtein(slug3, s), nid]).filter(([d]) => d <= Math.max(2, Math.floor(slug3.length / 4))).sort((a, b) => a[0] - b[0]);
+    const near2 = names2.map(([s, nid]) => [distance(slug3, s), nid]).filter(([d]) => d <= Math.max(2, Math.floor(slug3.length / 4))).sort((a, b) => a[0] - b[0]);
     for (const [, nid] of near2) if (!close.includes(nid)) close.push(nid);
   }
   for (const [, rid] of ranked) if (!close.includes(rid)) close.push(rid);
@@ -9784,42 +9800,6 @@ function axisOf(scale, sc, top) {
 // src/spec/values.ts
 var import_yaml = __toESM(require_dist(), 1);
 import { readFileSync as readFileSync5 } from "node:fs";
-
-// src/spec/suggest.ts
-function closest(word2, options) {
-  let best;
-  let bestScore = Number.POSITIVE_INFINITY;
-  for (const o of options) {
-    const d = distance(word2.toLowerCase(), o.toLowerCase());
-    if (d < bestScore) {
-      bestScore = d;
-      best = o;
-    }
-  }
-  return bestScore <= Math.max(2, Math.floor(word2.length / 3)) ? best : void 0;
-}
-function distance(a, b) {
-  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    let prev = row[0] ?? 0;
-    row[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const tmp = row[j] ?? 0;
-      row[j] = Math.min(
-        (row[j] ?? 0) + 1,
-        (row[j - 1] ?? 0) + 1,
-        prev + (a[i - 1] === b[j - 1] ? 0 : 1)
-      );
-      prev = tmp;
-    }
-  }
-  return row[b.length] ?? 0;
-}
-function suggestIds(id, ids3, kind) {
-  return [...ids3.entries()].filter(([, k]) => !kind || k === kind).map(([candidate]) => [distance(id.toLowerCase(), candidate.toLowerCase()), candidate]).filter(([d]) => d <= Math.max(2, Math.floor(id.length / 3))).sort((a, b) => a[0] - b[0]).slice(0, 3).map(([, c]) => c);
-}
-
-// src/spec/values.ts
 var isObj = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 var itemId = (item) => typeof item.id === "string" ? item.id : typeof item.id === "number" && Number.isFinite(item.id) ? String(item.id) : void 0;
 function readText(file) {
@@ -9908,7 +9888,7 @@ function hexColor(r6, value2, key, where, subject, extra = []) {
 }
 
 // src/cli/help.ts
-var VERSION = true ? "0.13.1" : "dev";
+var VERSION = true ? "0.14.0" : "dev";
 var HELP = `orrery ${VERSION}: architecture and system design diagrams with official icons
 
 Usage:
@@ -10086,7 +10066,7 @@ var SIZES = {
 };
 var ENDS = { pitch: 14, inset: 8, gap: 0 };
 var ELK_BUDGET = 150;
-var animateOf = (model) => model.animate ?? (model.skin === "stage" ? "relay" : "packets");
+var animateOf = (model) => model.animate ?? (model.skin === "stage" ? "relay" : "none");
 
 // src/types.ts
 var DIRECTIONS = ["right", "down", "left", "up"];
@@ -11495,10 +11475,10 @@ var THEME_TOKENS = {
   light: {
     name: "light",
     background: "#ffffff",
-    text: "#232f3e",
+    text: "#000000",
     muted: "#5f6b7a",
     edge: "#545b64",
-    edgeLabel: "#3b4552",
+    edgeLabel: "#000000",
     surface: "#ffffff",
     border: "#c6ccd4",
     zone: "#f4f6f8",
@@ -15089,21 +15069,6 @@ function clusters(list, span2) {
   }
   return out;
 }
-function dropStraight(points) {
-  const out = [];
-  for (const p of points) {
-    const last = out[out.length - 1];
-    const prev = out[out.length - 2];
-    if (last && Math.abs(last.x - p.x) < 0.01 && Math.abs(last.y - p.y) < 0.01) continue;
-    if (prev && last) {
-      const cross = (last.x - prev.x) * (p.y - prev.y) - (last.y - prev.y) * (p.x - prev.x);
-      const ahead2 = (last.x - prev.x) * (p.x - last.x) + (last.y - prev.y) * (p.y - last.y) >= 0;
-      if (Math.abs(cross) < 0.01 && ahead2) out.pop();
-    }
-    out.push(p);
-  }
-  return out.length >= 2 ? out : points;
-}
 var blackBox = (b) => b.group?.type === "pool" && !b.kids.length && !b.items.length;
 function nodeBoxes(n4) {
   return [n4.box, n4.iconBox, n4.labelBox, n4.noteBox, n4.badgeBox].filter((b) => !!b);
@@ -15602,7 +15567,7 @@ function routeEdges(r6) {
       if (prior) result2.set(me.id, prior);
       continue;
     }
-    edge3.points = dropStraight(points.map((p) => ({ x: round3(p.x), y: round3(p.y) })));
+    edge3.points = dropStraightPoints(points.map((p) => ({ x: round3(p.x), y: round3(p.y) })));
     ports.claim(me, edge3.points[0], edge3.points[edge3.points.length - 1], msg);
     for (let k = 1; k < edge3.points.length; k++) {
       const p = edge3.points[k - 1];
@@ -16883,6 +16848,42 @@ function tagsFit(tags, k, d, nodes, groups, others, titles2) {
   );
 }
 
+// src/layout/legend.ts
+function placeLegend(entries4, width2, top) {
+  const P2 = 10;
+  const rows = entries4.map((e) => ({
+    line: e.line,
+    label: textBlock(e.label, SIZES.edgeLabel, 240),
+    ...e.color ? { color: e.color } : {},
+    ...e.chip ? { chip: true } : {}
+  }));
+  const w = Math.ceil(P2 + 28 + 8 + Math.max(...rows.map((r6) => r6.label.width)) + P2);
+  const pitch = rows.map((r6) => Math.max(18, r6.label.height + 3));
+  const last = rows[rows.length - 1]?.label.height ?? 0;
+  const h = Math.ceil(P2 + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P2);
+  const box2 = { x: Math.max(SIZES.pad, width2 - SIZES.pad - w), y: top, w, h };
+  let y = box2.y + P2;
+  const items = rows.map((r6, i) => {
+    const swatch = { x: box2.x + P2, y: round2(y + (r6.label.lead - 12) / 2), w: 28, h: 12 };
+    const labelBox = {
+      x: box2.x + P2 + 36,
+      y: round2(y),
+      w: round2(r6.label.width),
+      h: round2(r6.label.height)
+    };
+    y += pitch[i] ?? 18;
+    return {
+      line: r6.line,
+      ...r6.color ? { color: r6.color } : {},
+      ...r6.chip ? { chip: true } : {},
+      swatch,
+      label: r6.label,
+      labelBox
+    };
+  });
+  return { box: box2, items };
+}
+
 // src/layout/canvas.ts
 var MIN_TEXT = 420;
 var ROUTE_INK = 8;
@@ -16933,7 +16934,7 @@ function sizeCanvas(ctx) {
   height = Math.ceil(height);
   let legend5;
   if (model.legend?.length) {
-    legend5 = placeLegend(model.legend, width2, height);
+    legend5 = placeLegend(model.legend, width2, height - SIZES.pad + 12);
     width2 = Math.max(width2, Math.ceil(legend5.box.w + SIZES.pad * 2));
     height = Math.ceil(legend5.box.y + legend5.box.h + SIZES.pad);
   }
@@ -16979,50 +16980,6 @@ function shiftAll(ctx, dx, dy) {
       y: round2(p.y + dy)
     }));
   }
-}
-function placeLegend(entries4, width2, height) {
-  const P2 = 10;
-  const rows = entries4.map((e) => ({
-    line: e.line,
-    label: textBlock(e.label, SIZES.edgeLabel, 240),
-    ...e.color ? { color: e.color } : {},
-    ...e.chip ? { chip: true } : {}
-  }));
-  const w = Math.ceil(P2 + 28 + 8 + Math.max(...rows.map((r6) => r6.label.width)) + P2);
-  const pitch = rows.map((r6) => Math.max(18, r6.label.height + 3));
-  const last = rows[rows.length - 1]?.label.height ?? 0;
-  const h = Math.ceil(P2 + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P2);
-  const box2 = {
-    x: Math.max(SIZES.pad, width2 - SIZES.pad - w),
-    y: height - SIZES.pad + 12,
-    w,
-    h
-  };
-  let y = box2.y + P2;
-  const items = rows.map((r6, i) => {
-    const swatch = {
-      x: box2.x + P2,
-      y: round2(y + (r6.label.lead - 12) / 2),
-      w: 28,
-      h: 12
-    };
-    const labelBox = {
-      x: box2.x + P2 + 36,
-      y: round2(y),
-      w: round2(r6.label.width),
-      h: round2(r6.label.height)
-    };
-    y += pitch[i] ?? 18;
-    return {
-      line: r6.line,
-      ...r6.color ? { color: r6.color } : {},
-      ...r6.chip ? { chip: true } : {},
-      swatch,
-      label: r6.label,
-      labelBox
-    };
-  });
-  return { box: box2, items };
 }
 
 // src/layout/steer.ts
@@ -18785,45 +18742,11 @@ function canvasOf(grid, gridBottom) {
   }
   let legend5;
   if (model.legend?.length) {
-    legend5 = placeLegend2(model.legend, width2, height);
+    legend5 = placeLegend(model.legend, width2, height - SIZES.pad + 12);
     width2 = Math.max(width2, Math.ceil(legend5.box.w + P2 * 2));
     height = Math.ceil(legend5.box.y + legend5.box.h + P2);
   }
   return { width: width2, height, titleBox: titleBox2, subtitleBox, legend: legend5 };
-}
-function placeLegend2(entries4, width2, height) {
-  const P2 = 10;
-  const rows = entries4.map((e) => ({
-    line: e.line,
-    label: textBlock(e.label, SIZES.edgeLabel, 240),
-    ...e.color ? { color: e.color } : {},
-    ...e.chip ? { chip: true } : {}
-  }));
-  const w = Math.ceil(P2 + 28 + 8 + Math.max(...rows.map((r6) => r6.label.width)) + P2);
-  const pitch = rows.map((r6) => Math.max(18, r6.label.height + 3));
-  const last = rows[rows.length - 1]?.label.height ?? 0;
-  const h = Math.ceil(P2 + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P2);
-  const box2 = { x: Math.max(SIZES.pad, width2 - SIZES.pad - w), y: height - SIZES.pad + 12, w, h };
-  let y = box2.y + P2;
-  const items = rows.map((r6, i) => {
-    const swatch = { x: box2.x + P2, y: round4(y + (r6.label.lead - 12) / 2), w: 28, h: 12 };
-    const labelBox = {
-      x: box2.x + P2 + 36,
-      y: round4(y),
-      w: round4(r6.label.width),
-      h: round4(r6.label.height)
-    };
-    y += pitch[i] ?? 18;
-    return {
-      line: r6.line,
-      ...r6.color ? { color: r6.color } : {},
-      ...r6.chip ? { chip: true } : {},
-      swatch,
-      label: r6.label,
-      labelBox
-    };
-  });
-  return { box: box2, items };
 }
 function describe(model, rows, curve, scored) {
   const name2 = (id) => model.nodes.find((n4) => n4.id === id)?.label ?? id;
@@ -20612,7 +20535,7 @@ function assemble2(model, theme, tokens2, cols, msgs, acts, frags, rows) {
   let height = Math.ceil(bottom + P2);
   let legend5;
   if (model.legend?.length) {
-    legend5 = placeLegend3(model.legend, width2, bottom + 16);
+    legend5 = placeLegend(model.legend, width2, round2(bottom + 16));
     width2 = Math.max(width2, Math.ceil(legend5.box.w + 2 * P2));
     height = Math.ceil(legend5.box.y + legend5.box.h + P2);
   }
@@ -20630,40 +20553,6 @@ function assemble2(model, theme, tokens2, cols, msgs, acts, frags, rows) {
     description: describe3(model, cols, msgs, frags),
     sequence
   };
-}
-function placeLegend3(entries4, width2, top) {
-  const P2 = 10;
-  const rows = entries4.map((e) => ({
-    line: e.line,
-    label: textBlock(e.label, SIZES.edgeLabel, 240),
-    ...e.color ? { color: e.color } : {},
-    ...e.chip ? { chip: true } : {}
-  }));
-  const w = Math.ceil(P2 + 28 + 8 + Math.max(...rows.map((r6) => r6.label.width)) + P2);
-  const pitch = rows.map((r6) => Math.max(18, r6.label.height + 3));
-  const last = rows[rows.length - 1]?.label.height ?? 0;
-  const h = Math.ceil(P2 + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P2);
-  const box2 = { x: Math.max(SIZES.pad, width2 - SIZES.pad - w), y: round2(top), w, h };
-  let y = box2.y + P2;
-  const items = rows.map((r6, i) => {
-    const swatch = { x: box2.x + P2, y: round2(y + (r6.label.lead - 12) / 2), w: 28, h: 12 };
-    const labelBox = {
-      x: box2.x + P2 + 36,
-      y: round2(y),
-      w: round2(r6.label.width),
-      h: round2(r6.label.height)
-    };
-    y += pitch[i] ?? 18;
-    return {
-      line: r6.line,
-      ...r6.color ? { color: r6.color } : {},
-      ...r6.chip ? { chip: true } : {},
-      swatch,
-      label: r6.label,
-      labelBox
-    };
-  });
-  return { box: box2, items };
 }
 function describe3(model, cols, msgs, frags) {
   const name2 = (c) => cols[c]?.node.label || cols[c]?.node.id || "";
@@ -21283,40 +21172,6 @@ function keyOf2(statuses, milestones, x2, top, right) {
   }
   const r6 = Math.max(...items.map((it) => it.labelBox.x + it.labelBox.w));
   return { box: { x: x2, y: top, w: round(r6 - x2), h: round(cy + rowH - top) }, items };
-}
-function placeLegend4(entries4, width2, height) {
-  const P2 = 10;
-  const rows = entries4.map((e) => ({
-    line: e.line,
-    label: textBlock(e.label, SIZES.edgeLabel, 240),
-    ...e.color ? { color: e.color } : {},
-    ...e.chip ? { chip: true } : {}
-  }));
-  const w = Math.ceil(P2 + 28 + 8 + Math.max(...rows.map((r6) => r6.label.width)) + P2);
-  const pitch = rows.map((r6) => Math.max(18, r6.label.height + 3));
-  const last = rows[rows.length - 1]?.label.height ?? 0;
-  const h = Math.ceil(P2 + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P2);
-  const box2 = { x: Math.max(SIZES.pad, width2 - SIZES.pad - w), y: height - SIZES.pad + 12, w, h };
-  let y = box2.y + P2;
-  const items = rows.map((r6, i) => {
-    const swatch = { x: box2.x + P2, y: round(y + (r6.label.lead - 12) / 2), w: 28, h: 12 };
-    const labelBox = {
-      x: box2.x + P2 + 36,
-      y: round(y),
-      w: round(r6.label.width),
-      h: round(r6.label.height)
-    };
-    y += pitch[i] ?? 18;
-    return {
-      line: r6.line,
-      ...r6.color ? { color: r6.color } : {},
-      ...r6.chip ? { chip: true } : {},
-      swatch,
-      label: r6.label,
-      labelBox
-    };
-  });
-  return { box: box2, items };
 }
 function describe4(model, tl, laneNames) {
   const name2 = (id) => model.nodes.find((n4) => n4.id === id)?.label ?? id;
@@ -22066,7 +21921,7 @@ async function timelineLayout(model, theme) {
     )
   );
   let height = Math.ceil(bottom + P2);
-  const legend5 = model.legend?.length ? placeLegend4(model.legend, width2, height) : void 0;
+  const legend5 = model.legend?.length ? placeLegend(model.legend, width2, height - P2 + 12) : void 0;
   if (legend5) {
     width2 = Math.max(width2, Math.ceil(legend5.box.w + 2 * P2));
     height = Math.ceil(legend5.box.y + legend5.box.h + P2);
@@ -27748,8 +27603,42 @@ function sizeOf2(svg) {
   const m = /<svg\b[^>]*?\swidth="([\d.]+)"[^>]*?\sheight="([\d.]+)"/.exec(svg.slice(0, 2e3));
   return m ? [Number(m[1]), Number(m[2])] : [0, 0];
 }
+var native;
+function loadNative() {
+  if (process.env.ORRERY_RESVG === "wasm") return Promise.resolve(void 0);
+  native ??= (async () => {
+    try {
+      const require2 = createRequire2(import.meta.url);
+      return await import(pathToFileURL(require2.resolve("@resvg/resvg-js")).href);
+    } catch {
+      return void 0;
+    }
+  })();
+  return native;
+}
 async function renderPng(svg, opts = {}) {
   const scale = pngScale(...sizeOf2(svg), opts.scale, opts.shrink);
+  const nat = await loadNative();
+  if (nat) {
+    const files = [
+      ...[
+        "Inter-Regular.ttf",
+        "Inter-SemiBold.ttf",
+        "GeistMono-Regular.ttf",
+        "GeistMono-Bold.ttf"
+      ].map((f) => join7(fontsDir, f)),
+      ...opts.fonts ?? []
+    ];
+    const image = await nat.renderAsync(svg, {
+      fitTo: { mode: "zoom", value: scale },
+      background: opts.background,
+      font: { fontFiles: files, defaultFontFamily: "Inter", loadSystemFonts: false },
+      shapeRendering: 2,
+      textRendering: 1,
+      imageRendering: 0
+    });
+    return image.asPng();
+  }
   resvg ??= load2();
   const { Resvg } = await resvg;
   const r6 = new Resvg(svg, {
@@ -27980,16 +27869,25 @@ async function render(req) {
     });
   }
   const failed = /* @__PURE__ */ new Set();
-  for (const { artifact, scene, still } of pngs) {
+  const drawn2 = await Promise.all(
+    pngs.map(async ({ scene, still }) => {
+      try {
+        const shrink = !(req.scaleExplicit ?? (req.scale !== void 0 && req.scale !== 3));
+        const scale = pngScale(scene.width, scene.height, req.scale, shrink);
+        const data = await renderPng(still, { scale, shrink: true, fonts: req.fonts });
+        return { scale, data };
+      } catch (e) {
+        return { error: e };
+      }
+    })
+  );
+  for (const [i, { artifact, scene }] of pngs.entries()) {
+    const res = drawn2[i];
     try {
-      const shrink = !(req.scaleExplicit ?? (req.scale !== void 0 && req.scale !== 3));
-      const scale = pngScale(scene.width, scene.height, req.scale, shrink);
-      artifact.data = embedPngSpec(
-        await renderPng(still, { scale, shrink: true, fonts: req.fonts }),
-        req.source
-      );
-      artifact.width = Math.round(scene.width * scale);
-      artifact.height = Math.round(scene.height * scale);
+      if ("error" in res) throw res.error;
+      artifact.data = embedPngSpec(res.data, req.source);
+      artifact.width = Math.round(scene.width * res.scale);
+      artifact.height = Math.round(scene.height * res.scale);
     } catch (e) {
       if (/target size is zero/i.test(e?.message ?? "")) throw e;
       failed.add(artifact);
@@ -29143,7 +29041,7 @@ function parseSettings(ctx) {
     kindDefaults.direction,
     "direction"
   );
-  const theme = oneOf(ctx, raw.theme, THEMES, "dark", "theme");
+  const theme = oneOf(ctx, raw.theme, THEMES, "light", "theme");
   const defaultLook = oneOf(ctx, raw.look, ["icon", "card"], "icon", "look");
   const layout2 = parseLayout(ctx);
   const arrowhead = oneOf(
@@ -29154,7 +29052,7 @@ function parseSettings(ctx) {
     "arrowhead"
   );
   const animate = raw.animate === void 0 ? void 0 : raw.animate === true ? "packets" : raw.animate === false ? "none" : oneOf(ctx, raw.animate, ANIMATE_MODES, "packets", "animate");
-  const skin = oneOf(ctx, raw.skin, SKINS, "stage", "skin");
+  const skin = oneOf(ctx, raw.skin, SKINS, "classic", "skin");
   const background = hexColor(ctx, raw.background, "background", "", { where: "background" }, [
     "transparent"
   ]);
@@ -30909,16 +30807,6 @@ import { basename as basename5, dirname as dirname6, extname as extname4, join a
 
 // src/doc/zip.ts
 import { deflateRawSync } from "node:zlib";
-var CRC_TABLE2 = Array.from({ length: 256 }, (_, n4) => {
-  let c = n4;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 3988292384 ^ c >>> 1 : c >>> 1;
-  return c >>> 0;
-});
-function crc322(data) {
-  let c = 4294967295;
-  for (const byte of data) c = (CRC_TABLE2[(c ^ byte) & 255] ?? 0) ^ c >>> 8;
-  return (c ^ 4294967295) >>> 0;
-}
 var DOS_DATE = 1 << 5 | 1;
 function zip(files) {
   const parts = [];
@@ -30930,7 +30818,7 @@ function zip(files) {
     const stored = deflated.length >= raw.length;
     const body = stored ? raw : deflated;
     const file = Buffer.from(name2, "utf8");
-    const crc = crc322(raw);
+    const crc = crc32(raw);
     const local3 = Buffer.alloc(30);
     local3.writeUInt32LE(67324752, 0);
     local3.writeUInt16LE(20, 4);
@@ -32847,17 +32735,6 @@ function moveOp(v, root, op) {
 }
 
 // src/patch/edges.ts
-function labelColon2(s) {
-  let depth = 0;
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (c === "[") depth += 1;
-    else if (c === "]") depth = Math.max(0, depth - 1);
-    else if (c === ":" && depth === 0 && (i + 1 === s.length || /\s/.test(s[i + 1] ?? "")))
-      return i;
-  }
-  return -1;
-}
 function hopKey(h) {
   const [a, b, head2] = h.arrow === "start" ? [h.to, h.from, "end"] : [h.from, h.to, h.arrow];
   const ends3 = head2 === "both" || head2 === "none" ? [a, b].sort() : [a, b];
@@ -32934,7 +32811,7 @@ function edgeShape(item) {
 function edgeText(value2, ctx) {
   if (typeof value2 === "string") {
     const s = value2.trim();
-    const colon = labelColon2(s);
+    const colon = labelColon(s);
     const label2 = colon >= 0 ? s.slice(colon + 1).trim() : "";
     if (ctx !== "block" || !label2) return scalarText(s, ctx);
     return `${scalarText(s.slice(0, colon).trim(), ctx)}: ${scalarText(label2, ctx)}`;
@@ -34134,7 +34011,7 @@ var THEME = {
 var SKIN = {
   type: "string",
   enum: [...SKINS],
-  description: "classic (vendor deck look) or stage (dark product look). Default: the spec's skin."
+  description: "classic (vendor deck look) or stage (dark product look). Default: the spec's skin, else classic."
 };
 
 // src/mcp/tools/describe.ts
@@ -39231,13 +39108,13 @@ var renderTool = {
       theme: {
         type: "string",
         enum: [...THEMES, "both"],
-        description: "both renders a light and a dark file. Default: the spec's theme."
+        description: "both renders a light and a dark file. Default: the spec's theme, else light."
       },
       skin: SKIN,
       animate: {
         type: "string",
         enum: [...ANIMATE_MODES],
-        description: "SVG motion: packets, flow, relay or none. Default: the skin's (packets for classic, relay for stage). PNG is always still."
+        description: "SVG motion: packets, flow, relay or none. Default: the skin's (none for classic, relay for stage). PNG is always still."
       },
       scale: {
         type: "number",
@@ -39495,7 +39372,7 @@ var TOOLS = [
 var SERVER = {
   name: "orrery",
   title: "orrery",
-  version: true ? "0.13.1" : "dev"
+  version: true ? "0.14.0" : "dev"
 };
 var MODERN = ["2026-07-28"];
 var LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
@@ -46695,7 +46572,7 @@ async function iconShow(args, rest) {
     process.exitCode = 1;
     return;
   }
-  const theme = args.flags.theme === "light" ? "light" : "dark";
+  const theme = args.flags.theme === "dark" ? "dark" : "light";
   const t = THEME_TOKENS[theme];
   await loadIconLibraries([info.id]);
   const r6 = renderIcon(info.id, "s", { theme, background: t.background, ink: t.text });
@@ -47178,7 +47055,7 @@ async function renderSpec2(args, spec, validateOnly, target, fonts2) {
   return receipt;
 }
 function themesOf(args, specTheme) {
-  const themeFlag = String(args.flags.theme ?? specTheme ?? "dark");
+  const themeFlag = String(args.flags.theme ?? specTheme ?? "light");
   if (!["light", "dark", "both"].includes(themeFlag)) usage(`--theme must be light, dark or both`);
   return themeFlag === "both" ? ["light", "dark"] : [themeFlag];
 }

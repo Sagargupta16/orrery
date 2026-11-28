@@ -15,29 +15,10 @@ import { renderDocx } from "./docx.ts";
 import { type DocFigure, isError, renderFigure } from "./figures.ts";
 import { renderDocHtml } from "./html.ts";
 import { checkImages, wordImage } from "./images.ts";
-import { type Inline, inline, plain } from "./inline.ts";
-import {
-  type Align,
-  type Block,
-  type ListItem,
-  type Marker,
-  type ParsedDoc,
-  parseDoc,
-} from "./markdown.ts";
+import { type ParsedDoc, parseDoc } from "./markdown.ts";
 import { renderDocMarkdown } from "./md.ts";
 
-export {
-  type Align,
-  type Block,
-  type DocFigure,
-  type Inline,
-  inline,
-  type ListItem,
-  type Marker,
-  type ParsedDoc,
-  parseDoc,
-  plain,
-};
+export { parseDoc };
 
 export const DOC_FORMATS = ["html", "md", "docx"] as const;
 export type DocFormat = (typeof DOC_FORMATS)[number];

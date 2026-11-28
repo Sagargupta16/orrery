@@ -40,17 +40,17 @@
       "description": "Node ids in the order the stage story visits them, each hop along an edge."
     },
     "direction": { "enum": ["right", "down", "left", "up"], "default": "right" },
-    "theme": { "enum": ["light", "dark"], "default": "dark" },
+    "theme": { "enum": ["light", "dark"], "default": "light" },
     "look": { "enum": ["icon", "card"], "default": "icon", "description": "Default look for nodes with an icon." },
     "arrowhead": { "enum": ["open", "filled"], "default": "open" },
     "animate": {
       "oneOf": [{ "type": "boolean" }, { "enum": ["packets", "flow", "relay", "none"] }],
-      "description": "Motion in SVG, TSX and HTML (PNG and draw.io stay still). packets: dots travel the edges, numbered steps in order; flow: marching dashes; relay: on one clock each line draws itself in turn and the node it reaches lights up; none: still. true is packets, false is none. Unset: packets for the classic skin, relay for stage (where relay and packets play the stage story)."
+      "description": "Motion in SVG, TSX and HTML (PNG and draw.io stay still). packets: dots travel the edges, numbered steps in order; flow: marching dashes; relay: on one clock each line draws itself in turn and the node it reaches lights up; none: still. true is packets, false is none. Unset: none (still) for the classic skin, relay for stage (where relay and packets play the stage story)."
     },
     "skin": {
       "enum": ["classic", "stage"],
-      "default": "stage",
-      "description": "stage (the default): the same layout as an animated scene in one tint (hairline grid, monochrome icons on ink tiles, mono caps labels), whose story runs the numbered edges in step order, else the longest path. classic: the vendors' own diagram styles."
+      "default": "classic",
+      "description": "classic (the default): the vendors' own diagram styles, on a white background, still. stage: the opt-in custom look, the same layout as an animated scene in one tint (hairline grid, monochrome icons on ink tiles, mono caps labels), whose story runs the numbered edges in step order, else the longest path."
     },
     "background": { "type": "string", "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|transparent)$" },
     "legend": {

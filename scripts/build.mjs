@@ -27,7 +27,7 @@ const result = await build({
   write: false,
   minify: false,
   legalComments: "eof",
-  external: ["elkjs", "elkjs/*", "@resvg/resvg-wasm"],
+  external: ["elkjs", "elkjs/*", "@resvg/resvg-wasm", "@resvg/resvg-js"],
   define: { __VERSION__: JSON.stringify(pkg.version) },
   banner: {
     js: [
@@ -52,6 +52,14 @@ const version = (name) =>
   JSON.parse(readFileSync(join(root, "node_modules", name, "package.json"), "utf8")).version;
 const elkVersion = version("elkjs");
 const resvgVersion = version("@resvg/resvg-wasm");
+// The native binding and the wasm build must render alike, so their versions move together.
+const resvgNativeVersion = pkg.devDependencies["@resvg/resvg-js"];
+if (resvgNativeVersion !== pkg.devDependencies["@resvg/resvg-wasm"]) {
+  console.error(
+    `@resvg/resvg-js ${resvgNativeVersion} and @resvg/resvg-wasm ${pkg.devDependencies["@resvg/resvg-wasm"]} differ; pin both to one version`,
+  );
+  process.exit(1);
+}
 
 // THIRD_PARTY_NOTICES.md names the vendored and bundled versions too.
 const noticesFile = join(root, "THIRD_PARTY_NOTICES.md");

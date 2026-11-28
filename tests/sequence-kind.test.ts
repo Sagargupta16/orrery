@@ -22,6 +22,7 @@ import {
 const CHECKOUT = `title: Checkout
 kind: sequence
 skin: classic
+animate: packets
 groups:
   backend: { type: box, label: Backend }
 nodes:

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { contrast, mixHex } from "../color.ts";
 import { iconsDir } from "../paths.ts";
+import { distance } from "../spec/suggest.ts";
 import type { ThemeName } from "../types.ts";
 import {
   allDark,
@@ -227,25 +228,6 @@ export function registerLocalIcon(name: string, art: LocalArt, file = ""): void 
   if (locals() !== shared) shared.set(id, entry);
 }
 
-function levenshtein(a: string, b: string): number {
-  if (a === b) return 0;
-  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    let prev = row[0] ?? 0;
-    row[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const tmp = row[j] ?? 0;
-      row[j] = Math.min(
-        (row[j] ?? 0) + 1,
-        (row[j - 1] ?? 0) + 1,
-        prev + (a[i - 1] === b[j - 1] ? 0 : 1),
-      );
-      prev = tmp;
-    }
-  }
-  return row[b.length] ?? 0;
-}
-
 const tokens = (s: string) =>
   s
     .toLowerCase()
@@ -426,7 +408,7 @@ export function suggestIcons(id: string, limit = 3): string[] {
   const found = searchIcons(slug.replace(/-/g, " "), { limit: 30 });
   const ranked = found
     .map((info) => {
-      let score = levenshtein(slug, info.slug);
+      let score = distance(slug, info.slug);
       if (pack && info.pack !== pack) score += 4;
       return [score, info.id] as const;
     })
@@ -442,7 +424,7 @@ export function suggestIcons(id: string, limit = 3): string[] {
         .map((a) => [a.slice(pack.length + 1), a] as const),
     ];
     const near = names
-      .map(([s, nid]) => [levenshtein(slug, s), nid] as const)
+      .map(([s, nid]) => [distance(slug, s), nid] as const)
       .filter(([d]) => d <= Math.max(2, Math.floor(slug.length / 4)))
       .sort((a, b) => a[0] - b[0]);
     for (const [, nid] of near) if (!close.includes(nid)) close.push(nid);
