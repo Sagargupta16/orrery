@@ -50,8 +50,8 @@ export function parseSettings(ctx: Ctx): Settings {
     kindDefaults.direction,
     "direction",
   );
-  // Dark and stage are the defaults; `theme: light` and `skin: classic` are one line away.
-  const theme = oneOf<ThemeName>(ctx, raw.theme, THEMES, "dark", "theme");
+  // Light and classic (the vendors' own look) are the defaults; `theme: dark` and `skin: stage` are one line away.
+  const theme = oneOf<ThemeName>(ctx, raw.theme, THEMES, "light", "theme");
   const defaultLook = oneOf<NodeLook>(ctx, raw.look, ["icon", "card"] as const, "icon", "look");
   const layout = parseLayout(ctx);
   const arrowhead = oneOf(
@@ -61,7 +61,7 @@ export function parseSettings(ctx: Ctx): Settings {
     kindDefaults.arrowhead,
     "arrowhead",
   );
-  // Unset: the skin picks (relay for stage, packets for classic).
+  // Unset: the skin picks (relay for stage, none for classic).
   const animate =
     raw.animate === undefined
       ? undefined
@@ -70,7 +70,7 @@ export function parseSettings(ctx: Ctx): Settings {
         : raw.animate === false
           ? "none"
           : oneOf(ctx, raw.animate, ANIMATE_MODES, "packets", "animate");
-  const skin = oneOf(ctx, raw.skin, SKINS, "stage", "skin");
+  const skin = oneOf(ctx, raw.skin, SKINS, "classic", "skin");
   const background = hexColor(ctx, raw.background, "background", "", { where: "background" }, [
     "transparent",
   ]);

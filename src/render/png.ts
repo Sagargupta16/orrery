@@ -85,8 +85,55 @@ function sizeOf(svg: string): [number, number] {
   return m ? [Number(m[1]), Number(m[2])] : [0, 0];
 }
 
+interface NativeModule {
+  renderAsync(svg: string, opts: Record<string, unknown>): Promise<{ asPng(): Uint8Array }>;
+}
+
+let native: Promise<NativeModule | undefined> | undefined;
+
+/** The native @resvg/resvg-js when it resolves (an install that got the platform binary), else undefined. */
+function loadNative(): Promise<NativeModule | undefined> {
+  // ORRERY_RESVG=wasm is read on every call; only the import is cached.
+  if (process.env.ORRERY_RESVG === "wasm") return Promise.resolve(undefined);
+  native ??= (async () => {
+    try {
+      const require = createRequire(import.meta.url);
+      return (await import(pathToFileURL(require.resolve("@resvg/resvg-js")).href)) as NativeModule;
+    } catch {
+      return undefined;
+    }
+  })();
+  return native;
+}
+
+/** Which rasterizer draws PNGs in this process: the native one when installed (about 3x faster), else the bundled wasm. */
+export async function pngBackend(): Promise<"native" | "wasm"> {
+  return (await loadNative()) ? "native" : "wasm";
+}
+
 export async function renderPng(svg: string, opts: PngOptions = {}): Promise<Uint8Array> {
   const scale = pngScale(...sizeOf(svg), opts.scale, opts.shrink);
+  const nat = await loadNative();
+  if (nat) {
+    const files = [
+      ...[
+        "Inter-Regular.ttf",
+        "Inter-SemiBold.ttf",
+        "GeistMono-Regular.ttf",
+        "GeistMono-Bold.ttf",
+      ].map((f) => join(fontsDir, f)),
+      ...(opts.fonts ?? []),
+    ];
+    const image = await nat.renderAsync(svg, {
+      fitTo: { mode: "zoom", value: scale },
+      background: opts.background,
+      font: { fontFiles: files, defaultFontFamily: "Inter", loadSystemFonts: false },
+      shapeRendering: 2,
+      textRendering: 1,
+      imageRendering: 0,
+    });
+    return image.asPng();
+  }
   resvg ??= load();
   const { Resvg } = await resvg;
   const r = new Resvg(svg, {

@@ -14,13 +14,13 @@ description: >-
   sequence, ER, state or gantt diagram into a clean diagram with real vendor icons.
 license: MIT
 metadata:
-  version: "0.13.1"
+  version: "0.14.0"
   author: Sagar Gupta
 ---
 
 # orrery
 
-Write a small YAML spec (nodes with official icons, nested groups, labelled edges); the bundled CLI lays it out with ELK and renders it. No install: the CLI, the layout engine, the PNG renderer, the fonts and the official AWS, Azure, Google Cloud and Kubernetes packs ship in this folder; the logo and glyph sets (18,307 icons in all) load from their npm libraries the first time a diagram uses them and are cached. Node.js 22 or newer is the only requirement.
+Write a small YAML spec (nodes with official icons, nested groups, labelled edges); the bundled CLI lays it out with ELK and renders it. The default follows the vendors' own rules: white background, icons in their own colors, labels under icons, open arrowheads, orthogonal lines, no animation; `skin: stage` is the opt-in custom look. No install: the CLI, the layout engine, the PNG renderer, the fonts and the official AWS, Azure, Google Cloud and Kubernetes packs ship in this folder; the logo and glyph sets (18,307 icons in all) load from their npm libraries the first time a diagram uses them and are cached. Node.js 22 or newer is the only requirement.
 
 ```bash
 node <this-skill-folder>/scripts/orrery.mjs <command>
@@ -32,7 +32,7 @@ Below, `orrery` means that command.
 
 Follow this order. Write the spec early and let the validator steer; do not plan coordinates, layout is automatic.
 
-1. **Pin the brief** in one line before drawing: what the diagram must show, for whom (README, design doc, slide), which cloud or vendor style, light/dark, which outputs. Default: SVG + PNG, the `stage` skin in the dark theme, `direction: right` (`down` for tiered stacks and long chains). A flow rather than an architecture gets a `kind:` (see [Kinds](references/spec.md#kinds)): `flowchart` (ISO 5807 symbols), `process` (BPMN 2.0 with `pool` and `lane` groups and `bpmn:` nodes), `state` (UML), `tree` (org charts), `mindmap`, `journey` (stages, lanes and scores), `er` (data models: tables from `fields:`, crow's foot ends from `card:`), `sequence` (participants left to right, messages top to bottom in spec order, `fragments:` for loops and branches), `timeline` (roadmaps: lanes from groups, `start:`/`end:` bars, `date:` points, `milestone: true` diamonds, `status:`).
+1. **Pin the brief** in one line before drawing: what the diagram must show, for whom (README, design doc, slide), which cloud or vendor style, light/dark, which outputs. Default: SVG + PNG, classic skin, light theme, still; `skin: stage`, `theme: dark`, `animate: packets` only when asked. `direction: right` (`down` for tiered stacks and long chains). A flow rather than an architecture gets a `kind:` (see [Kinds](references/spec.md#kinds)): `flowchart` (ISO 5807 symbols), `process` (BPMN 2.0 with `pool` and `lane` groups and `bpmn:` nodes), `state` (UML), `tree` (org charts), `mindmap`, `journey` (stages, lanes and scores), `er` (data models: tables from `fields:`, crow's foot ends from `card:`), `sequence` (participants left to right, messages top to bottom in spec order, `fragments:` for loops and branches), `timeline` (roadmaps: lanes from groups, `start:`/`end:` bars, `date:` points, `milestone: true` diamonds, `status:`).
 2. **Find every icon id**, never guess one:
 
    ```bash
@@ -83,7 +83,7 @@ Follow this order. Write the spec early and let the validator steer; do not plan
 - Mix the axes: the main path runs one way and its branches and back ends the other (across and down), so the figure stays compact instead of becoming one long strip.
 - Order a group's children by where the arrows enter it: the child the incoming arrow reaches first comes first in the spec. A hub's targets sit next to it on one side; a fan-out labels each arrow at its target, a fan-in labels the shared hop once.
 - Users, clients and outside systems stay outside every group; draw a group only for a real boundary: a cloud account, subscription or project, a region, a network or subnet, a zone, a cluster or namespace, a site, one service's own frame, a pool or lane. A path blocked on purpose is dashed `#C7243A` with the label `denied`, on any vendor.
-- Label an edge only when it says something the endpoints do not: protocol, action, sync vs async, cross-boundary mechanism. Leave edges unnumbered: the stage story already plays the order, so `step:` badges are only for a walkthrough the user asks to be numbered.
+- Label an edge only when it says something the endpoints do not: protocol, action, sync vs async, cross-boundary mechanism. Number the main path with `step:` when order matters (the AWS deck numbers callouts in reading order).
 - Dashed edges for async or optional paths, thick for the hot path, `<->` for request/response only when both directions matter.
 - 6 to 25 nodes. Beyond that, draw an overview plus detail diagrams; repeated workers become one node with `badge: x3`.
 - Keep it compact for where it is shown: `layout: { aspect: 4:3 }` for a README or a document, `16:9` for a slide. When the automatic layout puts something in the wrong place, steer it instead of fighting it: `rank: first` or `last` (or a layer number) on a node, `align: <node>` to line two nodes up across the flow, `cols: 2` on a group to grid its children. A hint that cannot be honored is reported as DG219 with the reason.
@@ -94,7 +94,7 @@ Follow this order. Write the spec early and let the validator steer; do not plan
 
 | Format | Use for |
 | --- | --- |
-| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Animated by default: one story plays along the edges in order (`animate: none` or `--static` for a still file). The default `stage` skin draws it as an animated scene in one tint (icons in a muted share of their own color, mono caps labels, one story along the edges), dark unless `theme: light`; use `skin: classic` (or `--skin classic`) for vendor architecture docs that must follow the vendor's own deck, colors and icons. |
+| `svg` | READMEs, docs sites, wikis. Self-contained, scalable, with `<title>`/`<desc>` for screen readers. Still by default, in the vendors' own look. Motion: `animate: packets`. Opt-in custom look: `skin: stage` (animated scene in one tint), dark with `theme: dark`. |
 | `png` | Slides, chat, tickets, anywhere SVG is not accepted. Always a still frame. Rendered with the bundled Inter font at 3x by default (`--scale`), so it stays sharp when zoomed or projected. |
 | `drawio` | Hand-editing in diagrams.net or the VS Code Draw.io extension; every node, group and edge is an editable cell with the official icon embedded. |
 | `drawio.svg` | One file for both: the SVG picture for a README, with the draw.io model inside, so draw.io and the VS Code extension open it as an editable diagram. |

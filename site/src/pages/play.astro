@@ -71,12 +71,12 @@ const kb = (n: number) => `${Math.round(n / 1024)} KB`;
         >
       </div>
       <div class="seg" role="group" aria-label="Diagram style">
-        <button type="button" data-skin="stage" aria-pressed="true">Stage</button>
-        <button type="button" data-skin="classic" aria-pressed="false">Classic</button>
+        <button type="button" data-skin="classic" aria-pressed="true">Classic</button>
+        <button type="button" data-skin="stage" aria-pressed="false">Stage</button>
       </div>
       <div class="seg" role="group" aria-label="Diagram theme">
-        <button type="button" data-theme="dark" aria-pressed="true">Dark</button>
-        <button type="button" data-theme="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme="light" aria-pressed="true">Light</button>
+        <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
       </div>
       <div class="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
         <button id="share" type="button" class="btn btn-ghost !min-h-11 flex-1 !px-4 text-sm sm:flex-none">
@@ -152,7 +152,7 @@ const kb = (n: number) => `${Math.round(n / 1024)} KB`;
           <button id="zoom" type="button" class="chip min-h-8 hover:text-ink" aria-pressed="false" title="Fit the panel or show at 100%">Fit</button>
         </header>
         <div id="progress" class="progress" aria-hidden="true"><span></span></div>
-        <div id="preview" class="preview" data-theme="dark">
+        <div id="preview" class="preview" data-theme="light">
           <div id="stage" class="stage" data-fit="1">
             <p class="m-auto self-center p-8 text-center font-mono text-xs text-faint">Loading the renderer</p>
           </div>
@@ -553,7 +553,7 @@ const kb = (n: number) => `${Math.round(n / 1024)} KB`;
       transition: background-color 320ms var(--ease-out-quint);
     }
     .preview[data-theme="light"] {
-      background: #eef2f6;
+      background: #ffffff;
     }
     .stage {
       display: flex;

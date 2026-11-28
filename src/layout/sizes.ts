@@ -39,4 +39,4 @@ export const ELK_BUDGET = 150;
 
 /** The spec's animate mode, else the skin's: relay for stage, packets for classic. */
 export const animateOf = (model: Pick<Model, "animate" | "skin">): AnimateMode =>
-  model.animate ?? (model.skin === "stage" ? "relay" : "packets");
+  model.animate ?? (model.skin === "stage" ? "relay" : "none");

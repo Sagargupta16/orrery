@@ -101,22 +101,6 @@ export function clusters<T>(list: T[], span: (t: T) => [number, number]): T[][] 
   return out;
 }
 
-export function dropStraight(points: Point[]): Point[] {
-  const out: Point[] = [];
-  for (const p of points) {
-    const last = out[out.length - 1];
-    const prev = out[out.length - 2];
-    if (last && Math.abs(last.x - p.x) < 0.01 && Math.abs(last.y - p.y) < 0.01) continue;
-    if (prev && last) {
-      const cross = (last.x - prev.x) * (p.y - prev.y) - (last.y - prev.y) * (p.x - prev.x);
-      const ahead = (last.x - prev.x) * (p.x - last.x) + (last.y - prev.y) * (p.y - last.y) >= 0;
-      if (Math.abs(cross) < 0.01 && ahead) out.pop();
-    }
-    out.push(p);
-  }
-  return out.length >= 2 ? out : points;
-}
-
 // ---------------------------------------------------------------- bands
 
 export interface Band {

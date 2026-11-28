@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Every rendered file the repo commits comes from here: the examples gallery (examples/) and the
-// README art (docs/). SVGs are animated (the default); PNGs are still frames. `--check` renders into a temporary folder and fails when a committed file
+// README art (docs/). SVGs are still unless a spec asks for animate (or the stage skin); PNGs are still frames. `--check` renders into a temporary folder and fails when a committed file
 // differs, so the pictures always match the current renderer.
 //
 //   node scripts/gallery.mjs           re-render everything
@@ -24,10 +24,10 @@ function jobs() {
     .filter((x) => /\.ya?ml$/.test(x))
     .sort()) {
     const name = f.replace(/\.ya?ml$/, "");
-    // Dark is the default theme; a spec that asks for light gets light.
-    const theme = /^theme: light/m.test(readFileSync(join(examplesDir, f), "utf8"))
-      ? "light"
-      : "dark";
+    // Light is the default theme; a spec that asks for dark gets dark.
+    const theme = /^theme: dark/m.test(readFileSync(join(examplesDir, f), "utf8"))
+      ? "dark"
+      : "light";
     list.push({
       spec: join(examplesDir, f),
       base: `examples/${name}`,
@@ -63,7 +63,8 @@ const render = (job) =>
     execFile(
       process.execPath,
       [cli, "render", job.spec, "-o", base, ...job.args],
-      { encoding: "utf8" },
+      // wasm always, so the PNG bytes do not depend on whether the native rasterizer is installed.
+      { encoding: "utf8", env: { ...process.env, ORRERY_RESVG: "wasm" } },
       (err, stdout, stderr) => done({ status: err ? (err.code ?? 1) : 0, stdout, stderr }),
     );
   });

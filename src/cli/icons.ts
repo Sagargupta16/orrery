@@ -169,7 +169,7 @@ async function iconShow(args: Args, rest: string[]) {
     process.exitCode = 1;
     return;
   }
-  const theme = (args.flags.theme === "light" ? "light" : "dark") as ThemeName;
+  const theme = (args.flags.theme === "dark" ? "dark" : "light") as ThemeName;
   const t = THEME_TOKENS[theme];
   await loadIconLibraries([info.id]);
   const r = renderIcon(info.id, "s", { theme, background: t.background, ink: t.text });

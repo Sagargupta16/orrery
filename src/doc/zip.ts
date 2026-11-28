@@ -1,18 +1,6 @@
 // A small zip writer for the Word file: deflated or stored entries, one central directory.
 import { deflateRawSync } from "node:zlib";
-
-const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
-  let c = n;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-
-/** zlib.crc32 arrived in Node 22.2; the table keeps 22.0 and 22.1 working. */
-function crc32(data: Uint8Array): number {
-  let c = 0xffffffff;
-  for (const byte of data) c = (CRC_TABLE[(c ^ byte) & 0xff] ?? 0) ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
+import { crc32 } from "../render/embed.ts";
 
 /** 1980-01-01 00:00 in DOS form, so the same document always zips to the same bytes. */
 const DOS_DATE = (1 << 5) | 1;

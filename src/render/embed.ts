@@ -168,7 +168,7 @@ const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
 });
 
 /** zlib.crc32 arrived in Node 22.2; the table keeps 22.0 and 22.1 working. */
-function crc32(data: Uint8Array): number {
+export function crc32(data: Uint8Array): number {
   let c = 0xffffffff;
   for (const byte of data) c = (CRC_TABLE[(c ^ byte) & 0xff] ?? 0) ^ (c >>> 8);
   return (c ^ 0xffffffff) >>> 0;

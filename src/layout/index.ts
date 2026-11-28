@@ -13,7 +13,7 @@ import { layoutGridded } from "./hints.ts";
 
 export type { LayoutOptions } from "./context.ts";
 export { fitIcons } from "./nodes.ts";
-export { animateOf, SIZES } from "./sizes.ts";
+export { animateOf } from "./sizes.ts";
 
 export async function layout(model: Model, opts: LayoutOptions = {}): Promise<Scene> {
   return model.aspect === undefined ? layoutGridded(model, opts) : layoutToAspect(model, opts);

@@ -65,6 +65,8 @@ const manifest = {
   ],
   bin: { orrery: "scripts/orrery.mjs" },
   engines: pkg.engines,
+  // Native PNG rasterizing when the platform binary installs; the bundled wasm is the fallback.
+  optionalDependencies: { "@resvg/resvg-js": pkg.devDependencies["@resvg/resvg-js"] },
 };
 writeFileSync(join(out, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(`staged ${manifest.name}@${manifest.version} in out/npm`);

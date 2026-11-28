@@ -93,7 +93,7 @@ function operators(s: string): { index: number; length: number; op: Op }[] {
 const hasOperator = (s: string) => operators(` ${s} `).length > 0;
 
 /** Index of the ":" that starts an edge label, skipping colons inside -[inline labels]->. */
-function labelColon(s: string): number {
+export function labelColon(s: string): number {
   let depth = 0;
   for (let i = 0; i < s.length; i++) {
     const c = s[i];

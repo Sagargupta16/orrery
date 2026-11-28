@@ -1,6 +1,6 @@
 # Example gallery
 
-77 diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The pictures here are the default `stage` skin in the dark theme; add `--skin classic` to any command below for the same layout in each vendor's own style, `--theme light` for the light theme, or switch between them on the [website gallery](https://sagargupta.online/orrery/gallery/). The previews are the SVGs themselves, so they stay sharp at any zoom and show the motion; every spec also renders a still PNG next to it.
+77 diagrams, each rendered from one spec in [skills/orrery/examples](../skills/orrery/examples). Every spec doubles as a template: `orrery init <name>` copies it to `diagram.yaml`, and `orrery init --list` prints the names. The pictures here are the default: each vendor's own diagram style on a white background, still; add `--skin stage` to any command below for the stage skin, `--theme dark` for the dark theme, `--animate packets` for motion, or switch between them on the [website gallery](https://sagargupta.online/orrery/gallery/). The previews are the SVGs themselves, so they stay sharp at any zoom; every spec also renders a PNG next to it.
 
 Run the commands from the repository root; `orrery` stands for `node skills/orrery/scripts/orrery.mjs`. `pnpm gallery` re-renders every picture here, and `node scripts/gallery.mjs --check` (run by CI) fails when a committed picture no longer matches its spec.
 
@@ -388,7 +388,7 @@ Agents on Bedrock AgentCore, resilience, security, networking, migration, contai
 
 ## Business flows
 
-The same spec format drawn as flows: `kind:` picks the notation and the layout. Each renders in the stage skin too, where a process plays as a BPMN token and a tree grows out of its root.
+The same spec format drawn as flows: `kind:` picks the notation and the layout. Each renders in the opt-in stage skin too, where a process plays as a BPMN token and a tree grows out of its root.
 
 [`flowchart-order-approval`](../skills/orrery/examples/flowchart-order-approval.yaml): an ISO 5807 flowchart (`kind: flowchart`) of order approval. Order details come in through a data parallelogram and a predefined credit check decides; a failed check asks for prepayment (a manual operation) and waits up to 48 hours (a delay), an order over the limit needs a manager's sign-off, and approved orders end with a printed invoice (a document).
 

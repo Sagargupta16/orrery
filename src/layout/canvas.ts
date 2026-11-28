@@ -3,9 +3,10 @@
 // than the drawing wraps to it, so it never widens the canvas into an empty band beside it.
 
 import { textBlock } from "../text.ts";
-import type { Box, LegendEntry, SceneLegend, TextBlock } from "../types.ts";
+import type { Box, SceneLegend, TextBlock } from "../types.ts";
 import type { Routed } from "./context.ts";
 import { round } from "./geometry.ts";
+import { placeLegend } from "./legend.ts";
 import { SIZES } from "./sizes.ts";
 
 /** The narrowest a wrapped title or subtitle gets, so a small drawing keeps readable lines. */
@@ -93,7 +94,7 @@ export function sizeCanvas(ctx: Routed): Canvas {
   height = Math.ceil(height);
   let legend: SceneLegend | undefined;
   if (model.legend?.length) {
-    legend = placeLegend(model.legend, width, height);
+    legend = placeLegend(model.legend, width, height - SIZES.pad + 12);
     width = Math.max(width, Math.ceil(legend.box.w + SIZES.pad * 2));
     height = Math.ceil(legend.box.y + legend.box.h + SIZES.pad);
   }
@@ -147,56 +148,4 @@ function shiftAll(ctx: Routed, dx: number, dy: number): void {
       y: round(p.y + dy),
     }));
   }
-}
-
-/**
- * The line-style key: one row per entry in spec order (a 28x12 sample, 8px gap, the meaning),
- * in a box under all content with its right edge on the right margin.
- */
-function placeLegend(entries: LegendEntry[], width: number, height: number): SceneLegend {
-  const P = 10;
-  // A tag row keeps its color, and its chip when the tag sets no line style.
-  const rows = entries.map((e) => ({
-    line: e.line,
-    label: textBlock(e.label, SIZES.edgeLabel, 240),
-    ...(e.color ? { color: e.color } : {}),
-    ...(e.chip ? { chip: true } : {}),
-  }));
-  const w = Math.ceil(P + 28 + 8 + Math.max(...rows.map((r) => r.label.width)) + P);
-  // Rows sit 18px apart; a wrapped meaning pushes the next row down.
-  const pitch = rows.map((r) => Math.max(18, r.label.height + 3));
-  const last = rows[rows.length - 1]?.label.height ?? 0;
-  const h = Math.ceil(P + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P);
-  // Under the content, which ends a page margin above the current bottom.
-  const box = {
-    x: Math.max(SIZES.pad, width - SIZES.pad - w),
-    y: height - SIZES.pad + 12,
-    w,
-    h,
-  };
-  let y = box.y + P;
-  const items = rows.map((r, i) => {
-    const swatch = {
-      x: box.x + P,
-      y: round(y + (r.label.lead - 12) / 2),
-      w: 28,
-      h: 12,
-    };
-    const labelBox = {
-      x: box.x + P + 36,
-      y: round(y),
-      w: round(r.label.width),
-      h: round(r.label.height),
-    };
-    y += pitch[i] ?? 18;
-    return {
-      line: r.line,
-      ...(r.color ? { color: r.color } : {}),
-      ...(r.chip ? { chip: true } : {}),
-      swatch,
-      label: r.label,
-      labelBox,
-    };
-  });
-  return { box, items };
 }

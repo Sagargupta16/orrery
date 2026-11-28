@@ -59,10 +59,10 @@ export const THEME_TOKENS: Record<ThemeName, Theme> = {
   light: {
     name: "light",
     background: "#ffffff",
-    text: "#232f3e",
+    text: "#000000",
     muted: "#5f6b7a",
     edge: "#545b64",
-    edgeLabel: "#3b4552",
+    edgeLabel: "#000000",
     surface: "#ffffff",
     border: "#c6ccd4",
     zone: "#f4f6f8",

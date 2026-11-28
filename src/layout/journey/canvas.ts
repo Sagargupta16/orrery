@@ -1,7 +1,7 @@
 // The journey canvas around the grid: title, subtitle and legend boxes, and the alt text.
 
-import { textBlock } from "../../text.ts";
-import type { Box, LegendEntry, Model, SceneLegend, TextBlock } from "../../types.ts";
+import type { Box, Model, SceneLegend, TextBlock } from "../../types.ts";
+import { placeLegend } from "../legend.ts";
 import { SIZES } from "../sizes.ts";
 import { type Card, type Grid, round } from "./grid.ts";
 import type { JourneyCurve } from "./index.ts";
@@ -36,48 +36,11 @@ export function canvasOf(grid: Grid, gridBottom: number): Canvas {
   }
   let legend: SceneLegend | undefined;
   if (model.legend?.length) {
-    legend = placeLegend(model.legend, width, height);
+    legend = placeLegend(model.legend, width, height - SIZES.pad + 12);
     width = Math.max(width, Math.ceil(legend.box.w + P * 2));
     height = Math.ceil(legend.box.y + legend.box.h + P);
   }
   return { width, height, titleBox, subtitleBox, legend };
-}
-
-/** The line-style key under the grid, right-aligned, as layout() draws it. */
-function placeLegend(entries: LegendEntry[], width: number, height: number): SceneLegend {
-  const P = 10;
-  // A tag row keeps its color, and its chip when the tag sets no line style.
-  const rows = entries.map((e) => ({
-    line: e.line,
-    label: textBlock(e.label, SIZES.edgeLabel, 240),
-    ...(e.color ? { color: e.color } : {}),
-    ...(e.chip ? { chip: true } : {}),
-  }));
-  const w = Math.ceil(P + 28 + 8 + Math.max(...rows.map((r) => r.label.width)) + P);
-  const pitch = rows.map((r) => Math.max(18, r.label.height + 3));
-  const last = rows[rows.length - 1]?.label.height ?? 0;
-  const h = Math.ceil(P + pitch.slice(0, -1).reduce((a, b) => a + b, 0) + last + P);
-  const box = { x: Math.max(SIZES.pad, width - SIZES.pad - w), y: height - SIZES.pad + 12, w, h };
-  let y = box.y + P;
-  const items = rows.map((r, i) => {
-    const swatch = { x: box.x + P, y: round(y + (r.label.lead - 12) / 2), w: 28, h: 12 };
-    const labelBox = {
-      x: box.x + P + 36,
-      y: round(y),
-      w: round(r.label.width),
-      h: round(r.label.height),
-    };
-    y += pitch[i] ?? 18;
-    return {
-      line: r.line,
-      ...(r.color ? { color: r.color } : {}),
-      ...(r.chip ? { chip: true } : {}),
-      swatch,
-      label: r.label,
-      labelBox,
-    };
-  });
-  return { box, items };
 }
 
 /** Alt text: the stages, the rows, the emotion at each stage and the links. */

@@ -239,7 +239,7 @@ describe("mcp over stdio", () => {
     expect(legacy._meta).toBeUndefined();
     const apps = await call(
       "render",
-      { spec: STARTER_TEXT, name: "starter", scale: 1, formats: ["png"] },
+      { spec: STARTER_TEXT, name: "starter", scale: 1, formats: ["png"], animate: "packets" },
       appsMeta,
     );
     expect(apps._meta).toHaveProperty(["io.modelcontextprotocol/serverInfo"]);

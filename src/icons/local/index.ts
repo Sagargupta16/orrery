@@ -15,7 +15,6 @@ export {
   ICON_RULES,
   type IconCheck,
   type IconRule,
-  MAX_COMMANDS,
   type RuleResult,
 } from "./rules.ts";
 export { starterIcon } from "./starter.ts";

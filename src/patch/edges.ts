@@ -1,6 +1,6 @@
 // The edge op: edge items read the way parseSpec reads them, matched by their ends, written back.
 import { isSeq, type ParsedNode } from "yaml";
-import { type EdgeHop, parseEdgeExpression } from "../spec/edges.ts";
+import { type EdgeHop, labelColon, parseEdgeExpression } from "../spec/edges.ts";
 import type { ArrowMode, EdgeLine } from "../types.ts";
 import { editMap } from "./ops.ts";
 import {
@@ -21,19 +21,6 @@ import {
   type View,
 } from "./text.ts";
 import { PatchError } from "./types.ts";
-
-/** Index of the ":" that starts an edge label, skipping -[inline: labels]-> (labelColon in spec.ts). */
-function labelColon(s: string): number {
-  let depth = 0;
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (c === "[") depth += 1;
-    else if (c === "]") depth = Math.max(0, depth - 1);
-    else if (c === ":" && depth === 0 && (i + 1 === s.length || /\s/.test(s[i + 1] ?? "")))
-      return i;
-  }
-  return -1;
-}
 
 interface Hop {
   from: string;

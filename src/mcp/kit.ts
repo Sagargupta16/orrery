@@ -222,5 +222,6 @@ export const THEME = {
 export const SKIN = {
   type: "string",
   enum: [...SKINS],
-  description: "classic (vendor deck look) or stage (dark product look). Default: the spec's skin.",
+  description:
+    "classic (vendor deck look) or stage (dark product look). Default: the spec's skin, else classic.",
 };
